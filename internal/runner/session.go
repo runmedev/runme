@@ -3,10 +3,10 @@ package runner
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 
 	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 
 	"github.com/runmedev/runme/v3/internal/lru"
 	"github.com/runmedev/runme/v3/internal/owl"
