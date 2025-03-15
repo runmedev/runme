@@ -22,6 +22,10 @@ import (
 	"github.com/stateful/runme/v3/pkg/project"
 )
 
+type ResponseSender interface {
+	Send(*runnerv2.ExecuteResponse) error
+}
+
 var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 
 func matchesOpinionatedEnvVarNaming(knownName string) bool {
@@ -121,7 +125,7 @@ func (e *execution) storeOutputInEnv(ctx context.Context, r io.Reader) {
 	}
 }
 
-func (e *execution) Wait(ctx context.Context, sender runnerv2.RunnerService_ExecuteServer) (int, error) {
+func (e *execution) Wait(ctx context.Context, sender ResponseSender) (int, error) {
 	envStdout := io.Discard
 	if e.storeStdoutInEnv {
 		b := rbuffer.NewRingBuffer(session.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
@@ -215,7 +219,7 @@ finalWait:
 }
 
 func (e *execution) readSendLoop(
-	sender runnerv2.RunnerService_ExecuteServer,
+	sender ResponseSender,
 	src io.Reader,
 	cb func([]byte) *runnerv2.ExecuteResponse,
 	logger *zap.Logger,
@@ -289,6 +293,25 @@ func (e *execution) Write(p []byte) (int, error) {
 	return n, errors.WithStack(err)
 }
 
+// WriteAndClose writes the data and then closes the stdin writer for the command.
+func (e *execution) WriteAndClose(p []byte) (int, error) {
+	n, err := e.stdinW.Write(p)
+
+	e.logger.Debug("wrote to stdin", zap.Int("payload", len(p)), zap.Int("n", n), zap.Error(err))
+
+	// Close stdin writer for non-interactive commands after handling the initial request.
+	// Non-interactive commands do not support sending data continuously and require that
+	// the stdin writer to be closed to finish processing the input.
+	if closeErr := e.stdinW.Close(); closeErr != nil {
+		e.logger.Info("failed to close native command stdin writer", zap.Error(closeErr))
+		if err == nil {
+			err = closeErr
+		}
+	}
+
+	return n, errors.WithStack(err)
+}
+
 func (e *execution) SetWinsize(size *runnerv2.Winsize) error {
 	if size == nil {
 		return nil
@@ -339,4 +362,19 @@ func exitCodeFromErr(err error) int {
 		return exiterr.ExitCode()
 	}
 	return -1
+}
+
+// ExecuteOneShotSender implements ResponseSender but ships out the data as ExecuteOneShotResponse
+type ExecuteOneShotSender struct {
+	Sender runnerv2.RunnerService_ExecuteOneShotServer
+}
+
+func (s *ExecuteOneShotSender) Send(resp *runnerv2.ExecuteResponse) error {
+	return s.Sender.Send(&runnerv2.ExecuteOneShotResponse{
+		StdoutData: resp.StdoutData,
+		StderrData: resp.StderrData,
+		MimeType:   resp.MimeType,
+		ExitCode:   resp.ExitCode,
+		Pid:        resp.Pid,
+	})
 }

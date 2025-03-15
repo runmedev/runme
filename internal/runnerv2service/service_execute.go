@@ -140,22 +140,9 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	return waitErr
 }
 
-func (r *runnerService) ExecuteOneShot(srv runnerv2.RunnerService_ExecuteOneShotServer) error {
+func (r *runnerService) ExecuteOneShot(req *runnerv2.ExecuteOneShotRequest, srv runnerv2.RunnerService_ExecuteOneShotServer) error {
 	runID := ulid.GenerateID()
 	logger := r.logger.Named("Execute").With(zap.String("id", runID))
-
-	// Get the initial request.
-	req := &runnerv2.ExecuteOneShotRequest{}
-	if err := srv.RecvMsg(req); err != nil {
-		if errors.Is(err, io.EOF) {
-			logger.Info("client closed the connection while getting initial request; exiting")
-			return nil
-		}
-		logger.Info("failed to receive a request", zap.Error(err))
-		return errors.WithStack(err)
-	}
-	logger.Info("received request", zap.Any("req", req))
-
 	execInfo := getExecutionInfoFromOneShotExecutionRequest(req)
 	execInfo.RunID = runID
 
@@ -208,10 +195,15 @@ func (r *runnerService) ExecuteOneShot(srv runnerv2.RunnerService_ExecuteOneShot
 		logger.Info("failed to set winsize; ignoring", zap.Error(err))
 	}
 
-	if _, err := exec.Write(req.InputData); err != nil {
+	if _, err := exec.WriteAndClose(req.InputData); err != nil {
 		logger.Info("failed to write to stdin; ignoring", zap.Error(err))
 	}
-	exitCode, waitErr := exec.Wait(ctx, srv)
+
+	sender := &ExecuteOneShotSender{
+		Sender: srv,
+	}
+
+	exitCode, waitErr := exec.Wait(ctx, sender)
 	logger.Info("command finished", zap.Int("exitCode", exitCode), zap.Error(waitErr))
 
 	var finalExitCode *wrapperspb.UInt32Value
@@ -219,7 +211,7 @@ func (r *runnerService) ExecuteOneShot(srv runnerv2.RunnerService_ExecuteOneShot
 		finalExitCode = wrapperspb.UInt32(uint32(exitCode))
 	}
 
-	if err := srv.Send(&runnerv2.ExecuteResponse{
+	if err := srv.Send(&runnerv2.ExecuteOneShotResponse{
 		ExitCode: finalExitCode,
 	}); err != nil {
 		logger.Info("failed to send exit code", zap.Error(err))
