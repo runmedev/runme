@@ -836,6 +836,236 @@ export declare type ExecuteResponseJson = {
 export declare const ExecuteResponseSchema: GenMessage<ExecuteResponse, ExecuteResponseJson>;
 
 /**
+ * @generated from message runme.runner.v2.ExecuteOneShotRequest
+ */
+export declare type ExecuteOneShotRequest = Message<"runme.runner.v2.ExecuteOneShotRequest"> & {
+  /**
+   * @generated from field: runme.runner.v2.ProgramConfig config = 1;
+   */
+  config?: ProgramConfig;
+
+  /**
+   * input_data is a byte array that will be send as input
+   * to the program.
+   *
+   * @generated from field: bytes input_data = 8;
+   */
+  inputData: Uint8Array;
+
+  /**
+   * stop requests the running process to be stopped.
+   * It is allowed only in the consecutive calls.
+   *
+   * @generated from field: runme.runner.v2.ExecuteStop stop = 9;
+   */
+  stop: ExecuteStop;
+
+  /**
+   * sets pty winsize
+   * has no effect in non-interactive mode
+   *
+   * @generated from field: optional runme.runner.v2.Winsize winsize = 10;
+   */
+  winsize?: Winsize;
+
+  /**
+   * session_id indicates in which Session the program should execute.
+   * Executing in a Session might provide additional context like
+   * environment variables.
+   *
+   * @generated from field: string session_id = 20;
+   */
+  sessionId: string;
+
+  /**
+   * session_strategy is a strategy for selecting the session.
+   *
+   * @generated from field: runme.runner.v2.SessionStrategy session_strategy = 21;
+   */
+  sessionStrategy: SessionStrategy;
+
+  /**
+   * project used to load environment variables from .env files.
+   *
+   * @generated from field: optional runme.runner.v2.Project project = 22;
+   */
+  project?: Project;
+
+  /**
+   * store_stdout_in_env, if true, will store the stdout under well known name
+   * and the last ran block in the environment variable `__`.
+   *
+   * @generated from field: bool store_stdout_in_env = 23;
+   */
+  storeStdoutInEnv: boolean;
+};
+
+/**
+ * @generated from message runme.runner.v2.ExecuteOneShotRequest
+ */
+export declare type ExecuteOneShotRequestJson = {
+  /**
+   * @generated from field: runme.runner.v2.ProgramConfig config = 1;
+   */
+  config?: ProgramConfigJson;
+
+  /**
+   * input_data is a byte array that will be send as input
+   * to the program.
+   *
+   * @generated from field: bytes input_data = 8;
+   */
+  inputData?: string;
+
+  /**
+   * stop requests the running process to be stopped.
+   * It is allowed only in the consecutive calls.
+   *
+   * @generated from field: runme.runner.v2.ExecuteStop stop = 9;
+   */
+  stop?: ExecuteStopJson;
+
+  /**
+   * sets pty winsize
+   * has no effect in non-interactive mode
+   *
+   * @generated from field: optional runme.runner.v2.Winsize winsize = 10;
+   */
+  winsize?: WinsizeJson;
+
+  /**
+   * session_id indicates in which Session the program should execute.
+   * Executing in a Session might provide additional context like
+   * environment variables.
+   *
+   * @generated from field: string session_id = 20;
+   */
+  sessionId?: string;
+
+  /**
+   * session_strategy is a strategy for selecting the session.
+   *
+   * @generated from field: runme.runner.v2.SessionStrategy session_strategy = 21;
+   */
+  sessionStrategy?: SessionStrategyJson;
+
+  /**
+   * project used to load environment variables from .env files.
+   *
+   * @generated from field: optional runme.runner.v2.Project project = 22;
+   */
+  project?: ProjectJson;
+
+  /**
+   * store_stdout_in_env, if true, will store the stdout under well known name
+   * and the last ran block in the environment variable `__`.
+   *
+   * @generated from field: bool store_stdout_in_env = 23;
+   */
+  storeStdoutInEnv?: boolean;
+};
+
+/**
+ * Describes the message runme.runner.v2.ExecuteOneShotRequest.
+ * Use `create(ExecuteOneShotRequestSchema)` to create a new message.
+ */
+export declare const ExecuteOneShotRequestSchema: GenMessage<ExecuteOneShotRequest, ExecuteOneShotRequestJson>;
+
+/**
+ * @generated from message runme.runner.v2.ExecuteOneShotResponse
+ */
+export declare type ExecuteOneShotResponse = Message<"runme.runner.v2.ExecuteOneShotResponse"> & {
+  /**
+   * exit_code is sent only in the final message.
+   *
+   * @generated from field: google.protobuf.UInt32Value exit_code = 1;
+   */
+  exitCode?: number;
+
+  /**
+   * stdout_data contains bytes from stdout since the last response.
+   *
+   * @generated from field: bytes stdout_data = 2;
+   */
+  stdoutData: Uint8Array;
+
+  /**
+   * stderr_data contains bytes from stderr since the last response.
+   *
+   * @generated from field: bytes stderr_data = 3;
+   */
+  stderrData: Uint8Array;
+
+  /**
+   * pid contains the process' PID.
+   *
+   * This is only sent once in an initial response for background processes.
+   *
+   * @generated from field: google.protobuf.UInt32Value pid = 4;
+   */
+  pid?: number;
+
+  /**
+   * mime_type is a detected MIME type of the stdout_data.
+   *
+   * This is only sent once in the first response containing stdout_data.
+   *
+   * @generated from field: string mime_type = 5;
+   */
+  mimeType: string;
+};
+
+/**
+ * @generated from message runme.runner.v2.ExecuteOneShotResponse
+ */
+export declare type ExecuteOneShotResponseJson = {
+  /**
+   * exit_code is sent only in the final message.
+   *
+   * @generated from field: google.protobuf.UInt32Value exit_code = 1;
+   */
+  exitCode?: UInt32ValueJson;
+
+  /**
+   * stdout_data contains bytes from stdout since the last response.
+   *
+   * @generated from field: bytes stdout_data = 2;
+   */
+  stdoutData?: string;
+
+  /**
+   * stderr_data contains bytes from stderr since the last response.
+   *
+   * @generated from field: bytes stderr_data = 3;
+   */
+  stderrData?: string;
+
+  /**
+   * pid contains the process' PID.
+   *
+   * This is only sent once in an initial response for background processes.
+   *
+   * @generated from field: google.protobuf.UInt32Value pid = 4;
+   */
+  pid?: UInt32ValueJson;
+
+  /**
+   * mime_type is a detected MIME type of the stdout_data.
+   *
+   * This is only sent once in the first response containing stdout_data.
+   *
+   * @generated from field: string mime_type = 5;
+   */
+  mimeType?: string;
+};
+
+/**
+ * Describes the message runme.runner.v2.ExecuteOneShotResponse.
+ * Use `create(ExecuteOneShotResponseSchema)` to create a new message.
+ */
+export declare const ExecuteOneShotResponseSchema: GenMessage<ExecuteOneShotResponse, ExecuteOneShotResponseJson>;
+
+/**
  * @generated from message runme.runner.v2.ResolveProgramCommandList
  */
 export declare type ResolveProgramCommandList = Message<"runme.runner.v2.ResolveProgramCommandList"> & {
@@ -1775,6 +2005,20 @@ export declare const RunnerService: GenService<{
     methodKind: "bidi_streaming";
     input: typeof ExecuteRequestSchema;
     output: typeof ExecuteResponseSchema;
+  },
+  /**
+   * Execute executes a program in OneShot. Examine "ExecuteRequest" to explore
+   * configuration options.
+   *
+   * Client sends a single message containing the program to execute. Server
+   * streams back the output of the program.
+   *
+   * @generated from rpc runme.runner.v2.RunnerService.ExecuteOneShot
+   */
+  executeOneShot: {
+    methodKind: "server_streaming";
+    input: typeof ExecuteOneShotRequestSchema;
+    output: typeof ExecuteOneShotResponseSchema;
   },
   /**
    * ResolveProgram resolves variables from a script or a list of commands
