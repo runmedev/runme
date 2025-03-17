@@ -17,16 +17,9 @@ plugins:
     opt: output_javascript,optimize_code_size,long_type_string,add_pb_suffix,ts_nocheck,eslint_disable
 
   # https://buf.build/bufbuild/es?version=v2.2.3
-  - remote: buf.build/bufbuild/es:v2.2.3    
-    out: pkg/api/gen/proto/es
-    opt: target=js,import_extension=none,json_types=true
-    include_imports: true
-  
-  # N.B. Without the dts rule we don't have .d.ts files which I think might be needed in VSCode to determine the types.
   - remote: buf.build/bufbuild/es:v2.2.3
-    # out/es    
-    out: pkg/api/gen/proto/es    
-    opt: target=dts,import_extension=none,json_types=true
+    out: pkg/api/gen/proto/es
+    opt: target=js+dts,import_extension=none,json_types=true
     include_imports: true
 
   # Local plugin to generate GQL schema
