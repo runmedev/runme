@@ -100,7 +100,7 @@ func LoadOrGenerateConfig(certFile, keyFile string, logger *zap.Logger) (*tls.Co
 		}
 		logger.Warn("failed to validate TLS config; generating new cartificate", zap.Error(err))
 	} else {
-		logger.Info("certificate not found; generating new certificate")
+		logger.Info("certificate not found; generating new certificate", zap.String("keyfile", keyFile), zap.String("certfile", certFile))
 	}
 
 	return generateCertificate(certFile, keyFile)
