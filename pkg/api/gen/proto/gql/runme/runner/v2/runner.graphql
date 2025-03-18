@@ -95,6 +95,81 @@ type CreateSessionResponse {
 input DeleteSessionRequestInput {
 	id: String
 }
+input ExecuteOneShotRequestInput {
+	config: ProgramConfigInput
+	"""
+	 input_data is a byte array that will be send as input
+	 to the program.
+
+	"""
+	inputData: Bytes
+	"""
+	 stop requests the running process to be stopped.
+	 It is allowed only in the consecutive calls.
+
+	"""
+	stop: ExecuteStop
+	"""
+	 sets pty winsize
+	 has no effect in non-interactive mode
+
+	"""
+	winsize: WinsizeInput
+	"""
+	 session_id indicates in which Session the program should execute.
+	 Executing in a Session might provide additional context like
+	 environment variables.
+
+	"""
+	sessionId: String
+	"""
+	 session_strategy is a strategy for selecting the session.
+
+	"""
+	sessionStrategy: SessionStrategy
+	"""
+	 project used to load environment variables from .env files.
+
+	"""
+	project: ProjectInput
+	"""
+	 store_stdout_in_env, if true, will store the stdout under well known name
+	 and the last ran block in the environment variable `__`.
+
+	"""
+	storeStdoutInEnv: Boolean
+}
+type ExecuteOneShotResponse {
+	"""
+	 exit_code is sent only in the final message.
+
+	"""
+	exitCode: UInt32Value
+	"""
+	 stdout_data contains bytes from stdout since the last response.
+
+	"""
+	stdoutData: Bytes
+	"""
+	 stderr_data contains bytes from stderr since the last response.
+
+	"""
+	stderrData: Bytes
+	"""
+	 pid contains the process' PID.
+
+	 This is only sent once in an initial response for background processes.
+
+	"""
+	pid: UInt32Value
+	"""
+	 mime_type is a detected MIME type of the stdout_data.
+
+	 This is only sent once in the first response containing stdout_data.
+
+	"""
+	mimeType: String
+}
 input ExecuteRequestInput {
 	config: ProgramConfigInput
 	"""
@@ -621,6 +696,15 @@ type Subscription {
 
 	"""
 	runnerServiceExecute(in: ExecuteRequestInput): ExecuteResponse
+	"""
+	 Execute executes a program in OneShot. Examine "ExecuteRequest" to explore
+	 configuration options.
+
+	 Client sends a single message containing the program to execute. Server
+	 streams back the output of the program.
+
+	"""
+	runnerServiceExecuteOneShot(in: ExecuteOneShotRequestInput): ExecuteOneShotResponse
 }
 """
  Wrapper message for `uint32`.

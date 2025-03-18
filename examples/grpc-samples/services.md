@@ -49,8 +49,8 @@ $ grpcurl \
 
 List all runner services.
 
-```sh {"id":"01HNGQNYYWKP635FT8GHE67476","promptEnv":"false"}
-export VERSION="v1" # there's also v2alpha1
+```sh {"id":"01HNGQNYYWKP635FT8GHE67476","promptEnv":"auto"}
+export VERSION="v1" # there's also v2
 $ grpcurl \
     -cacert $RUNME_TLS_DIR/cert.pem \
     -cert $RUNME_TLS_DIR/cert.pem \
@@ -98,4 +98,14 @@ $ grpcurl \
     -cert $RUNME_TLS_DIR/cert.pem \
     -key $RUNME_TLS_DIR/key.pem \
     -d @ $RUNME_SERVER_ADDR runme.runner.v1.RunnerService/ResolveProgram < complex-script.json
+```
+
+### Script one-shot
+
+```sh
+$ grpcurl \
+    -cacert $RUNME_TLS_DIR/cert.pem \
+    -cert $RUNME_TLS_DIR/cert.pem \
+    -key $RUNME_TLS_DIR/key.pem \
+    -d @ $RUNME_SERVER_ADDR runme.runner.v2.RunnerService/ExecuteOneShot < run-program-oneshot.json
 ```

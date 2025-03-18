@@ -140,7 +140,95 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	return waitErr
 }
 
+func (r *runnerService) ExecuteOneShot(req *runnerv2.ExecuteOneShotRequest, srv runnerv2.RunnerService_ExecuteOneShotServer) error {
+	runID := ulid.GenerateID()
+	logger := r.logger.Named("Execute").With(zap.String("id", runID))
+	execInfo := getExecutionInfoFromOneShotExecutionRequest(req)
+	execInfo.RunID = runID
+
+	ctx := rcontext.WithExecutionInfo(srv.Context(), execInfo)
+
+	// Load the project.
+	// TODO(adamb): this should come from the runme.yaml in the future.
+	proj, err := convertProtoProjectToProject(req.GetProject())
+	if err != nil {
+		return err
+	}
+
+	// Manage the session.
+	session, existed, err := r.getOrCreateSessionFromRequest(req, proj)
+	if err != nil {
+		return err
+	}
+	if !existed {
+		err := r.sessions.Add(session)
+		if err != nil {
+			return err
+		}
+	}
+	if err := session.SetEnv(ctx, req.Config.Env...); err != nil {
+		return err
+	}
+
+	exec, err := newExecution(
+		req.Config,
+		proj,
+		session,
+		logger,
+		req.StoreStdoutInEnv,
+	)
+	if err != nil {
+		return err
+	}
+
+	// Start the command and send the initial response with PID.
+	if err := exec.Cmd.Start(ctx); err != nil {
+		return err
+	}
+	if err := srv.Send(&runnerv2.ExecuteOneShotResponse{
+		Pid: &wrapperspb.UInt32Value{Value: uint32(exec.Cmd.Pid())},
+	}); err != nil {
+		return err
+	}
+
+	if err := exec.SetWinsize(req.Winsize); err != nil {
+		logger.Info("failed to set winsize; ignoring", zap.Error(err))
+	}
+
+	if _, err := exec.WriteAndClose(req.InputData); err != nil {
+		logger.Info("failed to write to stdin; ignoring", zap.Error(err))
+	}
+
+	sender := &ExecuteOneShotSender{
+		Sender: srv,
+	}
+
+	exitCode, waitErr := exec.Wait(ctx, sender)
+	logger.Info("command finished", zap.Int("exitCode", exitCode), zap.Error(waitErr))
+
+	var finalExitCode *wrapperspb.UInt32Value
+	if exitCode > -1 {
+		finalExitCode = wrapperspb.UInt32(uint32(exitCode))
+	}
+
+	if err := srv.Send(&runnerv2.ExecuteOneShotResponse{
+		ExitCode: finalExitCode,
+	}); err != nil {
+		logger.Info("failed to send exit code", zap.Error(err))
+	}
+
+	return waitErr
+}
+
 func getExecutionInfoFromExecutionRequest(req *runnerv2.ExecuteRequest) *rcontext.ExecutionInfo {
+	return &rcontext.ExecutionInfo{
+		ExecContext: "Execute",
+		KnownID:     req.GetConfig().GetKnownId(),
+		KnownName:   req.GetConfig().GetKnownName(),
+	}
+}
+
+func getExecutionInfoFromOneShotExecutionRequest(req *runnerv2.ExecuteOneShotRequest) *rcontext.ExecutionInfo {
 	return &rcontext.ExecutionInfo{
 		ExecContext: "Execute",
 		KnownID:     req.GetConfig().GetKnownId(),
