@@ -54,12 +54,17 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 			return err
 		}
 	}
-	if err := session.SetEnv(ctx, req.Config.Env...); err != nil {
+
+	cfg := req.GetConfig()
+	if cfg == nil {
+		return errors.New("request config cannot be nil")
+	}
+	if err := session.SetEnv(ctx, cfg.GetEnv()...); err != nil {
 		return err
 	}
 
 	exec, err := newExecution(
-		req.Config,
+		cfg,
 		proj,
 		session,
 		logger,
@@ -166,12 +171,17 @@ func (r *runnerService) ExecuteOneShot(req *runnerv2.ExecuteOneShotRequest, srv 
 			return err
 		}
 	}
-	if err := session.SetEnv(ctx, req.Config.Env...); err != nil {
+
+	cfg := req.GetConfig()
+	if cfg == nil {
+		return errors.New("request config cannot be nil")
+	}
+	if err := session.SetEnv(ctx, cfg.GetEnv()...); err != nil {
 		return err
 	}
 
 	exec, err := newExecution(
-		req.Config,
+		cfg,
 		proj,
 		session,
 		logger,

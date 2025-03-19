@@ -59,6 +59,28 @@ func Test_matchesOpinionatedEnvVarNaming(t *testing.T) {
 	})
 }
 
+func TestRunnerServiceServerExecute_EmptyConfigErrors(t *testing.T) {
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
+	t.Cleanup(stop)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
+
+	stream, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	err = stream.Send(
+		&runnerv2.ExecuteRequest{},
+	)
+	require.NoError(t, err)
+
+	// Assert error response.
+	resp, err := stream.Recv()
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+}
+
 func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	t.Parallel()
 
@@ -131,6 +153,24 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(0), resp.GetExitCode().GetValue())
 	assert.Nil(t, resp.GetPid())
+}
+
+func TestRunnerServiceServerExecuteOneShot_EmptyConfigErrors(t *testing.T) {
+	t.Parallel()
+
+	lis, stop := startRunnerServiceServer(t)
+	t.Cleanup(stop)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
+
+	req := &runnerv2.ExecuteOneShotRequest{}
+	stream, err := client.ExecuteOneShot(context.Background(), req)
+	require.NoError(t, err)
+
+	// Assert error response.
+	resp, err := stream.Recv()
+	assert.Error(t, err)
+	assert.Nil(t, resp)
 }
 
 func TestRunnerServiceServerExecuteOneShot_Response(t *testing.T) {
