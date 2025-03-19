@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/runmedev/runme/v3/pkg/document"
 	"github.com/runmedev/runme/v3/pkg/document/editor/editorservice"
 )
+
+var validShellFunctionNameRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 type NotebookResolver struct {
 	notebook *parserv1.Notebook
@@ -101,6 +104,15 @@ func (r *NotebookResolver) parseNotebook(context context.Context) (*parserv1.Not
 	return d.Notebook, nil
 }
 
+func (r *NotebookResolver) IsDaggerShellCell(notebook *parserv1.Notebook, cell *parserv1.Cell) bool {
+	// Get interpreter from cell metadata or notebook frontmatter
+	interpreter := cell.Metadata["interpreter"]
+	if interpreter == "" && notebook.GetFrontmatter() != nil {
+		interpreter = notebook.GetFrontmatter().GetShell()
+	}
+	return strings.Contains(strings.TrimSpace(interpreter), "dagger shell")
+}
+
 func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (string, error) {
 	notebook, err := r.parseNotebook(context)
 	if err != nil {
@@ -129,13 +141,18 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 	targetCell = cell
 	targetName = known
 
-	if notebook.Frontmatter == nil || !strings.Contains(strings.Trim(notebook.Frontmatter.Shell, " \t\r\n"), "dagger shell") {
+	// Return cell value directly if target cell is not dagger shell
+	if !r.IsDaggerShellCell(notebook, targetCell) {
 		return targetCell.GetValue(), nil
 	}
 
 	script := daggershell.NewScript()
 	for _, cell := range notebook.Cells {
 		if cell.GetKind() != parserv1.CellKind_CELL_KIND_CODE {
+			continue
+		}
+
+		if !r.IsDaggerShellCell(notebook, cell) {
 			continue
 		}
 
@@ -154,6 +171,10 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 		isGenerated, err := strconv.ParseBool(generated)
 		if !okName || isGenerated || err != nil {
 			known = fmt.Sprintf("DAGGER_%s", id)
+		}
+
+		if !isValidShellFunctionName(known) {
+			return "", fmt.Errorf("dagger shell integration requires cell name to be a valid shell function name, got %s", known)
 		}
 
 		snippet := cell.GetValue()
@@ -186,4 +207,8 @@ func getCellIndexByBlock(notebook *parserv1.Notebook, block *document.CodeBlock)
 	}
 
 	return blockIndex, errors.New("cell for block not found")
+}
+
+func isValidShellFunctionName(name string) bool {
+	return validShellFunctionNameRe.MatchString(name)
 }
