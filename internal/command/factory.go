@@ -298,7 +298,10 @@ func (f *commandFactory) getEnvCollector() (envCollector, error) {
 	if f.docker != nil {
 		return nil, nil
 	}
-	return NewEnvCollectorFactory().Build()
+	// HACK(jlewi): We don't want to create an envcollector as that tries to invoke the binary runme to dump
+	// environment variables and we don't currently have that functionality in our own CLI.
+	return nil, nil
+	// return NewEnvCollectorFactory().Build()
 }
 
 func (f *commandFactory) getLogger(name string) *zap.Logger {

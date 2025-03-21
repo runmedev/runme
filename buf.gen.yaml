@@ -11,6 +11,13 @@ plugins:
     out: pkg/api/gen/proto/go
     opt: paths=source_relative
 
+  # Build connectrpc for Go. While runme doesn't directly use connectrpc if runme is linked in as a library
+  # the target binary might want to expose a connectrpc service. If we try to import the generated go from
+  # the buf registry and then import runme we get namespace conflicts between the protos
+  - remote: buf.build/connectrpc/go
+    out: pkg/api/gen/proto/go
+    opt: paths=source_relative
+
   # Remote plugin. You can switch to a local one by using "timostamm-protobuf-ts".
   - remote: buf.build/community/timostamm-protobuf-ts
     out: pkg/api/gen/proto/ts
