@@ -185,7 +185,7 @@ func (e *execution) Wait(ctx context.Context, srv runnerv2.RunnerService_Execute
 
 	if waitErr != nil {
 		// Drain the readSendDone channel to avoid goroutine leaks.
-		for i := 0; i < cap(readSendDone); i++ {
+		for range cap(readSendDone) {
 			<-readSendDone
 		}
 		return exitCode, waitErr
@@ -198,7 +198,7 @@ finalWait:
 	case <-ctx.Done():
 		e.logger.Info("context done", zap.Error(ctx.Err()))
 		// Drain the readSendDone channel to avoid goroutine leaks.
-		for i := 0; i < cap(readSendDone); i++ {
+		for range cap(readSendDone) {
 			<-readSendDone
 		}
 		return exitCode, ctx.Err()
@@ -257,9 +257,10 @@ func (e *execution) readSendLoop(
 		}
 
 		readTime := time.Now()
-
 		response := cb(data[:n])
+
 		if err := srv.Send(response); err != nil {
+			logger.Warn("failed to send response", zap.Error(err))
 			return errors.WithStack(err)
 		}
 
