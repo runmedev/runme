@@ -37,8 +37,7 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 			Source: &runnerv2.ProgramConfig_Commands{
 				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
-						"export TEST_ENV=1",
-						"sleep 5",
+						"export PRE_ENV=9",
 					},
 				},
 			},
@@ -48,22 +47,47 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 		require.NoError(t, err)
 		factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
 
-		command, err := factory.Build(cfg, CommandOptions{Session: sess})
+		populateCmd, err := factory.Build(cfg, CommandOptions{Session: sess})
 		require.NoError(t, err)
-		err = command.Start(context.Background())
+		err = populateCmd.Start(context.Background())
+		require.NoError(t, err)
+		err = populateCmd.Wait(context.Background())
+		require.NoError(t, err)
+
+		pre, ok := sess.GetEnv("PRE_ENV")
+		assert.True(t, ok)
+		assert.Equal(t, "9", pre)
+
+		checkCmd, err := factory.Build(&ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
+					Items: []string{
+						"export TEST_ENV=1",
+						"sleep 5",
+					},
+				},
+			},
+			Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
+		}, CommandOptions{Session: sess})
+		require.NoError(t, err)
+		err = checkCmd.Start(context.Background())
 		require.NoError(t, err)
 
 		errC := make(chan error, 1)
 		go func() {
 			<-time.After(time.Second)
-			errC <- command.Signal(os.Kill)
+			errC <- checkCmd.Signal(os.Kill)
 		}()
 		err = <-errC
 		require.NoError(t, err)
 
-		err = command.Wait(context.Background())
+		err = checkCmd.Wait(context.Background())
 		require.EqualError(t, err, "signal: killed")
 
+		pre, ok = sess.GetEnv("PRE_ENV")
+		assert.True(t, ok)
+		assert.Equal(t, "9", pre)
 		got, ok := sess.GetEnv("TEST_ENV")
 		assert.False(t, ok)
 		assert.Equal(t, "", got)
