@@ -74,7 +74,7 @@ func (c *envCollectorFifo) init() error {
 	readData := func(path string) ([]string, error) {
 		env, err := c.read(path)
 		close(c.readersDone[path])
-		if len(env) > 0 && len(strings.Split(env[0], "=")) != 2 {
+		if len(env) > 0 && env[0] == "" && len(strings.Split(env[0], "=")) != 2 {
 			return nil, errors.New("invalid data read: env var format is incorrect")
 		}
 		return env, err
