@@ -32,7 +32,11 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 	t.Run("KillCommandWhileUsingFifo", func(t *testing.T) {
 		envCollectorUseFifo = true
 
-		cfg := &ProgramConfig{
+		sess, err := session.New()
+		require.NoError(t, err)
+		factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
+
+		populateCmd, err := factory.Build(&ProgramConfig{
 			ProgramName: "bash",
 			Source: &runnerv2.ProgramConfig_Commands{
 				Commands: &runnerv2.ProgramConfig_CommandList{
@@ -42,12 +46,7 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 				},
 			},
 			Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
-		}
-		sess, err := session.New()
-		require.NoError(t, err)
-		factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
-
-		populateCmd, err := factory.Build(cfg, CommandOptions{Session: sess})
+		}, CommandOptions{Session: sess})
 		require.NoError(t, err)
 		err = populateCmd.Start(context.Background())
 		require.NoError(t, err)
