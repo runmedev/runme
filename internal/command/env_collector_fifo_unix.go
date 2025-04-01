@@ -71,17 +71,24 @@ func (c *envCollectorFifo) init() error {
 	}
 	c.readersGroup = &errgroup.Group{}
 
+	readData := func(path string) ([]string, error) {
+		env, err := c.read(path)
+		close(c.readersDone[path])
+		if len(env) > 0 && len(strings.Split(env[0], "=")) != 2 {
+			return nil, errors.New("invalid data read: env var format is incorrect")
+		}
+		return env, err
+	}
+
 	c.readersGroup.Go(func() error {
 		var err error
-		c.preEnv, err = c.read(c.prePath())
-		close(c.readersDone[c.prePath()])
+		c.preEnv, err = readData(c.prePath())
 		return err
 	})
 
 	c.readersGroup.Go(func() error {
 		var err error
-		c.postEnv, err = c.read(c.postPath())
-		close(c.readersDone[c.postPath()])
+		c.postEnv, err = readData(c.postPath())
 		return err
 	})
 
