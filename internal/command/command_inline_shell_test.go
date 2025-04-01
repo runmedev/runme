@@ -54,6 +54,7 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 		err = populateCmd.Wait(context.Background())
 		require.NoError(t, err)
 
+		// Check that the environment variable was set
 		pre, ok := sess.GetEnv("PRE_ENV")
 		assert.True(t, ok)
 		assert.Equal(t, "9", pre)
@@ -85,6 +86,7 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 		err = checkCmd.Wait(context.Background())
 		require.EqualError(t, err, "signal: killed")
 
+		// Check that environment variable previously set is present
 		pre, ok = sess.GetEnv("PRE_ENV")
 		assert.True(t, ok)
 		assert.Equal(t, "9", pre)
