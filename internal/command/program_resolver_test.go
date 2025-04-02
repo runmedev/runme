@@ -14,19 +14,30 @@ func TestProgramResolverResolve(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		program              string
-		result               *ProgramResolverResult
+		resultFirst          *ProgramResolverResult
+		resultLast           *ProgramResolverResult
 		modifiedProgramFirst string
 		modifiedProgramLast  string
 	}{
 		{
 			name:    "no value",
 			program: `export TEST_NO_VALUE`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
 						Status: ProgramResolverStatusUnresolved,
 						Name:   "TEST_NO_VALUE",
+					},
+				},
+			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status: ProgramResolverStatusResolved,
+						Name:   "TEST_NO_VALUE",
+						Value:  "",
 					},
 				},
 			},
@@ -36,12 +47,22 @@ func TestProgramResolverResolve(t *testing.T) {
 		{
 			name:    "empty value",
 			program: `export TEST_EMPTY_VALUE=`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
 						Status: ProgramResolverStatusUnresolved,
 						Name:   "TEST_EMPTY_VALUE",
+					},
+				},
+			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status: ProgramResolverStatusResolved,
+						Name:   "TEST_EMPTY_VALUE",
+						Value:  "",
 					},
 				},
 			},
@@ -51,7 +72,7 @@ func TestProgramResolverResolve(t *testing.T) {
 		{
 			name:    "string value",
 			program: `export TEST_STRING_VALUE=value`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
@@ -61,13 +82,24 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status:        ProgramResolverStatusResolved,
+						Name:          "TEST_STRING_VALUE",
+						OriginalValue: "value",
+						Value:         "value",
+					},
+				},
+			},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_VALUE=value\n",
 		},
 		{
 			name:    "string value with equal sign",
 			program: `export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
@@ -77,18 +109,39 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status:        ProgramResolverStatusResolved,
+						Name:          "TEST_STRING_VALUE_WITH_EQUAL_SIGN",
+						OriginalValue: "part1=part2",
+						Value:         "part1=part2",
+					},
+				},
+			},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_VALUE_WITH_EQUAL_SIGN set in managed env store\n# \"export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2\"\n\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2\n",
 		},
 		{
 			name:    "string double quoted value empty",
 			program: `export TEST_STRING_DBL_QUOTED_VALUE_EMPTY=""`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
 						Status: ProgramResolverStatusUnresolved,
 						Name:   "TEST_STRING_DBL_QUOTED_VALUE_EMPTY",
+					},
+				},
+			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status: ProgramResolverStatusResolved,
+						Name:   "TEST_STRING_DBL_QUOTED_VALUE_EMPTY",
+						Value:  "",
 					},
 				},
 			},
@@ -98,7 +151,7 @@ func TestProgramResolverResolve(t *testing.T) {
 		{
 			name:    "string double quoted value",
 			program: `export TEST_STRING_DBL_QUOTED_VALUE="value"`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
@@ -108,18 +161,39 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status:        ProgramResolverStatusResolved,
+						Name:          "TEST_STRING_DBL_QUOTED_VALUE",
+						OriginalValue: "value",
+						Value:         "value",
+					},
+				},
+			},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_DBL_QUOTED_VALUE set in managed env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE=\\\"value\\\"\"\n\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_DBL_QUOTED_VALUE=\"value\"\n",
 		},
 		{
 			name:    "string single quoted value empty",
 			program: `export TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
 						Status: ProgramResolverStatusUnresolved,
 						Name:   "TEST_STRING_SGL_QUOTED_VALUE_EMPTY",
+					},
+				},
+			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status: ProgramResolverStatusResolved,
+						Name:   "TEST_STRING_SGL_QUOTED_VALUE_EMPTY",
+						Value:  "",
 					},
 				},
 			},
@@ -129,7 +203,7 @@ func TestProgramResolverResolve(t *testing.T) {
 		{
 			name:    "string single quoted value",
 			program: `export TEST_STRING_SGL_QUOTED_VALUE='value'`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
@@ -139,13 +213,24 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status:        ProgramResolverStatusResolved,
+						Name:          "TEST_STRING_SGL_QUOTED_VALUE",
+						OriginalValue: "value",
+						Value:         "value",
+					},
+				},
+			},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_SGL_QUOTED_VALUE set in managed env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE='value'\"\n\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_SGL_QUOTED_VALUE='value'\n",
 		},
 		{
 			name:    "shell-escaped prompt message",
 			program: `export TYPE=[Guest type \(hyperv,proxmox,openstack\)]`,
-			result: &ProgramResolverResult{
+			resultFirst: &ProgramResolverResult{
 				ModifiedProgram: true,
 				Variables: []ProgramResolverVarResult{
 					{
@@ -155,41 +240,57 @@ func TestProgramResolverResolve(t *testing.T) {
 					},
 				},
 			},
+			resultLast: &ProgramResolverResult{
+				ModifiedProgram: false,
+				Variables: []ProgramResolverVarResult{
+					{
+						Status:        ProgramResolverStatusResolved,
+						Name:          "TYPE",
+						OriginalValue: "[Guest type (hyperv,proxmox,openstack)]",
+						Value:         "[Guest type (hyperv,proxmox,openstack)]",
+					},
+				},
+			},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TYPE set in managed env store\n# \"export TYPE=[Guest type \\\\(hyperv,proxmox,openstack\\\\)]\"\n\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TYPE=[Guest type \\(hyperv,proxmox,openstack\\)]\n",
 		},
 		{
 			name:                 "parameter expression",
 			program:              `export TEST_PARAM_EXPR=${TEST:7:0}`,
-			result:               &ProgramResolverResult{},
+			resultFirst:          &ProgramResolverResult{},
+			resultLast:           &ProgramResolverResult{},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_PARAM_EXPR=${TEST:7:0}\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_PARAM_EXPR=${TEST:7:0}\n",
 		},
 		{
 			name:                 "arithmetic expression",
 			program:              `export TEST_ARITHM_EXPR=$(($z+3))`,
-			result:               &ProgramResolverResult{},
+			resultFirst:          &ProgramResolverResult{},
+			resultLast:           &ProgramResolverResult{},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_ARITHM_EXPR=$(($z + 3))\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_ARITHM_EXPR=$(($z + 3))\n",
 		},
 		{
 			name:                 "value expression",
 			program:              `export TEST_VALUE_EXPR=$(echo -n "value")`,
-			result:               &ProgramResolverResult{},
+			resultFirst:          &ProgramResolverResult{},
+			resultLast:           &ProgramResolverResult{},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_VALUE_EXPR=$(echo -n \"value\")\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_VALUE_EXPR=$(echo -n \"value\")\n",
 		},
 		{
 			name:                 "double quoted value expression",
 			program:              `export TEST_DBL_QUOTE_VALUE_EXPR="$(echo -n 'value')"`,
-			result:               &ProgramResolverResult{},
+			resultFirst:          &ProgramResolverResult{},
+			resultLast:           &ProgramResolverResult{},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_DBL_QUOTE_VALUE_EXPR=\"$(echo -n 'value')\"\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_DBL_QUOTE_VALUE_EXPR=\"$(echo -n 'value')\"\n",
 		},
 		{
 			name:                 "default value",
 			program:              `export TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}`,
-			result:               &ProgramResolverResult{},
+			resultFirst:          &ProgramResolverResult{},
+			resultLast:           &ProgramResolverResult{},
 			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}\n",
 			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}\n",
 		},
@@ -206,13 +307,13 @@ func TestProgramResolverResolve(t *testing.T) {
 				name:            "First",
 				strategy:        RetentionFirstRun,
 				modifiedProgram: tc.modifiedProgramFirst,
-				result:          tc.result,
+				result:          tc.resultFirst,
 			},
 			{
 				name:            "Last",
 				strategy:        RetentionLastRun,
 				modifiedProgram: tc.modifiedProgramLast,
-				result:          nil, // for last strategy variables inside result are always empty
+				result:          tc.resultLast,
 			},
 		}
 
