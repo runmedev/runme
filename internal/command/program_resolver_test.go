@@ -235,7 +235,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					ModifiedProgram: true,
 					Variables: []ProgramResolverVarResult{
 						{
-							Status: ProgramResolverStatusUnresolvedWithMessage,
+							Status: ProgramResolverStatusUnresolvedWithPlaceholder,
 							Name:   "TEST_NO_VALUE",
 						},
 					},
@@ -247,7 +247,7 @@ func TestProgramResolverResolve(t *testing.T) {
 					ModifiedProgram: true,
 					Variables: []ProgramResolverVarResult{
 						{
-							Status: ProgramResolverStatusUnresolvedWithMessage,
+							Status: ProgramResolverStatusUnresolvedWithPlaceholder,
 							Name:   "TEST_EMPTY_VALUE",
 						},
 					},
@@ -259,10 +259,10 @@ func TestProgramResolverResolve(t *testing.T) {
 					ModifiedProgram: true,
 					Variables: []ProgramResolverVarResult{
 						{
-							Status:        ProgramResolverStatusUnresolvedWithMessage,
+							Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
 							Name:          "TEST_STRING_VALUE",
 							OriginalValue: "value",
-							Value:         "",
+							Value:         "value",
 						},
 					},
 				},
@@ -276,6 +276,7 @@ func TestProgramResolverResolve(t *testing.T) {
 							Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
 							Name:          "TEST_STRING_VALUE",
 							OriginalValue: "value",
+							Value:         "value",
 						},
 					},
 				},
@@ -288,7 +289,7 @@ func TestProgramResolverResolve(t *testing.T) {
 	)
 }
 
-func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
+func TestProgramResolverResolve_ProgramResolverModeAuto_First(t *testing.T) {
 	r := NewProgramResolver(
 		ProgramResolverModeAuto,
 		[]string{},
@@ -313,6 +314,33 @@ func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
 		result,
 	)
 	require.EqualValues(t, "# Managed env store retention strategy: first\n\n#\n# MY_ENV set in managed env store\n# \"export MY_ENV=default\"\n\n", buf.String())
+}
+
+func TestProgramResolverResolve_ProgramResolverModeAuto_Last(t *testing.T) {
+	r := NewProgramResolver(
+		ProgramResolverModeAuto,
+		[]string{},
+		ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
+	)
+	buf := bytes.NewBuffer(nil)
+	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), buf, RetentionLastRun)
+	require.NoError(t, err)
+	require.EqualValues(
+		t,
+		&ProgramResolverResult{
+			ModifiedProgram: true,
+			Variables: []ProgramResolverVarResult{
+				{
+					Status:        ProgramResolverStatusResolved,
+					Name:          "MY_ENV",
+					OriginalValue: "default",
+					Value:         "default",
+				},
+			},
+		},
+		result,
+	)
+	require.EqualValues(t, "# Managed env store retention strategy: last\n\n#\n# MY_ENV set in managed env store\n# \"export MY_ENV=default\"\n\n", buf.String())
 }
 
 func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {

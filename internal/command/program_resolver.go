@@ -146,9 +146,14 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, retention 
 		}
 
 		name := decl.Args[0].Name.Value
+		isSensitive := r.IsEnvSensitive(name)
 		originalValue, isPlaceholder := r.findOriginalValue(decl)
 		resolvedValue, hasResolvedValue := r.findEnvValue(name)
-		isSensitive := r.IsEnvSensitive(name)
+
+		if retention == RetentionLastRun {
+			resolvedValue = originalValue
+			hasResolvedValue = true
+		}
 
 		varResult := ProgramResolverVarResult{
 			Status:        ProgramResolverStatusUnresolved,
