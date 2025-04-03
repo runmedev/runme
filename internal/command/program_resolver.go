@@ -24,6 +24,8 @@ const (
 	ProgramResolverModeSkipAll
 )
 
+const DefaultProgramResolverMode = ProgramResolverModeAuto
+
 type ProgramResolverSource func() []string
 
 func ProgramResolverSourceFunc(env []string) ProgramResolverSource {
@@ -125,7 +127,8 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, retention 
 
 	var decls []*syntax.DeclClause
 	modified := false
-	if retention != RetentionLastRun {
+	// If retention is last run or mode is not prompt all, don't walk the AST and leave the program untouched
+	if retention != RetentionLastRun || r.mode == ProgramResolverModePromptAll {
 		decls, modified, err = r.walk(f)
 		if err != nil {
 			return nil, err
@@ -142,9 +145,14 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, retention 
 		}
 
 		name := decl.Args[0].Name.Value
+		isSensitive := r.IsEnvSensitive(name)
 		originalValue, isPlaceholder := r.findOriginalValue(decl)
 		resolvedValue, hasResolvedValue := r.findEnvValue(name)
-		isSensitive := r.IsEnvSensitive(name)
+
+		if retention == RetentionLastRun {
+			resolvedValue = originalValue
+			hasResolvedValue = true
+		}
 
 		varResult := ProgramResolverVarResult{
 			Status:        ProgramResolverStatusUnresolved,
@@ -175,7 +183,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, retention 
 			if !hasResolvedValue {
 				varResult.Value = originalValue
 			}
-		default:
+		case ProgramResolverModeAuto:
 			if hasResolvedValue {
 				varResult.Status = ProgramResolverStatusResolved
 			} else if isSensitive {

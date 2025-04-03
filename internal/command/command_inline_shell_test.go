@@ -32,7 +32,33 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 	t.Run("KillCommandWhileUsingFifo", func(t *testing.T) {
 		envCollectorUseFifo = true
 
-		cfg := &ProgramConfig{
+		sess, err := session.New()
+		require.NoError(t, err)
+		factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
+
+		populateCmd, err := factory.Build(&ProgramConfig{
+			ProgramName: "bash",
+			Source: &runnerv2.ProgramConfig_Commands{
+				Commands: &runnerv2.ProgramConfig_CommandList{
+					Items: []string{
+						"export PRE_ENV=9",
+					},
+				},
+			},
+			Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
+		}, CommandOptions{Session: sess})
+		require.NoError(t, err)
+		err = populateCmd.Start(context.Background())
+		require.NoError(t, err)
+		err = populateCmd.Wait(context.Background())
+		require.NoError(t, err)
+
+		// Check that the environment variable was set
+		pre, ok := sess.GetEnv("PRE_ENV")
+		assert.True(t, ok)
+		assert.Equal(t, "9", pre)
+
+		checkCmd, err := factory.Build(&ProgramConfig{
 			ProgramName: "bash",
 			Source: &runnerv2.ProgramConfig_Commands{
 				Commands: &runnerv2.ProgramConfig_CommandList{
@@ -43,27 +69,26 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 				},
 			},
 			Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
-		}
-		sess, err := session.New()
+		}, CommandOptions{Session: sess})
 		require.NoError(t, err)
-		factory := NewFactory(WithLogger(zaptest.NewLogger(t)))
-
-		command, err := factory.Build(cfg, CommandOptions{Session: sess})
-		require.NoError(t, err)
-		err = command.Start(context.Background())
+		err = checkCmd.Start(context.Background())
 		require.NoError(t, err)
 
 		errC := make(chan error, 1)
 		go func() {
 			<-time.After(time.Second)
-			errC <- command.Signal(os.Kill)
+			errC <- checkCmd.Signal(os.Kill)
 		}()
 		err = <-errC
 		require.NoError(t, err)
 
-		err = command.Wait(context.Background())
+		err = checkCmd.Wait(context.Background())
 		require.EqualError(t, err, "signal: killed")
 
+		// Check that environment variable previously set is present
+		pre, ok = sess.GetEnv("PRE_ENV")
+		assert.True(t, ok)
+		assert.Equal(t, "9", pre)
 		got, ok := sess.GetEnv("TEST_ENV")
 		assert.False(t, ok)
 		assert.Equal(t, "", got)

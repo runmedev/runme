@@ -1074,7 +1074,14 @@ func Test_varRetentionStrategies(t *testing.T) {
 			retention:      runnerv1.ResolveProgramRequest_RETENTION_UNSPECIFIED,
 			resolvedVars:   3,
 			resolvedScript: "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
-			expectedStdout: "bar\nfoo\n",
+			expectedStdout: "foo\nbar\n",
+		},
+		{
+			name:           "First",
+			resolvedVars:   3,
+			retention:      runnerv1.ResolveProgramRequest_RETENTION_FIRST_RUN,
+			resolvedScript: "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
+			expectedStdout: "foo\nbar\n",
 		},
 		{
 			name:           "Last",
@@ -1083,18 +1090,13 @@ func Test_varRetentionStrategies(t *testing.T) {
 			resolvedScript: "# Managed env store retention strategy: last\n\nexport VAR1=\"bar\"\necho $VAR1\nexport VAR2=\"foo\"\nexport VAR2=\"bar\"\necho $VAR2\n",
 			expectedStdout: "bar\nbar\n",
 		},
-		{
-			name:           "First",
-			resolvedVars:   3,
-			retention:      runnerv1.ResolveProgramRequest_RETENTION_FIRST_RUN,
-			resolvedScript: "# Managed env store retention strategy: first\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
-			expectedStdout: "bar\nfoo\n",
-		},
 	}
 
 	for _, tc := range testCases {
 		t.Run("Retention_"+tc.name, func(t *testing.T) {
-			s, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{})
+			s, err := client.CreateSession(context.Background(), &runnerv1.CreateSessionRequest{
+				Envs: []string{"VAR1=foo"},
+			})
 			require.NoError(t, err)
 
 			sessionID := s.Session.Id
@@ -1129,9 +1131,14 @@ func Test_varRetentionStrategies(t *testing.T) {
 			assert.Len(t, resp.Vars, tc.resolvedVars)
 
 			// prepend the resolved vars
+			var resolvedVars string
 			for _, v := range resp.GetVars() {
-				script = "export " + v.GetName() + "=" + v.GetResolvedValue() + "\n" + script
+				if v.GetStatus() != runnerv1.ResolveProgramResponse_STATUS_RESOLVED {
+					continue
+				}
+				resolvedVars += "export " + v.GetName() + "=" + v.GetResolvedValue() + "\n"
 			}
+			script = resolvedVars + script
 
 			err = stream.Send(&runnerv1.ExecuteRequest{
 				ProgramName:     "bash",

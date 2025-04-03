@@ -792,7 +792,7 @@ func (r *runnerService) getProgramResolverFromReq(req *runnerv1.ResolveProgramRe
 		}
 	}
 
-	mode := commandpkg.ProgramResolverModeAuto
+	mode := commandpkg.DefaultProgramResolverMode
 
 	switch req.GetMode() {
 	case runnerv1.ResolveProgramRequest_MODE_PROMPT_ALL:

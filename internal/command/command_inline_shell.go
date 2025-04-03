@@ -58,6 +58,7 @@ func (c *inlineShellCommand) Wait(ctx context.Context) error {
 			zap.Int("count", len(c.session.GetAllEnv())), // TODO(adamb): change to session.Size()
 		)
 
+		// todo(sebastian): in v1 we don't collect unless successful. what's correct?
 		cErr := c.collectEnv(ctx)
 
 		c.logger.Info(

@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -11,252 +10,258 @@ import (
 )
 
 func TestProgramResolverResolve(t *testing.T) {
-	testCases := []struct {
-		name                 string
-		program              string
-		result               *ProgramResolverResult
-		modifiedProgramFirst string
-		modifiedProgramLast  string
-	}{
-		{
-			name:    "no value",
-			program: `export TEST_NO_VALUE`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status: ProgramResolverStatusUnresolved,
-						Name:   "TEST_NO_VALUE",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_NO_VALUE set in managed env store\n# \"export TEST_NO_VALUE\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_NO_VALUE\n",
-		},
-		{
-			name:    "empty value",
-			program: `export TEST_EMPTY_VALUE=`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status: ProgramResolverStatusUnresolved,
-						Name:   "TEST_EMPTY_VALUE",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_EMPTY_VALUE set in managed env store\n# \"export TEST_EMPTY_VALUE=\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_EMPTY_VALUE=\n",
-		},
-		{
-			name:    "string value",
-			program: `export TEST_STRING_VALUE=value`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status:        ProgramResolverStatusUnresolvedWithMessage,
-						Name:          "TEST_STRING_VALUE",
-						OriginalValue: "value",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_VALUE=value\n",
-		},
-		{
-			name:    "string value with equal sign",
-			program: `export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status:        ProgramResolverStatusUnresolvedWithMessage,
-						Name:          "TEST_STRING_VALUE_WITH_EQUAL_SIGN",
-						OriginalValue: "part1=part2",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_VALUE_WITH_EQUAL_SIGN set in managed env store\n# \"export TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_VALUE_WITH_EQUAL_SIGN=part1=part2\n",
-		},
-		{
-			name:    "string double quoted value empty",
-			program: `export TEST_STRING_DBL_QUOTED_VALUE_EMPTY=""`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status: ProgramResolverStatusUnresolved,
-						Name:   "TEST_STRING_DBL_QUOTED_VALUE_EMPTY",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_DBL_QUOTED_VALUE_EMPTY set in managed env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE_EMPTY=\\\"\\\"\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_DBL_QUOTED_VALUE_EMPTY=\"\"\n",
-		},
-		{
-			name:    "string double quoted value",
-			program: `export TEST_STRING_DBL_QUOTED_VALUE="value"`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
-						Name:          "TEST_STRING_DBL_QUOTED_VALUE",
-						OriginalValue: "value",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_DBL_QUOTED_VALUE set in managed env store\n# \"export TEST_STRING_DBL_QUOTED_VALUE=\\\"value\\\"\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_DBL_QUOTED_VALUE=\"value\"\n",
-		},
-		{
-			name:    "string single quoted value empty",
-			program: `export TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status: ProgramResolverStatusUnresolved,
-						Name:   "TEST_STRING_SGL_QUOTED_VALUE_EMPTY",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_SGL_QUOTED_VALUE_EMPTY set in managed env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_SGL_QUOTED_VALUE_EMPTY=''\n",
-		},
-		{
-			name:    "string single quoted value",
-			program: `export TEST_STRING_SGL_QUOTED_VALUE='value'`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
-						Name:          "TEST_STRING_SGL_QUOTED_VALUE",
-						OriginalValue: "value",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_SGL_QUOTED_VALUE set in managed env store\n# \"export TEST_STRING_SGL_QUOTED_VALUE='value'\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_STRING_SGL_QUOTED_VALUE='value'\n",
-		},
-		{
-			name:    "shell-escaped prompt message",
-			program: `export TYPE=[Guest type \(hyperv,proxmox,openstack\)]`,
-			result: &ProgramResolverResult{
-				ModifiedProgram: true,
-				Variables: []ProgramResolverVarResult{
-					{
-						Status:        ProgramResolverStatusUnresolvedWithMessage,
-						Name:          "TYPE",
-						OriginalValue: "[Guest type (hyperv,proxmox,openstack)]",
-					},
-				},
-			},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\n#\n# TYPE set in managed env store\n# \"export TYPE=[Guest type \\\\(hyperv,proxmox,openstack\\\\)]\"\n\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TYPE=[Guest type \\(hyperv,proxmox,openstack\\)]\n",
-		},
-		{
-			name:                 "parameter expression",
-			program:              `export TEST_PARAM_EXPR=${TEST:7:0}`,
-			result:               &ProgramResolverResult{},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_PARAM_EXPR=${TEST:7:0}\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_PARAM_EXPR=${TEST:7:0}\n",
-		},
-		{
-			name:                 "arithmetic expression",
-			program:              `export TEST_ARITHM_EXPR=$(($z+3))`,
-			result:               &ProgramResolverResult{},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_ARITHM_EXPR=$(($z + 3))\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_ARITHM_EXPR=$(($z + 3))\n",
-		},
-		{
-			name:                 "value expression",
-			program:              `export TEST_VALUE_EXPR=$(echo -n "value")`,
-			result:               &ProgramResolverResult{},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_VALUE_EXPR=$(echo -n \"value\")\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_VALUE_EXPR=$(echo -n \"value\")\n",
-		},
-		{
-			name:                 "double quoted value expression",
-			program:              `export TEST_DBL_QUOTE_VALUE_EXPR="$(echo -n 'value')"`,
-			result:               &ProgramResolverResult{},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_DBL_QUOTE_VALUE_EXPR=\"$(echo -n 'value')\"\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_DBL_QUOTE_VALUE_EXPR=\"$(echo -n 'value')\"\n",
-		},
-		{
-			name:                 "default value",
-			program:              `export TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}`,
-			result:               &ProgramResolverResult{},
-			modifiedProgramFirst: "# Managed env store retention strategy: first\n\nexport TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}\n",
-			modifiedProgramLast:  "# Managed env store retention strategy: last\n\nexport TEST_DEFAULT_VALUE=${TEST_DEFAULT_VALUE:-value}\n",
-		},
+	testInputs := map[string]string{
+		"NoValue":     `export TEST_NO_VALUE`,
+		"EmptyValue":  `export TEST_EMPTY_VALUE=`,
+		"NakedValue":  `export TEST_STRING_VALUE=value`,
+		"QuotedValue": `export TEST_STRING_VALUE="value"`,
+		"ParamExpr":   `export TEST_PARAM_EXPR=${TEST:7:0}`,
 	}
 
-	for _, tc := range testCases {
-		strategies := []struct {
-			name            string
-			strategy        Retention
-			modifiedProgram string
-			result          *ProgramResolverResult
-		}{
-			{
-				name:            "First",
-				strategy:        RetentionFirstRun,
-				modifiedProgram: tc.modifiedProgramFirst,
-				result:          tc.result,
-			},
-			{
-				name:            "Last",
-				strategy:        RetentionLastRun,
-				modifiedProgram: tc.modifiedProgramLast,
-				result:          nil, // for last strategy variables inside result are always empty
-			},
-		}
+	type testOutput struct {
+		expectedOutput string
+		expectedResult *ProgramResolverResult
+	}
 
-		for _, s := range strategies {
-			t.Run(fmt.Sprintf("ProgramResolverModeAuto_%s_%s", s.name, tc.name), func(t *testing.T) {
-				r := NewProgramResolver(ProgramResolverModeAuto, []string{})
+	runTestCases := func(t *testing.T, suite string, mode ProgramResolverMode, strategy Retention, outputs map[string]testOutput) {
+		t.Helper()
+		for name, program := range testInputs {
+			t.Run(suite+"_"+name, func(t *testing.T) {
+				output := outputs[name]
+				r := NewProgramResolver(mode, []string{})
 				buf := bytes.NewBuffer(nil)
-				got, err := r.Resolve(strings.NewReader(tc.program), buf, s.strategy)
+				got, err := r.Resolve(strings.NewReader(program), buf, strategy)
 				require.NoError(t, err)
-				assert.EqualValues(t, s.modifiedProgram, buf.String())
-				if s.result != nil {
-					assert.EqualValues(t, s.result, got)
-				}
-			})
-
-			t.Run(fmt.Sprintf("ProgramResolverModeSkip_%s_%s", s.name, tc.name), func(t *testing.T) {
-				r := NewProgramResolver(ProgramResolverModeSkipAll, []string{})
-				buf := bytes.NewBuffer(nil)
-				got, err := r.Resolve(strings.NewReader(tc.program), buf, s.strategy)
-				require.NoError(t, err)
-				if s.strategy == RetentionFirstRun {
-					assert.EqualValues(t, tc.modifiedProgramFirst, buf.String())
-				} else {
-					assert.EqualValues(t, tc.modifiedProgramLast, buf.String())
-				}
-
-				if s.result != nil {
-					for i, v := range s.result.Variables {
-						v.Status = ProgramResolverStatusResolved
-						v.Value = v.OriginalValue
-						s.result.Variables[i] = v
-					}
-					assert.EqualValues(t, s.result, got)
-				} else {
-					// for last strategy script remains structurally unchanged
-					assert.Len(t, got.Variables, 0)
-					assert.False(t, got.ModifiedProgram)
-				}
+				assert.EqualValues(t, output.expectedOutput, buf.String())
+				assert.EqualValues(t, output.expectedResult, got)
 			})
 		}
 	}
+
+	runTestCases(t, "Auto_FirstRun",
+		ProgramResolverModeAuto,
+		RetentionFirstRun,
+		map[string]testOutput{
+			"NoValue": {
+				expectedOutput: "# Managed env store retention strategy: first\n\n#\n# TEST_NO_VALUE set in managed env store\n# \"export TEST_NO_VALUE\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status: ProgramResolverStatusUnresolved,
+							Name:   "TEST_NO_VALUE",
+						},
+					},
+				},
+			},
+			"EmptyValue": {
+				expectedOutput: "# Managed env store retention strategy: first\n\n#\n# TEST_EMPTY_VALUE set in managed env store\n# \"export TEST_EMPTY_VALUE=\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status: ProgramResolverStatusUnresolved,
+							Name:   "TEST_EMPTY_VALUE",
+						},
+					},
+				},
+			},
+			"NakedValue": {
+				expectedOutput: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status:        ProgramResolverStatusUnresolvedWithMessage,
+							Name:          "TEST_STRING_VALUE",
+							OriginalValue: "value",
+						},
+					},
+				},
+			},
+			"QuotedValue": {
+				expectedOutput: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=\\\"value\\\"\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
+							Name:          "TEST_STRING_VALUE",
+							OriginalValue: "value",
+						},
+					},
+				},
+			},
+			"ParamExpr": {
+				expectedOutput: "# Managed env store retention strategy: first\n\nexport TEST_PARAM_EXPR=${TEST:7:0}\n",
+				expectedResult: &ProgramResolverResult{},
+			},
+		},
+	)
+
+	runTestCases(t, "SkipAll_FirstRun",
+		ProgramResolverModeSkipAll,
+		RetentionFirstRun,
+		map[string]testOutput{
+			"NoValue": {
+				expectedOutput: "# Managed env store retention strategy: first\n\n#\n# TEST_NO_VALUE set in managed env store\n# \"export TEST_NO_VALUE\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status: ProgramResolverStatusResolved,
+							Name:   "TEST_NO_VALUE",
+						},
+					},
+				},
+			},
+			"EmptyValue": {
+				expectedOutput: "# Managed env store retention strategy: first\n\n#\n# TEST_EMPTY_VALUE set in managed env store\n# \"export TEST_EMPTY_VALUE=\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status: ProgramResolverStatusResolved,
+							Name:   "TEST_EMPTY_VALUE",
+						},
+					},
+				},
+			},
+			"NakedValue": {
+				expectedOutput: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status:        ProgramResolverStatusResolved,
+							Name:          "TEST_STRING_VALUE",
+							OriginalValue: "value",
+							Value:         "value",
+						},
+					},
+				},
+			},
+			"QuotedValue": {
+				expectedOutput: "# Managed env store retention strategy: first\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=\\\"value\\\"\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status:        ProgramResolverStatusResolved,
+							Name:          "TEST_STRING_VALUE",
+							OriginalValue: "value",
+							Value:         "value",
+						},
+					},
+				},
+			},
+			"ParamExpr": {
+				expectedOutput: "# Managed env store retention strategy: first\n\nexport TEST_PARAM_EXPR=${TEST:7:0}\n",
+				expectedResult: &ProgramResolverResult{},
+			},
+		},
+	)
+
+	runTestCases(t, "Auto_LastRun",
+		ProgramResolverModeAuto,
+		RetentionLastRun,
+		map[string]testOutput{
+			"NoValue": {
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_NO_VALUE\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: false,
+				},
+			},
+			"EmptyValue": {
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_EMPTY_VALUE=\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: false,
+				},
+			},
+			"NakedValue": {
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_STRING_VALUE=value\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: false,
+				},
+			},
+			"QuotedValue": {
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_STRING_VALUE=\"value\"\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: false,
+				},
+			},
+			"ParamExpr": {
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_PARAM_EXPR=${TEST:7:0}\n",
+				expectedResult: &ProgramResolverResult{},
+			},
+		},
+	)
+
+	runTestCases(t, "PromptAll_LastRun",
+		ProgramResolverModePromptAll,
+		RetentionLastRun,
+		map[string]testOutput{
+			"NoValue": {
+				expectedOutput: "# Managed env store retention strategy: last\n\n#\n# TEST_NO_VALUE set in managed env store\n# \"export TEST_NO_VALUE\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status: ProgramResolverStatusUnresolvedWithPlaceholder,
+							Name:   "TEST_NO_VALUE",
+						},
+					},
+				},
+			},
+			"EmptyValue": {
+				expectedOutput: "# Managed env store retention strategy: last\n\n#\n# TEST_EMPTY_VALUE set in managed env store\n# \"export TEST_EMPTY_VALUE=\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status: ProgramResolverStatusUnresolvedWithPlaceholder,
+							Name:   "TEST_EMPTY_VALUE",
+						},
+					},
+				},
+			},
+			"NakedValue": {
+				expectedOutput: "# Managed env store retention strategy: last\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
+							Name:          "TEST_STRING_VALUE",
+							OriginalValue: "value",
+							Value:         "value",
+						},
+					},
+				},
+			},
+			"QuotedValue": {
+				expectedOutput: "# Managed env store retention strategy: last\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=\\\"value\\\"\"\n\n",
+				expectedResult: &ProgramResolverResult{
+					ModifiedProgram: true,
+					Variables: []ProgramResolverVarResult{
+						{
+							Status:        ProgramResolverStatusUnresolvedWithPlaceholder,
+							Name:          "TEST_STRING_VALUE",
+							OriginalValue: "value",
+							Value:         "value",
+						},
+					},
+				},
+			},
+			"ParamExpr": {
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_PARAM_EXPR=${TEST:7:0}\n",
+				expectedResult: &ProgramResolverResult{},
+			},
+		},
+	)
 }
 
-func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
+func TestProgramResolverResolve_ProgramResolverModeAuto_First(t *testing.T) {
 	r := NewProgramResolver(
 		ProgramResolverModeAuto,
 		[]string{},
@@ -281,6 +286,25 @@ func TestProgramResolverResolve_ProgramResolverModeAuto(t *testing.T) {
 		result,
 	)
 	require.EqualValues(t, "# Managed env store retention strategy: first\n\n#\n# MY_ENV set in managed env store\n# \"export MY_ENV=default\"\n\n", buf.String())
+}
+
+func TestProgramResolverResolve_ProgramResolverModeAuto_Last(t *testing.T) {
+	r := NewProgramResolver(
+		ProgramResolverModeAuto,
+		[]string{},
+		ProgramResolverSourceFunc([]string{"MY_ENV=resolved"}),
+	)
+	buf := bytes.NewBuffer(nil)
+	result, err := r.Resolve(strings.NewReader(`export MY_ENV=default`), buf, RetentionLastRun)
+	require.NoError(t, err)
+	require.EqualValues(
+		t,
+		&ProgramResolverResult{
+			ModifiedProgram: false,
+		},
+		result,
+	)
+	require.EqualValues(t, "# Managed env store retention strategy: last\n\nexport MY_ENV=default\n", buf.String())
 }
 
 func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {

@@ -50,6 +50,9 @@ func Test_envCollectorFifo_WithoutWriter(t *testing.T) {
 	collector, err := newEnvCollectorFifo(scanEnv, nil, nil)
 	require.NoError(t, err)
 
+	// Fifo without writer result in invalid data
 	_, _, err = collector.Diff()
-	require.NoError(t, err)
+	// Expect error because Diff will be sensitive to the data
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid data read: env var format is incorrect")
 }
