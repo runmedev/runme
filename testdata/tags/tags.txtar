@@ -38,6 +38,15 @@ exec runme run --all --skip-prompts --tag solution-2
 cmp stdout doc-category.txt
 ! stderr .
 
+env SHELL=/bin/bash
+! exec runme run --all --skip-prompts --tag solution
+stderr 'could not execute command: No tasks to execute with the tag provided'
+
+env SHELL=/bin/bash
+exec runme run --all --skip-prompts -e --tag solution
+cmp stdout tag-pattern-matches.txt
+! stderr .
+
 -- TAGS.md --
 ```bash {"tag":"foo","name":"set-env"}
 $ export ENV="foo!"
@@ -179,3 +188,13 @@ Post-Deployment solution2
  ►  ✓ Task post-deployment-2 exited with code 0
 -- doc-category.txt --
 Post-Deployment solution2
+-- tag-pattern-matches.txt --
+ ►  Running task install-solution1...
+Install solution1
+ ►  ✓ Task install-solution1 exited with code 0
+ ►  Running task deploy-solution1...
+Deploy solution1
+ ►  ✓ Task deploy-solution1 exited with code 0
+ ►  Running task post-deployment-2...
+Post-Deployment solution2
+ ►  ✓ Task post-deployment-2 exited with code 0

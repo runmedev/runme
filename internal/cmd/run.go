@@ -41,7 +41,7 @@ func runCmd() *cobra.Command {
 		skipPrompts           bool
 		skipPromptsExplicitly bool
 		parallel              bool
-		tagMatchWildcard      bool
+		tagMatchPattern       bool
 		serverAddr            string
 		cmdCategories         []string
 		cmdTags               []string
@@ -110,13 +110,13 @@ func runCmd() *cobra.Command {
 							fm := block.Document().Frontmatter()
 							fmTags := resolveFrontmatterTags(fm)
 							match := false
-							if len(fmTags) > 0 && matchesTags(fmTags, cmdTags, tagMatchWildcard) {
+							if len(fmTags) > 0 && matchesTags(fmTags, cmdTags, tagMatchPattern) {
 								if len(blockTags) == 0 {
 									match = true
 								} else {
-									match = matchesTags(fmTags, blockTags, tagMatchWildcard)
+									match = matchesTags(fmTags, blockTags, tagMatchPattern)
 								}
-							} else if matchesTags(blockTags, cmdTags, tagMatchWildcard) {
+							} else if matchesTags(blockTags, cmdTags, tagMatchPattern) {
 								match = true
 							}
 
@@ -313,7 +313,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
-	cmd.Flags().BoolVarP(&tagMatchWildcard, "wildcard", "e", false, "Match tags as wildcards.")
+	cmd.Flags().BoolVarP(&tagMatchPattern, "pattern", "e", false, "Match tags as pattern.")
 	cmd.Flags().BoolVarP(&skipPrompts, "skip-prompts", "y", false, "Skip prompting for variables.")
 	cmd.Flags().StringArrayVarP(&cmdCategories, "category", "c", nil, "Run from a specific category.")
 	cmd.Flags().StringArrayVarP(&cmdTags, "tag", "t", nil, "Run from a specific tag.")
