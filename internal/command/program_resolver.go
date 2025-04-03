@@ -125,15 +125,14 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, retention 
 		}
 	}
 
-	decls, modified, err := r.walk(f)
-	if err != nil {
-		return nil, err
-	}
-
-	mode := r.mode
-	if retention == RetentionLastRun && r.mode == DefaultProgramResolverMode {
-		// If retention is last run and mode is not default, switch to skip all.
-		mode = ProgramResolverModeSkipAll
+	var decls []*syntax.DeclClause
+	modified := false
+	// If retention is not last run or mode is prompt all, walk the AST and modify the program
+	if retention != RetentionLastRun || r.mode == ProgramResolverModePromptAll {
+		decls, modified, err = r.walk(f)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	result := ProgramResolverResult{
@@ -162,7 +161,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, retention 
 			Value:         resolvedValue,
 		}
 
-		switch mode {
+		switch r.mode {
 		case ProgramResolverModePromptAll:
 			if isSensitive {
 				varResult.Status = ProgramResolverStatusUnresolvedWithSecret

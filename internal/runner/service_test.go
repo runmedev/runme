@@ -1086,8 +1086,8 @@ func Test_varRetentionStrategies(t *testing.T) {
 		{
 			name:           "Last",
 			retention:      runnerv1.ResolveProgramRequest_RETENTION_LAST_RUN,
-			resolvedVars:   3,
-			resolvedScript: "# Managed env store retention strategy: last\n\n#\n# VAR1 set in managed env store\n# \"export VAR1=\\\"bar\\\"\"\n\necho $VAR1 #\n# VAR2 set in managed env store\n# \"export VAR2=\\\"foo\\\"\"\n#\n# VAR2 set in managed env store\n# \"export VAR2=\\\"bar\\\"\"\n\necho $VAR2\n",
+			resolvedVars:   0,
+			resolvedScript: "# Managed env store retention strategy: last\n\nexport VAR1=\"bar\"\necho $VAR1\nexport VAR2=\"foo\"\nexport VAR2=\"bar\"\necho $VAR2\n",
 			expectedStdout: "bar\nbar\n",
 		},
 	}
