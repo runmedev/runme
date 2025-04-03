@@ -127,7 +127,7 @@ func (r *ProgramResolver) Resolve(reader io.Reader, writer io.Writer, retention 
 
 	var decls []*syntax.DeclClause
 	modified := false
-	// If retention is not last run or mode is prompt all, walk the AST and modify the program
+	// If retention is last run or mode is not prompt all, don't walk the AST and leave the program untouched
 	if retention != RetentionLastRun || r.mode == ProgramResolverModePromptAll {
 		decls, modified, err = r.walk(f)
 		if err != nil {

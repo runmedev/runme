@@ -167,55 +167,27 @@ func TestProgramResolverResolve(t *testing.T) {
 		RetentionLastRun,
 		map[string]testOutput{
 			"NoValue": {
-				expectedOutput: "# Managed env store retention strategy: last\n\n#\n# TEST_NO_VALUE set in managed env store\n# \"export TEST_NO_VALUE\"\n\n",
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_NO_VALUE\n",
 				expectedResult: &ProgramResolverResult{
-					ModifiedProgram: true,
-					Variables: []ProgramResolverVarResult{
-						{
-							Status: ProgramResolverStatusResolved,
-							Name:   "TEST_NO_VALUE",
-						},
-					},
+					ModifiedProgram: false,
 				},
 			},
 			"EmptyValue": {
-				expectedOutput: "# Managed env store retention strategy: last\n\n#\n# TEST_EMPTY_VALUE set in managed env store\n# \"export TEST_EMPTY_VALUE=\"\n\n",
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_EMPTY_VALUE=\n",
 				expectedResult: &ProgramResolverResult{
-					ModifiedProgram: true,
-					Variables: []ProgramResolverVarResult{
-						{
-							Status: ProgramResolverStatusResolved,
-							Name:   "TEST_EMPTY_VALUE",
-						},
-					},
+					ModifiedProgram: false,
 				},
 			},
 			"NakedValue": {
-				expectedOutput: "# Managed env store retention strategy: last\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=value\"\n\n",
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_STRING_VALUE=value\n",
 				expectedResult: &ProgramResolverResult{
-					ModifiedProgram: true,
-					Variables: []ProgramResolverVarResult{
-						{
-							Status:        ProgramResolverStatusResolved,
-							Name:          "TEST_STRING_VALUE",
-							OriginalValue: "value",
-							Value:         "value",
-						},
-					},
+					ModifiedProgram: false,
 				},
 			},
 			"QuotedValue": {
-				expectedOutput: "# Managed env store retention strategy: last\n\n#\n# TEST_STRING_VALUE set in managed env store\n# \"export TEST_STRING_VALUE=\\\"value\\\"\"\n\n",
+				expectedOutput: "# Managed env store retention strategy: last\n\nexport TEST_STRING_VALUE=\"value\"\n",
 				expectedResult: &ProgramResolverResult{
-					ModifiedProgram: true,
-					Variables: []ProgramResolverVarResult{
-						{
-							Status:        ProgramResolverStatusResolved,
-							Name:          "TEST_STRING_VALUE",
-							OriginalValue: "value",
-							Value:         "value",
-						},
-					},
+					ModifiedProgram: false,
 				},
 			},
 			"ParamExpr": {
@@ -328,19 +300,11 @@ func TestProgramResolverResolve_ProgramResolverModeAuto_Last(t *testing.T) {
 	require.EqualValues(
 		t,
 		&ProgramResolverResult{
-			ModifiedProgram: true,
-			Variables: []ProgramResolverVarResult{
-				{
-					Status:        ProgramResolverStatusResolved,
-					Name:          "MY_ENV",
-					OriginalValue: "default",
-					Value:         "default",
-				},
-			},
+			ModifiedProgram: false,
 		},
 		result,
 	)
-	require.EqualValues(t, "# Managed env store retention strategy: last\n\n#\n# MY_ENV set in managed env store\n# \"export MY_ENV=default\"\n\n", buf.String())
+	require.EqualValues(t, "# Managed env store retention strategy: last\n\nexport MY_ENV=default\n", buf.String())
 }
 
 func TestProgramResolverResolve_ProgramResolverModePrompt(t *testing.T) {
