@@ -618,6 +618,17 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 			expectedOutput: "test\r\n",
 		},
 		{
+			name: "Clojure",
+			programConfig: &runnerv2.ProgramConfig{
+				ProgramName: "",
+				LanguageId:  "clojure",
+				Source: &runnerv2.ProgramConfig_Script{
+					Script: "(println \"Hello, World!\")",
+				},
+			},
+			expectedOutput: "Hello, World!\n",
+		},
+		{
 			name: "Javascript",
 			programConfig: &runnerv2.ProgramConfig{
 				ProgramName: "node",
