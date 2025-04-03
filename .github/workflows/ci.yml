@@ -58,6 +58,13 @@ jobs:
           toolchain: stable
           override: true
         if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Install babashka (Linux only)
+        run: |
+          curl -sLO https://raw.githubusercontent.com/babashka/babashka/master/install
+          chmod +x install
+          ./install
+          rm install
+        if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Setup go
         uses: actions/setup-go@v5
         with:

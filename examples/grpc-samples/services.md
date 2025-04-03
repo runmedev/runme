@@ -99,13 +99,3 @@ $ grpcurl \
     -key $RUNME_TLS_DIR/key.pem \
     -d @ $RUNME_SERVER_ADDR runme.runner.v1.RunnerService/ResolveProgram < complex-script.json
 ```
-
-### Script one-shot
-
-```sh
-$ grpcurl \
-    -cacert $RUNME_TLS_DIR/cert.pem \
-    -cert $RUNME_TLS_DIR/cert.pem \
-    -key $RUNME_TLS_DIR/key.pem \
-    -d @ $RUNME_SERVER_ADDR runme.runner.v2.RunnerService/ExecuteOneShot < run-program-oneshot.json
-```

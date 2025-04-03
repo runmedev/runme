@@ -110,6 +110,35 @@ func Test_command(t *testing.T) {
 		assert.Equal(t, "", string(data))
 	})
 
+	t.Run("Clojure", func(t *testing.T) {
+		t.Parallel()
+
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmd, err := newCommand(
+			context.Background(),
+			&commandConfig{
+				ProgramName: "",
+				LanguageID:  "clojure",
+				Stdout:      stdout,
+				Stderr:      stderr,
+				CommandMode: CommandModeTempFile,
+				Script:      `(println "Hello, World!")`,
+				Logger:      testCreateLogger(t),
+			},
+		)
+		require.NoError(t, err)
+		require.NoError(t, cmd.Start(context.Background()))
+		require.NoError(t, cmd.Wait())
+		data, err := io.ReadAll(stdout)
+		assert.NoError(t, err)
+		assert.Equal(t, "Hello, World!\n", string(data))
+		data, err = io.ReadAll(stderr)
+		assert.NoError(t, err)
+		assert.Equal(t, "", string(data))
+	})
+
 	t.Run("JavaScript", func(t *testing.T) {
 		t.Parallel()
 

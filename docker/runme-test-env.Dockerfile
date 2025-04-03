@@ -17,6 +17,12 @@ RUN apt-get update && apt-get install -y \
     "ruby-full" \
     "unzip"
 
+# Install babashka
+RUN curl -sLO https://raw.githubusercontent.com/babashka/babashka/master/install
+RUN chmod +x install
+RUN ./install
+RUN rm install
+
 # Install rust + rust-script
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal
 # Rustup is rude and creates profiles all over the place

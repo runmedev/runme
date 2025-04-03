@@ -22,10 +22,6 @@ import (
 	"github.com/runmedev/runme/v3/pkg/project"
 )
 
-type ResponseSender interface {
-	Send(*runnerv2.ExecuteResponse) error
-}
-
 var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)
 
 func matchesOpinionatedEnvVarNaming(knownName string) bool {
@@ -125,7 +121,7 @@ func (e *execution) storeOutputInEnv(ctx context.Context, r io.Reader) {
 	}
 }
 
-func (e *execution) Wait(ctx context.Context, sender ResponseSender) (int, error) {
+func (e *execution) Wait(ctx context.Context, srv runnerv2.RunnerService_ExecuteServer) (int, error) {
 	envStdout := io.Discard
 	if e.storeStdoutInEnv {
 		b := rbuffer.NewRingBuffer(session.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
@@ -141,7 +137,7 @@ func (e *execution) Wait(ctx context.Context, sender ResponseSender) (int, error
 		mimetypeDetected := false
 
 		readSendDone <- e.readSendLoop(
-			sender,
+			srv,
 			e.stdoutR,
 			func(b []byte) *runnerv2.ExecuteResponse {
 				if _, err := envStdout.Write(b); err != nil {
@@ -170,7 +166,7 @@ func (e *execution) Wait(ctx context.Context, sender ResponseSender) (int, error
 	}()
 	go func() {
 		readSendDone <- e.readSendLoop(
-			sender,
+			srv,
 			e.stderrR,
 			func(b []byte) *runnerv2.ExecuteResponse {
 				return &runnerv2.ExecuteResponse{
@@ -219,7 +215,7 @@ finalWait:
 }
 
 func (e *execution) readSendLoop(
-	sender ResponseSender,
+	srv runnerv2.RunnerService_ExecuteServer,
 	src io.Reader,
 	cb func([]byte) *runnerv2.ExecuteResponse,
 	logger *zap.Logger,
@@ -263,7 +259,7 @@ func (e *execution) readSendLoop(
 		readTime := time.Now()
 
 		response := cb(data[:n])
-		if err := sender.Send(response); err != nil {
+		if err := srv.Send(response); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -362,19 +358,4 @@ func exitCodeFromErr(err error) int {
 		return exiterr.ExitCode()
 	}
 	return -1
-}
-
-// ExecuteOneShotSender implements ResponseSender but ships out the data as ExecuteOneShotResponse
-type ExecuteOneShotSender struct {
-	Sender runnerv2.RunnerService_ExecuteOneShotServer
-}
-
-func (s *ExecuteOneShotSender) Send(resp *runnerv2.ExecuteResponse) error {
-	return s.Sender.Send(&runnerv2.ExecuteOneShotResponse{
-		StdoutData: resp.StdoutData,
-		StderrData: resp.StderrData,
-		MimeType:   resp.MimeType,
-		ExitCode:   resp.ExitCode,
-		Pid:        resp.Pid,
-	})
 }
