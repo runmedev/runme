@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 
@@ -40,6 +41,7 @@ func runCmd() *cobra.Command {
 		skipPrompts           bool
 		skipPromptsExplicitly bool
 		parallel              bool
+		tagMatchWildcard      bool
 		serverAddr            string
 		cmdCategories         []string
 		cmdTags               []string
@@ -108,13 +110,13 @@ func runCmd() *cobra.Command {
 							fm := block.Document().Frontmatter()
 							fmTags := resolveFrontmatterTags(fm)
 							match := false
-							if len(fmTags) > 0 && containsTags(fmTags, cmdTags) {
+							if len(fmTags) > 0 && matchesTags(fmTags, cmdTags, tagMatchWildcard) {
 								if len(blockTags) == 0 {
 									match = true
 								} else {
-									match = containsTags(fmTags, blockTags)
+									match = matchesTags(fmTags, blockTags, tagMatchWildcard)
 								}
-							} else if containsTags(blockTags, cmdTags) {
+							} else if matchesTags(blockTags, cmdTags, tagMatchWildcard) {
 								match = true
 							}
 
@@ -311,6 +313,7 @@ func runCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the final command without executing.")
 	cmd.Flags().BoolVarP(&parallel, "parallel", "p", false, "Run tasks in parallel.")
 	cmd.Flags().BoolVarP(&runAll, "all", "a", false, "Run all commands.")
+	cmd.Flags().BoolVarP(&tagMatchWildcard, "wildcard", "e", false, "Match tags as wildcards.")
 	cmd.Flags().BoolVarP(&skipPrompts, "skip-prompts", "y", false, "Skip prompting for variables.")
 	cmd.Flags().StringArrayVarP(&cmdCategories, "category", "c", nil, "Run from a specific category.")
 	cmd.Flags().StringArrayVarP(&cmdTags, "tag", "t", nil, "Run from a specific tag.")
@@ -611,9 +614,21 @@ func resolveFrontmatterTags(fm *document.Frontmatter) []string {
 	return tags
 }
 
-func containsTags(s1 []string, s2 []string) bool {
-	for _, element := range s2 {
-		if strings.Contains(strings.Join(s1, ","), element) {
+func matchesTags(subject []string, candidates []string, contains bool) bool {
+	if contains {
+		// Join subject once and check if any candidate is contained in it
+		subjectStr := strings.Join(subject, ",")
+		for _, element := range candidates {
+			if strings.Contains(subjectStr, element) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Check if any candidate exists in the map
+	for _, element := range candidates {
+		if slices.Contains(subject, element) {
 			return true
 		}
 	}
