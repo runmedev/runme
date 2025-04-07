@@ -2,7 +2,7 @@ FROM golang:1.24-bookworm
 
 LABEL org.opencontainers.image.authors="StatefulHQ <mail@stateful.com>"
 LABEL org.opencontainers.image.source="https://github.com/runmedev/runme"
-LABEL org.opencontainers.image.ref.name="runme-build"
+LABEL org.opencontainers.image.ref.name="runme-build-env"
 LABEL org.opencontainers.image.title="Runme build environment"
 LABEL org.opencontainers.image.description="An image to build and test runme."
 

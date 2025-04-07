@@ -60,8 +60,8 @@ test-docker: test-docker/setup test-docker/run
 test-docker/setup:
 	docker build \
 		--progress=plain \
-		-t runme-build:latest \
-		-f ./docker/runme-build.Dockerfile .
+		-t runme-build-env:latest \
+		-f ./docker/runme-build-env.Dockerfile .
 	docker volume create dev.runme.test-env-gocache
 
 .PHONY: test-docker/cleanup
@@ -74,7 +74,7 @@ test-docker/run:
 		-e RUNME_TEST_ENV=docker \
 		-v $(shell pwd):/workspace \
 		-v dev.runme.test-env-gocache:/root/.cache/go-build \
-		runme-build:latest
+		runme-build-env:latest
 
 .PHONY: test/parser
 test/parser:
