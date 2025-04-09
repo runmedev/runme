@@ -112,7 +112,7 @@ _generate:
 .PHONY: lint
 lint:
 	@# "gofumpt -d ." does not return non-zero exit code if there are changes
-	test -z $(shell go tool gofumpt -d .)
+	test -z $(shell go tool gofumpt -d "$(git ls-files '*.go')")
 	@# "goimports -d ." does not return non-zero exit code if there are changes
 	test -z $(shell go tool goimports -local="github.com/runmedev/runme" -l .)
 	go tool revive \
