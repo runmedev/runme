@@ -1,4 +1,4 @@
-name: Build Env Container
+name: Container
 
 on:
   push:

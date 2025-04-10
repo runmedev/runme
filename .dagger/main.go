@@ -132,9 +132,12 @@ func (m *Runme) Test(
 		WithExec([]string{"make", "test"})
 }
 
+// Release fetches a Runme release from GitHub and returns a directory with the release assets.
 func (m *Runme) Release(ctx context.Context,
+	// GithubToken is an optional authentication token for GitHub API access
 	// +optional
 	githubToken *dagger.Secret,
+	// Version specifies the release version to fetch, defaults to "latest"
 	// +optional
 	// +default="latest"
 	version string,
@@ -174,11 +177,15 @@ func (m *Runme) Release(ctx context.Context,
 	return ctr.Directory(releaseDir)
 }
 
+// ReleaseFiles fetches a Runme release from GitHub and returns a directory with the uncompressed release files.
 func (m *Runme) ReleaseFiles(ctx context.Context,
+	// Platform specifies the target OS and architecture in the format "os/arch"
 	// e.g. "linux/amd64"
 	platform dagger.Platform,
+	// GithubToken is an optional authentication token for GitHub API access
 	// +optional
 	githubToken *dagger.Secret,
+	// Version specifies the release version to fetch, defaults to "latest"
 	// +optional
 	// +default="latest"
 	version string,

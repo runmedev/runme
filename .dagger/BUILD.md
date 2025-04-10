@@ -76,6 +76,6 @@ BuildBinary | export /tmp/runme-binary
 . | release | entries
 ```
 
-```sh {"interactive":"true"}
+```sh
 . | release-files linux/arm64 | entries
 ```
