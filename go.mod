@@ -37,16 +37,16 @@ require (
 	github.com/otiai10/copy v1.14.1
 	github.com/rogpeppe/go-internal v1.14.1
 	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915
-	github.com/vektah/gqlparser/v2 v2.5.23
-	github.com/xo/dburl v0.23.4
+	github.com/vektah/gqlparser/v2 v2.5.24
+	github.com/xo/dburl v0.23.6
 	github.com/yuin/goldmark v1.7.8
 	go.uber.org/dig v1.18.1
 	go.uber.org/multierr v1.11.0
-	golang.org/x/oauth2 v0.28.0
-	golang.org/x/sys v0.31.0
-	golang.org/x/term v0.30.0
+	golang.org/x/oauth2 v0.29.0
+	golang.org/x/sys v0.32.0
+	golang.org/x/term v0.31.0
 	google.golang.org/api v0.228.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250409194420-de1ac958c67a
 	google.golang.org/protobuf v1.36.6
 	mvdan.cc/sh/v3 v3.11.0
 )
@@ -116,11 +116,11 @@ require (
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
-	google.golang.org/genproto v0.0.0-20250324211829-b45e905df463 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/genproto v0.0.0-20250409194420-de1ac958c67a // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250409194420-de1ac958c67a // indirect
 	gotest.tools/v3 v3.5.1 // indirect
 	gvisor.dev/gvisor v0.0.0-20250318191406-9e676ea1de20 // indirect
 	honnef.co/go/tools v0.6.0 // indirect
@@ -128,11 +128,11 @@ require (
 )
 
 require (
-	github.com/ProtonMail/go-crypto v1.1.6 // indirect
+	github.com/ProtonMail/go-crypto v1.2.0 // indirect
 	github.com/briandowns/spinner v1.23.2 // indirect
 	github.com/cli/go-gh v1.2.1
 	github.com/cli/safeexec v1.0.1 // indirect
-	github.com/cloudflare/circl v1.6.0 // indirect
+	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
@@ -157,18 +157,18 @@ require (
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
-	golang.org/x/tools v0.31.0 // indirect
+	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/tools v0.32.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/Khan/genqlient v0.8.0
-	github.com/charmbracelet/bubbles v0.20.0
+	github.com/charmbracelet/bubbles v0.21.0
 	github.com/elliotchance/orderedmap v1.8.0
-	github.com/go-git/go-git/v5 v5.14.0
+	github.com/go-git/go-git/v5 v5.15.0
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
@@ -176,7 +176,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/henvic/httpretty v0.1.4
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.3
+	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
@@ -184,7 +184,7 @@ require (
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/sync v0.12.0
+	golang.org/x/sync v0.13.0
 	google.golang.org/grpc v1.71.1
 )
 
