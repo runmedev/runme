@@ -15,6 +15,8 @@ echo "Target platform: $TARGET_PLATFORM"
 
 If `TARGET_PLATFORM` is not set, reset your Runme session. It's likely because direnv wasn't authorized yet.
 
+Then, let's set the target platform on an instance of the Runme dagger module.
+
 ```sh {"name":"Runme"}
 ### Exported in runme.dev as Runme
 . --target-platform $TARGET_PLATFORM
