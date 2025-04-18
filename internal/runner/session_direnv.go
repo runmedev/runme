@@ -39,7 +39,7 @@ func (s *Session) loadDirEnv(ctx context.Context, proj *project.Project) (string
 		Tty:     false,
 	}
 
-	const sourceDirEnv = "which direnv && eval $(direnv export $SHELL)"
+	const sourceDirEnv = "which direnv && SHELL=${SHELL:-$0} eval $(direnv export $SHELL)"
 	exec := &Shell{
 		ExecutableConfig: cfg,
 		Cmds:             []string{sourceDirEnv},
