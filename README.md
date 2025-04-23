@@ -40,7 +40,7 @@ $ npm install -g runme
 For users with different setups, you can visit [Runme's releases page](https://github.com/runmedev/runme/releases) and download a binary suitable for your operating system. For those with Go developer tools set up, Runme can be installed using the `go install` command:
 
 ```sh { name=install-via-go }
-$ go install github.com/runmedev/runme@latest
+$ go install github.com/runmedev/runme/v3@main
 
 ```
 
