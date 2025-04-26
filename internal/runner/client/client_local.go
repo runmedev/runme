@@ -93,21 +93,8 @@ func (r *LocalRunner) setupSession(_ context.Context) error {
 
 func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
 	block := task.CodeBlock
-	doc := task.CodeBlock.Document()
-	fmtr, err := doc.FrontmatterWithError()
-	if err != nil {
-		return nil, err
-	}
 
-	customShell := r.customShell
-	if fmtr != nil && fmtr.Shell != "" {
-		customShell = fmtr.Shell
-	}
-	if interpreter := block.Interpreter(); interpreter != "" {
-		customShell = interpreter
-	}
-
-	programName, lines, _, err := getCellProgram(block.Language(), customShell, task)
+	programName, lines, _, err := getTaskProgram(r.customShell, task)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +123,10 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 	switch block.Language() {
 	// TODO(mxs): empty string should return nil when guesslang model is implemented
 	case "bash", "bat", "sh", "shell", "zsh", "":
+		customShell, err := task.CustomShell(r.customShell)
+		if err != nil {
+			return nil, err
+		}
 		return &runner.Shell{
 			ExecutableConfig: cfg,
 			Cmds:             lines,

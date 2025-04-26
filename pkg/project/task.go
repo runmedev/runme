@@ -25,6 +25,41 @@ func (t Task) ID() string {
 	return t.RelDocumentPath + ":" + t.CodeBlock.Name()
 }
 
+// FrontmatterShell returns the shell specified in the document frontmatter, or an error if the frontmatter is invalid or missing.
+func (t Task) FrontmatterShell() (string, error) {
+	doc := t.CodeBlock.Document()
+	fmtr, err := doc.FrontmatterWithError()
+	if err != nil {
+		return "", err
+	}
+	if fmtr == nil {
+		return "", nil
+	}
+	return fmtr.Shell, nil
+}
+
+// BlockInterpreter returns the interpreter specified in the code block attributes, or an empty string if not set.
+func (t Task) BlockInterpreter() string {
+	if t.CodeBlock == nil {
+		return ""
+	}
+	return t.CodeBlock.Interpreter()
+}
+
+// CustomShell returns the shell to use for this task, prioritizing frontmatter shell, then block interpreter, then the provided baseShell.
+func (t Task) CustomShell(baseShell string) (string, error) {
+	customShell := baseShell
+	if shell, err := t.FrontmatterShell(); err != nil {
+		return "", err
+	} else if shell != "" {
+		customShell = shell
+	}
+	if interpreter := t.BlockInterpreter(); interpreter != "" {
+		customShell = interpreter
+	}
+	return customShell, nil
+}
+
 // LoadFiles returns a list of file names found in the project.
 func LoadFiles(ctx context.Context, p *Project) ([]string, error) {
 	eventc := make(chan LoadEvent)

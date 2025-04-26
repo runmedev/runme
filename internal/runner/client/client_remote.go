@@ -190,11 +190,6 @@ func (r *RemoteRunner) ResolveProgram(ctx context.Context, mode runnerv1.Resolve
 
 func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 	block := task.CodeBlock
-	doc := task.CodeBlock.Document()
-	fmtr, err := doc.FrontmatterWithError()
-	if err != nil {
-		return err
-	}
 
 	stream, err := r.client.Execute(ctx)
 	if err != nil {
@@ -203,15 +198,7 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 
 	tty := block.InteractiveLegacy()
 
-	customShell := r.customShell
-	if fmtr != nil && fmtr.Shell != "" {
-		customShell = fmtr.Shell
-	}
-	if interpreter := block.Interpreter(); interpreter != "" {
-		customShell = interpreter
-	}
-
-	programName, lines, commandMode, err := getCellProgram(block.Language(), customShell, task)
+	programName, lines, commandMode, err := getTaskProgram(r.customShell, task)
 	if err != nil {
 		return err
 	}

@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/runmedev/runme/v3/internal/system"
-	"github.com/runmedev/runme/v3/pkg/document"
+	"github.com/runmedev/runme/v3/pkg/project"
 )
 
 const DaggerCustomShell = "dagger shell"
@@ -137,19 +137,24 @@ func IsShellLanguage(languageID string) bool {
 	}
 }
 
-func GetCellProgram(languageID string, customShell string, cell *document.CodeBlock) (program string, commandMode CommandMode) {
+func GetTaskProgram(baseShell string, task project.Task) (program string, commandMode CommandMode) {
+	customShell, err := task.CustomShell(baseShell)
+	if err != nil {
+		return baseShell, CommandModeTempFile
+	}
+
 	switch {
 	case strings.Contains(customShell, DaggerCustomShell):
 		program = customShell
 		commandMode = CommandModeDaggerShell
-	case IsShellLanguage(languageID):
+	case IsShellLanguage(task.CodeBlock.Language()):
 		program = customShell
 		commandMode = CommandModeInlineShell
 	default:
 		commandMode = CommandModeTempFile
 	}
 
-	if interpreter := cell.Interpreter(); interpreter != "" {
+	if interpreter := task.BlockInterpreter(); interpreter != "" {
 		program = interpreter
 	}
 
