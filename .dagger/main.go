@@ -76,8 +76,8 @@ func (m *Runme) TargetPlatform(ctx context.Context) string {
 	return fmt.Sprintf("%s/%s", m.TargetOS, m.TargetArch)
 }
 
-// Container creates a container with Runme source and registry auth.
-func (m *Runme) Container(ctx context.Context) *dagger.Container {
+// BaseImage is the base image for the Runme build environment.
+func (m *Runme) Base(ctx context.Context) *dagger.Container {
 	// archs have to match for app-level unit tests to pass
 	containerPlatform := dagger.Platform(fmt.Sprintf("linux/%s", m.TargetArch))
 	ctr := dag.Container(dagger.ContainerOpts{Platform: containerPlatform}).
@@ -88,14 +88,21 @@ func (m *Runme) Container(ctx context.Context) *dagger.Container {
 		ctr = ctr.WithRegistryAuth("ghcr.io", m.GhcrUsername, m.GhcrToken)
 	}
 
+	return ctr
+}
+
+// Container creates a container with Runme source and registry auth.
+func (m *Runme) Container(ctx context.Context) *dagger.Container {
+	ctr := m.Base(ctx)
+
 	if m.Source != nil {
 		ctr = ctr.WithMountedDirectory("/workspace", m.Source)
 	} else {
 		main := dag.Git("https://github.com/runmedev/runme").Branch("main").Tree()
 		ctr = ctr.WithMountedDirectory("/workspace", main).
 			// retagging to make version tests work
-			WithExec([]string{"git", "tag", "-f", "v3.999.999"}).
-			WithExec([]string{"git", "tag", "-d", "main"})
+			WithExec([]string{"git", "tag", "-f", "v3.999.999"}, dagger.ContainerWithExecOpts{Expect: dagger.ReturnTypeAny}).
+			WithExec([]string{"git", "tag", "-d", "main"}, dagger.ContainerWithExecOpts{Expect: dagger.ReturnTypeAny})
 	}
 
 	return ctr
@@ -162,7 +169,7 @@ func (m *Runme) ListRelease(ctx context.Context,
 		panic(fmt.Sprintf("Failed to get release: %v", err))
 	}
 
-	ctr := m.Container(ctx)
+	ctr := m.Base(ctx)
 	releaseDir := "/releases/" + version
 
 	for _, asset := range release.Assets {
@@ -207,7 +214,7 @@ func (m *Runme) LinkRelease(ctx context.Context,
 	filename := fmt.Sprintf("runme_%s_%s.tar.gz", os, archName)
 	release := m.ListRelease(ctx, githubToken, version)
 
-	ctr := m.Container(ctx).
+	ctr := m.Base(ctx).
 		WithFile("/tmp/release/runme.tar.gz", release.File(filename)).
 		WithWorkdir("/tmp/release").
 		WithExec([]string{"tar", "-xzf", "runme.tar.gz"})
