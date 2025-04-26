@@ -94,7 +94,7 @@ func (r *LocalRunner) setupSession(_ context.Context) error {
 func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
 	block := task.CodeBlock
 
-	programName, lines, _, err := getTaskProgram(r.customShell, task)
+	programName, lines, _, err := GetTaskProgram(r.customShell, task)
 	if err != nil {
 		return nil, err
 	}

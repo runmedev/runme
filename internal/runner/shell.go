@@ -137,7 +137,7 @@ func IsShellLanguage(languageID string) bool {
 	}
 }
 
-func GetTaskProgram(baseShell string, task project.Task) (program string, commandMode CommandMode) {
+func GetShellProgram(baseShell string, task project.Task) (program string, commandMode CommandMode) {
 	customShell, err := task.CustomShell(baseShell)
 	if err != nil {
 		return baseShell, CommandModeTempFile

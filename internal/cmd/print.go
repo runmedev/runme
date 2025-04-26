@@ -1,13 +1,19 @@
 package cmd
 
 import (
+	"bytes"
 	"io"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
+	"github.com/runmedev/runme/v3/internal/runner/client"
 )
 
 func printCmd() *cobra.Command {
+	fRaw := false
+
 	cmd := cobra.Command{
 		Use:               "print",
 		Short:             "Print a selected snippet",
@@ -29,16 +35,27 @@ func printCmd() *cobra.Command {
 				return err
 			}
 
+			baseShell := "" // not necessary for printing only
+			_, lines, _, err := client.GetTaskProgram(baseShell, task)
+			if err != nil {
+				return err
+			}
+			value := []byte(strings.Join(lines, "\n"))
+
+			if fRaw {
+				value = bytes.Join([][]byte{task.CodeBlock.Value(), []byte("\n")}, nil)
+			}
+
 			w := bulkWriter{
 				Writer: cmd.OutOrStdout(),
 			}
-			w.Write([]byte(task.CodeBlock.Value()))
-			w.Write([]byte{'\n'})
+			w.Write(value)
 			return errors.Wrap(w.Err(), "failed to write to stdout")
 		},
 	}
 
 	setDefaultFlags(&cmd)
+	cmd.Flags().BoolVar(&fRaw, "raw", false, "Print the raw command without transforming it.")
 
 	return &cmd
 }

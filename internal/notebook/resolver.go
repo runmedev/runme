@@ -104,13 +104,21 @@ func (r *NotebookResolver) parseNotebook(context context.Context) (*parserv1.Not
 	return d.Notebook, nil
 }
 
-func (r *NotebookResolver) IsDaggerShellCell(notebook *parserv1.Notebook, cell *parserv1.Cell) bool {
-	// Get interpreter from cell metadata or notebook frontmatter
+func GetCellInterpreter(notebook *parserv1.Notebook, cell *parserv1.Cell) string {
+	if cell == nil {
+		return ""
+	}
 	interpreter := cell.Metadata["interpreter"]
-	if interpreter == "" && notebook.GetFrontmatter() != nil {
+	if interpreter == "" && notebook != nil && notebook.GetFrontmatter() != nil {
 		interpreter = notebook.GetFrontmatter().GetShell()
 	}
-	return strings.Contains(strings.TrimSpace(interpreter), "dagger shell")
+	return strings.TrimSpace(interpreter)
+}
+
+func (r *NotebookResolver) IsDaggerShellCell(notebook *parserv1.Notebook, cell *parserv1.Cell) bool {
+	// Use helper to get interpreter
+	interpreter := GetCellInterpreter(notebook, cell)
+	return strings.Contains(interpreter, "dagger shell")
 }
 
 func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (string, error) {
@@ -178,13 +186,14 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 		}
 
 		snippet := cell.GetValue()
-		if err := script.DeclareFunc(known, snippet); err != nil {
+		if err := script.DefineFunc(known, snippet); err != nil {
 			return "", err
 		}
 	}
 
 	var rendered bytes.Buffer
-	if err := script.RenderWithCall(&rendered, targetName); err != nil {
+	shebang := GetCellInterpreter(notebook, targetCell)
+	if err := script.RenderWithTarget(&rendered, shebang, targetName); err != nil {
 		return "", err
 	}
 

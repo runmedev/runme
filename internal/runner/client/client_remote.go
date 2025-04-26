@@ -198,7 +198,7 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 
 	tty := block.InteractiveLegacy()
 
-	programName, lines, commandMode, err := getTaskProgram(r.customShell, task)
+	programName, lines, commandMode, err := GetTaskProgram(r.customShell, task)
 	if err != nil {
 		return err
 	}

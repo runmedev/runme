@@ -304,11 +304,13 @@ func ResolveDirectory(parentDir string, task project.Task) string {
 	return parentDir
 }
 
-func getTaskProgram(baseShell string, task project.Task) (program string, lines []string, commandMode runner.CommandMode, err error) {
+// GetTaskProgram extracts program details from a task, with special handling for Dagger shell commands.
+// Returns program name, command lines, command mode, and any error encountered.
+func GetTaskProgram(baseShell string, task project.Task) (program string, lines []string, commandMode runner.CommandMode, err error) {
 	block := task.CodeBlock
 	lines = block.Lines()
 
-	program, commandMode = runner.GetTaskProgram(baseShell, task)
+	program, commandMode = runner.GetShellProgram(baseShell, task)
 	if commandMode != runner.CommandModeDaggerShell {
 		return
 	}

@@ -2,6 +2,7 @@ package daggershell
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -12,22 +13,41 @@ import (
 func TestDaggerShell_FuncDecl(t *testing.T) {
 	script := NewScript()
 
-	err := script.DeclareFunc("DAGGER_FUNCTION", `echo "Dagger Function Placeholder"`)
+	err := script.DefineFunc("DAGGER_FUNCTION", `echo "Dagger Function Placeholder"`)
 	require.NoError(t, err)
 
-	var rendered bytes.Buffer
-	err = script.Render(&rendered)
-	require.NoError(t, err)
+	t.Run("WithDaggerShebang", func(t *testing.T) {
+		var rendered bytes.Buffer
+		err = script.Render(&rendered, "/usr/bin/env dagger shell")
+		require.NoError(t, err)
 
-	const expected = `DAGGER_FUNCTION()
+		const expected = `#!/usr/bin/env dagger shell
+DAGGER_FUNCTION()
 {
   echo "Dagger Function Placeholder"
 }
 `
-	assert.Equal(t,
-		expected,
-		rendered.String(),
-	)
+		assert.Equal(t,
+			expected,
+			rendered.String(),
+		)
+	})
+
+	t.Run("WithEmptyShebang", func(t *testing.T) {
+		var rendered bytes.Buffer
+		err = script.Render(&rendered, "")
+		require.NoError(t, err)
+
+		const expected = `DAGGER_FUNCTION()
+{
+  echo "Dagger Function Placeholder"
+}
+`
+		assert.Equal(t,
+			expected,
+			rendered.String(),
+		)
+	})
 }
 
 func TestDaggerShell_Script(t *testing.T) {
@@ -42,7 +62,8 @@ func TestDaggerShell_Script(t *testing.T) {
 		{"KERNEL_BINARY", `echo "This is KERNEL_BINARY"`},
 	}
 
-	expected := `DAGGER_01JJDCG2SQSGV0DP55X86EJFSZ()
+	expected := `#!/usr/bin/env dagger shell
+DAGGER_01JJDCG2SQSGV0DP55X86EJFSZ()
 {
   echo "Use known ID"
   date
@@ -64,27 +85,29 @@ KERNEL_BINARY()
 	t.Run("Render", func(t *testing.T) {
 		script := NewScript()
 		for _, entry := range fakeCells {
-			script.DeclareFunc(entry.Name, entry.Body)
+			script.DefineFunc(entry.Name, entry.Body)
 		}
 
 		var rendered bytes.Buffer
-		err := script.Render(&rendered)
+		err := script.Render(&rendered, "/usr/bin/env dagger shell")
 		require.NoError(t, err)
 
 		assert.Equal(t, expected, rendered.String())
 	})
 
-	t.Run("RenderWithCall", func(t *testing.T) {
+	t.Run("RenderWithTarget", func(t *testing.T) {
 		script := NewScript()
 		for _, entry := range fakeCells {
-			err := script.DeclareFunc(entry.Name, entry.Body)
+			err := script.DefineFunc(entry.Name, entry.Body)
 			require.NoError(t, err)
 		}
 
 		for _, entry := range fakeCells {
 			var renderedWithCall bytes.Buffer
-			err := script.RenderWithCall(&renderedWithCall, entry.Name)
+			err := script.RenderWithTarget(&renderedWithCall, "/usr/bin/env dagger shell", entry.Name)
 			require.NoError(t, err)
+			str := renderedWithCall.String()
+			fmt.Println(str)
 
 			// add function call padded by new lines
 			expectedBytesWithCall := strings.Join([]string{expected[:len(expected)-1], entry.Name, ""}, "\n")
@@ -92,15 +115,15 @@ KERNEL_BINARY()
 		}
 	})
 
-	t.Run("RenderWithCall_Invalid", func(t *testing.T) {
+	t.Run("RenderWithTarget_Invalid", func(t *testing.T) {
 		script := NewScript()
 		for _, entry := range fakeCells {
-			err := script.DeclareFunc(entry.Name, entry.Body)
+			err := script.DefineFunc(entry.Name, entry.Body)
 			require.NoError(t, err)
 		}
 
 		var renderedWithCall bytes.Buffer
-		err := script.RenderWithCall(&renderedWithCall, "INVALID")
+		err := script.RenderWithTarget(&renderedWithCall, "/usr/bin/env dagger shell", "INVALID")
 		require.Error(t, err)
 	})
 }
