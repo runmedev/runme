@@ -67,14 +67,15 @@ func (s *Script) Render(w io.Writer, shebang string) error {
 
 // RenderWithTarget renders the script, calling the specified function and adding a required shebang.
 func (s *Script) RenderWithTarget(w io.Writer, shebang, target string) error {
-	if parts := strings.Split(shebang, " "); len(parts) >= 2 {
-		shebang = "/usr/bin/env " + shebang
-	}
 	return s.render(w, shebang, target)
 }
 
 // render renders the script, optionally calling a function and adding a shebang.
 func (s *Script) render(w io.Writer, shebang, target string) error {
+	if parts := strings.Split(shebang, " "); len(parts) >= 2 {
+		shebang = "/usr/bin/env " + shebang
+	}
+
 	var file *syntax.File
 
 	// Prepare the statements, potentially adding the function call

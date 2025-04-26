@@ -2,7 +2,6 @@ package daggershell
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -18,7 +17,7 @@ func TestDaggerShell_FuncDecl(t *testing.T) {
 
 	t.Run("WithDaggerShebang", func(t *testing.T) {
 		var rendered bytes.Buffer
-		err = script.Render(&rendered, "/usr/bin/env dagger shell")
+		err = script.Render(&rendered, "dagger shell")
 		require.NoError(t, err)
 
 		const expected = `#!/usr/bin/env dagger shell
@@ -89,7 +88,7 @@ KERNEL_BINARY()
 		}
 
 		var rendered bytes.Buffer
-		err := script.Render(&rendered, "/usr/bin/env dagger shell")
+		err := script.Render(&rendered, "dagger shell")
 		require.NoError(t, err)
 
 		assert.Equal(t, expected, rendered.String())
@@ -104,10 +103,8 @@ KERNEL_BINARY()
 
 		for _, entry := range fakeCells {
 			var renderedWithCall bytes.Buffer
-			err := script.RenderWithTarget(&renderedWithCall, "/usr/bin/env dagger shell", entry.Name)
+			err := script.RenderWithTarget(&renderedWithCall, "dagger shell", entry.Name)
 			require.NoError(t, err)
-			str := renderedWithCall.String()
-			fmt.Println(str)
 
 			// add function call padded by new lines
 			expectedBytesWithCall := strings.Join([]string{expected[:len(expected)-1], entry.Name, ""}, "\n")

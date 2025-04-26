@@ -87,7 +87,8 @@ func TestResolveDaggerShell(t *testing.T) {
 	resolver, err := NewResolver(WithNotebook(daggerShellNotebook))
 	require.NoError(t, err)
 
-	definition := `KERNEL_BINARY()
+	definition := `#!/usr/bin/env dagger shell
+KERNEL_BINARY()
 {
   github.com/purpleclay/daggerverse/golang $(git https://github.com/runmedev/runme | head | tree) \
     | build \
@@ -191,7 +192,7 @@ func TestResolveDaggerShell_CellDaggerShell(t *testing.T) {
 	// Test that the resolver can resolve dagger shell, skipping vanilla shell cells
 	script, err = resolver.ResolveDaggerShell(ctx, uint32(4))
 	require.NoError(t, err)
-	assert.Equal(t, "Presetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
+	assert.Equal(t, "#!/usr/bin/env dagger shell\nPresetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
 }
 
 func TestResolveDaggerShell_FrontmatterWithVanillaCells(t *testing.T) {
@@ -265,7 +266,7 @@ func TestResolveDaggerShell_FrontmatterWithVanillaCells(t *testing.T) {
 	// Test that the resolver can resolve dagger shell, skipping vanilla shell cells
 	script, err = resolver.ResolveDaggerShell(ctx, uint32(4))
 	require.NoError(t, err)
-	assert.Equal(t, "Presetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
+	assert.Equal(t, "#!/usr/bin/env dagger shell\nPresetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
 }
 
 func TestResolveDaggerShell_Source(t *testing.T) {
@@ -277,7 +278,7 @@ func TestResolveDaggerShell_Source(t *testing.T) {
 	script, err := resolver.ResolveDaggerShell(context.Background(), uint32(0))
 	require.NoError(t, err)
 
-	assert.Equal(t, "SimpleDagger()\n{\n  git github.com/runmedev/runme \\\n    | head \\\n    | tree \\\n    | file examples/README.md\n}\nSimpleDagger\n", script)
+	assert.Equal(t, "#!/usr/bin/env dagger shell\nSimpleDagger()\n{\n  git github.com/runmedev/runme \\\n    | head \\\n    | tree \\\n    | file examples/README.md\n}\nSimpleDagger\n", script)
 }
 
 func TestResolveDaggerShell_EmptyRunmeMetadata(t *testing.T) {
