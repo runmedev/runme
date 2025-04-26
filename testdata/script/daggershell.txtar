@@ -11,7 +11,12 @@ exec runme run SimpleDagger
 stdout 'sha256:[0-9a-f]{64}'
 
 exec runme print SimpleDagger
-stdout 'SimpleDagger()\n{\n  git github.com/runmedev/runme \\\n    | head \\\n    | tree \\\n    | file examples/README.md | digest\n}\nSimpleDagger'
+stdout 'SimpleDagger\('
+! stdout '### Exported in runme.dev as SimpleDagger'
+
+exec runme print --raw SimpleDagger
+! stdout 'SimpleDagger\('
+stdout '### Exported in runme.dev as SimpleDagger'
 
 exec runme run WithDagger
 stdout 'sha256:[0-9a-f]{64}'
