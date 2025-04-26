@@ -356,8 +356,12 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
 
 	knownName, nameOk := cell.Metadata["name"]
 	labelCommentForCell := labelCommentPreamble + knownName + "\n"
-	if interpreter := cell.Metadata["interpreter"]; strings.Contains(strings.TrimSpace(interpreter), "dagger shell") {
+	cellInterpreter := cell.Metadata["interpreter"]
+	if strings.Contains(strings.TrimSpace(cellInterpreter), "dagger shell") {
 		labelComment = true
+	}
+	if labelComment && cellInterpreter != "" && !strings.Contains(strings.TrimSpace(cellInterpreter), "dagger shell") {
+		labelComment = false
 	}
 
 	isFencedCodeBlock, err := strconv.ParseBool(cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")])

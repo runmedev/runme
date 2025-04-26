@@ -832,6 +832,23 @@ func TestEditor_LabelComments(t *testing.T) {
 		require.Contains(t, string(actual), labelCommentPreamble+"date")
 		require.NotContains(t, string(actual), labelCommentPreamble+"iso")
 	})
+
+	t.Run("CellInterpreterWinsOverFrontmatter", func(t *testing.T) {
+		mixed := []byte("---\nshell: dagger shell\n---\n\n```sh {\"interpreter\": \"bash\",\"name\":\"cell-is-not-dagger\",\"second\":\"2\"}\necho 1\n```\n")
+
+		notebook, err := Deserialize(mixed, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		assert.NotNil(t, notebook.Frontmatter)
+
+		assert.Equal(t, "cell-is-not-dagger", notebook.Cells[0].Metadata["name"])
+		require.NotContains(t, notebook.Cells[0].Value, labelCommentPreamble)
+
+		actual, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+
+		require.NotContains(t, string(actual), labelCommentPreamble+"cell-is-not-dagger")
+	})
 }
 
 func TestEditor_VaryingWidthUnicodeSequences(t *testing.T) {
