@@ -39,6 +39,9 @@ wasm_exec.js
 # Dist directory
 dist/
 
+# Packed snaps
+*.snap
+
 # Editor
 .idea
 
