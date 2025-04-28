@@ -834,7 +834,7 @@ func TestEditor_LabelComments(t *testing.T) {
 	})
 
 	t.Run("CellInterpreterWinsOverFrontmatter", func(t *testing.T) {
-		mixed := []byte("---\nshell: dagger shell\n---\n\n```sh {\"interpreter\": \"bash\",\"name\":\"cell-is-not-dagger\",\"second\":\"2\"}\necho 1\n```\n")
+		mixed := []byte("---\nshell: dagger shell\n---\n\n```sh {\"interpreter\":\"bash\",\"name\":\"cell-is-not-dagger\",\"second\":\"2\"}\necho 1\n```\n")
 
 		notebook, err := Deserialize(mixed, Options{IdentityResolver: identityResolverNone})
 		require.NoError(t, err)

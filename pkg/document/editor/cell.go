@@ -350,12 +350,12 @@ func serializeCells(cells []*Cell, labelComment bool) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
-	var buf bytes.Buffer
-	value := cell.Value
-
+func cellCommentLabel(cell *Cell, labelComment bool) string {
 	knownName, nameOk := cell.Metadata["name"]
-	labelCommentForCell := labelCommentPreamble + knownName + "\n"
+	if !nameOk {
+		return ""
+	}
+
 	cellInterpreter := cell.Metadata["interpreter"]
 	if strings.Contains(strings.TrimSpace(cellInterpreter), "dagger shell") {
 		labelComment = true
@@ -364,12 +364,25 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
 		labelComment = false
 	}
 
+	if !labelComment {
+		return ""
+	}
+
+	return labelCommentPreamble + knownName + "\n"
+}
+
+func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
+	var buf bytes.Buffer
+	value := cell.Value
+
+	labelForCell := cellCommentLabel(cell, labelComment)
+
 	isFencedCodeBlock, err := strconv.ParseBool(cell.Metadata[PrefixAttributeName(InternalAttributePrefix, "fenced")])
 	if err == nil && !isFencedCodeBlock {
 		lines := strings.Split(value, "\n")
-		if labelComment && nameOk && len(lines) > 0 {
+		if len(labelForCell) > 0 && len(lines) > 0 {
 			_, _ = buf.Write(bytes.Repeat([]byte{' '}, 4))
-			_, _ = buf.WriteString(labelCommentForCell)
+			_, _ = buf.WriteString(labelForCell)
 		}
 
 		for _, v := range lines {
@@ -394,8 +407,8 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
 		}
 
 		_ = buf.WriteByte('\n')
-		if labelComment && nameOk {
-			_, _ = buf.WriteString(labelCommentForCell)
+		if len(labelForCell) > 0 {
+			_, _ = buf.WriteString(labelForCell)
 		}
 		_, _ = buf.WriteString(cell.Value)
 		_ = buf.WriteByte('\n')
