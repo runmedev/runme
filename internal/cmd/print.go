@@ -59,8 +59,8 @@ func printCmd() *cobra.Command {
 	}
 
 	setDefaultFlags(&cmd)
-	cmd.Flags().BoolVarP(&fRaw, "raw", "r", false, "Print the raw command without transforming it.")
-	cmd.Flags().BoolVarP(&fNoNewLine, "skip-newline", "n", false, "Do not print newline after the command.")
+	cmd.Flags().BoolVarP(&fRaw, "raw", "r", false, "Print the raw command without transforming it")
+	cmd.Flags().BoolVarP(&fNoNewLine, "skip-newline", "n", false, "Do not print newline after the command")
 
 	return &cmd
 }
