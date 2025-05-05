@@ -12,11 +12,11 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
+	"github.com/runmedev/runme/v3/document"
 	"github.com/runmedev/runme/v3/internal/notebook"
 	"github.com/runmedev/runme/v3/internal/runner"
-	runnerv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
-	"github.com/runmedev/runme/v3/pkg/document"
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
 )
 
 type RunnerOption func(Runner) error

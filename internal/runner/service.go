@@ -26,14 +26,14 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	commandpkg "github.com/runmedev/runme/v3/internal/command"
+	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
+	commandpkg "github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/internal/lru"
 	"github.com/runmedev/runme/v3/internal/owl"
 	"github.com/runmedev/runme/v3/internal/rbuffer"
 	rcontext "github.com/runmedev/runme/v3/internal/runner/context"
 	"github.com/runmedev/runme/v3/internal/ulid"
-	runnerv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
 )
 
 const (

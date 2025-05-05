@@ -14,7 +14,7 @@ import (
 
 	"github.com/runmedev/runme/v3/internal/shell"
 	"github.com/runmedev/runme/v3/internal/term"
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
 )
 
 type row struct {

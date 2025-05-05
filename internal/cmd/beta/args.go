@@ -4,7 +4,7 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
 )
 
 func createProjectFilterFromPatterns(patterns []string) (project.Filter, error) {

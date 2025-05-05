@@ -7,9 +7,9 @@ import (
 	"github.com/go-playground/assert/v2"
 	"github.com/stretchr/testify/require"
 
-	parserv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	"github.com/runmedev/runme/v3/pkg/document"
-	"github.com/runmedev/runme/v3/pkg/document/identity"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
+	"github.com/runmedev/runme/v3/document"
+	"github.com/runmedev/runme/v3/document/identity"
 )
 
 func TestResolve_GetCellIndexByBlock(t *testing.T) {

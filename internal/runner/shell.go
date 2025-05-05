@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/runmedev/runme/v3/internal/system"
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
 )
 
 const DaggerCustomShell = "dagger shell"

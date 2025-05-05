@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/runmedev/runme/v3/internal/config/autoconfig"
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
 )
 
 func printCmd(*commonFlags) *cobra.Command {

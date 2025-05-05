@@ -13,19 +13,19 @@ import (
 	healthgrpc "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/runmedev/runme/v3/internal/command"
+	notebookv1alpha1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/notebook/v1alpha1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
+	projectv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/project/v1"
+	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
+	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/command"
+	"github.com/runmedev/runme/v3/document/editor/editorservice"
 	notebookservice "github.com/runmedev/runme/v3/internal/notebook"
 	"github.com/runmedev/runme/v3/internal/project/projectservice"
 	"github.com/runmedev/runme/v3/internal/runner"
-	runnerv2service "github.com/runmedev/runme/v3/internal/runnerv2service"
 	"github.com/runmedev/runme/v3/internal/telemetry"
 	runmetls "github.com/runmedev/runme/v3/internal/tls"
-	notebookv1alpha1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/notebook/v1alpha1"
-	parserv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	projectv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
-	runnerv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
-	runnerv2 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
-	"github.com/runmedev/runme/v3/pkg/document/editor/editorservice"
+	runnerv2service "github.com/runmedev/runme/v3/runnerv2service"
 )
 
 func serverCmd() *cobra.Command {

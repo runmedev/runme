@@ -13,13 +13,13 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
+	"github.com/runmedev/runme/v3/document"
+	"github.com/runmedev/runme/v3/document/identity"
 	"github.com/runmedev/runme/v3/internal/runner/client"
 	"github.com/runmedev/runme/v3/internal/tui"
 	"github.com/runmedev/runme/v3/internal/tui/prompt"
-	runnerv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
-	"github.com/runmedev/runme/v3/pkg/document"
-	"github.com/runmedev/runme/v3/pkg/document/identity"
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
 )
 
 const envStackDepth = "__RUNME_STACK_DEPTH"

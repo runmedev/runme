@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
 	"github.com/runmedev/runme/v3/internal/tui/prompt"
-	runnerv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v1"
 )
 
 func TestResolveInputParams(t *testing.T) {

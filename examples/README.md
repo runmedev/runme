@@ -115,5 +115,5 @@ echo "Tag A,B,C"
 ## Large files
 
 ```sh {"name": "generate"}
-gunzip --stdout ./internal/command/testdata/users_1m.json.gz
+gunzip --stdout ./command/testdata/users_1m.json.gz
 ```

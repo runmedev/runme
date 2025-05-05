@@ -10,7 +10,7 @@ import (
 
 	"github.com/runmedev/runme/v3/internal/ansi"
 	"github.com/runmedev/runme/v3/internal/runner"
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
 )
 
 type MultiRunner struct {

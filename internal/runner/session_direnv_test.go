@@ -10,8 +10,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/runmedev/runme/v3/pkg/project"
-	"github.com/runmedev/runme/v3/pkg/project/teststub"
+	"github.com/runmedev/runme/v3/project"
+	"github.com/runmedev/runme/v3/project/teststub"
 )
 
 func Test_EnvDirEnv(t *testing.T) {

@@ -21,19 +21,19 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/runmedev/runme/v3/internal/command"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
+	projectv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/project/v1"
+	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/command"
+	"github.com/runmedev/runme/v3/document/editor/editorservice"
 	"github.com/runmedev/runme/v3/internal/config"
 	"github.com/runmedev/runme/v3/internal/dockerexec"
 	"github.com/runmedev/runme/v3/internal/project/projectservice"
 	"github.com/runmedev/runme/v3/internal/runnerv2client"
-	"github.com/runmedev/runme/v3/internal/runnerv2service"
 	"github.com/runmedev/runme/v3/internal/server"
 	runmetls "github.com/runmedev/runme/v3/internal/tls"
-	parserv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/parser/v1"
-	projectv1 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/project/v1"
-	runnerv2 "github.com/runmedev/runme/v3/pkg/api/gen/proto/go/runme/runner/v2"
-	"github.com/runmedev/runme/v3/pkg/document/editor/editorservice"
-	"github.com/runmedev/runme/v3/pkg/project"
+	"github.com/runmedev/runme/v3/project"
+	"github.com/runmedev/runme/v3/runnerv2service"
 )
 
 var defaultBuilder = NewBuilder()

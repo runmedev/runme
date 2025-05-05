@@ -140,12 +140,12 @@ proto/_generate:
 
 .PHONY: proto/clean
 proto/clean:
-	rm -rf pkg/api/gen/proto
+	rm -rf api/gen/proto
 
 .PHONY: proto/dev
 proto/dev: build proto/clean proto/generate
 	rm -rf $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts/runme
-	cp -vrf pkg/api/gen/proto/ts/runme $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
+	cp -vrf api/gen/proto/ts/runme $(RUNME_EXT_BASE)/node_modules/@buf/stateful_runme.community_timostamm-protobuf-ts
 
 .PHONY: proto/dev/reset
 proto/dev/reset:
@@ -156,7 +156,7 @@ proto/dev/reset:
 # More: https://docs.buf.build/bsr/authentication
 .PHONY: proto/publish
 proto/publish:
-	@cd ./pkg/api/proto && buf push
+	@cd ./api/proto && buf push
 
 .PHONY: config/schema/generate
 config/schema/generate:

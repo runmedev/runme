@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"syscall/js"
 
-	"github.com/runmedev/runme/v3/pkg/document/editor"
-	"github.com/runmedev/runme/v3/pkg/document/identity"
+	"github.com/runmedev/runme/v3/document/editor"
+	"github.com/runmedev/runme/v3/document/identity"
 )
 
 // These are variables so that they can be set during the build time.

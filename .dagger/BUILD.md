@@ -54,7 +54,7 @@ Testing latest `main` branch. Defaults to https://github.com/runmedev/runme#main
 
 ```sh
 Runme |
-    # test --pkgs "github.com/runmedev/runme/v3/pkg/document/editor/editorservice" |
+    # test --pkgs "github.com/runmedev/runme/v3/document/editor/editorservice" |
     test |
     stdout
 ```

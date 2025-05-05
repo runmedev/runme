@@ -3,25 +3,25 @@ clean: true
 plugins:
   # Remote plugin. You can switch to a local one by using "go".
   - remote: buf.build/protocolbuffers/go
-    out: pkg/api/gen/proto/go
+    out: api/gen/proto/go
     opt: paths=source_relative
 
   # Remote plugin. You can switch to a local one by using "go-grpc".
   - remote: buf.build/grpc/go
-    out: pkg/api/gen/proto/go
+    out: api/gen/proto/go
     opt: paths=source_relative
 
   # Remote plugin. You can switch to a local one by using "timostamm-protobuf-ts".
   - remote: buf.build/community/timostamm-protobuf-ts
-    out: pkg/api/gen/proto/ts
+    out: api/gen/proto/ts
     opt: output_javascript,optimize_code_size,long_type_string,add_pb_suffix,ts_nocheck,eslint_disable
 
   # https://buf.build/bufbuild/es?version=v2.2.3
   - remote: buf.build/bufbuild/es:v2.2.3
-    out: pkg/api/gen/proto/es
+    out: api/gen/proto/es
     opt: import_extension=js
     include_imports: true
 
   # Local plugin to generate GQL schema
   - local: protoc-gen-gql
-    out: pkg/api/gen/proto/gql
+    out: api/gen/proto/gql
