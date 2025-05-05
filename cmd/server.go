@@ -21,10 +21,10 @@ import (
 	"github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/document/editor/editorservice"
 	notebookservice "github.com/runmedev/runme/v3/internal/notebook"
-	"github.com/runmedev/runme/v3/internal/project/projectservice"
 	"github.com/runmedev/runme/v3/internal/runner"
 	"github.com/runmedev/runme/v3/internal/telemetry"
 	runmetls "github.com/runmedev/runme/v3/internal/tls"
+	"github.com/runmedev/runme/v3/project/projectservice"
 	runnerv2service "github.com/runmedev/runme/v3/runnerv2service"
 )
 

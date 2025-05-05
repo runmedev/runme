@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	projectv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/project/v1"
-	"github.com/runmedev/runme/v3/internal/project/projectservice"
 	"github.com/runmedev/runme/v3/internal/testutils"
+	"github.com/runmedev/runme/v3/project/projectservice"
 	"github.com/runmedev/runme/v3/project/teststub"
 	projtestutils "github.com/runmedev/runme/v3/project/testutils"
 )
