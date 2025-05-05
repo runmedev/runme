@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/runmedev/runme/v3/internal/cmd/beta"
+	"github.com/runmedev/runme/v3/cmd/beta"
 	"github.com/runmedev/runme/v3/internal/extension"
 )
 

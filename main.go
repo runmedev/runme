@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"github.com/runmedev/runme/v3/internal/cmd"
+	"github.com/runmedev/runme/v3/cmd"
 	"github.com/runmedev/runme/v3/internal/version"
 )
 

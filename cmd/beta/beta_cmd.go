@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 
-	"github.com/runmedev/runme/v3/internal/cmd/beta/server"
+	"github.com/runmedev/runme/v3/cmd/beta/server"
 	"github.com/runmedev/runme/v3/internal/config"
 	"github.com/runmedev/runme/v3/internal/config/autoconfig"
 )
