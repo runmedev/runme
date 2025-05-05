@@ -24,7 +24,7 @@ func TestResolveDirectory(t *testing.T) {
 	root := filepath.Clean(
 		filepath.Join(
 			filepath.Dir(b),
-			filepath.FromSlash("../../../"),
+			filepath.FromSlash("../../"),
 		),
 	)
 

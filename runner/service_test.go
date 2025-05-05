@@ -736,7 +736,7 @@ func Test_runnerService(t *testing.T) {
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
 			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
-			Directory:   "../..",
+			Directory:   "..",
 			Commands: []string{
 				"export LICENSE=$(cat LICENSE)",
 			},
@@ -764,7 +764,7 @@ func Test_runnerService(t *testing.T) {
 		err = stream.Send(&runnerv1.ExecuteRequest{
 			ProgramName: "bash",
 			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
-			Directory:   "../..",
+			Directory:   "..",
 			Commands: []string{
 				"echo \"LICENSE: $LICENSE\"",
 			},
@@ -775,7 +775,7 @@ func Test_runnerService(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		expected, err := os.ReadFile("../../LICENSE")
+		expected, err := os.ReadFile("../LICENSE")
 		require.NoError(t, err)
 		assert.Equal(t, "LICENSE: "+string(expected), string(result.Stdout))
 		assert.EqualValues(t, 0, result.ExitCode)
