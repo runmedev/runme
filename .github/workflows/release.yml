@@ -60,7 +60,7 @@ jobs:
       - name: Release notes
         run: |
           owner="${{ vars.RELEASE_OWNER || github.actor }}"
-          go run ./cmd/release-notes/main.go -version "${GITHUB_REF_NAME}" -owner "$owner" > ${{ runner.temp }}/releasenotes
+          go run ./tools/release-notes/main.go -version "${GITHUB_REF_NAME}" -owner "$owner" > ${{ runner.temp }}/releasenotes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

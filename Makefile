@@ -168,7 +168,7 @@ config/schema/generate:
 
 .PHONY: gql/schema/generate
 gql/schema/generate:
-	@go run ./cmd/gqltool/main.go > ./internal/client/graphql/schema/introspection_query_result.json
+	@go run ./tools/gqltool/main.go > ./internal/client/graphql/schema/introspection_query_result.json
 	@npm install --prefix internal/client/graphql/schema
 	@cd ./internal/client/graphql/schema && npm run convert
 
