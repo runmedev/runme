@@ -20,7 +20,7 @@ import (
 
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	"github.com/runmedev/runme/v3/command/testdata"
-	"github.com/runmedev/runme/v3/internal/session"
+	"github.com/runmedev/runme/v3/session"
 )
 
 func TestInlineShellCommand_CollectEnv(t *testing.T) {

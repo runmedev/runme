@@ -15,9 +15,9 @@ import (
 
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
 	"github.com/runmedev/runme/v3/document"
-	"github.com/runmedev/runme/v3/internal/notebook"
-	"github.com/runmedev/runme/v3/internal/runner"
+	"github.com/runmedev/runme/v3/notebook"
 	"github.com/runmedev/runme/v3/project"
+	"github.com/runmedev/runme/v3/runner"
 )
 
 type LocalRunner struct {

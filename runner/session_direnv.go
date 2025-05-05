@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/runmedev/runme/v3/internal/ansi"
-	rcontext "github.com/runmedev/runme/v3/internal/runner/context"
 	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/project"
+	rcontext "github.com/runmedev/runme/v3/runner/context"
 )
 
 func (s *Session) loadDirEnv(ctx context.Context, proj *project.Project) (string, error) {

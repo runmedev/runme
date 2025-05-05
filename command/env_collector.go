@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/runmedev/runme/v3/internal/session"
+	"github.com/runmedev/runme/v3/session"
 )
 
 const maxScannerBufferSizeInBytes = 1024 * 1024 * 1024 // 1GB

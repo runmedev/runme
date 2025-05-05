@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/runmedev/runme/v3/internal/runner/client"
 	"github.com/runmedev/runme/v3/project"
+	"github.com/runmedev/runme/v3/runner/client"
 )
 
 func TestPromptEnvVars(t *testing.T) {

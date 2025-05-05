@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	"github.com/runmedev/runme/v3/internal/session"
+	"github.com/runmedev/runme/v3/session"
 )
 
 const (

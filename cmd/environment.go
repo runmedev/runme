@@ -16,9 +16,9 @@ import (
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
 	"github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/internal/owl"
-	"github.com/runmedev/runme/v3/internal/runner/client"
 	"github.com/runmedev/runme/v3/internal/term"
 	runmetls "github.com/runmedev/runme/v3/internal/tls"
+	"github.com/runmedev/runme/v3/runner/client"
 )
 
 var newOSEnvironReader = func() (io.Reader, error) {

@@ -21,9 +21,9 @@ import (
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
-	"github.com/runmedev/runme/v3/internal/runner"
 	runmetls "github.com/runmedev/runme/v3/internal/tls"
 	"github.com/runmedev/runme/v3/project"
+	"github.com/runmedev/runme/v3/runner"
 )
 
 type RemoteRunner struct {

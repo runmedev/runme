@@ -20,7 +20,7 @@ import (
 	"github.com/runmedev/runme/v3/document"
 	"github.com/runmedev/runme/v3/document/identity"
 	"github.com/runmedev/runme/v3/internal/sbuffer"
-	"github.com/runmedev/runme/v3/internal/session"
+	"github.com/runmedev/runme/v3/session"
 )
 
 func TestCommand(t *testing.T) {

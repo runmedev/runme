@@ -15,7 +15,7 @@ import (
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/document"
 	"github.com/runmedev/runme/v3/document/editor/editorservice"
-	"github.com/runmedev/runme/v3/internal/notebook/daggershell"
+	"github.com/runmedev/runme/v3/notebook/daggershell"
 )
 
 var validShellFunctionNameRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)

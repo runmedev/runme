@@ -10,7 +10,7 @@ import (
 	"github.com/runmedev/runme/v3/internal/config"
 	"github.com/runmedev/runme/v3/internal/config/autoconfig"
 	"github.com/runmedev/runme/v3/internal/server"
-	"github.com/runmedev/runme/v3/internal/telemetry"
+	"github.com/runmedev/runme/v3/telemetry"
 )
 
 func serverStartCmd() *cobra.Command {

@@ -20,12 +20,12 @@ import (
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	"github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/document/editor/editorservice"
-	notebookservice "github.com/runmedev/runme/v3/internal/notebook"
-	"github.com/runmedev/runme/v3/internal/runner"
-	"github.com/runmedev/runme/v3/internal/telemetry"
 	runmetls "github.com/runmedev/runme/v3/internal/tls"
+	notebookservice "github.com/runmedev/runme/v3/notebook"
 	"github.com/runmedev/runme/v3/project/projectservice"
+	"github.com/runmedev/runme/v3/runner"
 	runnerv2service "github.com/runmedev/runme/v3/runnerv2service"
+	"github.com/runmedev/runme/v3/telemetry"
 )
 
 func serverCmd() *cobra.Command {

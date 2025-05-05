@@ -31,9 +31,9 @@ import (
 	"github.com/runmedev/runme/v3/internal/lru"
 	"github.com/runmedev/runme/v3/internal/owl"
 	"github.com/runmedev/runme/v3/internal/rbuffer"
-	rcontext "github.com/runmedev/runme/v3/internal/runner/context"
 	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/project"
+	rcontext "github.com/runmedev/runme/v3/runner/context"
 )
 
 const (

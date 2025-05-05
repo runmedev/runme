@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/runmedev/runme/v3/internal/runner"
+	"github.com/runmedev/runme/v3/runner"
 )
 
 func shellCmd() *cobra.Command {

@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
-	rcontext "github.com/runmedev/runme/v3/internal/runner/context"
-	"github.com/runmedev/runme/v3/internal/session"
+	rcontext "github.com/runmedev/runme/v3/runner/context"
+	"github.com/runmedev/runme/v3/session"
 )
 
 func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2.CreateSessionRequest) (*runnerv2.CreateSessionResponse, error) {

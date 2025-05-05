@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc"
 
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
-	"github.com/runmedev/runme/v3/internal/runner"
 	"github.com/runmedev/runme/v3/project"
+	"github.com/runmedev/runme/v3/runner"
 )
 
 func TestResolveDirectory(t *testing.T) {

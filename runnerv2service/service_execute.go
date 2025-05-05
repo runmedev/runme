@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
-	rcontext "github.com/runmedev/runme/v3/internal/runner/context"
 	"github.com/runmedev/runme/v3/internal/ulid"
+	rcontext "github.com/runmedev/runme/v3/runner/context"
 )
 
 func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error {

@@ -8,9 +8,9 @@ import (
 
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	"github.com/runmedev/runme/v3/internal/dockerexec"
-	"github.com/runmedev/runme/v3/internal/session"
 	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/project"
+	"github.com/runmedev/runme/v3/session"
 )
 
 var (

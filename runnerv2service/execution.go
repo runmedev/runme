@@ -18,8 +18,8 @@ import (
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	"github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/internal/rbuffer"
-	"github.com/runmedev/runme/v3/internal/session"
 	"github.com/runmedev/runme/v3/project"
+	"github.com/runmedev/runme/v3/session"
 )
 
 var opininatedEnvVarNamingRegexp = regexp.MustCompile(`^[A-Z_][A-Z0-9_]{1}[A-Z0-9_]*[A-Z][A-Z0-9_]*$`)

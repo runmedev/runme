@@ -15,8 +15,8 @@ import (
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/runmedev/runme/v3/internal/config"
-	"github.com/runmedev/runme/v3/internal/runnerv2client"
 	"github.com/runmedev/runme/v3/internal/server"
+	"github.com/runmedev/runme/v3/runnerv2client"
 )
 
 func TestInvokeForCommand_Config(t *testing.T) {

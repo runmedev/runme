@@ -14,10 +14,10 @@ import (
 	"github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/document"
 	"github.com/runmedev/runme/v3/internal/config/autoconfig"
-	rcontext "github.com/runmedev/runme/v3/internal/runner/context"
-	"github.com/runmedev/runme/v3/internal/runnerv2client"
-	"github.com/runmedev/runme/v3/internal/session"
 	"github.com/runmedev/runme/v3/project"
+	rcontext "github.com/runmedev/runme/v3/runner/context"
+	"github.com/runmedev/runme/v3/runnerv2client"
+	"github.com/runmedev/runme/v3/session"
 )
 
 func runCmd(*commonFlags) *cobra.Command {
