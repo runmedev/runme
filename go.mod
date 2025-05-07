@@ -41,7 +41,7 @@ require (
 	github.com/yuin/goldmark v1.7.11
 	go.uber.org/dig v1.18.1
 	go.uber.org/multierr v1.11.0
-	golang.org/x/oauth2 v0.29.0
+	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sys v0.32.0
 	golang.org/x/term v0.31.0
 	google.golang.org/api v0.230.0
