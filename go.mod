@@ -26,7 +26,6 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/golang/mock v1.7.0-rc.1
 	github.com/google/go-github/v45 v45.2.0
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/graphql-go/graphql v0.8.1
 	github.com/jhump/protoreflect v1.17.0
 	github.com/mattn/go-isatty v0.0.20
@@ -88,6 +87,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/generative-ai-go v0.19.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
 	github.com/gookit/color v1.5.4 // indirect

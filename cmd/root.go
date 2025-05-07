@@ -121,7 +121,6 @@ func Root() *cobra.Command {
 	cmd.AddCommand(beta.BetaCmd())
 	cmd.AddCommand(serverCmd())
 	cmd.AddCommand(shellCmd())
-	cmd.AddCommand(tasksCmd())
 	cmd.AddCommand(tokenCmd())
 	cmd.AddCommand(tuiCmd)
 
