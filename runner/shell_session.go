@@ -8,9 +8,9 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	"golang.org/x/term"
+	xterm "golang.org/x/term"
 
-	xpty "github.com/runmedev/runme/v3/internal/pty"
+	"github.com/runmedev/runme/v3/internal/term"
 	"github.com/runmedev/runme/v3/internal/ulid"
 )
 
@@ -18,8 +18,8 @@ type ShellSession struct {
 	id            string
 	cmd           *exec.Cmd
 	ptmx          *os.File
-	cancelResize  xpty.CancelFn
-	stdinOldState *term.State
+	cancelResize  term.CancelFn
+	stdinOldState *xterm.State
 	done          chan struct{}
 	mu            sync.Mutex
 	err           error
@@ -36,9 +36,9 @@ func NewShellSession(command string) (*ShellSession, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	cancelResize := xpty.ResizeOnSig(ptmx)
+	cancelResize := term.ResizeOnSig(ptmx)
 	// Set stdin in raw mode.
-	stdinOldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	stdinOldState, err := xterm.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to put stdin in raw mode")
 	}
@@ -77,7 +77,7 @@ func (s *ShellSession) ID() string {
 func (s *ShellSession) Close() error {
 	s.cancelResize()
 
-	if err := term.Restore(int(os.Stdin.Fd()), s.stdinOldState); err != nil {
+	if err := xterm.Restore(int(os.Stdin.Fd()), s.stdinOldState); err != nil {
 		return errors.WithStack(err)
 	}
 

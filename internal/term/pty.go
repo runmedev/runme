@@ -1,7 +1,7 @@
 //go:build !windows
 // +build !windows
 
-package pty
+package term
 
 import (
 	"log"
