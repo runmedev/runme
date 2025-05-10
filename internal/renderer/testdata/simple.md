@@ -2,7 +2,7 @@
 
 Discover and run code snippets directly from your `README.md` or other markdowns (defaults to local `README.md`).
 
-runme makes a best effort approach to extracts all code snippets defined in code blocks and allowing to explore and execute them. runme is currently in early alpha.
+runme makes a best-effort approach to extract all code snippets defined in code blocks and allows exploring and executing them. runme is currently in early alpha.
 
 You can execute commands from a different directory using a `--chdir` flag.
 To select a different file than `README.md`, use `--filename`.
@@ -26,8 +26,8 @@ $ go install github.com/runmedev/runme@latest
 
 ## Contributing & Feedback
 
-Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/MFtwcSvJsk). We're looking forward to hear from you.
+Let us know what you think via GitHub issues or submit a PR. Join the conversation [on Discord](https://discord.gg/MFtwcSvJsk). We're looking forward to hearing from you.
 
-## LICENCE
+## LICENSE
 
 Apache License, Version 2.0
