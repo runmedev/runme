@@ -4,9 +4,9 @@
 
 > Discover and run code snippets directly from your markdown files, e.g. runbooks, docs, or READMEs. Read the [docs](https://docs.runme.dev).
 
-[Runme](https://runme.dev) is a tool that makes runbooks actually runnable, making it easier to follow step-by-step instructions. Shell/bash, Python, Ruby, Javascript/Typescript, Lua, PHP, Perl, and many other runtimes are supported via Runme's shebang feature. Runme allows users to execute instructions, check intermediate results, and ensure the desired outputs are achieved. This makes it an excellent solution for runbooks, playbooks, and documentation that requires users to complete runnable steps incrementally—making operational docs reliable and much less susceptible to bitrot.
+[Runme](https://runme.dev) is a tool that makes runbooks actually runnable, making it easier to follow step-by-step instructions. Shell/Bash, Python, Ruby, JavaScript/TypeScript, Lua, PHP, Perl, and many other runtimes are supported via Runme's shebang feature. Runme allows users to execute instructions, check intermediate results, and ensure the desired outputs are achieved. This makes it an excellent solution for runbooks, playbooks, and documentation that requires users to complete runnable steps incrementally—making operational docs reliable and much less susceptible to bitrot.
 
-Runme achieves this by literally running markdown. More specifically, Runme runs your commands (shell, bash, zsh) or code inside your fenced code blocks. It's 100% compatible with your programming language's task definitions (Makefile, Gradle, Grunt, NPM scripts, Pipfile or Deno tasks, etc.) and markdown-native. Much like a terminal session, environment variables are retained across execution, and it is possible to pipe previous cells's output into successive cells. Runme persists your runbooks in markdown, which your docs are likely already using.
+Runme achieves this by literally running markdown. More specifically, Runme runs your commands (shell, bash, zsh) or code inside your fenced code blocks. It's 100% compatible with your programming language's task definitions (Makefile, Gradle, Grunt, NPM scripts, Pipfile or Deno tasks, etc.) and markdown-native. Much like a terminal session, environment variables are retained across execution, and it is possible to pipe previous cells' output into successive cells. Runme persists your runbooks in markdown, which your docs are likely already using.
 
 <p align="center">
   <img src="./.github/images/hello-world.gif" />
@@ -94,7 +94,7 @@ $ runme print hello-js
 
 ### Help
 
-Find help and information to parameters and configurations.
+Find help and information on parameters and configurations.
 If you need assistance or information regarding various parameters and configurations available with Runme, the `help` command provides quick access to helpful information:
 
 ```sh {"id":"01J86DCNWW7W7R73NKB51QAS2V","interactive":"false","name":"runme-help"}
@@ -110,7 +110,7 @@ Check out the full documentation available at [Runme](https://docs.runme.dev).
 
 ## Feedback
 
-Let us know what you think via [GitHub issues](https://github.com/runmedev/runme/issues/new) or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hear from you.
+Let us know what you think via [GitHub issues](https://github.com/runmedev/runme/issues/new) or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hearing from you.
 
 ## Community
 
@@ -126,6 +126,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for more information or just click on:
 
 [![Run with Runme](https://badgen.net/badge/Run%20with/Runme/5B3ADF?icon=https://runme.dev/img/logo.svg)](https://runme.dev/api/runme?repository=https%3A%2F%2Fgithub.com%2Fstateful%2Frunme.git&fileToOpen=CONTRIBUTING.md)
 
-## LICENCE
+## LICENSE
 
 Apache License, Version 2.0
