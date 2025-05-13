@@ -39,7 +39,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.26
 	github.com/xo/dburl v0.23.7
 	github.com/yuin/goldmark v1.7.11
-	go.uber.org/dig v1.18.1
+	go.uber.org/dig v1.18.2
 	go.uber.org/multierr v1.11.0
 	golang.org/x/oauth2 v0.29.0
 	golang.org/x/sys v0.32.0
