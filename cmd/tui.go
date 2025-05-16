@@ -11,10 +11,10 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/creack/pty"
-	"github.com/mgutz/ansi"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/runmedev/runme/v3/internal/ansi"
 	"github.com/runmedev/runme/v3/internal/version"
 	"github.com/runmedev/runme/v3/project"
 	"github.com/runmedev/runme/v3/runner"
