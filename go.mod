@@ -18,7 +18,7 @@ require (
 	github.com/containerd/console v1.0.4
 	github.com/creack/pty v1.1.24
 	github.com/docker/docker v28.1.1+incompatible
-	github.com/expr-lang/expr v1.17.3
+	github.com/expr-lang/expr v1.17.4
 	github.com/fatih/color v1.18.0
 	github.com/fullstorydev/grpcurl v1.9.3
 	github.com/gabriel-vasile/mimetype v1.4.9
