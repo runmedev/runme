@@ -17,7 +17,7 @@ require (
 	github.com/cli/go-gh/v2 v2.12.0
 	github.com/containerd/console v1.0.4
 	github.com/creack/pty v1.1.24
-	github.com/docker/docker v28.1.1+incompatible
+	github.com/docker/docker v28.2.2+incompatible
 	github.com/expr-lang/expr v1.17.3
 	github.com/fatih/color v1.18.0
 	github.com/fullstorydev/grpcurl v1.9.3
@@ -70,6 +70,8 @@ require (
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443 // indirect
+	github.com/containerd/errdefs v0.3.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
