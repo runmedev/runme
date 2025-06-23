@@ -124,7 +124,9 @@ type ProgramConfig struct {
 	// optional well known id for cell/block
 	KnownId string `protobuf:"bytes,12,opt,name=known_id,json=knownId,proto3" json:"known_id,omitempty"`
 	// optional well known name for cell/block
-	KnownName     string `protobuf:"bytes,13,opt,name=known_name,json=knownName,proto3" json:"known_name,omitempty"`
+	KnownName string `protobuf:"bytes,13,opt,name=known_name,json=knownName,proto3" json:"known_name,omitempty"`
+	// optional run ID to track the execution of the program
+	RunId         string `protobuf:"bytes,14,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -261,6 +263,13 @@ func (x *ProgramConfig) GetKnownName() string {
 	return ""
 }
 
+func (x *ProgramConfig) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
 type isProgramConfig_Source interface {
 	isProgramConfig_Source()
 }
@@ -332,7 +341,7 @@ var File_runme_runner_v2_config_proto protoreflect.FileDescriptor
 
 const file_runme_runner_v2_config_proto_rawDesc = "" +
 	"\n" +
-	"\x1crunme/runner/v2/config.proto\x12\x0frunme.runner.v2\"\x89\x04\n" +
+	"\x1crunme/runner/v2/config.proto\x12\x0frunme.runner.v2\"\xa0\x04\n" +
 	"\rProgramConfig\x12!\n" +
 	"\fprogram_name\x18\x01 \x01(\tR\vprogramName\x12\x1c\n" +
 	"\targuments\x18\x02 \x03(\tR\targuments\x12\x1c\n" +
@@ -351,7 +360,8 @@ const file_runme_runner_v2_config_proto_rawDesc = "" +
 	"\x04mode\x18\v \x01(\x0e2\x1c.runme.runner.v2.CommandModeR\x04mode\x12\x19\n" +
 	"\bknown_id\x18\f \x01(\tR\aknownId\x12\x1d\n" +
 	"\n" +
-	"known_name\x18\r \x01(\tR\tknownName\x1a#\n" +
+	"known_name\x18\r \x01(\tR\tknownName\x12\x15\n" +
+	"\x06run_id\x18\x0e \x01(\tR\x05runId\x1a#\n" +
 	"\vCommandList\x12\x14\n" +
 	"\x05items\x18\x01 \x03(\tR\x05itemsB\b\n" +
 	"\x06source*\x8c\x01\n" +

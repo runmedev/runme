@@ -1178,7 +1178,9 @@ type ExecuteRequest struct {
 	// CLI/notebook UX have id/name for cells/blocks that contain commands.
 	// While the runner doesn't require the name to work, it is useful for
 	// auxiliary concerns (e.g. tracing, logging, etc).
-	KnownName     string `protobuf:"bytes,28,opt,name=known_name,json=knownName,proto3" json:"known_name,omitempty"`
+	KnownName string `protobuf:"bytes,28,opt,name=known_name,json=knownName,proto3" json:"known_name,omitempty"`
+	// optional run ID to track the execution of the program
+	RunId         string `protobuf:"bytes,29,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1349,6 +1351,13 @@ func (x *ExecuteRequest) GetKnownId() string {
 func (x *ExecuteRequest) GetKnownName() string {
 	if x != nil {
 		return x.KnownName
+	}
+	return ""
+}
+
+func (x *ExecuteRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
 	}
 	return ""
 }
@@ -2207,7 +2216,7 @@ const file_runme_runner_v1_runner_proto_rawDesc = "" +
 	"\x04rows\x18\x01 \x01(\rR\x04rows\x12\x12\n" +
 	"\x04cols\x18\x02 \x01(\rR\x04cols\x12\f\n" +
 	"\x01x\x18\x03 \x01(\rR\x01x\x12\f\n" +
-	"\x01y\x18\x04 \x01(\rR\x01y\"\x9f\x06\n" +
+	"\x01y\x18\x04 \x01(\rR\x01y\"\xb6\x06\n" +
 	"\x0eExecuteRequest\x12!\n" +
 	"\fprogram_name\x18\x01 \x01(\tR\vprogramName\x12\x1c\n" +
 	"\targuments\x18\x02 \x03(\tR\targuments\x12\x1c\n" +
@@ -2235,7 +2244,8 @@ const file_runme_runner_v1_runner_proto_rawDesc = "" +
 	"\x0efile_extension\x18\x1a \x01(\tR\rfileExtension\x12\x19\n" +
 	"\bknown_id\x18\x1b \x01(\tR\aknownId\x12\x1d\n" +
 	"\n" +
-	"known_name\x18\x1c \x01(\tR\tknownNameB\n" +
+	"known_name\x18\x1c \x01(\tR\tknownName\x12\x15\n" +
+	"\x06run_id\x18\x1d \x01(\tR\x05runIdB\n" +
 	"\n" +
 	"\b_winsizeB\n" +
 	"\n" +

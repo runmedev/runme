@@ -125,6 +125,13 @@ export declare type ProgramConfig = Message<"runme.runner.v2.ProgramConfig"> & {
    * @generated from field: string known_name = 13;
    */
   knownName: string;
+
+  /**
+   * optional run ID to track the execution of the program
+   *
+   * @generated from field: string run_id = 14;
+   */
+  runId: string;
 };
 
 /**
@@ -199,3 +206,4 @@ export enum CommandMode {
  * Describes the enum runme.runner.v2.CommandMode.
  */
 export declare const CommandModeSchema: GenEnum<CommandMode>;
+

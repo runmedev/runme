@@ -460,6 +460,13 @@ export declare type ExecuteRequest = Message<"runme.runner.v1.ExecuteRequest"> &
    * @generated from field: string known_name = 28;
    */
   knownName: string;
+
+  /**
+   * optional run ID to track the execution of the program
+   *
+   * @generated from field: string run_id = 29;
+   */
+  runId: string;
 };
 
 /**
@@ -1212,3 +1219,4 @@ export declare const RunnerService: GenService<{
     output: typeof ResolveProgramResponseSchema;
   },
 }>;
+

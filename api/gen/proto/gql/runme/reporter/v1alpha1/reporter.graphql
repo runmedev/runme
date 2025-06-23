@@ -11,7 +11,7 @@ directive @ReporterService on FIELD_DEFINITION
 type BoolValue {
 	"""
 	 The bool value.
-
+	
 	"""
 	value: Boolean
 }
@@ -27,7 +27,7 @@ type BoolValue {
 input BoolValueInput {
 	"""
 	 The bool value.
-
+	
 	"""
 	value: Boolean
 }
@@ -124,7 +124,7 @@ type Frontmatter {
 	runme: FrontmatterRunme
 	"""
 	 Deprecated category in favor of Tag
-
+	
 	"""
 	category: String
 	terminalRows: String
@@ -137,7 +137,7 @@ input FrontmatterInput {
 	runme: FrontmatterRunmeInput
 	"""
 	 Deprecated category in favor of Tag
-
+	
 	"""
 	category: String
 	terminalRows: String
@@ -165,7 +165,7 @@ input FrontmatterRunmeInput {
 type Int64Value {
 	"""
 	 The int64 value.
-
+	
 	"""
 	value: Int
 }
@@ -181,7 +181,7 @@ type Int64Value {
 input Int64ValueInput {
 	"""
 	 The int64 value.
-
+	
 	"""
 	value: Int
 }
@@ -323,7 +323,7 @@ type TransformResponse {
 type UInt32Value {
 	"""
 	 The uint32 value.
-
+	
 	"""
 	value: Int
 }
@@ -339,7 +339,7 @@ type UInt32Value {
 input UInt32ValueInput {
 	"""
 	 The uint32 value.
-
+	
 	"""
 	value: Int
 }
