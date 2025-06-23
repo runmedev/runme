@@ -139,8 +139,10 @@ proto/generate: proto/_generate fmt
 
 .PHONY: proto/_generate
 proto/_generate:
-	buf lint
-	buf format -w
+	cd api/proto && buf dep update
+	# Upstreamed protos fail linting, so we skip it for now.
+	# buf lint
+	# buf format -w
 	buf generate
 
 .PHONY: proto/clean

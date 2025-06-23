@@ -1,6 +1,7 @@
 version: v1
 name: buf.build/stateful/runme
 deps:
+  - buf.build/googleapis/googleapis
   - buf.build/bufbuild/protovalidate
 lint:
   use:
