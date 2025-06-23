@@ -1,0 +1,173 @@
+syntax = "proto3";
+
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent";
+
+// -------------------------------------------------------------------------
+// Assertions
+// -------------------------------------------------------------------------
+message Assertion {
+  // What we are checking for.
+  enum Type {
+    TYPE_UNKNOWN = 0;
+    TYPE_SHELL_REQUIRED_FLAG = 1; // Were all required CLI flags present?
+    TYPE_TOOL_INVOKED = 2; // Was a tool invoked (or not)?
+    TYPE_FILE_RETRIEVED = 3; // Was a file retrieved (or not)?
+    TYPE_LLM_JUDGE = 4; // Ask an LLM to grade the final answer.
+    TYPE_CODEBLOCK_REGEX = 5; // Does at least one code block match the regex?
+  }
+
+  // Outcome of an assertion after a test run.
+  enum Result {
+    RESULT_UNKNOWN = 0;
+    RESULT_TRUE = 1;
+    RESULT_FALSE = 2;
+    RESULT_SKIPPED = 3;
+  }
+
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  Type type = 2 [(buf.validate.field).required = true];
+  Result result = 3;
+
+  // Exactly one concrete assertion payload must be present.
+  oneof payload {
+    option (buf.validate.oneof).required = true;
+    ShellRequiredFlag shell_required_flag = 4;
+    ToolInvocation tool_invocation = 5;
+    FileRetrieval file_retrieval = 6;
+    LLMJudge llm_judge = 7;
+    CodeblockRegex codeblock_regex = 8;
+  }
+
+  // -------------------- Payload messages ---------------------------------
+
+  // Verifies that a shell command includes specific flags.
+  message ShellRequiredFlag {
+    string command = 1 [
+      (buf.validate.field).string.min_len = 1,
+      (buf.validate.field).required = true
+    ]; // e.g. "kubectl"
+    repeated string flags = 2 [
+      (buf.validate.field).repeated.min_items = 1,
+      (buf.validate.field).required = true
+    ]; // e.g. ["--context"]
+  }
+
+  // Verifies that a tool **is** or **is not** invoked.
+  message ToolInvocation {
+    string tool_name = 1 [
+      (buf.validate.field).string.min_len = 1,
+      (buf.validate.field).required = true
+    ]; // e.g. "file_search"
+  }
+
+  // Verifies that a file **is** or **is not** retrieved.
+  message FileRetrieval {
+    string file_id = 1 [
+      (buf.validate.field).string.min_len = 1,
+      (buf.validate.field).required = true
+    ];
+    string file_name = 2; // Optional human-readable name
+  }
+
+  // Asks an LLM to grade the assistant's answer.
+  message LLMJudge {
+    string prompt = 1 [
+      (buf.validate.field).string.min_len = 1,
+      (buf.validate.field).required = true
+    ];
+  }
+
+  // Checks if at least one code block matches the regex.
+  message CodeblockRegex {
+    string regex = 1 [
+      (buf.validate.field).string.min_len = 1,
+      (buf.validate.field).required = true
+    ]; // The regex pattern to match against code blocks
+  }
+
+  string failure_reason = 9; // If the assertion failed, this will contain the reason.
+}
+
+// -------------------------------------------------------------------------
+// EvalSample – Represents a single evaluation input and its expected assertions
+// -------------------------------------------------------------------------
+message EvalSample {
+  string kind = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ]; // Resource kind, always "EvalSample"
+  ObjectMeta metadata = 2 [(buf.validate.field).required = true]; // Standard metadata (name, labels, etc.)
+  string input_text = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ]; // The input text to be evaluated
+  repeated Assertion assertions = 4 [
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).required = true
+  ]; // List of assertions to check for this input
+}
+
+message EvalDataset {
+  repeated EvalSample samples = 1;
+}
+
+// -------------------------------------------------------------------------
+// Experiment – Configuration for running an evaluation experiment
+// -------------------------------------------------------------------------
+
+message ObjectMeta {
+  // Name of the resource, e.g. "experiment-test".
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message ExperimentSpec {
+  // Path to the folder containing the dataset to evaluate.
+  string dataset_path = 1 [
+    json_name = "datasetPath",
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+
+  // Directory where experiment reports will be written.
+  string output_dir = 2 [
+    json_name = "outputDir",
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+
+  // URL of the backend inference service to call during evaluation.
+  string inference_endpoint = 3 [
+    json_name = "inferenceEndpoint",
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message Experiment {
+  // API version of the resource, e.g. "cloudassistant.io/v1alpha1".
+  string api_version = 1 [
+    json_name = "apiVersion",
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+
+  // Kind of the resource. Always "Experiment" for this CRD.
+  string kind = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+
+  // Standard Kubernetes object metadata (name, labels, annotations, etc.).
+  ObjectMeta metadata = 3 [(buf.validate.field).required = true];
+
+  // User-defined configuration for the experiment.
+  ExperimentSpec spec = 4 [(buf.validate.field).required = true];
+}

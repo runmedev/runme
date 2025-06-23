@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/config";
+
+// WebAppConfig is the application configuration.
+message WebAppConfig {
+  // runner is the address of the runner that the application should use.
+  string runner = 1;
+
+  // Reconnect is a flag to enable automatic reconnecting to the runner.
+  optional bool reconnect = 2;
+
+  // InvertedOrder is a flag to invert the order of the blocks.
+  optional bool inverted_order = 3;
+}

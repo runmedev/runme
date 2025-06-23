@@ -6,6 +6,11 @@ plugins:
     out: api/gen/proto/go
     opt: paths=source_relative
 
+  # Remote plugin. You can switch to a local one by using "go".
+  - remote: buf.build/connectrpc/go
+    out: api/gen/proto/go
+    opt: paths=source_relative
+
   # Remote plugin. You can switch to a local one by using "go-grpc".
   - remote: buf.build/grpc/go
     out: api/gen/proto/go
