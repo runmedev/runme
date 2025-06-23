@@ -204,6 +204,9 @@ message ExecuteRequest {
   // While the runner doesn't require the name to work, it is useful for
   // auxiliary concerns (e.g. tracing, logging, etc).
   string known_name = 28;
+
+  // optional run ID to track the execution of the program
+  string run_id = 29;
 }
 
 message ProcessPID {

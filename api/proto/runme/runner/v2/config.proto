@@ -79,6 +79,9 @@ message ProgramConfig {
   // optional well known name for cell/block
   string known_name = 13;
 
+  // optional run ID to track the execution of the program
+  string run_id = 14;
+
   message CommandList {
     // commands are commands to be executed by the program.
     // The commands are joined and executed as a script.

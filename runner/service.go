@@ -210,9 +210,7 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 }
 
 func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error {
-	_id := ulid.GenerateID()
-	logger := r.logger.With(zap.String("_id", _id))
-
+	logger := r.logger
 	logger.Info("running Execute in runnerService")
 
 	// Get the initial request.
@@ -226,8 +224,14 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 		return errors.WithStack(err)
 	}
 
+	runID := req.GetRunId()
+	if runID == "" {
+		runID = ulid.GenerateID()
+	}
+	logger = logger.With(zap.String("_id", runID))
+
 	execInfo := &rcontext.ExecutionInfo{
-		RunID:     _id,
+		RunID:     runID,
 		KnownName: req.GetKnownName(),
 		KnownID:   req.GetKnownId(),
 	}
