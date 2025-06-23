@@ -34,7 +34,7 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		runID = ulid.GenerateID()
 	}
 	logger = logger.Named("Execute").With(zap.String("id", runID))
-	logger.Info("received initial request", zap.Any("req", req))
+	logger.Debug("received initial request", zap.Any("req", req))
 
 	execInfo := getExecutionInfoFromExecutionRequest(req)
 	execInfo.RunID = runID

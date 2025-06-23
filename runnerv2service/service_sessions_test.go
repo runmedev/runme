@@ -20,7 +20,7 @@ func TestRunnerService_Sessions(t *testing.T) {
 	temp := t.TempDir()
 	testData := teststub.Setup(t, temp)
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -121,7 +121,7 @@ func TestRunnerService_Sessions(t *testing.T) {
 func TestRunnerService_Sessions_ExecuteWithStrategyMostRecent(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)

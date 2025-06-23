@@ -25,6 +25,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
+	"github.com/runmedev/runme/v3/internal/log"
 	"github.com/runmedev/runme/v3/internal/testutils"
 	"github.com/runmedev/runme/v3/internal/ulid"
 )
@@ -60,6 +61,7 @@ func testStartRunnerServiceServer(t *testing.T) (
 	// read them and verify required log messages are written.
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{"stderr", logFile}
+	config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	newLogger, err := config.Build()
 	logger = newLogger
 
@@ -1054,6 +1056,43 @@ func Test_runnerService(t *testing.T) {
 
 			assert.Equal(t, "null byte test: ", string(result.Stdout))
 		}
+	})
+
+	t.Run("ExecuteRunId", func(t *testing.T) {
+		t.Parallel()
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		expectedRunID := ulid.GenerateID()
+		err = stream.Send(&runnerv1.ExecuteRequest{
+			RunId:       expectedRunID,
+			ProgramName: "bash",
+			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
+			Commands: []string{
+				"date",
+			},
+			Background: false,
+			Tty:        true,
+		})
+		require.NoError(t, err)
+
+		execResult := make(chan executeResult)
+		go getExecuteResult(stream, execResult)
+
+		result := <-execResult
+		assert.NoError(t, result.Err)
+		assert.EqualValues(t, 0, result.ExitCode)
+
+		messages, err := log.ReadLogMessages(logger, logFile)
+		require.NoError(t, err)
+
+		for _, msg := range messages {
+			if msg.Msg == "received initial request" && msg.ID == expectedRunID {
+				return
+			}
+		}
+
+		assert.Fail(t, "expected run ID not found in log messages")
 	})
 }
 

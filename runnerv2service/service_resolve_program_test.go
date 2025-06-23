@@ -17,7 +17,7 @@ import (
 func TestRunnerService_ResolveProgram(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -97,7 +97,7 @@ func TestRunnerService_ResolveProgram_CommandsWithNewLines(t *testing.T) {
 	// TODO(adamb): enable it when we find a solution for merging commands and splitting them back.
 	t.Skip("the problem is unknown and needs to be fixed")
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
@@ -151,7 +151,7 @@ func TestRunnerService_ResolveProgram_CommandsWithNewLines(t *testing.T) {
 func TestRunnerService_ResolveProgram_OnlyShellLanguages(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)

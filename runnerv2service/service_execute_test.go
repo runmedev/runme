@@ -14,14 +14,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	"github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/command/testdata"
+	"github.com/runmedev/runme/v3/internal/log"
 	"github.com/runmedev/runme/v3/internal/testutils"
+	"github.com/runmedev/runme/v3/internal/ulid"
 )
 
 func Test_matchesOpinionatedEnvVarNaming(t *testing.T) {
@@ -62,7 +64,7 @@ func Test_matchesOpinionatedEnvVarNaming(t *testing.T) {
 func TestRunnerServiceServerExecute_EmptyConfigErrors(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -84,7 +86,7 @@ func TestRunnerServiceServerExecute_EmptyConfigErrors(t *testing.T) {
 func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -158,7 +160,7 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -236,7 +238,7 @@ func TestRunnerServiceServerExecute_LargeOutput(t *testing.T) {
 	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
 	require.NoError(t, err)
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -279,7 +281,7 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 	_, err := testdata.UngzipToFile(testdata.Users1MGzip, fileName)
 	require.NoError(t, err)
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -353,7 +355,7 @@ func TestRunnerServiceServerExecute_LastStdoutExceedsEnvLimit(t *testing.T) {
 func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -427,7 +429,7 @@ func TestRunnerServiceServerExecute_StoreKnownName(t *testing.T) {
 func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -596,7 +598,7 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -685,7 +687,7 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -751,7 +753,7 @@ func TestRunnerServiceServerExecute_PathEnvInSession(t *testing.T) {
 func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -880,7 +882,7 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -953,7 +955,7 @@ func TestRunnerServiceServerExecute_WithSession(t *testing.T) {
 func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -1028,7 +1030,7 @@ func TestRunnerServiceServerExecute_WithStop(t *testing.T) {
 func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 	t.Parallel()
 
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
@@ -1107,9 +1109,59 @@ func TestRunnerServiceServerExecute_Winsize(t *testing.T) {
 	})
 }
 
+func TestRunnerServiceServerExecute_ExecuteRunId(t *testing.T) {
+	t.Parallel()
+
+	logger, logFile, lis, stop := startRunnerServiceServer(t)
+	t.Cleanup(stop)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
+
+	expectedRunID := ulid.GenerateID()
+
+	stream, err := client.Execute(context.Background())
+	require.NoError(t, err)
+
+	resultC := make(chan executeResult)
+	go getExecuteResult(stream, resultC)
+
+	err = stream.Send(
+		&runnerv2.ExecuteRequest{
+			Config: &runnerv2.ProgramConfig{
+				ProgramName: "bash",
+				Source: &runnerv2.ProgramConfig_Commands{
+					Commands: &runnerv2.ProgramConfig_CommandList{
+						Items: []string{
+							"date",
+						},
+					},
+				},
+				RunId: expectedRunID,
+			},
+		},
+	)
+	assert.NoError(t, err)
+
+	result := <-resultC
+	assert.NoError(t, result.Err)
+	assert.EqualValues(t, 0, result.ExitCode)
+
+	messages, err := log.ReadLogMessages(logger, logFile)
+	require.NoError(t, err)
+
+	for _, msg := range messages {
+		if msg.Msg == "received initial request" {
+			assert.Equal(t, expectedRunID, msg.RunID)
+			return
+		}
+	}
+
+	assert.Fail(t, "expected run ID not found in log messages")
+}
+
 func Test_VarRetentionStrategies(t *testing.T) {
 	t.Parallel()
-	lis, stop := startRunnerServiceServer(t)
+	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
 
@@ -1214,10 +1266,25 @@ func Test_VarRetentionStrategies(t *testing.T) {
 }
 
 // Duplicated in testutils/runnerservice/runner_service.go for other packages.
-func startRunnerServiceServer(t *testing.T) (_ *bufconn.Listener, stop func()) {
+func startRunnerServiceServer(t *testing.T) (logger *zap.Logger, logFile string, _ *bufconn.Listener, stop func()) {
 	t.Helper()
 
-	logger := zaptest.NewLogger(t)
+	f, err := os.CreateTemp("", "runmeServiceTestLogs")
+	if err != nil {
+		t.Fatalf("failed to create log file: %v", err)
+	}
+	logFile = f.Name()
+	if err := f.Close(); err != nil {
+		t.Fatalf("failed to close log file: %v", err)
+	}
+	// N.B. We use a production config because we want to produce JSON logs so that we can
+	// read them and verify required log messages are written.
+	config := zap.NewProductionConfig()
+	config.OutputPaths = []string{"stderr", logFile}
+	config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	logger, err = config.Build()
+	require.NoError(t, err)
+
 	factory := command.NewFactory(command.WithLogger(logger))
 
 	runnerService, err := NewRunnerService(factory, logger)
@@ -1232,7 +1299,7 @@ func startRunnerServiceServer(t *testing.T) (_ *bufconn.Listener, stop func()) {
 	lis := bufconn.Listen(1 << 20) // 1 MB
 	go server.Serve(lis)
 
-	return lis, server.Stop
+	return logger, logFile, lis, server.Stop
 }
 
 type executeResult struct {
