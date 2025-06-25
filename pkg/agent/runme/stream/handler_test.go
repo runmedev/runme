@@ -139,9 +139,9 @@ func TestRunmeHandler_Roundtrip(t *testing.T) {
 		return
 	}
 
-	dummyReq, err := protojson.Marshal(&streamv1.SocketRequest{
+	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
 		RunId: runID.String(),
-		Payload: &streamv1.SocketRequest_ExecuteRequest{
+		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
 					Source: &v2.ProgramConfig_Commands{
@@ -170,7 +170,7 @@ func TestRunmeHandler_Roundtrip(t *testing.T) {
 	}()
 
 	for {
-		dummyResp, err := sc.ReadSocketResponse(context.Background())
+		dummyResp, err := sc.ReadWebsocketResponse(context.Background())
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 			return
@@ -215,9 +215,9 @@ func TestRunmeHandler_DenyMismatchedRunID(t *testing.T) {
 	}
 
 	unrelatedRunID := genULID()
-	dummyReq, err := protojson.Marshal(&streamv1.SocketRequest{
+	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
 		RunId: unrelatedRunID.String(),
-		Payload: &streamv1.SocketRequest_ExecuteRequest{
+		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
 					Source: &v2.ProgramConfig_Commands{
@@ -246,7 +246,7 @@ func TestRunmeHandler_DenyMismatchedRunID(t *testing.T) {
 	}
 
 	for {
-		resp, err := sc.ReadSocketResponse(context.Background())
+		resp, err := sc.ReadWebsocketResponse(context.Background())
 		closeErr, ok := err.(*websocket.CloseError)
 
 		// Expect permission denied error if the runID is not the same as the one in the request.
@@ -298,10 +298,10 @@ func TestRunmeHandler_DenyMismatchedKnownID(t *testing.T) {
 	knownID1 := genULID()
 	knownID2 := genULID() // This is the mismatching one
 
-	req1, _ := protojson.Marshal(&streamv1.SocketRequest{
+	req1, _ := protojson.Marshal(&streamv1.WebsocketRequest{
 		KnownId: knownID1.String(),
 		RunId:   runID.String(),
-		Payload: &streamv1.SocketRequest_ExecuteRequest{
+		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
 					Source: &v2.ProgramConfig_Commands{
@@ -313,10 +313,10 @@ func TestRunmeHandler_DenyMismatchedKnownID(t *testing.T) {
 			},
 		},
 	})
-	req2, _ := protojson.Marshal(&streamv1.SocketRequest{
+	req2, _ := protojson.Marshal(&streamv1.WebsocketRequest{
 		KnownId: knownID2.String(), // Mismatched KnownID
 		RunId:   runID.String(),
-		Payload: &streamv1.SocketRequest_ExecuteRequest{
+		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
 					Source: &v2.ProgramConfig_Commands{
@@ -338,7 +338,7 @@ func TestRunmeHandler_DenyMismatchedKnownID(t *testing.T) {
 	}
 
 	for {
-		resp, err := sc.ReadSocketResponse(context.Background())
+		resp, err := sc.ReadWebsocketResponse(context.Background())
 		if err != nil {
 			break // Connection closed or error
 		}
@@ -377,7 +377,7 @@ func TestRunmeHandler_Ping(t *testing.T) {
 
 	// Send a ping request with knownID and runID
 	ts1 := timestamppb.Now().AsTime().UnixMilli()
-	req1, _ := protojson.Marshal(&streamv1.SocketRequest{
+	req1, _ := protojson.Marshal(&streamv1.WebsocketRequest{
 		KnownId: genULID().String(),
 		RunId:   genULID().String(),
 		Ping: &streamv1.Ping{
@@ -393,7 +393,7 @@ func TestRunmeHandler_Ping(t *testing.T) {
 	}
 	time.Sleep(200 * time.Millisecond)
 	ts2 := timestamppb.Now().AsTime().UnixMilli()
-	req2, _ := protojson.Marshal(&streamv1.SocketRequest{
+	req2, _ := protojson.Marshal(&streamv1.WebsocketRequest{
 		KnownId: genULID().String(),
 		RunId:   genULID().String(),
 		Ping: &streamv1.Ping{
@@ -405,7 +405,7 @@ func TestRunmeHandler_Ping(t *testing.T) {
 	}
 
 	for {
-		resp, err := sc.ReadSocketResponse(context.Background())
+		resp, err := sc.ReadWebsocketResponse(context.Background())
 		if err != nil {
 			break // Connection closed or error
 		}
@@ -460,9 +460,9 @@ func TestRunmeHandler_MutliClient(t *testing.T) {
 		connections = append(connections, sc)
 	}
 
-	dummyReq, err := protojson.Marshal(&streamv1.SocketRequest{
+	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
 		RunId: runID.String(),
-		Payload: &streamv1.SocketRequest_ExecuteRequest{
+		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
 					Source: &v2.ProgramConfig_Commands{
@@ -500,7 +500,7 @@ func TestRunmeHandler_MutliClient(t *testing.T) {
 	readSequence := func(sc *Connection) result {
 		var seq []string
 		for {
-			dummyResp, err := sc.ReadSocketResponse(context.Background())
+			dummyResp, err := sc.ReadWebsocketResponse(context.Background())
 			if err != nil {
 				return result{seq, err}
 			}

@@ -668,7 +668,7 @@ type AuthContext struct {
 	Role    string
 }
 
-func (a *AuthContext) AuthorizeRequest(ctx context.Context, req *streamv1.SocketRequest) error {
+func (a *AuthContext) AuthorizeRequest(ctx context.Context, req *streamv1.WebsocketRequest) error {
 	log := logs.FromContextWithTrace(ctx)
 
 	// Nil token is not fatal until authz denies access

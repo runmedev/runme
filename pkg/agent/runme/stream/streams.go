@@ -26,16 +26,16 @@ type Streams struct {
 	mu    sync.RWMutex
 	conns map[string]*Connection
 
-	authedSocketRequests chan *streamv1.SocketRequest
+	authedWebsocketRequests chan *streamv1.WebsocketRequest
 }
 
 // NewStreams creates a instance of Streams that manages multiple websocket connections attached to a muliplexed Runme execution.
-func NewStreams(ctx context.Context, auth *iam.AuthContext, socketRequests chan *streamv1.SocketRequest) *Streams {
+func NewStreams(ctx context.Context, auth *iam.AuthContext, socketRequests chan *streamv1.WebsocketRequest) *Streams {
 	return &Streams{
-		auth:                 auth,
-		knownID:              "",
-		conns:                make(map[string]*Connection, 1),
-		authedSocketRequests: socketRequests,
+		auth:                    auth,
+		knownID:                 "",
+		conns:                   make(map[string]*Connection, 1),
+		authedWebsocketRequests: socketRequests,
 	}
 }
 
@@ -88,7 +88,7 @@ func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc
 
 	for {
 		log.Info("Reading socket requests", "streamID", streamID)
-		req, err := sc.ReadSocketRequest(ctx)
+		req, err := sc.ReadWebsocketRequest(ctx)
 		if err != nil {
 			log.Error(err, "Could not read socket request")
 			return err
@@ -128,8 +128,8 @@ func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc
 		// Handle protocol-level ping
 		if req.GetPing() != nil {
 			pong := &streamv1.Pong{Timestamp: req.GetPing().GetTimestamp()}
-			resp := &streamv1.SocketResponse{Pong: pong}
-			err := sc.WriteSocketResponse(ctx, resp)
+			resp := &streamv1.WebsocketResponse{Pong: pong}
+			err := sc.WriteWebsocketResponse(ctx, resp)
 			if err != nil {
 				log.Error(err, "Could not send pong response")
 			}
@@ -137,7 +137,7 @@ func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc
 		}
 
 		// Only authorized requests are forwarded to the multiplexer.
-		s.authedSocketRequests <- req
+		s.authedWebsocketRequests <- req
 	}
 }
 

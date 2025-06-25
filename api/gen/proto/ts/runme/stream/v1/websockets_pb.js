@@ -11,9 +11,9 @@ import { ExecuteResponse } from "../../runner/v2/runner_pb";
 import { ExecuteRequest } from "../../runner/v2/runner_pb";
 import { Code } from "../../../google/rpc/code_pb";
 // @generated message type with reflection information, may provide speed optimized methods
-class SocketStatus$Type extends MessageType {
+class WebsocketStatus$Type extends MessageType {
     constructor() {
-        super("runme.stream.v1.SocketStatus", [
+        super("runme.stream.v1.WebsocketStatus", [
             { no: 1, name: "code", kind: "enum", T: () => ["google.rpc.Code", Code] },
             { no: 2, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -62,9 +62,9 @@ class SocketStatus$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.stream.v1.SocketStatus
+ * @generated MessageType for protobuf message runme.stream.v1.WebsocketStatus
  */
-export const SocketStatus = new SocketStatus$Type();
+export const WebsocketStatus = new WebsocketStatus$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Ping$Type extends MessageType {
     constructor() {
@@ -160,9 +160,9 @@ class Pong$Type extends MessageType {
  */
 export const Pong = new Pong$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class SocketRequest$Type extends MessageType {
+class WebsocketRequest$Type extends MessageType {
     constructor() {
-        super("runme.stream.v1.SocketRequest", [
+        super("runme.stream.v1.WebsocketRequest", [
             { no: 1, name: "execute_request", kind: "message", oneof: "payload", T: () => ExecuteRequest },
             { no: 100, name: "ping", kind: "message", T: () => Ping },
             { no: 200, name: "authorization", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -237,16 +237,16 @@ class SocketRequest$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.stream.v1.SocketRequest
+ * @generated MessageType for protobuf message runme.stream.v1.WebsocketRequest
  */
-export const SocketRequest = new SocketRequest$Type();
+export const WebsocketRequest = new WebsocketRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class SocketResponse$Type extends MessageType {
+class WebsocketResponse$Type extends MessageType {
     constructor() {
-        super("runme.stream.v1.SocketResponse", [
+        super("runme.stream.v1.WebsocketResponse", [
             { no: 1, name: "execute_response", kind: "message", oneof: "payload", T: () => ExecuteResponse },
             { no: 100, name: "pong", kind: "message", T: () => Pong },
-            { no: 200, name: "status", kind: "message", T: () => SocketStatus },
+            { no: 200, name: "status", kind: "message", T: () => WebsocketStatus },
             { no: 210, name: "known_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 220, name: "run_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -274,8 +274,8 @@ class SocketResponse$Type extends MessageType {
                 case /* runme.stream.v1.Pong pong */ 100:
                     message.pong = Pong.internalBinaryRead(reader, reader.uint32(), options, message.pong);
                     break;
-                case /* runme.stream.v1.SocketStatus status */ 200:
-                    message.status = SocketStatus.internalBinaryRead(reader, reader.uint32(), options, message.status);
+                case /* runme.stream.v1.WebsocketStatus status */ 200:
+                    message.status = WebsocketStatus.internalBinaryRead(reader, reader.uint32(), options, message.status);
                     break;
                 case /* string known_id */ 210:
                     message.knownId = reader.string();
@@ -301,9 +301,9 @@ class SocketResponse$Type extends MessageType {
         /* runme.stream.v1.Pong pong = 100; */
         if (message.pong)
             Pong.internalBinaryWrite(message.pong, writer.tag(100, WireType.LengthDelimited).fork(), options).join();
-        /* runme.stream.v1.SocketStatus status = 200; */
+        /* runme.stream.v1.WebsocketStatus status = 200; */
         if (message.status)
-            SocketStatus.internalBinaryWrite(message.status, writer.tag(200, WireType.LengthDelimited).fork(), options).join();
+            WebsocketStatus.internalBinaryWrite(message.status, writer.tag(200, WireType.LengthDelimited).fork(), options).join();
         /* string known_id = 210; */
         if (message.knownId !== "")
             writer.tag(210, WireType.LengthDelimited).string(message.knownId);
@@ -317,6 +317,6 @@ class SocketResponse$Type extends MessageType {
     }
 }
 /**
- * @generated MessageType for protobuf message runme.stream.v1.SocketResponse
+ * @generated MessageType for protobuf message runme.stream.v1.WebsocketResponse
  */
-export const SocketResponse = new SocketResponse$Type();
+export const WebsocketResponse = new WebsocketResponse$Type();

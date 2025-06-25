@@ -563,8 +563,8 @@ func newExecuteRequest(commands []string) *v2.ExecuteRequest {
 
 // sendExecuteRequest sends an ExecuteRequest to the server.
 func sendExecuteRequest(c *websocket.Conn, executeRequest *v2.ExecuteRequest) error {
-	socketRequest := &streamv1.SocketRequest{
-		Payload: &streamv1.SocketRequest_ExecuteRequest{
+	socketRequest := &streamv1.WebsocketRequest{
+		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: executeRequest,
 		},
 	}
@@ -604,7 +604,7 @@ func waitForCommandToFinish(c *websocket.Conn) (*agent.Block, error) {
 			log.Error(err, "read error")
 		}
 
-		response := &streamv1.SocketResponse{}
+		response := &streamv1.WebsocketResponse{}
 		if err := protojson.Unmarshal(message, response); err != nil {
 			log.Error(err, "Failed to unmarshal message")
 			return block, errors.Wrapf(err, "Failed to unmarshal message; %v", err)

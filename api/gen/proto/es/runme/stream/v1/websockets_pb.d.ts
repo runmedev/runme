@@ -13,11 +13,11 @@ import type { ExecuteRequest, ExecuteResponse } from "../../runner/v2/runner_pb.
 export declare const file_runme_stream_v1_websockets: GenFile;
 
 /**
- * Represents socket-level status (e.g., for auth, protocol, or other errors).
+ * Represents websocket-level status (e.g., for auth, protocol, or other errors).
  *
- * @generated from message runme.stream.v1.SocketStatus
+ * @generated from message runme.stream.v1.WebsocketStatus
  */
-export declare type SocketStatus = Message<"runme.stream.v1.SocketStatus"> & {
+export declare type WebsocketStatus = Message<"runme.stream.v1.WebsocketStatus"> & {
   /**
    * @generated from field: google.rpc.Code code = 1;
    */
@@ -30,10 +30,10 @@ export declare type SocketStatus = Message<"runme.stream.v1.SocketStatus"> & {
 };
 
 /**
- * Describes the message runme.stream.v1.SocketStatus.
- * Use `create(SocketStatusSchema)` to create a new message.
+ * Describes the message runme.stream.v1.WebsocketStatus.
+ * Use `create(WebsocketStatusSchema)` to create a new message.
  */
-export declare const SocketStatusSchema: GenMessage<SocketStatus>;
+export declare const WebsocketStatusSchema: GenMessage<WebsocketStatus>;
 
 /**
  * Ping message for protocol-level keep-alive
@@ -72,14 +72,14 @@ export declare type Pong = Message<"runme.stream.v1.Pong"> & {
 export declare const PongSchema: GenMessage<Pong>;
 
 /**
- * SocketRequest defines the message sent by the client over a websocket.
+ * WebsocketRequest defines the message sent by the client over a websocket.
  * The request is a union of types that indicate the type of message.
  *
- * @generated from message runme.stream.v1.SocketRequest
+ * @generated from message runme.stream.v1.WebsocketRequest
  */
-export declare type SocketRequest = Message<"runme.stream.v1.SocketRequest"> & {
+export declare type WebsocketRequest = Message<"runme.stream.v1.WebsocketRequest"> & {
   /**
-   * @generated from oneof runme.stream.v1.SocketRequest.payload
+   * @generated from oneof runme.stream.v1.WebsocketRequest.payload
    */
   payload: {
     /**
@@ -93,7 +93,7 @@ export declare type SocketRequest = Message<"runme.stream.v1.SocketRequest"> & {
 
   /**
    * Protocol-level ping for frontend heartbeat. Unlike websocket servers which
-   * have a spec-integral heartbeat (https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#pings_and_pongs_the_heartbeat_of_websockets),
+   * have a spec-integral heartbeat (https://developer.mozilla.org/en-US/docs/Web/API/WebWebsockets_API/Writing_WebWebsocket_servers#pings_and_pongs_the_heartbeat_of_websockets),
    * we need to specify our own to cover client->server. The integral heartbeat
    * only works server->client and the browser sandbox is not privy to it.
    * Once the server receives a ping, it will send a pong response with the
@@ -126,20 +126,20 @@ export declare type SocketRequest = Message<"runme.stream.v1.SocketRequest"> & {
 };
 
 /**
- * Describes the message runme.stream.v1.SocketRequest.
- * Use `create(SocketRequestSchema)` to create a new message.
+ * Describes the message runme.stream.v1.WebsocketRequest.
+ * Use `create(WebsocketRequestSchema)` to create a new message.
  */
-export declare const SocketRequestSchema: GenMessage<SocketRequest>;
+export declare const WebsocketRequestSchema: GenMessage<WebsocketRequest>;
 
 /**
- * SocketResponse defines the message sent by the server over a websocket.
+ * WebsocketResponse defines the message sent by the server over a websocket.
  * The response is a union of types that indicate the type of message.
  *
- * @generated from message runme.stream.v1.SocketResponse
+ * @generated from message runme.stream.v1.WebsocketResponse
  */
-export declare type SocketResponse = Message<"runme.stream.v1.SocketResponse"> & {
+export declare type WebsocketResponse = Message<"runme.stream.v1.WebsocketResponse"> & {
   /**
-   * @generated from oneof runme.stream.v1.SocketResponse.payload
+   * @generated from oneof runme.stream.v1.WebsocketResponse.payload
    */
   payload: {
     /**
@@ -155,18 +155,18 @@ export declare type SocketResponse = Message<"runme.stream.v1.SocketResponse"> &
    * Protocol-level pong for frontend heartbeat. Once the server receives
    * a ping, it will send a pong response with the exact same timestamp.
    * This allows the frontend (client) to detect if the connection is
-   * still alive or stale/inactive. See SocketRequest's ping for more details.
+   * still alive or stale/inactive. See WebsocketRequest's ping for more details.
    *
    * @generated from field: runme.stream.v1.Pong pong = 100;
    */
   pong?: Pong;
 
   /**
-   * Optional socket-level status.
+   * Optional websocket-level status.
    *
-   * @generated from field: runme.stream.v1.SocketStatus status = 200;
+   * @generated from field: runme.stream.v1.WebsocketStatus status = 200;
    */
-  status?: SocketStatus;
+  status?: WebsocketStatus;
 
   /**
    * Optional Known ID to track the origin cell/block of the request.
@@ -184,8 +184,8 @@ export declare type SocketResponse = Message<"runme.stream.v1.SocketResponse"> &
 };
 
 /**
- * Describes the message runme.stream.v1.SocketResponse.
- * Use `create(SocketResponseSchema)` to create a new message.
+ * Describes the message runme.stream.v1.WebsocketResponse.
+ * Use `create(WebsocketResponseSchema)` to create a new message.
  */
-export declare const SocketResponseSchema: GenMessage<SocketResponse>;
+export declare const WebsocketResponseSchema: GenMessage<WebsocketResponse>;
 

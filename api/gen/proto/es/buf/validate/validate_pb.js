@@ -249,8 +249,8 @@ export const IgnoreSchema = /*@__PURE__*/
   enumDesc(file_buf_validate_validate, 0);
 
 /**
- * Specifies how FieldRules.ignore behaves. See the documentation for
- * FieldRules.required for definitions of "populated" and "nullable".
+ * Specifies how `FieldRules.ignore` behaves, depending on the field's value, and
+ * whether the field tracks presence.
  *
  * @generated from enum buf.validate.Ignore
  */

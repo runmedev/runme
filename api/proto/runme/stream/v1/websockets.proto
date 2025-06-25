@@ -7,8 +7,8 @@ import "runme/runner/v2/runner.proto";
 
 option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1;streamv1";
 
-// Represents socket-level status (e.g., for auth, protocol, or other errors).
-message SocketStatus {
+// Represents websocket-level status (e.g., for auth, protocol, or other errors).
+message WebsocketStatus {
   google.rpc.Code code = 1;
   string message = 2;
 }
@@ -23,16 +23,16 @@ message Pong {
   int64 timestamp = 1;
 }
 
-// SocketRequest defines the message sent by the client over a websocket.
+// WebsocketRequest defines the message sent by the client over a websocket.
 // The request is a union of types that indicate the type of message.
-message SocketRequest {
+message WebsocketRequest {
   oneof payload {
     runme.runner.v2.ExecuteRequest execute_request = 1;
     // Add other payloads here as needed.
   }
 
   // Protocol-level ping for frontend heartbeat. Unlike websocket servers which
-  // have a spec-integral heartbeat (https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#pings_and_pongs_the_heartbeat_of_websockets),
+  // have a spec-integral heartbeat (https://developer.mozilla.org/en-US/docs/Web/API/WebWebsockets_API/Writing_WebWebsocket_servers#pings_and_pongs_the_heartbeat_of_websockets),
   // we need to specify our own to cover client->server. The integral heartbeat
   // only works server->client and the browser sandbox is not privy to it.
   // Once the server receives a ping, it will send a pong response with the
@@ -49,9 +49,9 @@ message SocketRequest {
   string run_id = 220;
 }
 
-// SocketResponse defines the message sent by the server over a websocket.
+// WebsocketResponse defines the message sent by the server over a websocket.
 // The response is a union of types that indicate the type of message.
-message SocketResponse {
+message WebsocketResponse {
   oneof payload {
     runme.runner.v2.ExecuteResponse execute_response = 1;
     // Add other payloads here as needed.
@@ -60,11 +60,11 @@ message SocketResponse {
   // Protocol-level pong for frontend heartbeat. Once the server receives
   // a ping, it will send a pong response with the exact same timestamp.
   // This allows the frontend (client) to detect if the connection is
-  // still alive or stale/inactive. See SocketRequest's ping for more details.
+  // still alive or stale/inactive. See WebsocketRequest's ping for more details.
   Pong pong = 100;
 
-  // Optional socket-level status.
-  SocketStatus status = 200;
+  // Optional websocket-level status.
+  WebsocketStatus status = 200;
 
   // Optional Known ID to track the origin cell/block of the request.
   string known_id = 210;

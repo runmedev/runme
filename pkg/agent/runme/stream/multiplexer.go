@@ -32,8 +32,8 @@ type Multiplexer struct {
 	runner  *runme.Runner
 	streams *Streams
 
-	// authedSocketRequests is a channel that receives socket requests from authenticated clients.
-	authedSocketRequests chan *streamv1.SocketRequest
+	// authedWebsocketRequests is a channel that receives socket requests from authenticated clients.
+	authedWebsocketRequests chan *streamv1.WebsocketRequest
 
 	mu sync.Mutex
 	// p is the processor that is currently processing messages. If p is nil then no run against runme.Runner is currently processing
@@ -52,8 +52,8 @@ func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, ru
 		runner: runner,
 	}
 
-	m.authedSocketRequests = make(chan *streamv1.SocketRequest, 100)
-	streams := NewStreams(ctx, auth, m.authedSocketRequests)
+	m.authedWebsocketRequests = make(chan *streamv1.WebsocketRequest, 100)
+	streams := NewStreams(ctx, auth, m.authedWebsocketRequests)
 	m.streams = streams
 
 	return m
@@ -145,7 +145,7 @@ func (m *Multiplexer) process() (wait bool) {
 	// Put the request on the channel
 	// Access the local variable to ensure its always set at this point and avoid race conditions.
 
-	// When the authedSocketRequests channel closes Runme finished executing the command.
+	// When the authedWebsocketRequests channel closes Runme finished executing the command.
 	defer m.close()
 
 	for {
@@ -153,9 +153,9 @@ func (m *Multiplexer) process() (wait bool) {
 		case <-m.ctx.Done():
 			log.Info("Context done, no need to process more requests")
 			return
-		case req, ok := <-m.authedSocketRequests:
+		case req, ok := <-m.authedWebsocketRequests:
 			if !ok {
-				log.Info("Closing authedSocketRequests channel")
+				log.Info("Closing authedWebsocketRequests channel")
 				return
 			}
 			if req.GetExecuteRequest() == nil {
@@ -211,11 +211,11 @@ func (m *Multiplexer) broadcastResponses(p *Processor) {
 			// The channel is closed, no more responses to broadcast.
 			return
 		}
-		response := &streamv1.SocketResponse{
-			Status: &streamv1.SocketStatus{
+		response := &streamv1.WebsocketResponse{
+			Status: &streamv1.WebsocketStatus{
 				Code: code.Code_OK,
 			},
-			Payload: &streamv1.SocketResponse_ExecuteResponse{
+			Payload: &streamv1.WebsocketResponse_ExecuteResponse{
 				ExecuteResponse: res,
 			},
 		}

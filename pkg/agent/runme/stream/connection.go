@@ -15,7 +15,7 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 )
 
-// Connection is a thin wrapper around *websocket.Conn for common SocketRequest/SocketResponse operations.
+// Connection is a thin wrapper around *websocket.Conn for common WebsocketRequest/WebsocketResponse operations.
 type Connection struct {
 	conn *websocket.Conn
 
@@ -49,14 +49,14 @@ func (sc *Connection) Error(message string) error {
 func (sc *Connection) ErrorMessage(ctx context.Context, code code.Code, message string) {
 	log := logs.FromContextWithTrace(ctx)
 
-	response := &streamv1.SocketResponse{
-		Status: &streamv1.SocketStatus{
+	response := &streamv1.WebsocketResponse{
+		Status: &streamv1.WebsocketStatus{
 			Code:    code,
 			Message: message,
 		},
 	}
 
-	err := sc.WriteSocketResponse(ctx, response)
+	err := sc.WriteWebsocketResponse(ctx, response)
 	if err != nil {
 		log.Error(err, "Could not send error message")
 	}
@@ -66,26 +66,26 @@ func (sc *Connection) ErrorMessage(ctx context.Context, code code.Code, message 
 	}
 }
 
-// ReadSocketRequest reads a SocketRequest from the websocket connection.
-func (sc *Connection) ReadSocketRequest(ctx context.Context) (*streamv1.SocketRequest, error) {
+// ReadWebsocketRequest reads a WebsocketRequest from the websocket connection.
+func (sc *Connection) ReadWebsocketRequest(ctx context.Context) (*streamv1.WebsocketRequest, error) {
 	sc.readerMu.Lock()
 	defer sc.readerMu.Unlock()
-	return readSocketMessage(ctx, sc.conn, func() *streamv1.SocketRequest { return &streamv1.SocketRequest{} })
+	return readSocketMessage(ctx, sc.conn, func() *streamv1.WebsocketRequest { return &streamv1.WebsocketRequest{} })
 }
 
-// ReadSocketResponse reads a SocketResponse from the websocket connection.
-func (sc *Connection) ReadSocketResponse(ctx context.Context) (*streamv1.SocketResponse, error) {
+// ReadWebsocketResponse reads a WebsocketResponse from the websocket connection.
+func (sc *Connection) ReadWebsocketResponse(ctx context.Context) (*streamv1.WebsocketResponse, error) {
 	sc.readerMu.Lock()
 	defer sc.readerMu.Unlock()
-	return readSocketMessage(ctx, sc.conn, func() *streamv1.SocketResponse { return &streamv1.SocketResponse{} })
+	return readSocketMessage(ctx, sc.conn, func() *streamv1.WebsocketResponse { return &streamv1.WebsocketResponse{} })
 }
 
-// WriteSocketResponse writes a SocketResponse to the websocket connection as a TextMessage.
-func (sc *Connection) WriteSocketResponse(ctx context.Context, resp *streamv1.SocketResponse) error {
+// WriteWebsocketResponse writes a WebsocketResponse to the websocket connection as a TextMessage.
+func (sc *Connection) WriteWebsocketResponse(ctx context.Context, resp *streamv1.WebsocketResponse) error {
 	log := logs.FromContextWithTrace(ctx)
 	data, err := protojson.Marshal(resp)
 	if err != nil {
-		log.Error(err, "Could not marshal SocketResponse")
+		log.Error(err, "Could not marshal WebsocketResponse")
 		return err
 	}
 	return sc.WriteMessage(websocket.TextMessage, data)

@@ -10,13 +10,13 @@ import { file_runme_runner_v2_runner } from "../../runner/v2/runner_pb.js";
  * Describes the file runme/stream/v1/websockets.proto.
  */
 export const file_runme_stream_v1_websockets = /*@__PURE__*/
-  fileDesc("CiBydW5tZS9zdHJlYW0vdjEvd2Vic29ja2V0cy5wcm90bxIPcnVubWUuc3RyZWFtLnYxIj8KDFNvY2tldFN0YXR1cxIeCgRjb2RlGAEgASgOMhAuZ29vZ2xlLnJwYy5Db2RlEg8KB21lc3NhZ2UYAiABKAkiGQoEUGluZxIRCgl0aW1lc3RhbXAYASABKAMiGQoEUG9uZxIRCgl0aW1lc3RhbXAYASABKAMitwEKDVNvY2tldFJlcXVlc3QSOgoPZXhlY3V0ZV9yZXF1ZXN0GAEgASgLMh8ucnVubWUucnVubmVyLnYyLkV4ZWN1dGVSZXF1ZXN0SAASIwoEcGluZxhkIAEoCzIVLnJ1bm1lLnN0cmVhbS52MS5QaW5nEhYKDWF1dGhvcml6YXRpb24YyAEgASgJEhEKCGtub3duX2lkGNIBIAEoCRIPCgZydW5faWQY3AEgASgJQgkKB3BheWxvYWQi0gEKDlNvY2tldFJlc3BvbnNlEjwKEGV4ZWN1dGVfcmVzcG9uc2UYASABKAsyIC5ydW5tZS5ydW5uZXIudjIuRXhlY3V0ZVJlc3BvbnNlSAASIwoEcG9uZxhkIAEoCzIVLnJ1bm1lLnN0cmVhbS52MS5Qb25nEi4KBnN0YXR1cxjIASABKAsyHS5ydW5tZS5zdHJlYW0udjEuU29ja2V0U3RhdHVzEhEKCGtub3duX2lkGNIBIAEoCRIPCgZydW5faWQY3AEgASgJQgkKB3BheWxvYWRCSFpGZ2l0aHViLmNvbS9ydW5tZWRldi9ydW5tZS92My9hcGkvZ2VuL3Byb3RvL2dvL3J1bm1lL3N0cmVhbS92MTtzdHJlYW12MWIGcHJvdG8z", [file_google_rpc_code, file_runme_runner_v2_runner]);
+  fileDesc("CiBydW5tZS9zdHJlYW0vdjEvd2Vic29ja2V0cy5wcm90bxIPcnVubWUuc3RyZWFtLnYxIkIKD1dlYnNvY2tldFN0YXR1cxIeCgRjb2RlGAEgASgOMhAuZ29vZ2xlLnJwYy5Db2RlEg8KB21lc3NhZ2UYAiABKAkiGQoEUGluZxIRCgl0aW1lc3RhbXAYASABKAMiGQoEUG9uZxIRCgl0aW1lc3RhbXAYASABKAMiugEKEFdlYnNvY2tldFJlcXVlc3QSOgoPZXhlY3V0ZV9yZXF1ZXN0GAEgASgLMh8ucnVubWUucnVubmVyLnYyLkV4ZWN1dGVSZXF1ZXN0SAASIwoEcGluZxhkIAEoCzIVLnJ1bm1lLnN0cmVhbS52MS5QaW5nEhYKDWF1dGhvcml6YXRpb24YyAEgASgJEhEKCGtub3duX2lkGNIBIAEoCRIPCgZydW5faWQY3AEgASgJQgkKB3BheWxvYWQi2AEKEVdlYnNvY2tldFJlc3BvbnNlEjwKEGV4ZWN1dGVfcmVzcG9uc2UYASABKAsyIC5ydW5tZS5ydW5uZXIudjIuRXhlY3V0ZVJlc3BvbnNlSAASIwoEcG9uZxhkIAEoCzIVLnJ1bm1lLnN0cmVhbS52MS5Qb25nEjEKBnN0YXR1cxjIASABKAsyIC5ydW5tZS5zdHJlYW0udjEuV2Vic29ja2V0U3RhdHVzEhEKCGtub3duX2lkGNIBIAEoCRIPCgZydW5faWQY3AEgASgJQgkKB3BheWxvYWRCSFpGZ2l0aHViLmNvbS9ydW5tZWRldi9ydW5tZS92My9hcGkvZ2VuL3Byb3RvL2dvL3J1bm1lL3N0cmVhbS92MTtzdHJlYW12MWIGcHJvdG8z", [file_google_rpc_code, file_runme_runner_v2_runner]);
 
 /**
- * Describes the message runme.stream.v1.SocketStatus.
- * Use `create(SocketStatusSchema)` to create a new message.
+ * Describes the message runme.stream.v1.WebsocketStatus.
+ * Use `create(WebsocketStatusSchema)` to create a new message.
  */
-export const SocketStatusSchema = /*@__PURE__*/
+export const WebsocketStatusSchema = /*@__PURE__*/
   messageDesc(file_runme_stream_v1_websockets, 0);
 
 /**
@@ -34,16 +34,16 @@ export const PongSchema = /*@__PURE__*/
   messageDesc(file_runme_stream_v1_websockets, 2);
 
 /**
- * Describes the message runme.stream.v1.SocketRequest.
- * Use `create(SocketRequestSchema)` to create a new message.
+ * Describes the message runme.stream.v1.WebsocketRequest.
+ * Use `create(WebsocketRequestSchema)` to create a new message.
  */
-export const SocketRequestSchema = /*@__PURE__*/
+export const WebsocketRequestSchema = /*@__PURE__*/
   messageDesc(file_runme_stream_v1_websockets, 3);
 
 /**
- * Describes the message runme.stream.v1.SocketResponse.
- * Use `create(SocketResponseSchema)` to create a new message.
+ * Describes the message runme.stream.v1.WebsocketResponse.
+ * Use `create(WebsocketResponseSchema)` to create a new message.
  */
-export const SocketResponseSchema = /*@__PURE__*/
+export const WebsocketResponseSchema = /*@__PURE__*/
   messageDesc(file_runme_stream_v1_websockets, 4);
 

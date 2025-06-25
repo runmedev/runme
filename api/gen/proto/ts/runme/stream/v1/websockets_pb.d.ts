@@ -13,11 +13,11 @@ import { ExecuteResponse } from "../../runner/v2/runner_pb";
 import { ExecuteRequest } from "../../runner/v2/runner_pb";
 import { Code } from "../../../google/rpc/code_pb";
 /**
- * Represents socket-level status (e.g., for auth, protocol, or other errors).
+ * Represents websocket-level status (e.g., for auth, protocol, or other errors).
  *
- * @generated from protobuf message runme.stream.v1.SocketStatus
+ * @generated from protobuf message runme.stream.v1.WebsocketStatus
  */
-export interface SocketStatus {
+export interface WebsocketStatus {
     /**
      * @generated from protobuf field: google.rpc.Code code = 1
      */
@@ -50,12 +50,12 @@ export interface Pong {
     timestamp: string;
 }
 /**
- * SocketRequest defines the message sent by the client over a websocket.
+ * WebsocketRequest defines the message sent by the client over a websocket.
  * The request is a union of types that indicate the type of message.
  *
- * @generated from protobuf message runme.stream.v1.SocketRequest
+ * @generated from protobuf message runme.stream.v1.WebsocketRequest
  */
-export interface SocketRequest {
+export interface WebsocketRequest {
     /**
      * @generated from protobuf oneof: payload
      */
@@ -70,7 +70,7 @@ export interface SocketRequest {
     };
     /**
      * Protocol-level ping for frontend heartbeat. Unlike websocket servers which
-     * have a spec-integral heartbeat (https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#pings_and_pongs_the_heartbeat_of_websockets),
+     * have a spec-integral heartbeat (https://developer.mozilla.org/en-US/docs/Web/API/WebWebsockets_API/Writing_WebWebsocket_servers#pings_and_pongs_the_heartbeat_of_websockets),
      * we need to specify our own to cover client->server. The integral heartbeat
      * only works server->client and the browser sandbox is not privy to it.
      * Once the server receives a ping, it will send a pong response with the
@@ -99,12 +99,12 @@ export interface SocketRequest {
     runId: string;
 }
 /**
- * SocketResponse defines the message sent by the server over a websocket.
+ * WebsocketResponse defines the message sent by the server over a websocket.
  * The response is a union of types that indicate the type of message.
  *
- * @generated from protobuf message runme.stream.v1.SocketResponse
+ * @generated from protobuf message runme.stream.v1.WebsocketResponse
  */
-export interface SocketResponse {
+export interface WebsocketResponse {
     /**
      * @generated from protobuf oneof: payload
      */
@@ -121,17 +121,17 @@ export interface SocketResponse {
      * Protocol-level pong for frontend heartbeat. Once the server receives
      * a ping, it will send a pong response with the exact same timestamp.
      * This allows the frontend (client) to detect if the connection is
-     * still alive or stale/inactive. See SocketRequest's ping for more details.
+     * still alive or stale/inactive. See WebsocketRequest's ping for more details.
      *
      * @generated from protobuf field: runme.stream.v1.Pong pong = 100
      */
     pong?: Pong;
     /**
-     * Optional socket-level status.
+     * Optional websocket-level status.
      *
-     * @generated from protobuf field: runme.stream.v1.SocketStatus status = 200
+     * @generated from protobuf field: runme.stream.v1.WebsocketStatus status = 200
      */
-    status?: SocketStatus;
+    status?: WebsocketStatus;
     /**
      * Optional Known ID to track the origin cell/block of the request.
      *
@@ -145,16 +145,16 @@ export interface SocketResponse {
      */
     runId: string;
 }
-declare class SocketStatus$Type extends MessageType<SocketStatus> {
+declare class WebsocketStatus$Type extends MessageType<WebsocketStatus> {
     constructor();
-    create(value?: PartialMessage<SocketStatus>): SocketStatus;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SocketStatus): SocketStatus;
-    internalBinaryWrite(message: SocketStatus, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+    create(value?: PartialMessage<WebsocketStatus>): WebsocketStatus;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WebsocketStatus): WebsocketStatus;
+    internalBinaryWrite(message: WebsocketStatus, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
 }
 /**
- * @generated MessageType for protobuf message runme.stream.v1.SocketStatus
+ * @generated MessageType for protobuf message runme.stream.v1.WebsocketStatus
  */
-export declare const SocketStatus: SocketStatus$Type;
+export declare const WebsocketStatus: WebsocketStatus$Type;
 declare class Ping$Type extends MessageType<Ping> {
     constructor();
     create(value?: PartialMessage<Ping>): Ping;
@@ -175,24 +175,24 @@ declare class Pong$Type extends MessageType<Pong> {
  * @generated MessageType for protobuf message runme.stream.v1.Pong
  */
 export declare const Pong: Pong$Type;
-declare class SocketRequest$Type extends MessageType<SocketRequest> {
+declare class WebsocketRequest$Type extends MessageType<WebsocketRequest> {
     constructor();
-    create(value?: PartialMessage<SocketRequest>): SocketRequest;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SocketRequest): SocketRequest;
-    internalBinaryWrite(message: SocketRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+    create(value?: PartialMessage<WebsocketRequest>): WebsocketRequest;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WebsocketRequest): WebsocketRequest;
+    internalBinaryWrite(message: WebsocketRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
 }
 /**
- * @generated MessageType for protobuf message runme.stream.v1.SocketRequest
+ * @generated MessageType for protobuf message runme.stream.v1.WebsocketRequest
  */
-export declare const SocketRequest: SocketRequest$Type;
-declare class SocketResponse$Type extends MessageType<SocketResponse> {
+export declare const WebsocketRequest: WebsocketRequest$Type;
+declare class WebsocketResponse$Type extends MessageType<WebsocketResponse> {
     constructor();
-    create(value?: PartialMessage<SocketResponse>): SocketResponse;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SocketResponse): SocketResponse;
-    internalBinaryWrite(message: SocketResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+    create(value?: PartialMessage<WebsocketResponse>): WebsocketResponse;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WebsocketResponse): WebsocketResponse;
+    internalBinaryWrite(message: WebsocketResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
 }
 /**
- * @generated MessageType for protobuf message runme.stream.v1.SocketResponse
+ * @generated MessageType for protobuf message runme.stream.v1.WebsocketResponse
  */
-export declare const SocketResponse: SocketResponse$Type;
+export declare const WebsocketResponse: WebsocketResponse$Type;
 export {};
