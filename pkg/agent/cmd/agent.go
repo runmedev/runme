@@ -15,8 +15,9 @@ func NewAgentCmd() *cobra.Command {
 	var level string
 	var jsonLog bool
 	agentCmd := &cobra.Command{
-		Use:   "agent",
-		Short: config.AppName,
+		Use:    "agent",
+		Short:  config.AppName,
+		Hidden: true,
 	}
 
 	agentCmd.PersistentFlags().StringVar(&cfgFile, config.ConfigFlagName, "", fmt.Sprintf("config file (default is $HOME/.%s/config.yaml)", config.AppName))
