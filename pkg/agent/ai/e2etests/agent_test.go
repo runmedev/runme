@@ -1,3 +1,5 @@
+//go:build docker_enabled
+
 package e2etests
 
 import (
