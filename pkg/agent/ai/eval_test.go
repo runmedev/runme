@@ -36,6 +36,11 @@ func TestAssertions(t *testing.T) {
 		// todo(sebastian): can't run due to lack of access to O3
 		e2etests.SkipIfMissing(t, "RUN_MANUAL_TESTS")
 	}
+	ghaOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
+	if ghaOwner == "runmedev" {
+		t.Skip("Skipping agent test in runmedev repository")
+	}
+
 	app := application.NewApp()
 	if err := app.LoadConfig(nil); err != nil {
 		t.Fatal(err)

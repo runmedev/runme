@@ -1,5 +1,3 @@
-//go:build docker_enabled
-
 package e2etests
 
 import (
@@ -32,6 +30,11 @@ func Test_Agent(t *testing.T) {
 	if !isGHA {
 		SkipIfMissing(t, "RUN_MANUAL_TESTS")
 	}
+	ghaOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
+	if ghaOwner == "runmedev" {
+		t.Skip("Skipping agent test in runmedev repository")
+	}
+
 	app := application.NewApp()
 	if err := app.LoadConfig(nil); err != nil {
 		t.Fatal(err)
