@@ -50,4 +50,3 @@ export declare type FileSearchResult = Message<"FileSearchResult"> & {
  * Use `create(FileSearchResultSchema)` to create a new message.
  */
 export declare const FileSearchResultSchema: GenMessage<FileSearchResult>;
-

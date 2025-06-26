@@ -10,28 +10,28 @@ directive @BlocksService on FIELD_DEFINITION
 type Block {
 	"""
 	 BlockKind is an enum indicating what type of block it is e.g text or output
-	
+
 	"""
 	kind: BlockKind
 	"""
 	 language is a string identifying the language.
-	
+
 	"""
 	language: String
 	"""
 	 contents is the actual contents of the block.
 	 Not the outputs of the block.
-	
+
 	"""
 	contents: String
 	"""
 	 ID of the block.
-	
+
 	"""
 	id: String
 	"""
 	 Additional metadata
-	
+
 	"""
 	metadata: [Block_MetadataEntry!]
 	role: BlockRole
@@ -39,7 +39,7 @@ type Block {
 	outputs: [BlockOutput!]
 	"""
 	 Call ID is the id of this function call as set by OpenAI
-	
+
 	"""
 	callId: String
 }
@@ -50,28 +50,28 @@ type Block {
 input BlockInput {
 	"""
 	 BlockKind is an enum indicating what type of block it is e.g text or output
-	
+
 	"""
 	kind: BlockKind
 	"""
 	 language is a string identifying the language.
-	
+
 	"""
 	language: String
 	"""
 	 contents is the actual contents of the block.
 	 Not the outputs of the block.
-	
+
 	"""
 	contents: String
 	"""
 	 ID of the block.
-	
+
 	"""
 	id: String
 	"""
 	 Additional metadata
-	
+
 	"""
 	metadata: [Block_MetadataEntryInput!]
 	role: BlockRole
@@ -79,7 +79,7 @@ input BlockInput {
 	outputs: [BlockOutputInput!]
 	"""
 	 Call ID is the id of this function call as set by OpenAI
-	
+
 	"""
 	callId: String
 }
@@ -98,7 +98,7 @@ enum BlockKind {
 type BlockOutput {
 	"""
 	 items is the output items. Each item is the different representation of the same output data
-	
+
 	"""
 	items: [BlockOutputItem!]
 	kind: BlockOutputKind
@@ -112,7 +112,7 @@ type BlockOutput {
 input BlockOutputInput {
 	"""
 	 items is the output items. Each item is the different representation of the same output data
-	
+
 	"""
 	items: [BlockOutputItemInput!]
 	kind: BlockOutputKind
@@ -126,7 +126,7 @@ input BlockOutputInput {
 type BlockOutputItem {
 	"""
 	 mime is the mime type of the output item.
-	
+
 	"""
 	mime: String
 	"""
@@ -134,7 +134,7 @@ type BlockOutputItem {
 	 We use string data type and not bytes because the JSON representation of bytes is a base64
 	 string. vscode data uses a byte. We may need to add support for bytes to support non text data
 	 data in the future.
-	
+
 	"""
 	textData: String
 }
@@ -147,7 +147,7 @@ type BlockOutputItem {
 input BlockOutputItemInput {
 	"""
 	 mime is the mime type of the output item.
-	
+
 	"""
 	mime: String
 	"""
@@ -155,7 +155,7 @@ input BlockOutputItemInput {
 	 We use string data type and not bytes because the JSON representation of bytes is a base64
 	 string. vscode data uses a byte. We may need to add support for bytes to support non text data
 	 data in the future.
-	
+
 	"""
 	textData: String
 }
@@ -180,48 +180,48 @@ input Block_MetadataEntryInput {
 type FileSearchResult {
 	"""
 	 The unique ID of the file.
-	
+
 	"""
 	fileID: String
 	"""
 	 The name of the file.
-	
+
 	"""
 	fileName: String
 	"""
 	 The relevance score of the file.
-	
+
 	"""
 	score: Float
 	"""
 	 Link to display for this file
-	
+
 	 TOO(jlewi): Should we include the file contents?
-	
+
 	"""
 	link: String
 }
 input FileSearchResultInput {
 	"""
 	 The unique ID of the file.
-	
+
 	"""
 	fileID: String
 	"""
 	 The name of the file.
-	
+
 	"""
 	fileName: String
 	"""
 	 The relevance score of the file.
-	
+
 	"""
 	score: Float
 	"""
 	 Link to display for this file
-	
+
 	 TOO(jlewi): Should we include the file contents?
-	
+
 	"""
 	link: String
 }
@@ -230,7 +230,7 @@ input GenerateRequestInput {
 	previousResponseId: String
 	"""
 	 openai_access_token is the OpenAI access token to use when contacting the OpenAI API.
-	
+
 	"""
 	openaiAccessToken: String
 }
@@ -244,7 +244,7 @@ type Query {
 type Subscription {
 	"""
 	 Generate generates blocks. Responses are streamed.
-	
+
 	"""
 	blocksServiceGenerate(in: GenerateRequestInput): GenerateResponse
 }

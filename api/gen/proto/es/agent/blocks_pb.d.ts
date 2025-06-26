@@ -287,4 +287,3 @@ export declare const BlocksService: GenService<{
     output: typeof GenerateResponseSchema;
   },
 }>;
-

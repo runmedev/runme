@@ -43,4 +43,3 @@ export declare type WebAppConfig = Message<"WebAppConfig"> & {
  * Use `create(WebAppConfigSchema)` to create a new message.
  */
 export declare const WebAppConfigSchema: GenMessage<WebAppConfig>;
-
