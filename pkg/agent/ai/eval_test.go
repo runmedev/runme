@@ -38,7 +38,7 @@ func TestAssertions(t *testing.T) {
 	}
 	ghaOwner := os.Getenv("GITHUB_REPOSITORY_OWNER")
 	if ghaOwner == "runmedev" {
-		t.Skip("Skipping agent test in runmedev repository")
+		t.Skip("Skipping eval tests in runmedev repository")
 	}
 
 	app := application.NewApp()
