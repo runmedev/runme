@@ -123,12 +123,12 @@ lint:
 	go tool revive \
 		-config revive.toml \
 		-formatter friendly \
-		-exclude pkg/agent/... \
+		-exclude integration/subject/... \
 		./...
 	go tool staticcheck ./...
-	go tool gosec -quiet -exclude=G110,G115,G204,G304,G404 -exclude-dir=pkg/agent -exclude-generated ./...
+	go tool gosec -quiet -exclude=G110,G115,G204,G304,G404 -exclude-generated ./...
 	go vet -stdmethods=false ./...
-	go vet -vettool=$(shell go env GOPATH)/bin/checklocks $(shell go list ./... | grep -v '^github.com/runmedev/runme/v3/pkg/agent')
+	go vet -vettool=$(shell go env GOPATH)/bin/checklocks ./...
 
 .PHONY: pre-commit
 pre-commit: build wasm test lint
@@ -139,10 +139,8 @@ proto/generate: proto/_generate fmt
 
 .PHONY: proto/_generate
 proto/_generate:
-	cd api/proto && buf dep update
-	# Upstreamed protos fail linting, so we skip it for now.
-	# buf lint
-	# buf format -w
+	buf lint
+	buf format -w
 	buf generate
 
 .PHONY: proto/clean

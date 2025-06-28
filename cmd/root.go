@@ -11,7 +11,6 @@ import (
 
 	"github.com/runmedev/runme/v3/internal/cmd/beta"
 	"github.com/runmedev/runme/v3/internal/extension"
-	agent "github.com/runmedev/runme/v3/pkg/agent/cmd"
 )
 
 var (
@@ -124,7 +123,6 @@ func Root() *cobra.Command {
 	cmd.AddCommand(shellCmd())
 	cmd.AddCommand(tokenCmd())
 	cmd.AddCommand(tuiCmd)
-	cmd.AddCommand(agent.NewAgentCmd())
 
 	cmd.SetUsageTemplate(getUsageTemplate(cmd))
 
