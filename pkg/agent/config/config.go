@@ -32,6 +32,7 @@ type AppConfig struct {
 	// embedded config
 	*Config
 
+	// application specific configuration
 	AppName string
 	V       *viper.Viper
 }
@@ -52,13 +53,14 @@ func NewAppConfig(appName string, opts ...AppConfigOption) (*AppConfig, error) {
 		}
 	}
 
-	// Skip creating a new viper instance if one was provided.
+	// Return the app config if a viper instance was provided via options.
 	if ac.V != nil {
 		return ac, nil
 	}
 
+	// Create a new viper instance if none was provided via options.
 	ac.V = viper.New()
-	if err := initViperInstance(appName, ac.V, nil); err != nil {
+	if err := initViperInstance(ac.AppName, ac.V, nil); err != nil {
 		return nil, err
 	}
 
@@ -68,6 +70,9 @@ func NewAppConfig(appName string, opts ...AppConfigOption) (*AppConfig, error) {
 // WithViper allows setting a custom viper instance in AppConfig.
 func WithViperInstance(v *viper.Viper, cmd *cobra.Command) AppConfigOption {
 	return func(ac *AppConfig) error {
+		if ac.V != nil {
+			return errors.New("viper instance already set")
+		}
 		ac.V = v
 		return initViperInstance(ac.AppName, ac.V, cmd)
 	}
@@ -76,6 +81,9 @@ func WithViperInstance(v *viper.Viper, cmd *cobra.Command) AppConfigOption {
 // WithViperCmd binds the config flag to the command line flags.
 func WithViper(cmd *cobra.Command) AppConfigOption {
 	return func(ac *AppConfig) error {
+		if ac.V != nil {
+			return errors.New("viper instance already set")
+		}
 		ac.V = viper.New()
 		return initViperInstance(ac.AppName, ac.V, cmd)
 	}
@@ -173,6 +181,11 @@ func (c *Config) GetLogLevel() string {
 	return c.Logging.Level
 }
 
+// ConfigDirName returns the name of the configuration directory.
+func (ac *AppConfig) ConfigDirName() string {
+	return "." + ac.AppName
+}
+
 // GetConfigFile returns the configuration file
 func (ac *AppConfig) GetConfigFile() string {
 	if ac.configFile == "" {
@@ -181,7 +194,7 @@ func (ac *AppConfig) GetConfigFile() string {
 	return ac.configFile
 }
 
-// GetConfigDir returns the configuration directory
+// GetConfigDir returns the full path to the configuration directory
 func (ac *AppConfig) GetConfigDir() string {
 	configFile := ac.GetConfigFile()
 	if configFile != "" {
@@ -189,7 +202,7 @@ func (ac *AppConfig) GetConfigDir() string {
 	}
 
 	// Since there is no config file we will use the default config directory.
-	return binHome(ac.AppName)
+	return binHome(ac.ConfigDirName())
 }
 
 // IsValid validates the configuration and returns any errors.
@@ -356,7 +369,7 @@ func (c *Config) Write(cfgFile string) error {
 }
 
 func (ac *AppConfig) DefaultConfigFile() string {
-	return binHome(ac.AppName) + "/config.yaml"
+	return binHome(ac.ConfigDirName()) + "/config.yaml"
 }
 
 type AssistantServerConfig struct {
