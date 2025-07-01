@@ -19,7 +19,7 @@ func NewServeCmd() *cobra.Command {
 			app := application.NewApp()
 
 			// Load the configuration
-			if err := app.LoadConfig(cmd); err != nil {
+			if err := app.LoadConfig(appName, cmd); err != nil {
 				return err
 			}
 
@@ -32,11 +32,11 @@ func NewServeCmd() *cobra.Command {
 			}
 			agentOptions := &ai.AgentOptions{}
 
-			if err := agentOptions.FromAssistantConfig(*app.Config.CloudAssistant); err != nil {
+			if err := agentOptions.FromAssistantConfig(*app.AppConfig.CloudAssistant); err != nil {
 				return err
 			}
 
-			client, err := ai.NewClient(*app.Config.OpenAI)
+			client, err := ai.NewClient(*app.AppConfig.OpenAI)
 			if err != nil {
 				return err
 			}
@@ -49,22 +49,22 @@ func NewServeCmd() *cobra.Command {
 			}
 
 			// Setup the defaults for the TLSConfig
-			if app.Config.AssistantServer.TLSConfig != nil && app.Config.AssistantServer.TLSConfig.Generate {
+			if app.AppConfig.AssistantServer.TLSConfig != nil && app.AppConfig.AssistantServer.TLSConfig.Generate {
 				// Set the default values for the TLSConfig
-				if app.Config.AssistantServer.TLSConfig.KeyFile == "" {
-					app.Config.AssistantServer.TLSConfig.KeyFile = filepath.Join(app.Config.GetConfigDir(), tlsbuilder.KeyPEMFile)
+				if app.AppConfig.AssistantServer.TLSConfig.KeyFile == "" {
+					app.AppConfig.AssistantServer.TLSConfig.KeyFile = filepath.Join(app.AppConfig.GetConfigDir(), tlsbuilder.KeyPEMFile)
 				}
 
-				if app.Config.AssistantServer.TLSConfig.CertFile == "" {
-					app.Config.AssistantServer.TLSConfig.CertFile = filepath.Join(app.Config.GetConfigDir(), tlsbuilder.CertPEMFile)
+				if app.AppConfig.AssistantServer.TLSConfig.CertFile == "" {
+					app.AppConfig.AssistantServer.TLSConfig.CertFile = filepath.Join(app.AppConfig.GetConfigDir(), tlsbuilder.CertPEMFile)
 				}
 			}
 
 			serverOptions := &server.Options{
-				Telemetry: app.Config.Telemetry,
-				Server:    app.Config.AssistantServer,
-				IAMPolicy: app.Config.IAMPolicy,
-				WebApp:    app.Config.WebApp,
+				Telemetry: app.AppConfig.Telemetry,
+				Server:    app.AppConfig.AssistantServer,
+				IAMPolicy: app.AppConfig.IAMPolicy,
+				WebApp:    app.AppConfig.WebApp,
 			}
 			s, err := server.NewServer(*serverOptions, agent)
 			if err != nil {

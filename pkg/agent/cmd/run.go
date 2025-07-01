@@ -20,7 +20,7 @@ func NewRunCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := func() error {
 				app := application.NewApp()
-				if err := app.LoadConfig(cmd); err != nil {
+				if err := app.LoadConfig(appName, cmd); err != nil {
 					return err
 				}
 				if err := app.SetupLogging(); err != nil {

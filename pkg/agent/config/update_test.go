@@ -29,6 +29,16 @@ func Test_UpdateViperConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:       "logging",
+			configFile: "empty.yaml",
+			expression: "logging.level=info",
+			expected: &Config{
+				Logging: Logging{
+					Level: "info",
+				},
+			},
+		},
 	}
 
 	cwd, err := os.Getwd()
@@ -43,11 +53,16 @@ func Test_UpdateViperConfig(t *testing.T) {
 			v := viper.New()
 			v.SetConfigFile(filepath.Join(tDir, c.configFile))
 
-			if err := InitViperInstance(v, nil); err != nil {
+			// if err := InitViperInstance(v, nil); err != nil {
+			// 	t.Fatalf("Failed to initialize the configuration.")
+			// }
+
+			ac, err := NewAppConfig("runme-agent-test", WithViperInstance(v, nil))
+			if err != nil {
 				t.Fatalf("Failed to initialize the configuration.")
 			}
 
-			cfg, err := UpdateViperConfig(v, c.expression)
+			cfg, err := ac.UpdateViperConfig(c.expression)
 			if err != nil {
 				t.Fatalf("Failed to update config; %+v", err)
 			}

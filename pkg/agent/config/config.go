@@ -26,12 +26,60 @@ import (
 const (
 	ConfigFlagName = "config"
 	LevelFlagName  = "level"
-	AppName        = "runme-agent"
-	ConfigDir      = "." + AppName
 )
 
-// globalV is the global instance of viper
-var globalV *viper.Viper
+type AppConfig struct {
+	// embedded config
+	*Config
+
+	AppName string
+	V       *viper.Viper
+}
+
+// AppConfigOption is a functional option for configuring AppConfig.
+type AppConfigOption func(*AppConfig) error
+
+// NewAppConfig creates a new AppConfig and applies any provided options.
+func NewAppConfig(appName string, opts ...AppConfigOption) (*AppConfig, error) {
+	ac := &AppConfig{
+		AppName: appName,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		if err := opt(ac); err != nil {
+			return nil, err
+		}
+	}
+
+	// Skip creating a new viper instance if one was provided.
+	if ac.V != nil {
+		return ac, nil
+	}
+
+	ac.V = viper.New()
+	if err := initViperInstance(appName, ac.V, nil); err != nil {
+		return nil, err
+	}
+
+	return ac, nil
+}
+
+// WithViper allows setting a custom viper instance in AppConfig.
+func WithViperInstance(v *viper.Viper, cmd *cobra.Command) AppConfigOption {
+	return func(ac *AppConfig) error {
+		ac.V = v
+		return initViperInstance(ac.AppName, ac.V, cmd)
+	}
+}
+
+// WithViperCmd binds the config flag to the command line flags.
+func WithViper(cmd *cobra.Command) AppConfigOption {
+	return func(ac *AppConfig) error {
+		ac.V = viper.New()
+		return initViperInstance(ac.AppName, ac.V, cmd)
+	}
+}
 
 // TODO(jeremy): It might be better to put the datastructures defining the configuration into the API package.
 // The reason being we might want to share those data structures withother parts of the API (e.g. RPCs).
@@ -126,22 +174,22 @@ func (c *Config) GetLogLevel() string {
 }
 
 // GetConfigFile returns the configuration file
-func (c *Config) GetConfigFile() string {
-	if c.configFile == "" {
-		c.configFile = DefaultConfigFile()
+func (ac *AppConfig) GetConfigFile() string {
+	if ac.configFile == "" {
+		ac.configFile = ac.DefaultConfigFile()
 	}
-	return c.configFile
+	return ac.configFile
 }
 
 // GetConfigDir returns the configuration directory
-func (c *Config) GetConfigDir() string {
-	configFile := c.GetConfigFile()
+func (ac *AppConfig) GetConfigDir() string {
+	configFile := ac.GetConfigFile()
 	if configFile != "" {
 		return filepath.Dir(configFile)
 	}
 
 	// Since there is no config file we will use the default config directory.
-	return binHome()
+	return binHome(ac.AppName)
 }
 
 // IsValid validates the configuration and returns any errors.
@@ -181,23 +229,12 @@ func (c *Config) DeepCopy() Config {
 	return copy
 }
 
-// InitViper function is responsible for reading the configuration file and environment variables, if they are set.
+// initViperInstance function is responsible for reading the configuration file and environment variables, if they are set.
 // The results are stored in viper. To retrieve a configuration, use the GetConfig function.
 // The function accepts a cmd parameter which allows binding to command flags.
-func InitViper(cmd *cobra.Command) error {
-	// N.B. we need to set globalV because the subsequent call GetConfig will use that viper instance.
-	// Would it make sense to combine InitViper and Get into one command that returns a config object?
-	// TODO(jeremy): Could we just use viper.GetViper() to get the global instance?
-	globalV = viper.New()
-	return InitViperInstance(globalV, cmd)
-}
-
-// InitViperInstance function is responsible for reading the configuration file and environment variables, if they are set.
-// The results are stored in viper. To retrieve a configuration, use the GetConfig function.
-// The function accepts a cmd parameter which allows binding to command flags.
-func InitViperInstance(v *viper.Viper, cmd *cobra.Command) error {
+func initViperInstance(appName string, v *viper.Viper, cmd *cobra.Command) error {
 	// Ref https://github.com/spf13/viper#establishing-defaults
-	v.SetEnvPrefix(AppName)
+	v.SetEnvPrefix(appName)
 
 	if v.ConfigFileUsed() == "" {
 		// If ConfigFile isn't already set then configure the search parameters.
@@ -206,7 +243,7 @@ func InitViperInstance(v *viper.Viper, cmd *cobra.Command) error {
 		// name of config file (without extension)
 		v.SetConfigName("config")
 		// make home directory the first search path
-		v.AddConfigPath("$HOME/." + AppName)
+		v.AddConfigPath("$HOME/." + appName)
 	}
 
 	// Without the replacer overriding with environment variables doesn't work
@@ -254,18 +291,17 @@ func InitViperInstance(v *viper.Viper, cmd *cobra.Command) error {
 }
 
 // GetConfig returns a configuration created from the viper configuration.
-func GetConfig() *Config {
-	if globalV == nil {
-		// TODO(jeremy): Using a global variable to pass state between InitViper and GetConfig is wonky.
-		// It might be better to combine InitViper and GetConfig into a single command that returns a config object.
-		// This would also make viper an implementation detail of the config.
-		panic("globalV is nil; was InitViper called before calling GetConfig?")
+func (ac *AppConfig) GetConfig() *Config {
+	if ac.Config != nil {
+		return ac.Config
 	}
-	// We do this as a way to load the configuration while still allowing values to be overwritten by viper
-	cfg, err := getConfigFromViper(globalV)
+
+	cfg, err := getConfigFromViper(ac.V)
 	if err != nil {
 		panic(err)
 	}
+	ac.Config = cfg
+
 	return cfg
 }
 
@@ -282,7 +318,7 @@ func getConfigFromViper(v *viper.Viper) (*Config, error) {
 	return cfg, nil
 }
 
-func binHome() string {
+func binHome(configDir string) string {
 	log := zapr.NewLogger(zap.L())
 	usr, err := user.Current()
 	homeDir := ""
@@ -292,7 +328,7 @@ func binHome() string {
 	} else {
 		homeDir = usr.HomeDir
 	}
-	p := filepath.Join(homeDir, ConfigDir)
+	p := filepath.Join(homeDir, configDir)
 
 	return p
 }
@@ -319,8 +355,8 @@ func (c *Config) Write(cfgFile string) error {
 	return yaml.NewEncoder(f).Encode(c)
 }
 
-func DefaultConfigFile() string {
-	return binHome() + "/config.yaml"
+func (ac *AppConfig) DefaultConfigFile() string {
+	return binHome(ac.AppName) + "/config.yaml"
 }
 
 type AssistantServerConfig struct {
@@ -449,10 +485,10 @@ func (c *AssistantServerConfig) GetHttpMaxWriteTimeout() time.Duration {
 	return 5 * time.Minute
 }
 
-func (c *Config) GetLogDir() string {
-	if c.Logging.LogDir != "" {
-		return c.Logging.LogDir
+func (ac *AppConfig) GetLogDir() string {
+	if ac.Logging.LogDir != "" {
+		return ac.Logging.LogDir
 	}
 
-	return filepath.Join(c.GetConfigDir(), "logs")
+	return filepath.Join(ac.GetConfigDir(), "logs")
 }

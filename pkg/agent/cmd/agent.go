@@ -10,17 +10,20 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 )
 
+const appName = "runme-agent"
+
 func NewAgentCmd() *cobra.Command {
 	var cfgFile string
 	var level string
 	var jsonLog bool
+
 	agentCmd := &cobra.Command{
 		Use:    "agent",
-		Short:  config.AppName,
+		Short:  appName,
 		Hidden: true,
 	}
 
-	agentCmd.PersistentFlags().StringVar(&cfgFile, config.ConfigFlagName, "", fmt.Sprintf("config file (default is $HOME/.%s/config.yaml)", config.AppName))
+	agentCmd.PersistentFlags().StringVar(&cfgFile, config.ConfigFlagName, "", fmt.Sprintf("config file (default is $HOME/.%s/config.yaml)", appName))
 	agentCmd.PersistentFlags().StringVarP(&level, config.LevelFlagName, "", "info", "The logging level.")
 	agentCmd.PersistentFlags().BoolVarP(&jsonLog, "json-logs", "", false, "Enable json logging.")
 

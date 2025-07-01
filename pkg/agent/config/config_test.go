@@ -33,15 +33,12 @@ func Test_ConfigDefaultConfig(t *testing.T) {
 			v := viper.New()
 			v.SetConfigFile(filepath.Join(tDir, c.configFile))
 
-			if err := InitViperInstance(v, nil); err != nil {
+			ac, err := NewAppConfig("runme-agent-test", WithViperInstance(v, nil))
+			if err != nil {
 				t.Fatalf("Failed to initialize the configuration.")
 			}
 
-			_, err := getConfigFromViper(v)
-			if err != nil {
-				t.Fatalf("Failed to get config; %+v", err)
-			}
-
+			ac.GetConfig()
 			// Add additional assertions here
 		})
 	}

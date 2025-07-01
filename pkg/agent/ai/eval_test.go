@@ -42,7 +42,7 @@ func TestAssertions(t *testing.T) {
 	}
 
 	app := application.NewApp()
-	if err := app.LoadConfig(nil); err != nil {
+	if err := app.LoadConfig("runme-agent", nil); err != nil {
 		t.Fatal(err)
 	}
 	cfg := app.GetConfig()

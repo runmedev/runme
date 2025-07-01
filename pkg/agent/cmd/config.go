@@ -32,16 +32,17 @@ func NewSetConfigCmd() *cobra.Command {
 			err := func() error {
 				v := viper.GetViper()
 
-				if err := config.InitViperInstance(v, cmd); err != nil {
+				ac, err := config.NewAppConfig(appName, config.WithViperInstance(v, cmd))
+				if err != nil {
 					return err
 				}
 
-				fConfig, err := config.UpdateViperConfig(v, args[0])
+				fConfig, err := ac.UpdateViperConfig(args[0])
 				if err != nil {
 					return errors.Wrap(err, "Failed to update configuration")
 				}
 
-				file := fConfig.GetConfigFile()
+				file := ac.GetConfigFile()
 				if file == "" {
 					return errors.New("Failed to get configuration file")
 				}
@@ -62,13 +63,14 @@ func NewSetConfigCmd() *cobra.Command {
 func NewGetConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
-		Short: "Dump Foyle configuration as YAML",
+		Short: "Dump agent configuration as YAML",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := func() error {
-				if err := config.InitViper(cmd); err != nil {
+				ac, err := config.NewAppConfig(appName, config.WithViper(cmd))
+				if err != nil {
 					return err
 				}
-				fConfig := config.GetConfig()
+				fConfig := ac.GetConfig()
 
 				if err := yaml.NewEncoder(os.Stdout).Encode(fConfig); err != nil {
 					return err
