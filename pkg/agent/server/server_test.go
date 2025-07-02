@@ -41,8 +41,8 @@ func Test_HealthCheck(t *testing.T) {
 	// Try sending a healthcheck to the given server.
 	// This is solely for the purpose of trying to reproduce the grpc-trailer issue
 	SkipIfMissing(t, "RUN_MANUAL_TESTS")
-	app := application.NewApp()
-	err := app.LoadConfig(testAppName, nil)
+	app := application.NewApp(testAppName)
+	err := app.LoadConfig(nil)
 	if err != nil {
 		t.Fatalf("Error loading config; %v", err)
 	}
@@ -60,8 +60,8 @@ func Test_HealthCheck(t *testing.T) {
 func Test_GenerateBlocks(t *testing.T) {
 	SkipIfMissing(t, "RUN_MANUAL_TESTS")
 
-	app := application.NewApp()
-	err := app.LoadConfig(testAppName, nil)
+	app := application.NewApp(testAppName)
+	err := app.LoadConfig(nil)
 	if err != nil {
 		t.Fatalf("Error loading config; %v", err)
 	}
@@ -236,8 +236,8 @@ func runAIClient(baseURL string) (map[string]*agent.Block, error) {
 func Test_ExecuteWithRunme(t *testing.T) {
 	SkipIfMissing(t, "RUN_MANUAL_TESTS")
 
-	app := application.NewApp()
-	err := app.LoadConfig(testAppName, nil)
+	app := application.NewApp(testAppName)
+	err := app.LoadConfig(nil)
 	if err != nil {
 		t.Fatalf("Error loading config; %v", err)
 	}
@@ -286,8 +286,8 @@ func Test_ExecuteWithRunmeConcurrent(t *testing.T) {
 	// to the websocket on the backend because that causes a panic
 	SkipIfMissing(t, "RUN_MANUAL_TESTS")
 
-	app := application.NewApp()
-	err := app.LoadConfig(testAppName, nil)
+	app := application.NewApp(testAppName)
+	err := app.LoadConfig(nil)
 	if err != nil {
 		t.Fatalf("Error loading config; %v", err)
 	}

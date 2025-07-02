@@ -11,15 +11,15 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/tlsbuilder"
 )
 
-func NewServeCmd() *cobra.Command {
+func NewServeCmd(appName string) *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "serve",
 		Short: "Start the Assistant and Runme server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			app := application.NewApp()
+			app := application.NewApp(appName)
 
 			// Load the configuration
-			if err := app.LoadConfig(appName, cmd); err != nil {
+			if err := app.LoadConfig(cmd); err != nil {
 				return err
 			}
 

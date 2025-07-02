@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewVersionCmd(w io.Writer) *cobra.Command {
+func NewVersionCmd(appName string, w io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "version",
 		Short:   "Return version",

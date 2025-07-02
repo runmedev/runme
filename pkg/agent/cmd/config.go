@@ -13,18 +13,18 @@ import (
 )
 
 // NewConfigCmd adds commands to deal with configuration
-func NewConfigCmd() *cobra.Command {
+func NewConfigCmd(appName string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "config",
 	}
 
-	cmd.AddCommand(NewGetConfigCmd())
-	cmd.AddCommand(NewSetConfigCmd())
+	cmd.AddCommand(NewGetConfigCmd(appName))
+	cmd.AddCommand(NewSetConfigCmd(appName))
 	return cmd
 }
 
 // NewSetConfigCmd sets a key value pair in the configuration
-func NewSetConfigCmd() *cobra.Command {
+func NewSetConfigCmd(appName string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "set <name>=<value>",
 		Args: cobra.ExactArgs(1),
@@ -60,7 +60,7 @@ func NewSetConfigCmd() *cobra.Command {
 }
 
 // NewGetConfigCmd  prints out the configuration
-func NewGetConfigCmd() *cobra.Command {
+func NewGetConfigCmd(appName string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Dump agent configuration as YAML",

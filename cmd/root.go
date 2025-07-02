@@ -124,7 +124,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(shellCmd())
 	cmd.AddCommand(tokenCmd())
 	cmd.AddCommand(tuiCmd)
-	cmd.AddCommand(agent.NewAgentCmd())
+	cmd.AddCommand(agent.NewAgentCmd("runme-agent"))
 
 	cmd.SetUsageTemplate(getUsageTemplate(cmd))
 

@@ -26,22 +26,25 @@ import (
 )
 
 type App struct {
+	AppName        string
 	AppConfig      *config.AppConfig
 	otelShutdownFn func()
 	logClosers     []logCloser
 }
 
 // NewApp creates a new application. You should call one more setup/Load functions to properly set it up.
-func NewApp() *App {
-	return &App{}
+func NewApp(appName string) *App {
+	return &App{
+		AppName: appName,
+	}
 }
 
 // LoadConfig loads the config. It takes an optional command. The command allows values to be overwritten from
 // the CLI.
-func (a *App) LoadConfig(appName string, cmd *cobra.Command) error {
+func (a *App) LoadConfig(cmd *cobra.Command) error {
 	// N.B. at this point we haven't configured any logging so zap just returns the default logger.
 	// TODO(jeremy): Should we just initialize the logger without cfg and then reinitialize it after we've read the config?
-	ac, err := config.NewAppConfig(appName, config.WithViper(cmd))
+	ac, err := config.NewAppConfig(a.AppName, config.WithViper(cmd))
 	if err != nil {
 		return err
 	}

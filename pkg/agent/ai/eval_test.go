@@ -41,8 +41,9 @@ func TestAssertions(t *testing.T) {
 		t.Skip("Skipping eval tests in runmedev repository")
 	}
 
-	app := application.NewApp()
-	if err := app.LoadConfig("runme-agent", nil); err != nil {
+	// todo(sebastian): we might want to use a different app name for agents/evals
+	app := application.NewApp("runme-agent-test")
+	if err := app.LoadConfig(nil); err != nil {
 		t.Fatal(err)
 	}
 	cfg := app.GetConfig()

@@ -18,7 +18,7 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 )
 
-func NewEvalCmd() *cobra.Command {
+func NewEvalCmd(appName string) *cobra.Command {
 	var cookieFile string
 	cmd := cobra.Command{
 		Use:   "eval <yaml-file>",
@@ -28,8 +28,8 @@ func NewEvalCmd() *cobra.Command {
 			if cookieFile == "" {
 				return fmt.Errorf("--cookie-file flag is required")
 			}
-			app := application.NewApp()
-			if err := app.LoadConfig(appName, cmd); err != nil {
+			app := application.NewApp(appName)
+			if err := app.LoadConfig(cmd); err != nil {
 				return err
 			}
 			if err := app.SetupServerLogging(); err != nil {
