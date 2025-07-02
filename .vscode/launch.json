@@ -49,6 +49,18 @@
             ]
         },
         {
+            "name": "Debug agent",
+            "type": "go",
+            "mode": "auto",
+            "debugAdapter": "dlv-dap",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.go",
+            "buildFlags": "-ldflags=-X=github.com/runmedev/runme/v3/internal/version.BuildVersion=99.9.9",
+            "args": [
+                "agent",
+            ],
+        },
+        {
             "name": "Connect to dlv",
             "type": "go",
             "request": "attach",
