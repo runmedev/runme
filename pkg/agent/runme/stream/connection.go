@@ -46,8 +46,9 @@ func (sc *Connection) Error(message string) error {
 }
 
 // ErrorMessage sends an error to the websocket client before closing the connection.
-func (sc *Connection) ErrorMessage(ctx context.Context, code code.Code, message string) {
+func (sc *Connection) ErrorMessage(ctx context.Context, code code.Code, connErr error) {
 	log := logs.FromContextWithTrace(ctx)
+	message := connErr.Error()
 
 	response := &streamv1.WebsocketResponse{
 		Status: &streamv1.WebsocketStatus{

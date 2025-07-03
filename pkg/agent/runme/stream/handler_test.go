@@ -190,6 +190,63 @@ func TestRunmeHandler_Roundtrip(t *testing.T) {
 	}
 }
 
+// Tests that the multiplexer closes after the inactivity timeout.
+func TestRunmeHandler_InactivityTimeout(t *testing.T) {
+	// Save and restore original timeout values for this test.
+	origClientGracePeriod := ClientGracePeriod
+	origMultiplexerTimeout := MultiplexerTimeout
+	origMultiplexerInterval := MultiplexerInterval
+	defer func() {
+		ClientGracePeriod = origClientGracePeriod
+		MultiplexerTimeout = origMultiplexerTimeout
+		MultiplexerInterval = origMultiplexerInterval
+	}()
+	// Set short timeouts for fast test execution.
+	ClientGracePeriod = 10 * time.Millisecond
+	MultiplexerTimeout = 100 * time.Millisecond
+	MultiplexerInterval = 10 * time.Millisecond
+
+	mockRunmeServer := newMockRunmeServer()
+	mockRunmeServer.SetResponder(func() error {
+		mockRunmeServer.executeResponses <- &v2.ExecuteResponse{
+			ExitCode: &wrappers.UInt32Value{Value: 1},
+		}
+		return nil
+	})
+
+	h := NewWebSocketHandler(
+		&runme.Runner{Server: mockRunmeServer},
+		&iam.AuthContext{Checker: &iam.AllowAllChecker{}},
+	)
+
+	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
+	defer ts.Close()
+
+	runID := genULID()
+	sc, _, err := dialWebSocket(ts, runID.String())
+	if err != nil {
+		t.Errorf("Failed to dial websocket: %v", err)
+	}
+
+	time.Sleep(MultiplexerTimeout + MultiplexerInterval + ClientGracePeriod)
+
+	protoErr, err := sc.ReadWebsocketResponse(context.Background())
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if protoErr.GetStatus() == nil || protoErr.GetStatus().GetCode() != code.Code_DEADLINE_EXCEEDED {
+		t.Errorf("Expected status with code %q, got %v", code.Code_DEADLINE_EXCEEDED, protoErr.GetStatus())
+	}
+
+	_, err = sc.ReadWebsocketResponse(context.Background())
+	if err == nil {
+		t.Errorf("Expected websocket close error, got nil")
+	}
+	if wsErr, ok := err.(*websocket.CloseError); !ok || wsErr.Code != websocket.CloseProtocolError {
+		t.Errorf("Expected *websocket.CloseError with code 1002, got %T: %v", err, err)
+	}
+}
+
 // Tests websocket handler rejects requests with mismatched runIDs as unauthorized.
 func TestRunmeHandler_DenyMismatchedRunID(t *testing.T) {
 	mockRunmeServer := newMockRunmeServer()

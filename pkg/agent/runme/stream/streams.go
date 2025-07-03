@@ -83,6 +83,14 @@ func (s *Streams) close(ctx context.Context) {
 	}
 }
 
+func (s *Streams) error(ctx context.Context, code code.Code, err error) {
+	defer s.close(ctx)
+
+	for _, conn := range s.conns {
+		conn.ErrorMessage(ctx, code, err)
+	}
+}
+
 func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc *Connection) error {
 	log := logs.FromContextWithTrace(ctx)
 
@@ -99,7 +107,7 @@ func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc
 		// Return error to reject the connection if the socket request is not authorized.
 		if err := s.auth.AuthorizeRequest(ctx, req); err != nil {
 			log.Error(err, "Could not authorize request", "streamID", streamID, "runID", req.GetRunId())
-			sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, "Unauthorized request")
+			sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, errors.New("Unauthorized request"))
 			return err
 		}
 
@@ -108,7 +116,7 @@ func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc
 			// Check if context runID matches the authorized one in the request.
 			if req.GetRunId() != runID {
 				log.Error(err, "RunID mismatch", "streamID", streamID, "runID", req.GetRunId(), "expectedRunID", runID)
-				sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, "RunID mismatch")
+				sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, errors.New("RunID mismatch"))
 				return err
 			}
 
@@ -120,7 +128,7 @@ func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc
 			// Check if the knownID matches the one in the request.
 			if req.GetKnownId() != s.knownID {
 				log.Error(err, "KnownID mismatch", "streamID", streamID, "knownID", req.GetKnownId(), "expectedKnownID", s.knownID)
-				sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, "KnownID mismatch")
+				sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, errors.New("KnownID mismatch"))
 				return err
 			}
 		}
