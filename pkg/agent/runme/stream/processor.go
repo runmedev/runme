@@ -15,8 +15,10 @@ import (
 
 // Processor handles the v2.ExecuteRequest and v2.ExecuteResponse for a run in runme.Runner.
 type Processor struct {
-	Ctx              context.Context
-	RunID            string
+	Ctx   context.Context
+	RunID string
+	// ActiveRequests is used to signal to the multiplexer that the processor is actively executing requests.
+	ActiveRequests   bool
 	ExecuteRequests  chan *v2.ExecuteRequest
 	ExecuteResponses chan *v2.ExecuteResponse
 	// StopReading is used to signal to the readMessages goroutine that it should stop reading messages
@@ -65,6 +67,7 @@ func (p *Processor) Recv() (*v2.ExecuteRequest, error) {
 // error is returned if the stream was terminated unexpectedly, and the
 // handler method should return, as the stream is no longer usable.
 func (p *Processor) Send(res *v2.ExecuteResponse) error {
+	p.ActiveRequests = true
 	p.ExecuteResponses <- res
 	return nil
 }

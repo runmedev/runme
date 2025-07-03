@@ -67,7 +67,11 @@ func (m *Multiplexer) acceptConnection(streamID string, sc *Connection) error {
 		return err
 	}
 
+	// Start a goroutine to receive requests for a specific stream.
 	go m.receiveRequests(streamID, sc)
+
+	// Start a goroutine to enforce a timeout for inactivity per stream.
+	go m.startInactivityTimeout()
 
 	return nil
 }
@@ -94,6 +98,35 @@ func (m *Multiplexer) receiveRequests(streamID string, sc *Connection) {
 		}
 
 		log.Info("Connection closed", "streamID", streamID, "closeCode", closeErr.Code, "closeText", closeErr.Error())
+	}
+}
+
+// startInactivityTimeout enforces a 20-minute timeout for inactivity (not actively executing requests).
+func (m *Multiplexer) startInactivityTimeout() {
+	log := logs.FromContextWithTrace(m.ctx)
+
+	timeout := 20 * time.Minute
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	deadline := time.Now().Add(timeout)
+
+	for {
+		select {
+		case <-m.ctx.Done():
+			// Multiplexer already canceled, exit goroutine.
+			return
+		case <-ticker.C:
+			if p := m.getInflight(); p != nil && p.ActiveRequests {
+				// Processor actively executing requests, exit goroutine.
+				return
+			}
+			if time.Now().After(deadline) {
+				// Timeout reached, processor not executing requests, cancel multiplexer.
+				log.Info("Inactivity timeout reached, canceling multiplexer", "runID", m.runID)
+				m.cancel() // will grant 30s grace period for clients to close connection.
+				return
+			}
+		}
 	}
 }
 
