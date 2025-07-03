@@ -48,6 +48,7 @@ func TestWebSocketHandler_Handler_SwitchingProtocols(t *testing.T) {
 		auth: &iam.AuthContext{
 			Checker: &iam.AllowAllChecker{},
 		},
+		runs: make(map[string]*Multiplexer),
 	}
 
 	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
