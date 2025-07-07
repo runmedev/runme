@@ -26,7 +26,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	streamv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"

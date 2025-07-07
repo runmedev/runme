@@ -15,8 +15,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
-	"github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1/agentv1connect"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
 
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/api"

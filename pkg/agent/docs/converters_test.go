@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/testutil"
 )
 

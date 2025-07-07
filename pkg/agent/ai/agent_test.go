@@ -8,7 +8,7 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 )
 
 func TestFillInToolcalls(t *testing.T) {

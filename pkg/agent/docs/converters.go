@@ -6,7 +6,7 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/runme/converters"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/document/editor"
 	"github.com/runmedev/runme/v3/document/identity"

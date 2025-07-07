@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package agent.v1;
+
+import "agent/v1/filesearch.proto";
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agentv1";
+
+// Block represents the data in an element in the UI.
+message Block {
+  // BlockKind is an enum indicating what type of block it is e.g text or output
+  BlockKind kind = 1;
+
+  // language is a string identifying the language.
+  string language = 2;
+
+  // contents is the actual contents of the block.
+  // Not the outputs of the block.
+  string contents = 3;
+
+  // outputs are the output of a block if any.
+  // repeated BlockOutput outputs = 4;
+
+  // ID of the block.
+  string id = 7;
+
+  // Additional metadata
+  map<string, string> metadata = 8;
+
+  BlockRole role = 9;
+
+  repeated FileSearchResult file_search_results = 10;
+
+  repeated BlockOutput outputs = 11;
+
+  // Call ID is the id of this function call as set by OpenAI
+  string call_id = 12;
+}
+
+enum BlockKind {
+  BLOCK_KIND_UNSPECIFIED = 0;
+  BLOCK_KIND_MARKUP = 1;
+  BLOCK_KIND_CODE = 2;
+  BLOCK_KIND_FILE_SEARCH_RESULTS = 3;
+}
+
+enum BlockRole {
+  BLOCK_ROLE_UNSPECIFIED = 0;
+  BLOCK_ROLE_USER = 1;
+  BLOCK_ROLE_ASSISTANT = 2;
+}
+
+enum BlockOutputKind {
+  BLOCK_OUTPUT_KIND_UNSPECIFIED = 0;
+  BLOCK_OUTPUT_KIND_STDOUT = 1;
+  BLOCK_OUTPUT_KIND_STDERR = 2;
+}
+
+// BlockOutput represents the output of a block.
+// It corresponds to a VSCode NotebookCellOutput
+// https://github.com/microsoft/vscode/blob/98332892fd2cb3c948ced33f542698e20c6279b9/src/vscode-dts/vscode.d.ts#L14835
+message BlockOutput {
+  // items is the output items. Each item is the different representation of the same output data
+  repeated BlockOutputItem items = 1;
+  BlockOutputKind kind = 2;
+}
+
+// BlockOutputItem represents an item in a block output.
+// It corresponds to a VSCode NotebookCellOutputItem
+// https://github.com/microsoft/vscode/blob/98332892fd2cb3c948ced33f542698e20c6279b9/src/vscode-dts/vscode.d.ts#L14753
+message BlockOutputItem {
+  // mime is the mime type of the output item.
+  string mime = 1;
+  // value of the output item.
+  // We use string data type and not bytes because the JSON representation of bytes is a base64
+  // string. vscode data uses a byte. We may need to add support for bytes to support non text data
+  // data in the future.
+  string text_data = 2;
+}
+
+// BlocksService generates blocks.
+service BlocksService {
+  // Generate generates blocks. Responses are streamed.
+  rpc Generate(GenerateRequest) returns (stream GenerateResponse) {}
+}
+
+message GenerateRequest {
+  repeated Block blocks = 1;
+  string previous_response_id = 2;
+
+  // openai_access_token is the OpenAI access token to use when contacting the OpenAI API.
+  string openai_access_token = 3;
+}
+
+message GenerateResponse {
+  repeated Block blocks = 1;
+  string response_id = 2;
+}

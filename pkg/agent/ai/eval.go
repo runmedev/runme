@@ -29,8 +29,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 
-	agent "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
-	agentconnect "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1/agentv1connect"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
 
 	"github.com/runmedev/runme/v3/pkg/agent/docs"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
@@ -72,10 +72,10 @@ const (
 )
 
 type Asserter interface {
-	Assert(ctx context.Context, as *agent.Assertion, inputText string, blocks map[string]*agent.Block) error
+	Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error
 }
 
-func dumpBlocks(blocks map[string]*agent.Block) string {
+func dumpBlocks(blocks map[string]*agentv1.Block) string {
 	var context_builder strings.Builder
 	for _, block := range blocks {
 		context_builder.WriteString(fmt.Sprintf("Type: %s, Role: %s, Contents: %s\n", block.Kind, block.Role, block.Contents))
@@ -85,29 +85,29 @@ func dumpBlocks(blocks map[string]*agent.Block) string {
 
 type shellRequiredFlag struct{}
 
-func (s shellRequiredFlag) Assert(ctx context.Context, as *agent.Assertion, inputText string, blocks map[string]*agent.Block) error {
+func (s shellRequiredFlag) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
 	shellFlag := as.GetShellRequiredFlag()
 	command := shellFlag.Command
 	flags := shellFlag.Flags
-	contain_command := false                   // Tracks if the target command is found in any code block
-	as.Result = agent.Assertion_RESULT_SKIPPED // Default result is SKIPPED unless the command is found
+	contain_command := false                     // Tracks if the target command is found in any code block
+	as.Result = agentv1.Assertion_RESULT_SKIPPED // Default result is SKIPPED unless the command is found
 	for _, block := range blocks {
-		if block.Kind == agent.BlockKind_BLOCK_KIND_CODE {
+		if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
 			if strings.Contains(block.Contents, command) { // Check if the code block contains the target command
 				if !contain_command {
 					contain_command = true
-					as.Result = agent.Assertion_RESULT_TRUE // Set to PASSED if the command is present (may be overridden below)
+					as.Result = agentv1.Assertion_RESULT_TRUE // Set to PASSED if the command is present (may be overridden below)
 				}
 				for _, flag := range flags { // If the command is present, check for all required flags
 					if !strings.Contains(block.Contents, flag) {
 						as.FailureReason += fmt.Sprintf("Flag %s is missing", flag)
-						as.Result = agent.Assertion_RESULT_FALSE // Set to FAILED if any required flag is missing
+						as.Result = agentv1.Assertion_RESULT_FALSE // Set to FAILED if any required flag is missing
 					}
 				}
 			}
 		}
 	}
-	if as.Result == agent.Assertion_RESULT_FALSE {
+	if as.Result == agentv1.Assertion_RESULT_FALSE {
 		as.FailureReason = "Command " + command + " is present, but required flags are missing" + as.FailureReason
 	}
 
@@ -118,25 +118,25 @@ func (s shellRequiredFlag) Assert(ctx context.Context, as *agent.Assertion, inpu
 
 type toolInvocation struct{}
 
-func (t toolInvocation) Assert(ctx context.Context, as *agent.Assertion, inputText string, blocks map[string]*agent.Block) error {
+func (t toolInvocation) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
 	targetTool := as.GetToolInvocation().GetToolName()
-	as.Result = agent.Assertion_RESULT_FALSE // Default to false unless the tool is invoked
+	as.Result = agentv1.Assertion_RESULT_FALSE // Default to false unless the tool is invoked
 	for _, block := range blocks {
 		// N.B. For now, every tool-call response is treated as code execution in blocks.go.
 		// TODO: When we add additional tools, handle tool-call responses separately.
 		if targetTool == "shell" {
-			if block.Kind == agent.BlockKind_BLOCK_KIND_CODE {
-				as.Result = agent.Assertion_RESULT_TRUE
+			if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
+				as.Result = agentv1.Assertion_RESULT_TRUE
 				break
 			}
 		} else if targetTool == "file_retrieval" {
-			if block.Kind == agent.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
-				as.Result = agent.Assertion_RESULT_TRUE
+			if block.Kind == agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
+				as.Result = agentv1.Assertion_RESULT_TRUE
 				break
 			}
 		}
 	}
-	if as.Result == agent.Assertion_RESULT_FALSE {
+	if as.Result == agentv1.Assertion_RESULT_FALSE {
 		as.FailureReason = "Tool " + targetTool + " is not invoked"
 	}
 	logger, _ := logr.FromContext(ctx)
@@ -146,20 +146,20 @@ func (t toolInvocation) Assert(ctx context.Context, as *agent.Assertion, inputTe
 
 type fileRetrieved struct{}
 
-func (f fileRetrieved) Assert(ctx context.Context, as *agent.Assertion, inputText string, blocks map[string]*agent.Block) error {
+func (f fileRetrieved) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
 	targetFileId := as.GetFileRetrieval().FileId
-	as.Result = agent.Assertion_RESULT_FALSE // Default to false unless the file is found
+	as.Result = agentv1.Assertion_RESULT_FALSE // Default to false unless the file is found
 	for _, block := range blocks {
-		if block.Kind == agent.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
+		if block.Kind == agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
 			for _, file := range block.FileSearchResults {
 				if file.FileId == targetFileId {
-					as.Result = agent.Assertion_RESULT_TRUE
+					as.Result = agentv1.Assertion_RESULT_TRUE
 					break
 				}
 			}
 		}
 	}
-	if as.Result == agent.Assertion_RESULT_FALSE {
+	if as.Result == agentv1.Assertion_RESULT_FALSE {
 		as.FailureReason = "File " + targetFileId + " is not retrieved"
 	}
 	logger, _ := logr.FromContext(ctx)
@@ -175,7 +175,7 @@ func NewLlmJudge(client *openai.Client) *llmJudge {
 	return &llmJudge{client: client}
 }
 
-func (l llmJudge) Assert(ctx context.Context, as *agent.Assertion, inputText string, blocks map[string]*agent.Block) error {
+func (l llmJudge) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
 	logger, _ := logr.FromContext(ctx)
 	var context_builder strings.Builder
 	for _, block := range blocks {
@@ -226,10 +226,10 @@ func (l llmJudge) Assert(ctx context.Context, as *agent.Assertion, inputText str
 		return errors.Wrapf(err, "failed to unmarshal LLM-judge response JSON")
 	}
 	if passed, ok := respMap["passed"].(bool); ok && passed {
-		as.Result = agent.Assertion_RESULT_TRUE
+		as.Result = agentv1.Assertion_RESULT_TRUE
 	} else {
 		as.FailureReason = respMap["reasoning"].(string)
-		as.Result = agent.Assertion_RESULT_FALSE
+		as.Result = agentv1.Assertion_RESULT_FALSE
 	}
 
 	logger.Info("llmJudge", "response", response.OutputText())
@@ -239,20 +239,20 @@ func (l llmJudge) Assert(ctx context.Context, as *agent.Assertion, inputText str
 
 type codeblockRegex struct{}
 
-func (c codeblockRegex) Assert(ctx context.Context, as *agent.Assertion, inputText string, blocks map[string]*agent.Block) error {
+func (c codeblockRegex) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
 	regexPattern := as.GetCodeblockRegex().Regex
 	if regexPattern == "" {
-		as.Result = agent.Assertion_RESULT_SKIPPED
+		as.Result = agentv1.Assertion_RESULT_SKIPPED
 		return nil
 	}
 	re, err := regexp.Compile(regexPattern)
 	if err != nil {
-		as.Result = agent.Assertion_RESULT_FALSE
+		as.Result = agentv1.Assertion_RESULT_FALSE
 		return errors.Wrapf(err, "invalid regex pattern: %s", regexPattern)
 	}
 	matched := false
 	for _, block := range blocks {
-		if block.Kind == agent.BlockKind_BLOCK_KIND_CODE {
+		if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
 			if re.MatchString(block.Contents) {
 				matched = true
 				break
@@ -260,31 +260,31 @@ func (c codeblockRegex) Assert(ctx context.Context, as *agent.Assertion, inputTe
 		}
 	}
 	if matched {
-		as.Result = agent.Assertion_RESULT_TRUE
+		as.Result = agentv1.Assertion_RESULT_TRUE
 	} else {
 		as.FailureReason = "No codeblock matches regex: " + regexPattern
-		as.Result = agent.Assertion_RESULT_FALSE
+		as.Result = agentv1.Assertion_RESULT_FALSE
 	}
 	logger, _ := logr.FromContext(ctx)
 	logger.Info("codeblockRegex", "assertion", as.Name, "result", as.Result)
 	return nil
 }
 
-var registry = map[agent.Assertion_Type]Asserter{
-	agent.Assertion_TYPE_SHELL_REQUIRED_FLAG: shellRequiredFlag{},
-	agent.Assertion_TYPE_TOOL_INVOKED:        toolInvocation{},
-	agent.Assertion_TYPE_FILE_RETRIEVED:      fileRetrieved{},
-	agent.Assertion_TYPE_LLM_JUDGE:           llmJudge{},
-	agent.Assertion_TYPE_CODEBLOCK_REGEX:     codeblockRegex{},
+var registry = map[agentv1.Assertion_Type]Asserter{
+	agentv1.Assertion_TYPE_SHELL_REQUIRED_FLAG: shellRequiredFlag{},
+	agentv1.Assertion_TYPE_TOOL_INVOKED:        toolInvocation{},
+	agentv1.Assertion_TYPE_FILE_RETRIEVED:      fileRetrieved{},
+	agentv1.Assertion_TYPE_LLM_JUDGE:           llmJudge{},
+	agentv1.Assertion_TYPE_CODEBLOCK_REGEX:     codeblockRegex{},
 }
 
-func runInference(input string, agentCookie string, inferenceEndpoint string) (map[string]*agent.Block, error) {
+func runInference(input string, agentCookie string, inferenceEndpoint string) (map[string]*agentv1.Block, error) {
 	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
 
-	blocks := make(map[string]*agent.Block)
+	blocks := make(map[string]*agentv1.Block)
 
-	Block := agent.Block{
-		Kind:     agent.BlockKind_BLOCK_KIND_MARKUP,
+	Block := agentv1.Block{
+		Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 		Contents: "This is a block",
 	}
 
@@ -301,7 +301,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 		return blocks, errors.Wrapf(err, "Failed to parse URL")
 	}
 
-	var client agentconnect.BlocksServiceClient
+	var client agentv1connect.BlocksServiceClient
 
 	var options []connect.ClientOption
 	if u.Scheme == "https" {
@@ -310,7 +310,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 			InsecureSkipVerify: true, // Set to true only for testing; otherwise validate the server's certificate
 		}
 
-		client = agentconnect.NewBlocksServiceClient(
+		client = agentv1connect.NewBlocksServiceClient(
 			&http.Client{
 				Transport: &http2.Transport{
 					TLSClientConfig: tlsConfig,
@@ -324,7 +324,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 			options...,
 		)
 	} else {
-		client = agentconnect.NewBlocksServiceClient(
+		client = agentv1connect.NewBlocksServiceClient(
 			&http.Client{
 				Transport: &http2.Transport{
 					AllowHTTP: true,
@@ -340,11 +340,11 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 	}
 
 	ctx := context.Background()
-	genReq := &agent.GenerateRequest{
-		Blocks: []*agent.Block{
+	genReq := &agentv1.GenerateRequest{
+		Blocks: []*agentv1.Block{
 			{
-				Kind:     agent.BlockKind_BLOCK_KIND_MARKUP,
-				Role:     agent.BlockRole_BLOCK_ROLE_USER,
+				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+				Role:     agentv1.BlockRole_BLOCK_ROLE_USER,
 				Contents: input,
 			},
 		},
@@ -454,8 +454,8 @@ func (r *markdownReport) Render() string {
 }
 
 // EvalFromExperiment runs an experiment based on the Experiment config.
-func EvalFromExperiment(exp *agent.Experiment, experimentFilePath string, cookie map[string]string, client *openai.Client, log logr.Logger) (map[string]*agent.Block, error) {
-	registry[agent.Assertion_TYPE_LLM_JUDGE] = NewLlmJudge(client)
+func EvalFromExperiment(exp *agentv1.Experiment, experimentFilePath string, cookie map[string]string, client *openai.Client, log logr.Logger) (map[string]*agentv1.Block, error) {
+	registry[agentv1.Assertion_TYPE_LLM_JUDGE] = NewLlmJudge(client)
 	// Resolve dataset path relative to experiment file path if needed
 	datasetPath := exp.Spec.GetDatasetPath()
 	if !filepath.IsAbs(datasetPath) {
@@ -468,7 +468,7 @@ func EvalFromExperiment(exp *agent.Experiment, experimentFilePath string, cookie
 		return nil, errors.Wrapf(err, "failed to read dataset directory %q", datasetPath)
 	}
 
-	var samples []*agent.EvalSample
+	var samples []*agentv1.EvalSample
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -490,7 +490,7 @@ func EvalFromExperiment(exp *agent.Experiment, experimentFilePath string, cookie
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to marshal sample yaml to json for file %q", path)
 		}
-		var sample agent.EvalSample
+		var sample agentv1.EvalSample
 		if err := protojson.Unmarshal(jsonData, &sample); err != nil {
 			return nil, errors.Wrapf(err, "failed to unmarshal json to proto for sample file %q", path)
 		}
@@ -539,10 +539,10 @@ func EvalFromExperiment(exp *agent.Experiment, experimentFilePath string, cookie
 			typeName := assertion.Type.String()
 			stat := report.AssertionTypeStats[typeName]
 			switch assertion.Result {
-			case agent.Assertion_RESULT_TRUE:
+			case agentv1.Assertion_RESULT_TRUE:
 				numPassed++
 				stat.Passed++
-			case agent.Assertion_RESULT_FALSE:
+			case agentv1.Assertion_RESULT_FALSE:
 				numFailed++
 				stat.Failed++
 				failedAssertions = append(failedAssertions, struct{ Sample, Assertion, Reason, BlocksDump string }{
@@ -551,7 +551,7 @@ func EvalFromExperiment(exp *agent.Experiment, experimentFilePath string, cookie
 					Reason:     assertion.GetFailureReason(),
 					BlocksDump: dumpBlocks(blocks),
 				})
-			case agent.Assertion_RESULT_SKIPPED:
+			case agentv1.Assertion_RESULT_SKIPPED:
 				numSkipped++
 				stat.Skipped++
 			}

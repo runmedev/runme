@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package agent.v1;
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agentv1";
+
+message FileSearchResult {
+  // The unique ID of the file.
+  string file_id = 1;
+  // The name of the file.
+  string file_name = 2;
+  // The relevance score of the file.
+  double score = 3;
+
+  // Link to display for this file
+  string link = 4;
+  // TOO(jlewi): Should we include the file contents?
+}

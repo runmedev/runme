@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openai/openai-go/responses"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 )
 
 func NullOpSender(resp *agentv1.GenerateResponse) error {
