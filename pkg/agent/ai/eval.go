@@ -29,8 +29,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/agentconnect"
+	agent "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
+	agentconnect "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1/agentv1connect"
 
 	"github.com/runmedev/runme/v3/pkg/agent/docs"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
@@ -92,7 +92,7 @@ func (s shellRequiredFlag) Assert(ctx context.Context, as *agent.Assertion, inpu
 	contain_command := false                   // Tracks if the target command is found in any code block
 	as.Result = agent.Assertion_RESULT_SKIPPED // Default result is SKIPPED unless the command is found
 	for _, block := range blocks {
-		if block.Kind == agent.BlockKind_CODE {
+		if block.Kind == agent.BlockKind_BLOCK_KIND_CODE {
 			if strings.Contains(block.Contents, command) { // Check if the code block contains the target command
 				if !contain_command {
 					contain_command = true
@@ -125,12 +125,12 @@ func (t toolInvocation) Assert(ctx context.Context, as *agent.Assertion, inputTe
 		// N.B. For now, every tool-call response is treated as code execution in blocks.go.
 		// TODO: When we add additional tools, handle tool-call responses separately.
 		if targetTool == "shell" {
-			if block.Kind == agent.BlockKind_CODE {
+			if block.Kind == agent.BlockKind_BLOCK_KIND_CODE {
 				as.Result = agent.Assertion_RESULT_TRUE
 				break
 			}
 		} else if targetTool == "file_retrieval" {
-			if block.Kind == agent.BlockKind_FILE_SEARCH_RESULTS {
+			if block.Kind == agent.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
 				as.Result = agent.Assertion_RESULT_TRUE
 				break
 			}
@@ -150,9 +150,9 @@ func (f fileRetrieved) Assert(ctx context.Context, as *agent.Assertion, inputTex
 	targetFileId := as.GetFileRetrieval().FileId
 	as.Result = agent.Assertion_RESULT_FALSE // Default to false unless the file is found
 	for _, block := range blocks {
-		if block.Kind == agent.BlockKind_FILE_SEARCH_RESULTS {
+		if block.Kind == agent.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
 			for _, file := range block.FileSearchResults {
-				if file.FileID == targetFileId {
+				if file.FileId == targetFileId {
 					as.Result = agent.Assertion_RESULT_TRUE
 					break
 				}
@@ -252,7 +252,7 @@ func (c codeblockRegex) Assert(ctx context.Context, as *agent.Assertion, inputTe
 	}
 	matched := false
 	for _, block := range blocks {
-		if block.Kind == agent.BlockKind_CODE {
+		if block.Kind == agent.BlockKind_BLOCK_KIND_CODE {
 			if re.MatchString(block.Contents) {
 				matched = true
 				break
@@ -284,7 +284,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 	blocks := make(map[string]*agent.Block)
 
 	Block := agent.Block{
-		Kind:     agent.BlockKind_MARKUP,
+		Kind:     agent.BlockKind_BLOCK_KIND_MARKUP,
 		Contents: "This is a block",
 	}
 
@@ -343,7 +343,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 	genReq := &agent.GenerateRequest{
 		Blocks: []*agent.Block{
 			{
-				Kind:     agent.BlockKind_MARKUP,
+				Kind:     agent.BlockKind_BLOCK_KIND_MARKUP,
 				Role:     agent.BlockRole_BLOCK_ROLE_USER,
 				Contents: input,
 			},

@@ -14,21 +14,21 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/ai/e2etests"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 )
 
 func TestAssertions(t *testing.T) {
 	type asserter interface {
-		Assert(ctx context.Context, assertion *agent.Assertion, inputText string, blocks map[string]*agent.Block) error
+		Assert(ctx context.Context, assertion *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error
 	}
 
 	type testCase struct {
 		name              string
 		asserter          asserter
-		assertion         *agent.Assertion
-		blocks            map[string]*agent.Block
-		expectedAssertion *agent.Assertion
+		assertion         *agentv1.Assertion
+		blocks            map[string]*agentv1.Block
+		expectedAssertion *agentv1.Assertion
 		inputText         string
 	}
 	isGHA := os.Getenv("GITHUB_ACTIONS") == "true"
@@ -73,216 +73,216 @@ func TestAssertions(t *testing.T) {
 		{
 			name:     "kubectl-required-flags-present",
 			asserter: shellRequiredFlag{},
-			assertion: &agent.Assertion{
+			assertion: &agentv1.Assertion{
 				Name: "test-pass",
-				Type: agent.Assertion_TYPE_SHELL_REQUIRED_FLAG,
-				Payload: &agent.Assertion_ShellRequiredFlag_{
-					ShellRequiredFlag: &agent.Assertion_ShellRequiredFlag{
+				Type: agentv1.Assertion_TYPE_SHELL_REQUIRED_FLAG,
+				Payload: &agentv1.Assertion_ShellRequiredFlag_{
+					ShellRequiredFlag: &agentv1.Assertion_ShellRequiredFlag{
 						Command: "kubectl",
 						Flags:   []string{"--context", "-n"},
 					},
 				},
 			},
-			blocks: map[string]*agent.Block{
+			blocks: map[string]*agentv1.Block{
 				"1": {
-					Kind:     agent.BlockKind_CODE,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 					Contents: "kubectl get pods --context test -n default",
 				},
 			},
-			expectedAssertion: &agent.Assertion{
+			expectedAssertion: &agentv1.Assertion{
 				Name: "test-pass",
-				Type: agent.Assertion_TYPE_SHELL_REQUIRED_FLAG,
-				Payload: &agent.Assertion_ShellRequiredFlag_{
-					ShellRequiredFlag: &agent.Assertion_ShellRequiredFlag{
+				Type: agentv1.Assertion_TYPE_SHELL_REQUIRED_FLAG,
+				Payload: &agentv1.Assertion_ShellRequiredFlag_{
+					ShellRequiredFlag: &agentv1.Assertion_ShellRequiredFlag{
 						Command: "kubectl",
 						Flags:   []string{"--context", "-n"},
 					},
 				},
-				Result: agent.Assertion_RESULT_TRUE,
+				Result: agentv1.Assertion_RESULT_TRUE,
 			},
 		},
 		{
 			name:     "kubectl-required-flag-missing",
 			asserter: shellRequiredFlag{},
-			assertion: &agent.Assertion{
+			assertion: &agentv1.Assertion{
 				Name: "test-fail",
-				Type: agent.Assertion_TYPE_SHELL_REQUIRED_FLAG,
-				Payload: &agent.Assertion_ShellRequiredFlag_{
-					ShellRequiredFlag: &agent.Assertion_ShellRequiredFlag{
+				Type: agentv1.Assertion_TYPE_SHELL_REQUIRED_FLAG,
+				Payload: &agentv1.Assertion_ShellRequiredFlag_{
+					ShellRequiredFlag: &agentv1.Assertion_ShellRequiredFlag{
 						Command: "kubectl",
 						Flags:   []string{"--context", "-n"},
 					},
 				},
 			},
-			blocks: map[string]*agent.Block{
+			blocks: map[string]*agentv1.Block{
 				"1": {
-					Kind:     agent.BlockKind_CODE,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 					Contents: "kubectl get pods --context test",
 				},
 			},
-			expectedAssertion: &agent.Assertion{
+			expectedAssertion: &agentv1.Assertion{
 				Name: "test-fail",
-				Type: agent.Assertion_TYPE_SHELL_REQUIRED_FLAG,
-				Payload: &agent.Assertion_ShellRequiredFlag_{
-					ShellRequiredFlag: &agent.Assertion_ShellRequiredFlag{
+				Type: agentv1.Assertion_TYPE_SHELL_REQUIRED_FLAG,
+				Payload: &agentv1.Assertion_ShellRequiredFlag_{
+					ShellRequiredFlag: &agentv1.Assertion_ShellRequiredFlag{
 						Command: "kubectl",
 						Flags:   []string{"--context", "-n"},
 					},
 				},
-				Result: agent.Assertion_RESULT_FALSE,
+				Result: agentv1.Assertion_RESULT_FALSE,
 			},
 		},
 		{
 			name:     "file-search-file-found",
 			asserter: fileRetrieved{},
-			assertion: &agent.Assertion{
+			assertion: &agentv1.Assertion{
 				Name: "file-found",
-				Type: agent.Assertion_TYPE_FILE_RETRIEVED,
-				Payload: &agent.Assertion_FileRetrieval_{
-					FileRetrieval: &agent.Assertion_FileRetrieval{
+				Type: agentv1.Assertion_TYPE_FILE_RETRIEVED,
+				Payload: &agentv1.Assertion_FileRetrieval_{
+					FileRetrieval: &agentv1.Assertion_FileRetrieval{
 						FileId:   "file-123",
 						FileName: "test.txt",
 					},
 				},
 			},
-			blocks: map[string]*agent.Block{
+			blocks: map[string]*agentv1.Block{
 				"block1": {
-					Kind: agent.BlockKind_FILE_SEARCH_RESULTS,
-					FileSearchResults: []*agent.FileSearchResult{
-						{FileID: "file-123", FileName: "test.txt"},
+					Kind: agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS,
+					FileSearchResults: []*agentv1.FileSearchResult{
+						{FileId: "file-123", FileName: "test.txt"},
 					},
 				},
 			},
-			expectedAssertion: &agent.Assertion{
+			expectedAssertion: &agentv1.Assertion{
 				Name: "file-found",
-				Type: agent.Assertion_TYPE_FILE_RETRIEVED,
-				Payload: &agent.Assertion_FileRetrieval_{
-					FileRetrieval: &agent.Assertion_FileRetrieval{
+				Type: agentv1.Assertion_TYPE_FILE_RETRIEVED,
+				Payload: &agentv1.Assertion_FileRetrieval_{
+					FileRetrieval: &agentv1.Assertion_FileRetrieval{
 						FileId:   "file-123",
 						FileName: "test.txt",
 					},
 				},
-				Result: agent.Assertion_RESULT_TRUE,
+				Result: agentv1.Assertion_RESULT_TRUE,
 			},
 		},
 		{
 			name:     "file-search-file-not-found",
 			asserter: fileRetrieved{},
-			assertion: &agent.Assertion{
+			assertion: &agentv1.Assertion{
 				Name: "file-not-found",
-				Type: agent.Assertion_TYPE_FILE_RETRIEVED,
-				Payload: &agent.Assertion_FileRetrieval_{
-					FileRetrieval: &agent.Assertion_FileRetrieval{
+				Type: agentv1.Assertion_TYPE_FILE_RETRIEVED,
+				Payload: &agentv1.Assertion_FileRetrieval_{
+					FileRetrieval: &agentv1.Assertion_FileRetrieval{
 						FileId:   "file-999",
 						FileName: "notfound.txt",
 					},
 				},
 			},
-			blocks: map[string]*agent.Block{
+			blocks: map[string]*agentv1.Block{
 				"block1": {
-					Kind: agent.BlockKind_FILE_SEARCH_RESULTS,
-					FileSearchResults: []*agent.FileSearchResult{
-						{FileID: "file-123", FileName: "test.txt"},
+					Kind: agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS,
+					FileSearchResults: []*agentv1.FileSearchResult{
+						{FileId: "file-123", FileName: "test.txt"},
 					},
 				},
 			},
-			expectedAssertion: &agent.Assertion{
+			expectedAssertion: &agentv1.Assertion{
 				Name: "file-not-found",
-				Type: agent.Assertion_TYPE_FILE_RETRIEVED,
-				Payload: &agent.Assertion_FileRetrieval_{
-					FileRetrieval: &agent.Assertion_FileRetrieval{
+				Type: agentv1.Assertion_TYPE_FILE_RETRIEVED,
+				Payload: &agentv1.Assertion_FileRetrieval_{
+					FileRetrieval: &agentv1.Assertion_FileRetrieval{
 						FileId:   "file-999",
 						FileName: "notfound.txt",
 					},
 				},
-				Result: agent.Assertion_RESULT_FALSE,
+				Result: agentv1.Assertion_RESULT_FALSE,
 			},
 		},
 		{
 			name:     "tool-invocation-shell-command",
 			asserter: toolInvocation{},
-			assertion: &agent.Assertion{
+			assertion: &agentv1.Assertion{
 				Name: "shell-invoked",
-				Type: agent.Assertion_TYPE_TOOL_INVOKED,
-				Payload: &agent.Assertion_ToolInvocation_{
-					ToolInvocation: &agent.Assertion_ToolInvocation{
+				Type: agentv1.Assertion_TYPE_TOOL_INVOKED,
+				Payload: &agentv1.Assertion_ToolInvocation_{
+					ToolInvocation: &agentv1.Assertion_ToolInvocation{
 						ToolName: "shell",
 					},
 				},
 			},
-			blocks: map[string]*agent.Block{
+			blocks: map[string]*agentv1.Block{
 				"1": {
-					Kind:     agent.BlockKind_CODE,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 					Contents: "echo hello world",
 				},
 			},
-			expectedAssertion: &agent.Assertion{
+			expectedAssertion: &agentv1.Assertion{
 				Name: "shell-invoked",
-				Type: agent.Assertion_TYPE_TOOL_INVOKED,
-				Payload: &agent.Assertion_ToolInvocation_{
-					ToolInvocation: &agent.Assertion_ToolInvocation{
+				Type: agentv1.Assertion_TYPE_TOOL_INVOKED,
+				Payload: &agentv1.Assertion_ToolInvocation_{
+					ToolInvocation: &agentv1.Assertion_ToolInvocation{
 						ToolName: "shell",
 					},
 				},
-				Result: agent.Assertion_RESULT_TRUE,
+				Result: agentv1.Assertion_RESULT_TRUE,
 			},
 		},
 		{
 			name:     "tool-invocation-no-shell-command",
 			asserter: toolInvocation{},
-			assertion: &agent.Assertion{
+			assertion: &agentv1.Assertion{
 				Name: "shell-not-invoked",
-				Type: agent.Assertion_TYPE_TOOL_INVOKED,
-				Payload: &agent.Assertion_ToolInvocation_{
-					ToolInvocation: &agent.Assertion_ToolInvocation{
+				Type: agentv1.Assertion_TYPE_TOOL_INVOKED,
+				Payload: &agentv1.Assertion_ToolInvocation_{
+					ToolInvocation: &agentv1.Assertion_ToolInvocation{
 						ToolName: "shell",
 					},
 				},
 			},
-			blocks: map[string]*agent.Block{
+			blocks: map[string]*agentv1.Block{
 				"1": {
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Contents: "This is not a code block.",
 				},
 			},
-			expectedAssertion: &agent.Assertion{
+			expectedAssertion: &agentv1.Assertion{
 				Name: "shell-not-invoked",
-				Type: agent.Assertion_TYPE_TOOL_INVOKED,
-				Payload: &agent.Assertion_ToolInvocation_{
-					ToolInvocation: &agent.Assertion_ToolInvocation{
+				Type: agentv1.Assertion_TYPE_TOOL_INVOKED,
+				Payload: &agentv1.Assertion_ToolInvocation_{
+					ToolInvocation: &agentv1.Assertion_ToolInvocation{
 						ToolName: "shell",
 					},
 				},
-				Result: agent.Assertion_RESULT_FALSE,
+				Result: agentv1.Assertion_RESULT_FALSE,
 			},
 		},
 		{
 			name:     "llm-judge-basic",
 			asserter: llmJudge{client: client},
-			assertion: &agent.Assertion{
+			assertion: &agentv1.Assertion{
 				Name: "basic_llm_judge",
-				Type: agent.Assertion_TYPE_LLM_JUDGE,
-				Payload: &agent.Assertion_LlmJudge{
-					LlmJudge: &agent.Assertion_LLMJudge{
+				Type: agentv1.Assertion_TYPE_LLM_JUDGE,
+				Payload: &agentv1.Assertion_LlmJudge{
+					LlmJudge: &agentv1.Assertion_LLMJudge{
 						Prompt: "Do you think the LLM's command is mostly correct?",
 					},
 				},
 			},
-			blocks: map[string]*agent.Block{
+			blocks: map[string]*agentv1.Block{
 				"1": {
-					Kind:     agent.BlockKind_CODE,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 					Contents: "az aks list --query \"[?name=='unified-60'].{Name:name, Location:location}\" --output table",
 				},
 			},
-			expectedAssertion: &agent.Assertion{
+			expectedAssertion: &agentv1.Assertion{
 				Name: "basic_llm_judge",
-				Type: agent.Assertion_TYPE_LLM_JUDGE,
-				Payload: &agent.Assertion_LlmJudge{
-					LlmJudge: &agent.Assertion_LLMJudge{
+				Type: agentv1.Assertion_TYPE_LLM_JUDGE,
+				Payload: &agentv1.Assertion_LlmJudge{
+					LlmJudge: &agentv1.Assertion_LLMJudge{
 						Prompt: "Do you think the LLM's command is mostly correct?",
 					},
 				},
-				Result: agent.Assertion_RESULT_TRUE,
+				Result: agentv1.Assertion_RESULT_TRUE,
 			},
 			inputText: "What region is cluster unified-60 in?",
 		},
@@ -292,14 +292,14 @@ func TestAssertions(t *testing.T) {
 	ctx := logr.NewContext(context.Background(), log)
 	opts := cmp.Options{
 		cmpopts.IgnoreUnexported(
-			agent.Assertion{},
-			agent.Assertion_ShellRequiredFlag{},
-			agent.Assertion_ToolInvocation{},
-			agent.Assertion_FileRetrieval{},
-			agent.Assertion_CodeblockRegex{},
-			agent.Assertion_LLMJudge{},
+			agentv1.Assertion{},
+			agentv1.Assertion_ShellRequiredFlag{},
+			agentv1.Assertion_ToolInvocation{},
+			agentv1.Assertion_FileRetrieval{},
+			agentv1.Assertion_CodeblockRegex{},
+			agentv1.Assertion_LLMJudge{},
 		),
-		cmpopts.IgnoreFields(agent.Assertion{}, "FailureReason"),
+		cmpopts.IgnoreFields(agentv1.Assertion{}, "FailureReason"),
 	}
 
 	for _, tc := range testCases {

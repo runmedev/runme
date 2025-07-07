@@ -15,7 +15,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/agentconnect"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1/agentv1connect"
 
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/api"
@@ -25,8 +26,6 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/tlsbuilder"
-
-	pbcfg "github.com/runmedev/runme/v3/api/gen/proto/go/agent/config"
 
 	"connectrpc.com/otelconnect"
 
@@ -45,7 +44,7 @@ import (
 type Server struct {
 	telemetry        *config.TelemetryConfig
 	serverConfig     *config.AssistantServerConfig
-	webAppConfig     *pbcfg.WebAppConfig
+	webAppConfig     *agentv1.WebAppConfig
 	hServer          *http.Server
 	engine           http.Handler
 	shutdownComplete chan bool
@@ -57,7 +56,7 @@ type Server struct {
 type Options struct {
 	Telemetry *config.TelemetryConfig
 	Server    *config.AssistantServerConfig
-	WebApp    *pbcfg.WebAppConfig
+	WebApp    *agentv1.WebAppConfig
 	IAMPolicy *api.IAMPolicy
 }
 
@@ -258,7 +257,7 @@ func (s *Server) registerServices() error {
 	}
 
 	if s.agent != nil {
-		aiSvcPath, aiSvcHandler := agentconnect.NewBlocksServiceHandler(s.agent, connect.WithInterceptors(interceptors...))
+		aiSvcPath, aiSvcHandler := agentv1connect.NewBlocksServiceHandler(s.agent, connect.WithInterceptors(interceptors...))
 		log.Info("Setting up AI service", "path", aiSvcPath)
 		// Protect the AI service
 		mux.HandleProtected(aiSvcPath, aiSvcHandler, s.checker, api.AgentUserRole)

@@ -8,7 +8,7 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 )
 
 func TestFillInToolcalls(t *testing.T) {
@@ -17,9 +17,9 @@ func TestFillInToolcalls(t *testing.T) {
 		name               string
 		previousResponseId string
 		cachedResponses    map[string][]string
-		cachedBlocks       map[string]*agent.Block
-		request            *agent.GenerateRequest
-		expected           *agent.GenerateRequest
+		cachedBlocks       map[string]*agentv1.Block
+		request            *agentv1.GenerateRequest
+		expected           *agentv1.GenerateRequest
 	}{
 		{
 			name:               "Missing Previous Calls",
@@ -27,23 +27,23 @@ func TestFillInToolcalls(t *testing.T) {
 			cachedResponses: map[string][]string{
 				"abc": {"block1"},
 			},
-			cachedBlocks: map[string]*agent.Block{
+			cachedBlocks: map[string]*agentv1.Block{
 				"block1": {
 					Id:       "block1",
-					Kind:     agent.BlockKind_CODE,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 					Contents: "print('Hello, world!')",
 					CallId:   "call1",
 				},
 			},
-			request: &agent.GenerateRequest{
+			request: &agentv1.GenerateRequest{
 				PreviousResponseId: "abc",
 			},
-			expected: &agent.GenerateRequest{
+			expected: &agentv1.GenerateRequest{
 				PreviousResponseId: "abc",
-				Blocks: []*agent.Block{
+				Blocks: []*agentv1.Block{
 					{
 						Id:       "block1",
-						Kind:     agent.BlockKind_CODE,
+						Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 						Contents: "print('Hello, world!')",
 						CallId:   "call1",
 					},
@@ -56,32 +56,32 @@ func TestFillInToolcalls(t *testing.T) {
 			cachedResponses: map[string][]string{
 				"abc": {"block1"},
 			},
-			cachedBlocks: map[string]*agent.Block{
+			cachedBlocks: map[string]*agentv1.Block{
 				"block1": {
 					Id:       "block1",
-					Kind:     agent.BlockKind_CODE,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 					Contents: "print('This was the original command!')",
 					CallId:   "call1",
 				},
 			},
-			request: &agent.GenerateRequest{
+			request: &agentv1.GenerateRequest{
 				PreviousResponseId: "abc",
-				Blocks: []*agent.Block{
+				Blocks: []*agentv1.Block{
 					// We want to ensure that the block in the request takes precendence over the cache
 					{
 						Id:       "block1",
-						Kind:     agent.BlockKind_CODE,
+						Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 						Contents: "print('Actual Command')",
 						CallId:   "call1",
 					},
 				},
 			},
-			expected: &agent.GenerateRequest{
+			expected: &agentv1.GenerateRequest{
 				PreviousResponseId: "abc",
-				Blocks: []*agent.Block{
+				Blocks: []*agentv1.Block{
 					{
 						Id:       "block1",
-						Kind:     agent.BlockKind_CODE,
+						Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 						Contents: "print('Actual Command')",
 						CallId:   "call1",
 					},
@@ -99,7 +99,7 @@ func TestFillInToolcalls(t *testing.T) {
 				t.Fatalf("Failed to create response cache: %v", err)
 			}
 
-			blocksCache, err := lru.New[string, *agent.Block](5)
+			blocksCache, err := lru.New[string, *agentv1.Block](5)
 			if err != nil {
 				t.Fatalf("Failed to create blocks cache: %v", err)
 			}

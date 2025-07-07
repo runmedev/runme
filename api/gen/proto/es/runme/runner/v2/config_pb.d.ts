@@ -206,3 +206,4 @@ export enum CommandMode {
  * Describes the enum runme.runner.v2.CommandMode.
  */
 export declare const CommandModeSchema: GenEnum<CommandMode>;
+

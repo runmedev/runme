@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 )
@@ -49,7 +49,7 @@ func NewEvalCmd(appName string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			var experiment agent.Experiment
+			var experiment agentv1.Experiment
 			if err := protojson.Unmarshal(jsonBytes, &experiment); err != nil {
 				return err
 			}

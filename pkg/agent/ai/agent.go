@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 
@@ -67,7 +67,7 @@ type Agent struct {
 	responseCache *lru.Cache[string, []string]
 
 	// blocksCache is a cache to store the mapping from blockID to block
-	blocksCache *lru.Cache[string, *agent.Block]
+	blocksCache *lru.Cache[string, *agentv1.Block]
 
 	useOAuth bool // Use OAuth for authorization; if true then the token must be provided in the GenerateRequest
 }
@@ -120,7 +120,7 @@ func NewAgent(opts AgentOptions) (*Agent, error) {
 		return nil, errors.Wrap(err, "Failed to create response cache")
 	}
 	// Create a cache to store the mapping from blockID to block
-	blocksCache, err := lru.New[string, *agent.Block](10000)
+	blocksCache, err := lru.New[string, *agentv1.Block](10000)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create blocks cache")
 	}
@@ -153,11 +153,11 @@ var shellToolJSONSchema = map[string]any{
 	"additionalProperties": false,
 }
 
-func (a *Agent) Generate(ctx context.Context, req *connect.Request[agent.GenerateRequest], resp *connect.ServerStream[agent.GenerateResponse]) error {
+func (a *Agent) Generate(ctx context.Context, req *connect.Request[agentv1.GenerateRequest], resp *connect.ServerStream[agentv1.GenerateResponse]) error {
 	return a.ProcessWithOpenAI(ctx, req.Msg, resp.Send)
 }
 
-func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agent.GenerateRequest, sender BlockSender) error {
+func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequest, sender BlockSender) error {
 	span := trace.SpanFromContext(ctx)
 	log := logs.FromContext(ctx)
 	traceId := span.SpanContext().TraceID()
@@ -198,7 +198,7 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agent.GenerateReques
 
 	// If PreviousResponseId is not set then we need to check that the first block is user input.
 	if req.PreviousResponseId == "" {
-		if req.Blocks[0].Role != agent.BlockRole_BLOCK_ROLE_USER {
+		if req.Blocks[0].Role != agentv1.BlockRole_BLOCK_ROLE_USER {
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("First block must be user input"))
 		}
 	}
@@ -219,7 +219,7 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agent.GenerateReques
 
 	for _, b := range req.Blocks {
 		switch b.Kind {
-		case agent.BlockKind_MARKUP:
+		case agentv1.BlockKind_BLOCK_KIND_MARKUP:
 			input.OfInputItemList = append(input.OfInputItemList, responses.ResponseInputItemUnionParam{
 				// N.B. What's the difference between EasyInputMessage and InputItemMessage
 				OfMessage: &responses.EasyInputMessageParam{
@@ -229,7 +229,7 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agent.GenerateReques
 					},
 				},
 			})
-		case agent.BlockKind_CODE:
+		case agentv1.BlockKind_BLOCK_KIND_CODE:
 			dict := map[string]string{}
 
 			for _, o := range b.Outputs {
@@ -322,7 +322,7 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agent.GenerateReques
 // fillInToolcalls fills in the tool calls for the request for the previousResponse.
 // This is necessary because OpenAI returns an error if any of the function calls in the previous response
 // are missing output
-func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []string], blocksCache *lru.Cache[string, *agent.Block], req *agent.GenerateRequest) error {
+func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []string], blocksCache *lru.Cache[string, *agentv1.Block], req *agentv1.GenerateRequest) error {
 	if req.PreviousResponseId == "" {
 		return nil
 	}
@@ -350,7 +350,7 @@ func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []str
 		if !ok {
 			return errors.Errorf("Missing block for block ID; %v", callID)
 		}
-		blockCopy := proto.Clone(b).(*agent.Block)
+		blockCopy := proto.Clone(b).(*agentv1.Block)
 		req.Blocks = append(req.Blocks, blockCopy)
 	}
 

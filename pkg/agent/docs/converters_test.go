@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/testutil"
 )
 
@@ -19,53 +19,53 @@ func Test_MarkdownToBlocks(t *testing.T) {
 	type testCase struct {
 		name     string
 		inFile   string
-		expected []*agent.Block
+		expected []*agentv1.Block
 	}
 
 	cases := []testCase{
 		{
 			name:   "simple",
 			inFile: "testdoc.md",
-			expected: []*agent.Block{
+			expected: []*agentv1.Block{
 				{
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Metadata: make(map[string]string),
 					Contents: "# Section 1",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 				{
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Metadata: make(map[string]string),
 					Contents: "This is section 1",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 				{
-					Kind: agent.BlockKind_CODE,
+					Kind: agentv1.BlockKind_BLOCK_KIND_CODE,
 					Metadata: map[string]string{
 						"runme.dev/name":          "package-main",
 						"runme.dev/nameGenerated": "true",
 					},
 					Language: "go",
 					Contents: "package main\n\nfunc main() {\n...\n}",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 				{
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Metadata: make(map[string]string),
 					Contents: "Breaking text",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 				{
-					Kind: agent.BlockKind_CODE,
+					Kind: agentv1.BlockKind_BLOCK_KIND_CODE,
 					Metadata: map[string]string{
 						"runme.dev/name":          "echo-hello",
 						"runme.dev/nameGenerated": "true",
 					},
 					Language: "bash",
 					Contents: "echo \"Hello, World!\"",
-					Outputs: []*agent.BlockOutput{
+					Outputs: []*agentv1.BlockOutput{
 						{
-							Items: []*agent.BlockOutputItem{
+							Items: []*agentv1.BlockOutputItem{
 								{
 									TextData: "hello, world!",
 								},
@@ -74,54 +74,54 @@ func Test_MarkdownToBlocks(t *testing.T) {
 					},
 				},
 				{
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Metadata: make(map[string]string),
 					Contents: "## Subsection",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 			},
 		},
 		{
 			name:   "list-nested",
 			inFile: "list.md",
-			expected: []*agent.Block{
+			expected: []*agentv1.Block{
 				{
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Metadata: make(map[string]string),
 					Contents: "Test code blocks nested in a list",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 				{
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Metadata: make(map[string]string),
 					Contents: "1. First command",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 				{
-					Kind: agent.BlockKind_CODE,
+					Kind: agentv1.BlockKind_BLOCK_KIND_CODE,
 					Metadata: map[string]string{
 						"runme.dev/name":          "echo-1",
 						"runme.dev/nameGenerated": "true",
 					},
 					Language: "bash",
 					Contents: "echo 1",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 				{
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Metadata: make(map[string]string),
 					Contents: "2. Second command",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 				{
-					Kind: agent.BlockKind_CODE,
+					Kind: agentv1.BlockKind_BLOCK_KIND_CODE,
 					Metadata: map[string]string{
 						"runme.dev/name":          "echo-2",
 						"runme.dev/nameGenerated": "true",
 					},
 					Language: "bash",
 					Contents: "echo 2",
-					Outputs:  []*agent.BlockOutput{},
+					Outputs:  []*agentv1.BlockOutput{},
 				},
 			},
 		},
@@ -156,7 +156,7 @@ func Test_MarkdownToBlocks(t *testing.T) {
 
 				opts := cmp.Options{
 					// ignore Id because it will be unique each time it gets run
-					cmpopts.IgnoreFields(agent.Block{}, "Id"),
+					cmpopts.IgnoreFields(agentv1.Block{}, "Id"),
 				}
 
 				// Zero out the metadata field for id
@@ -173,7 +173,7 @@ func Test_MarkdownToBlocks(t *testing.T) {
 func Test_BlockToMarkdown(t *testing.T) {
 	type testCase struct {
 		name      string
-		block     *agent.Block
+		block     *agentv1.Block
 		maxLength int
 		expected  string
 	}
@@ -181,20 +181,20 @@ func Test_BlockToMarkdown(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "markup",
-			block: &agent.Block{
-				Kind:     agent.BlockKind_MARKUP,
+			block: &agentv1.Block{
+				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 				Contents: "This is a test",
 			},
 			expected: "This is a test\n",
 		},
 		{
 			name: "code",
-			block: &agent.Block{
-				Kind:     agent.BlockKind_CODE,
+			block: &agentv1.Block{
+				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 				Contents: "echo \"something something\"",
-				Outputs: []*agent.BlockOutput{
+				Outputs: []*agentv1.BlockOutput{
 					{
-						Items: []*agent.BlockOutputItem{
+						Items: []*agentv1.BlockOutputItem{
 							{
 								TextData: "something something",
 							},
@@ -206,12 +206,12 @@ func Test_BlockToMarkdown(t *testing.T) {
 		},
 		{
 			name: "filter-by-mime-type",
-			block: &agent.Block{
-				Kind:     agent.BlockKind_CODE,
+			block: &agentv1.Block{
+				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 				Contents: "echo \"something something\"",
-				Outputs: []*agent.BlockOutput{
+				Outputs: []*agentv1.BlockOutput{
 					{
-						Items: []*agent.BlockOutputItem{
+						Items: []*agentv1.BlockOutputItem{
 							{
 								TextData: "Should be excluded",
 								Mime:     StatefulRunmeOutputItemsMimeType,
@@ -232,12 +232,12 @@ func Test_BlockToMarkdown(t *testing.T) {
 		},
 		{
 			name: "truncate-output",
-			block: &agent.Block{
-				Kind:     agent.BlockKind_CODE,
+			block: &agentv1.Block{
+				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 				Contents: "echo line1\nline2",
-				Outputs: []*agent.BlockOutput{
+				Outputs: []*agentv1.BlockOutput{
 					{
-						Items: []*agent.BlockOutputItem{
+						Items: []*agentv1.BlockOutputItem{
 							{
 								TextData: "some really long output",
 							},

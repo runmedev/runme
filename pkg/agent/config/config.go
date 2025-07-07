@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	pbcfg "github.com/runmedev/runme/v3/api/gen/proto/go/agent/config"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/api"
 
 	"github.com/go-logr/zapr"
@@ -113,7 +113,7 @@ type Config struct {
 	AssistantServer *AssistantServerConfig `json:"assistantServer,omitempty" yaml:"assistantServer,omitempty"`
 
 	// WebAppConfig is the configuration for the web application.
-	WebApp *pbcfg.WebAppConfig `json:"webApp,omitempty" yaml:"webApp,omitempty"`
+	WebApp *agentv1.WebAppConfig `json:"webApp,omitempty" yaml:"webApp,omitempty"`
 
 	// IAMPolicy is the IAM policy for the service. It only matters if OIDC is enabled in the AssistantServerConfig.
 	IAMPolicy *api.IAMPolicy `json:"iamPolicy,omitempty" yaml:"iamPolicy,omitempty"`

@@ -188,3 +188,4 @@ export declare type WebsocketResponse = Message<"runme.stream.v1.WebsocketRespon
  * Use `create(WebsocketResponseSchema)` to create a new message.
  */
 export declare const WebsocketResponseSchema: GenMessage<WebsocketResponse>;
+

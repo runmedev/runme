@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	pbcfg "github.com/runmedev/runme/v3/api/gen/proto/go/agent/config"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 
 	"github.com/go-logr/zapr"
 	"github.com/pkg/errors"
@@ -63,8 +63,8 @@ func (s *Server) processIndexHTMLWithConfig(assetsFS fs.FS) ([]byte, error) {
 	content := buf.Bytes()
 
 	type initialState struct {
-		RequireAuth  bool                `json:"requireAuth"`
-		WebAppConfig *pbcfg.WebAppConfig `json:"webApp,omitempty"`
+		RequireAuth  bool                  `json:"requireAuth"`
+		WebAppConfig *agentv1.WebAppConfig `json:"webApp,omitempty"`
 	}
 
 	state := initialState{RequireAuth: false, WebAppConfig: s.webAppConfig}

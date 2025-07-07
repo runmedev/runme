@@ -26,7 +26,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	streamv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
@@ -374,7 +374,7 @@ func (o *OIDC) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create an OAuthToken protobuf message
 	// This will be used to allow the client to potentially refresh the token.
-	tokenPB := &agent.OAuthToken{
+	tokenPB := &agentv1.OAuthToken{
 		AccessToken:  token.AccessToken,
 		TokenType:    token.TokenType,
 		RefreshToken: token.RefreshToken,

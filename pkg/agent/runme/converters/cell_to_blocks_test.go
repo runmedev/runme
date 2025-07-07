@@ -8,7 +8,7 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/testutil"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agent "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 )
 
@@ -54,7 +54,7 @@ var cases = []testCase{
 						"id":          "1234",
 						"interactive": "false",
 					},
-					Kind: agent.BlockKind_CODE,
+					Kind: agent.BlockKind_BLOCK_KIND_CODE,
 					Outputs: []*agent.BlockOutput{
 						{
 							Items: []*agent.BlockOutputItem{
@@ -104,7 +104,7 @@ var cases = []testCase{
 					Metadata: map[string]string{
 						"id": "1234",
 					},
-					Kind: agent.BlockKind_CODE,
+					Kind: agent.BlockKind_BLOCK_KIND_CODE,
 					Outputs: []*agent.BlockOutput{
 						{
 							Items: []*agent.BlockOutputItem{

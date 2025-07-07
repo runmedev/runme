@@ -9,10 +9,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openai/openai-go/responses"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 )
 
-func NullOpSender(resp *agent.GenerateResponse) error {
+func NullOpSender(resp *agentv1.GenerateResponse) error {
 	return nil
 }
 
@@ -21,11 +21,11 @@ func Test_ProcessEvent(t *testing.T) {
 	type testCase struct {
 		name string
 		// Preexisting blocks
-		blocks map[string]*agent.Block
+		blocks map[string]*agentv1.Block
 		// Event to process
 		event responses.ResponseStreamEventUnion
 		// Expected block after processing the event
-		expectedBlock *agent.Block
+		expectedBlock *agentv1.Block
 	}
 
 	textDeltaEvent := responses.ResponseTextDeltaEvent{
@@ -47,28 +47,28 @@ func Test_ProcessEvent(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:   "TextDelta-no-block",
-			blocks: map[string]*agent.Block{},
+			blocks: map[string]*agentv1.Block{},
 			event:  *textDeltaEventUnion,
-			expectedBlock: &agent.Block{
+			expectedBlock: &agentv1.Block{
 				Id:       "abcd",
-				Kind:     agent.BlockKind_MARKUP,
-				Role:     agent.BlockRole_BLOCK_ROLE_ASSISTANT,
+				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+				Role:     agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
 				Contents: "world",
 			},
 		},
 		{
 			name: "TextDelta-accumulate",
-			blocks: map[string]*agent.Block{
+			blocks: map[string]*agentv1.Block{
 				"abcd": {
 					Id:       "abcd",
-					Kind:     agent.BlockKind_MARKUP,
+					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 					Contents: "hello",
 				},
 			},
 			event: *textDeltaEventUnion,
-			expectedBlock: &agent.Block{
+			expectedBlock: &agentv1.Block{
 				Id:       "abcd",
-				Kind:     agent.BlockKind_MARKUP,
+				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 				Contents: "helloworld",
 			},
 		},
@@ -87,7 +87,7 @@ func Test_ProcessEvent(t *testing.T) {
 				t.Fatalf("Block %s not found", tc.expectedBlock.Id)
 			}
 
-			opts := cmpopts.IgnoreUnexported(agent.Block{})
+			opts := cmpopts.IgnoreUnexported(agentv1.Block{})
 			if d := cmp.Diff(tc.expectedBlock, actual, opts); d != "" {
 				t.Fatalf("Unexpected diff in block block:\n%s", d)
 			}

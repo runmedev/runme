@@ -11,7 +11,7 @@ import (
 	"github.com/openai/openai-go/responses"
 	"github.com/pkg/errors"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/docs"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 )
@@ -23,7 +23,7 @@ type BlocksBuilder struct {
 	filenameToLink func(string) string
 
 	responseCache *lru.Cache[string, []string]
-	blocksCache   *lru.Cache[string, *agent.Block]
+	blocksCache   *lru.Cache[string, *agentv1.Block]
 
 	responseID string
 
@@ -36,13 +36,13 @@ type BlocksBuilder struct {
 	idToCallID map[string]string
 
 	// Map from block ID to block
-	blocks map[string]*agent.Block
+	blocks map[string]*agentv1.Block
 	mu     sync.Mutex
 }
 
-func NewBlocksBuilder(filenameToLink func(string) string, responseCache *lru.Cache[string, []string], blocksCache *lru.Cache[string, *agent.Block]) *BlocksBuilder {
+func NewBlocksBuilder(filenameToLink func(string) string, responseCache *lru.Cache[string, []string], blocksCache *lru.Cache[string, *agentv1.Block]) *BlocksBuilder {
 	return &BlocksBuilder{
-		blocks:         make(map[string]*agent.Block),
+		blocks:         make(map[string]*agentv1.Block),
 		filenameToLink: filenameToLink,
 		responseCache:  responseCache,
 		blocksCache:    blocksCache,
@@ -51,15 +51,15 @@ func NewBlocksBuilder(filenameToLink func(string) string, responseCache *lru.Cac
 }
 
 // BlockSender is a function that sends a block to the client
-type BlockSender func(*agent.GenerateResponse) error
+type BlockSender func(*agentv1.GenerateResponse) error
 
 // HandleEvents processes a stream of events from the responses API and updates the internal state of the builder
 // Function will keep running until the context is cancelled or the stream of events is closed
 func (b *BlocksBuilder) HandleEvents(ctx context.Context, events *ssestream.Stream[responses.ResponseStreamEventUnion], sender BlockSender) error {
 	log := logs.FromContext(ctx)
 	defer func() {
-		resp := &agent.GenerateResponse{
-			Blocks:     make([]*agent.Block, 0, len(b.blocks)),
+		resp := &agentv1.GenerateResponse{
+			Blocks:     make([]*agentv1.Block, 0, len(b.blocks)),
 			ResponseId: b.responseID,
 		}
 
@@ -73,7 +73,7 @@ func (b *BlocksBuilder) HandleEvents(ctx context.Context, events *ssestream.Stre
 
 			// N.B. This ends up including code blocks which we parsed out of the markdown and therefore ones which
 			// the AI didn't actually generate. Do we want to filter those out?
-			if block.Kind == agent.BlockKind_CODE {
+			if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
 				previousIDs = append(previousIDs, block.Id)
 			}
 		}
@@ -131,9 +131,9 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 		}
 	}
 
-	resp := &agent.GenerateResponse{
+	resp := &agentv1.GenerateResponse{
 		ResponseId: b.responseID,
-		Blocks:     make([]*agent.Block, 0, 5),
+		Blocks:     make([]*agentv1.Block, 0, 5),
 	}
 
 	switch e.AsAny().(type) {
@@ -153,15 +153,15 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		var block *agent.Block
+		var block *agentv1.Block
 		ok := false
 		block, ok = b.blocks[itemID]
 		if !ok {
-			block = &agent.Block{
+			block = &agentv1.Block{
 				Id:       itemID,
-				Kind:     agent.BlockKind_MARKUP,
+				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 				Contents: "",
-				Role:     agent.BlockRole_BLOCK_ROLE_ASSISTANT,
+				Role:     agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
 			}
 			b.blocks[itemID] = block
 		}
@@ -176,7 +176,7 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 		}
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		var block *agent.Block
+		var block *agentv1.Block
 
 		callID, callIDOK := b.idToCallID[itemID]
 
@@ -189,11 +189,11 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 		block, ok = b.blocks[itemID]
 		if !ok {
 			// There is no existing block so we need to initialize a new one.
-			block = &agent.Block{
+			block = &agentv1.Block{
 				Id:       itemID,
-				Kind:     agent.BlockKind_CODE,
+				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 				Contents: "",
-				Role:     agent.BlockRole_BLOCK_ROLE_ASSISTANT,
+				Role:     agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
 				CallId:   callID,
 			}
 			b.blocks[itemID] = block
@@ -219,15 +219,15 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 		}
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		var block *agent.Block
+		var block *agentv1.Block
 		ok := false
 		block, ok = b.blocks[itemID]
 		if !ok {
-			block = &agent.Block{
+			block = &agentv1.Block{
 				Id:       itemID,
-				Kind:     agent.BlockKind_CODE,
+				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
 				Contents: "",
-				Role:     agent.BlockRole_BLOCK_ROLE_ASSISTANT,
+				Role:     agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
 				CallId:   callID,
 			}
 			b.blocks[itemID] = block
@@ -275,9 +275,9 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 	return nil
 }
 
-func (b *BlocksBuilder) itemDoneToBlock(ctx context.Context, item responses.ResponseOutputItemUnion) ([]*agent.Block, error) {
+func (b *BlocksBuilder) itemDoneToBlock(ctx context.Context, item responses.ResponseOutputItemUnion) ([]*agentv1.Block, error) {
 	log := logs.FromContext(ctx)
-	results := make([]*agent.Block, 0, 5)
+	results := make([]*agentv1.Block, 0, 5)
 	switch item.AsAny().(type) {
 	case responses.ResponseOutputMessage:
 		// For regular output messages we want to parse out any code blocks and turn them into code blocks
@@ -295,7 +295,7 @@ func (b *BlocksBuilder) itemDoneToBlock(ctx context.Context, item responses.Resp
 			}
 
 			for _, b := range parsedBlocks {
-				if b.Kind == agent.BlockKind_CODE {
+				if b.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
 					results = append(results, b)
 				}
 			}
@@ -310,25 +310,25 @@ func (b *BlocksBuilder) itemDoneToBlock(ctx context.Context, item responses.Resp
 }
 
 // N.B. It doesn't look like the file search call actually has the results in it. I think its the item done.
-func (b *BlocksBuilder) fileSearchDoneItemToBlock(ctx context.Context, item responses.ResponseFileSearchToolCall) (*agent.Block, error) {
+func (b *BlocksBuilder) fileSearchDoneItemToBlock(ctx context.Context, item responses.ResponseFileSearchToolCall) (*agentv1.Block, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	var block *agent.Block
+	var block *agentv1.Block
 	var ok bool
 	block, ok = b.blocks[item.ID]
 	if !ok {
-		block = &agent.Block{
+		block = &agentv1.Block{
 			Id:                item.ID,
-			Kind:              agent.BlockKind_FILE_SEARCH_RESULTS,
-			Role:              agent.BlockRole_BLOCK_ROLE_ASSISTANT,
-			FileSearchResults: make([]*agent.FileSearchResult, 0),
+			Kind:              agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS,
+			Role:              agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
+			FileSearchResults: make([]*agentv1.FileSearchResult, 0),
 		}
 		b.blocks[item.ID] = block
 	}
 
 	existing := make(map[string]bool)
 	for _, r := range block.FileSearchResults {
-		existing[r.FileID] = true
+		existing[r.FileId] = true
 	}
 
 	for _, r := range item.Results {
@@ -341,8 +341,8 @@ func (b *BlocksBuilder) fileSearchDoneItemToBlock(ctx context.Context, item resp
 			link = b.filenameToLink(r.Filename)
 		}
 
-		block.FileSearchResults = append(block.FileSearchResults, &agent.FileSearchResult{
-			FileID:   r.FileID,
+		block.FileSearchResults = append(block.FileSearchResults, &agentv1.FileSearchResult{
+			FileId:   r.FileID,
 			Score:    r.Score,
 			FileName: r.Filename,
 			Link:     link,

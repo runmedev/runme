@@ -12,7 +12,7 @@ import (
 
 	"github.com/openai/openai-go"
 
-	agent_pb "github.com/runmedev/runme/v3/api/gen/proto/go/agent"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
@@ -82,20 +82,20 @@ func Test_Agent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create agent: %+v", err)
 	}
-	req := &agent_pb.GenerateRequest{
-		Blocks: []*agent_pb.Block{
+	req := &agentv1.GenerateRequest{
+		Blocks: []*agentv1.Block{
 			{
 				Id:       "1",
 				Contents: "Use kubectl to tell me the current status of the rube-dev deployment in the a0s context? Do not rely on outdated documents.",
-				Role:     agent_pb.BlockRole_BLOCK_ROLE_USER,
-				Kind:     agent_pb.BlockKind_MARKUP,
+				Role:     agentv1.BlockRole_BLOCK_ROLE_USER,
+				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 			},
 		},
 	}
 
 	resp := &ServerResponseStream{
-		Events: make([]*agent_pb.GenerateResponse, 0, 10),
-		Blocks: make(map[string]*agent_pb.Block),
+		Events: make([]*agentv1.GenerateResponse, 0, 10),
+		Blocks: make(map[string]*agentv1.Block),
 	}
 
 	if err := agent.ProcessWithOpenAI(context.Background(), req, resp.Send); err != nil {
@@ -108,9 +108,9 @@ func Test_Agent(t *testing.T) {
 	}
 
 	// Check if there is a code execution block
-	codeBlocks := make([]*agent_pb.Block, 0, len(resp.Blocks))
+	codeBlocks := make([]*agentv1.Block, 0, len(resp.Blocks))
 	for _, b := range resp.Blocks {
-		if b.Kind == agent_pb.BlockKind_CODE {
+		if b.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
 			t.Logf("Found code block with ID: %s", b.Id)
 			// Optionally, you can check the contents of the block
 			t.Logf("Code block contents: %s", b.Contents)
@@ -147,16 +147,16 @@ func Test_Agent(t *testing.T) {
 		t.Fatalf("Previous response ID is empty")
 	}
 	// Now we need to send the output back to the AI
-	codeReq := &agent_pb.GenerateRequest{
+	codeReq := &agentv1.GenerateRequest{
 		PreviousResponseId: previousResponseID,
-		Blocks: []*agent_pb.Block{
+		Blocks: []*agentv1.Block{
 			codeBlocks[0],
 		},
 	}
 
 	codeResp := &ServerResponseStream{
-		Events: make([]*agent_pb.GenerateResponse, 0, 10),
-		Blocks: make(map[string]*agent_pb.Block),
+		Events: make([]*agentv1.GenerateResponse, 0, 10),
+		Blocks: make(map[string]*agentv1.Block),
 	}
 
 	if err := agent.ProcessWithOpenAI(context.Background(), codeReq, codeResp.Send); err != nil {
@@ -177,12 +177,12 @@ func Test_Agent(t *testing.T) {
 }
 
 type ServerResponseStream struct {
-	Events []*agent_pb.GenerateResponse
-	Blocks map[string]*agent_pb.Block
+	Events []*agentv1.GenerateResponse
+	Blocks map[string]*agentv1.Block
 	mu     sync.Mutex
 }
 
-func (s *ServerResponseStream) Send(e *agent_pb.GenerateResponse) error {
+func (s *ServerResponseStream) Send(e *agentv1.GenerateResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Events = append(s.Events, e)
@@ -195,7 +195,7 @@ func (s *ServerResponseStream) Send(e *agent_pb.GenerateResponse) error {
 
 // Run the given command and return the output
 // This can either run the command for real or return canned outputs
-func executeBlock(b *agent_pb.Block, useCached bool) error {
+func executeBlock(b *agentv1.Block, useCached bool) error {
 	log := zapr.NewLogger(zap.L())
 	args := strings.Split(b.Contents, " ")
 
@@ -224,18 +224,18 @@ func executeBlock(b *agent_pb.Block, useCached bool) error {
 		stdErrStr = stderr.String()
 
 	}
-	b.Outputs = []*agent_pb.BlockOutput{
+	b.Outputs = []*agentv1.BlockOutput{
 		{
-			Kind: agent_pb.BlockOutputKind_STDOUT,
-			Items: []*agent_pb.BlockOutputItem{
+			Kind: agentv1.BlockOutputKind_BLOCK_OUTPUT_KIND_STDOUT,
+			Items: []*agentv1.BlockOutputItem{
 				{
 					TextData: stdOutStr,
 				},
 			},
 		},
 		{
-			Kind: agent_pb.BlockOutputKind_STDERR,
-			Items: []*agent_pb.BlockOutputItem{
+			Kind: agentv1.BlockOutputKind_BLOCK_OUTPUT_KIND_STDERR,
+			Items: []*agentv1.BlockOutputItem{
 				{
 					TextData: stdErrStr,
 				},

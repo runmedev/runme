@@ -23,8 +23,8 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent"
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/agentconnect"
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/runme/agent/v1/agentv1connect"
 
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
@@ -110,7 +110,7 @@ func Test_GenerateBlocks(t *testing.T) {
 	// to catch various bugs with the SDK;
 	hasFSBlock := false
 	for _, b := range blocks {
-		if b.Kind == agent.BlockKind_FILE_SEARCH_RESULTS {
+		if b.Kind == agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
 			hasFSBlock = true
 
 			if len(b.FileSearchResults) <= 0 {
@@ -130,13 +130,13 @@ func Test_GenerateBlocks(t *testing.T) {
 	}
 }
 
-func runAIClient(baseURL string) (map[string]*agent.Block, error) {
+func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
 
-	blocks := make(map[string]*agent.Block)
+	blocks := make(map[string]*agentv1.Block)
 
-	Block := agent.Block{
-		Kind:     agent.BlockKind_MARKUP,
+	Block := agentv1.Block{
+		Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 		Contents: "This is a block",
 	}
 
@@ -148,7 +148,7 @@ func runAIClient(baseURL string) (map[string]*agent.Block, error) {
 		return blocks, errors.Wrapf(err, "Failed to parse URL")
 	}
 
-	var client agentconnect.BlocksServiceClient
+	var client agentv1connect.BlocksServiceClient
 
 	// Mimic what the frontend does
 	options := []connect.ClientOption{connect.WithGRPCWeb()}
@@ -158,7 +158,7 @@ func runAIClient(baseURL string) (map[string]*agent.Block, error) {
 			InsecureSkipVerify: true, // Set to true only for testing; otherwise validate the server's certificate
 		}
 
-		client = agentconnect.NewBlocksServiceClient(
+		client = agentv1connect.NewBlocksServiceClient(
 			&http.Client{
 				Transport: &http2.Transport{
 					TLSClientConfig: tlsConfig,
@@ -172,7 +172,7 @@ func runAIClient(baseURL string) (map[string]*agent.Block, error) {
 			options...,
 		)
 	} else {
-		client = agentconnect.NewBlocksServiceClient(
+		client = agentv1connect.NewBlocksServiceClient(
 			&http.Client{
 				Transport: &http2.Transport{
 					AllowHTTP: true,
@@ -188,11 +188,11 @@ func runAIClient(baseURL string) (map[string]*agent.Block, error) {
 	}
 
 	ctx := context.Background()
-	genReq := &agent.GenerateRequest{
-		Blocks: []*agent.Block{
+	genReq := &agentv1.GenerateRequest{
+		Blocks: []*agentv1.Block{
 			{
-				Kind:     agent.BlockKind_MARKUP,
-				Role:     agent.BlockRole_BLOCK_ROLE_USER,
+				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+				Role:     agentv1.BlockRole_BLOCK_ROLE_USER,
 				Contents: "Show me all the AKS clusters at OpenAI",
 			},
 		},
@@ -585,15 +585,15 @@ func sendExecuteRequest(c *websocket.Conn, executeRequest *v2.ExecuteRequest) er
 	return nil
 }
 
-func waitForCommandToFinish(c *websocket.Conn) (*agent.Block, error) {
+func waitForCommandToFinish(c *websocket.Conn) (*agentv1.Block, error) {
 	log := logs.NewLogger()
 
-	block := &agent.Block{
-		Outputs: make([]*agent.BlockOutput, 0),
+	block := &agentv1.Block{
+		Outputs: make([]*agentv1.BlockOutput, 0),
 	}
 
-	block.Outputs = append(block.Outputs, &agent.BlockOutput{
-		Items: []*agent.BlockOutputItem{
+	block.Outputs = append(block.Outputs, &agentv1.BlockOutput{
+		Items: []*agentv1.BlockOutputItem{
 			{
 				TextData: "",
 			},
