@@ -1,8 +1,10 @@
 syntax = "proto3";
 
+package runme.agent.v1;
+
 import "buf/validate/validate.proto";
 
-option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent";
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agentv1";
 
 // -------------------------------------------------------------------------
 // Assertions
@@ -10,7 +12,7 @@ option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent";
 message Assertion {
   // What we are checking for.
   enum Type {
-    TYPE_UNKNOWN = 0;
+    TYPE_UNSPECIFIED = 0;
     TYPE_SHELL_REQUIRED_FLAG = 1; // Were all required CLI flags present?
     TYPE_TOOL_INVOKED = 2; // Was a tool invoked (or not)?
     TYPE_FILE_RETRIEVED = 3; // Was a file retrieved (or not)?
@@ -20,7 +22,7 @@ message Assertion {
 
   // Outcome of an assertion after a test run.
   enum Result {
-    RESULT_UNKNOWN = 0;
+    RESULT_UNSPECIFIED = 0;
     RESULT_TRUE = 1;
     RESULT_FALSE = 2;
     RESULT_SKIPPED = 3;
