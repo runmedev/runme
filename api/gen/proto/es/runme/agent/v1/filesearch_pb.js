@@ -16,4 +16,3 @@ export const file_runme_agent_v1_filesearch = /*@__PURE__*/
  */
 export const FileSearchResultSchema = /*@__PURE__*/
   messageDesc(file_runme_agent_v1_filesearch, 0);
-

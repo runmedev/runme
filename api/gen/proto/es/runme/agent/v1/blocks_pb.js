@@ -89,4 +89,3 @@ export const BlockOutputKind = /*@__PURE__*/
  */
 export const BlocksService = /*@__PURE__*/
   serviceDesc(file_runme_agent_v1_blocks, 0);
-

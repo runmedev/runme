@@ -62,4 +62,3 @@ export declare type OAuthToken = Message<"runme.agent.v1.OAuthToken"> & {
  * Use `create(OAuthTokenSchema)` to create a new message.
  */
 export declare const OAuthTokenSchema: GenMessage<OAuthToken>;
-

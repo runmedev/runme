@@ -50,4 +50,3 @@ export declare type FileSearchResult = Message<"runme.agent.v1.FileSearchResult"
  * Use `create(FileSearchResultSchema)` to create a new message.
  */
 export declare const FileSearchResultSchema: GenMessage<FileSearchResult>;
-

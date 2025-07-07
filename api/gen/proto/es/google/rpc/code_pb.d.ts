@@ -262,4 +262,3 @@ export enum Code {
  * Describes the enum google.rpc.Code.
  */
 export declare const CodeSchema: GenEnum<Code>;
-
