@@ -3,6 +3,7 @@ syntax = "proto3";
 package runme.parser.v1;
 
 import "google/protobuf/wrappers.proto";
+import "runme/parser/v1/docresult.proto";
 
 option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1;parserv1";
 
@@ -54,6 +55,13 @@ enum CellKind {
   CELL_KIND_UNSPECIFIED = 0;
   CELL_KIND_MARKUP = 1;
   CELL_KIND_CODE = 2;
+  CELL_KIND_DOC_RESULTS = 3; // todo(sebastian): is this needed?
+}
+
+enum CellRole {
+  CELL_ROLE_UNSPECIFIED = 0;
+  CELL_ROLE_USER = 1;
+  CELL_ROLE_ASSISTANT = 2;
 }
 
 message Cell {
@@ -77,6 +85,20 @@ message Cell {
 
   // ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
   CellExecutionSummary execution_summary = 7;
+
+  /* AGENT SPECIFIC FIELDS (porting from Block) */
+
+  // ID is the unique identifier of the cell.
+  string id = 100;
+
+  // Role is the role of the cell, e.g. user or assistant.
+  CellRole role = 101;
+
+  // CallID is the unique identifier of the cell call.
+  string call_id = 102;
+
+  // DocResults are doc results for a cell returned by, e.g., file search
+  repeated DocResult doc_results = 103;
 }
 
 // RunmeIdentity controls if unique identifiers are inserted if not present.

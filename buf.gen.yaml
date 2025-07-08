@@ -24,7 +24,7 @@ plugins:
   # https://buf.build/bufbuild/es?version=v2.6.0
   - remote: buf.build/bufbuild/es:v2.6.0
     out: api/gen/proto/es
-    opt: import_extension=js
+    opt: target=js+dts,import_extension=none,json_types=true
     include_imports: true
 
   # Local plugin to generate GQL schema
