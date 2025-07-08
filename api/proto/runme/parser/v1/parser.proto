@@ -57,15 +57,29 @@ enum CellKind {
 }
 
 message Cell {
+  // CellKind is the type of cell, e.g. markup or code.
   CellKind kind = 1;
+
+  // Value is the contents of the cell.
   string value = 2;
+
+  // LanguageID is the language of the cell.
   string language_id = 3;
+
+  // Metadata is additional metadata about the cell in k/v format.
   map<string, string> metadata = 4;
+
+  // TextRange is the range of the cell covering in the markdown source.
   TextRange text_range = 5;
+
+  // Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
   repeated CellOutput outputs = 6;
+
+  // ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
   CellExecutionSummary execution_summary = 7;
 }
 
+// RunmeIdentity controls if unique identifiers are inserted if not present.
 enum RunmeIdentity {
   RUNME_IDENTITY_UNSPECIFIED = 0; // aka NONE
   RUNME_IDENTITY_ALL = 1;
