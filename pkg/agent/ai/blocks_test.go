@@ -10,6 +10,7 @@ import (
 	"github.com/openai/openai-go/responses"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 )
 
 func NullOpSender(resp *agentv1.GenerateResponse) error {
@@ -21,11 +22,11 @@ func Test_ProcessEvent(t *testing.T) {
 	type testCase struct {
 		name string
 		// Preexisting blocks
-		blocks map[string]*agentv1.Block
+		blocks map[string]*parserv1.Cell
 		// Event to process
 		event responses.ResponseStreamEventUnion
 		// Expected block after processing the event
-		expectedBlock *agentv1.Block
+		expectedBlock *parserv1.Cell
 	}
 
 	textDeltaEvent := responses.ResponseTextDeltaEvent{
@@ -47,47 +48,47 @@ func Test_ProcessEvent(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:   "TextDelta-no-block",
-			blocks: map[string]*agentv1.Block{},
+			blocks: map[string]*parserv1.Cell{},
 			event:  *textDeltaEventUnion,
-			expectedBlock: &agentv1.Block{
-				Id:       "abcd",
-				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-				Role:     agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
-				Contents: "world",
+			expectedBlock: &parserv1.Cell{
+				Id:    "abcd",
+				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+				Role:  parserv1.CellRole_CELL_ROLE_ASSISTANT,
+				Value: "world",
 			},
 		},
 		{
 			name: "TextDelta-accumulate",
-			blocks: map[string]*agentv1.Block{
+			blocks: map[string]*parserv1.Cell{
 				"abcd": {
-					Id:       "abcd",
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-					Contents: "hello",
+					Id:    "abcd",
+					Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+					Value: "hello",
 				},
 			},
 			event: *textDeltaEventUnion,
-			expectedBlock: &agentv1.Block{
-				Id:       "abcd",
-				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-				Contents: "helloworld",
+			expectedBlock: &parserv1.Cell{
+				Id:    "abcd",
+				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+				Value: "helloworld",
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			b := &BlocksBuilder{
-				blocks: tc.blocks,
+			b := &CellsBuilder{
+				cells: tc.blocks,
 			}
 			if err := b.ProcessEvent(context.TODO(), tc.event, NullOpSender); err != nil {
 				t.Fatalf("Failed to process event: %+v", err)
 			}
-			actual, ok := b.blocks[tc.expectedBlock.Id]
+			actual, ok := b.cells[tc.expectedBlock.Id]
 			if !ok {
 				t.Fatalf("Block %s not found", tc.expectedBlock.Id)
 			}
 
-			opts := cmpopts.IgnoreUnexported(agentv1.Block{})
+			opts := cmpopts.IgnoreUnexported(parserv1.Cell{})
 			if d := cmp.Diff(tc.expectedBlock, actual, opts); d != "" {
 				t.Fatalf("Unexpected diff in block block:\n%s", d)
 			}

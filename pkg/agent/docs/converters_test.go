@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/testutil"
 )
 
@@ -19,109 +19,125 @@ func Test_MarkdownToBlocks(t *testing.T) {
 	type testCase struct {
 		name     string
 		inFile   string
-		expected []*agentv1.Block
+		expected []*parserv1.Cell
 	}
 
 	cases := []testCase{
 		{
 			name:   "simple",
 			inFile: "testdoc.md",
-			expected: []*agentv1.Block{
+			expected: []*parserv1.Cell{
 				{
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+					Kind:     parserv1.CellKind_CELL_KIND_MARKUP,
 					Metadata: make(map[string]string),
-					Contents: "# Section 1",
-					Outputs:  []*agentv1.BlockOutput{},
+					Value:    "# Section 1",
+					Outputs:  nil,
 				},
 				{
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+					Kind:     parserv1.CellKind_CELL_KIND_MARKUP,
 					Metadata: make(map[string]string),
-					Contents: "This is section 1",
-					Outputs:  []*agentv1.BlockOutput{},
+					Value:    "This is section 1",
+					Outputs:  nil,
 				},
 				{
-					Kind: agentv1.BlockKind_BLOCK_KIND_CODE,
+					Kind: parserv1.CellKind_CELL_KIND_CODE,
 					Metadata: map[string]string{
 						"runme.dev/name":          "package-main",
 						"runme.dev/nameGenerated": "true",
 					},
-					Language: "go",
-					Contents: "package main\n\nfunc main() {\n...\n}",
-					Outputs:  []*agentv1.BlockOutput{},
+					TextRange: &parserv1.TextRange{
+						Start: 38,
+						End:   72,
+					},
+					LanguageId: "go",
+					Value:      "package main\n\nfunc main() {\n...\n}",
+					Outputs:    nil,
 				},
 				{
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+					Kind:     parserv1.CellKind_CELL_KIND_MARKUP,
 					Metadata: make(map[string]string),
-					Contents: "Breaking text",
-					Outputs:  []*agentv1.BlockOutput{},
+					Value:    "Breaking text",
+					Outputs:  nil,
 				},
 				{
-					Kind: agentv1.BlockKind_BLOCK_KIND_CODE,
+					Kind: parserv1.CellKind_CELL_KIND_CODE,
 					Metadata: map[string]string{
 						"runme.dev/name":          "echo-hello",
 						"runme.dev/nameGenerated": "true",
 					},
-					Language: "bash",
-					Contents: "echo \"Hello, World!\"",
-					Outputs: []*agentv1.BlockOutput{
+					TextRange: &parserv1.TextRange{
+						Start: 100,
+						End:   121,
+					},
+					LanguageId: "bash",
+					Value:      "echo \"Hello, World!\"",
+					Outputs: []*parserv1.CellOutput{
 						{
-							Items: []*agentv1.BlockOutputItem{
+							Items: []*parserv1.CellOutputItem{
 								{
-									TextData: "hello, world!",
+									Data: []byte("hello, world!"),
 								},
 							},
 						},
 					},
 				},
 				{
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+					Kind:     parserv1.CellKind_CELL_KIND_MARKUP,
 					Metadata: make(map[string]string),
-					Contents: "## Subsection",
-					Outputs:  []*agentv1.BlockOutput{},
+					Value:    "## Subsection",
+					Outputs:  nil,
 				},
 			},
 		},
 		{
 			name:   "list-nested",
 			inFile: "list.md",
-			expected: []*agentv1.Block{
+			expected: []*parserv1.Cell{
 				{
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+					Kind:     parserv1.CellKind_CELL_KIND_MARKUP,
 					Metadata: make(map[string]string),
-					Contents: "Test code blocks nested in a list",
-					Outputs:  []*agentv1.BlockOutput{},
+					Value:    "Test code blocks nested in a list",
+					Outputs:  nil,
 				},
 				{
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+					Kind:     parserv1.CellKind_CELL_KIND_MARKUP,
 					Metadata: make(map[string]string),
-					Contents: "1. First command",
-					Outputs:  []*agentv1.BlockOutput{},
+					Value:    "1. First command",
+					Outputs:  nil,
 				},
 				{
-					Kind: agentv1.BlockKind_BLOCK_KIND_CODE,
+					Kind: parserv1.CellKind_CELL_KIND_CODE,
 					Metadata: map[string]string{
 						"runme.dev/name":          "echo-1",
 						"runme.dev/nameGenerated": "true",
 					},
-					Language: "bash",
-					Contents: "echo 1",
-					Outputs:  []*agentv1.BlockOutput{},
+					TextRange: &parserv1.TextRange{
+						Start: 68,
+						End:   75,
+					},
+					LanguageId: "bash",
+					Value:      "echo 1",
+					Outputs:    nil,
 				},
 				{
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+					Kind:     parserv1.CellKind_CELL_KIND_MARKUP,
 					Metadata: make(map[string]string),
-					Contents: "2. Second command",
-					Outputs:  []*agentv1.BlockOutput{},
+					Value:    "2. Second command",
+					Outputs:  nil,
 				},
 				{
-					Kind: agentv1.BlockKind_BLOCK_KIND_CODE,
+					Kind: parserv1.CellKind_CELL_KIND_CODE,
 					Metadata: map[string]string{
 						"runme.dev/name":          "echo-2",
 						"runme.dev/nameGenerated": "true",
 					},
-					Language: "bash",
-					Contents: "echo 2",
-					Outputs:  []*agentv1.BlockOutput{},
+					TextRange: &parserv1.TextRange{
+						Start: 117,
+						End:   124,
+					},
+					LanguageId: "bash",
+					Value:      "echo 2",
+					Outputs:    nil,
 				},
 			},
 		},
@@ -139,7 +155,7 @@ func Test_MarkdownToBlocks(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to read raw file: %v", err)
 			}
-			actual, err := MarkdownToBlocks(string(raw))
+			actual, err := MarkdownToCells(string(raw))
 			if err != nil {
 				t.Fatalf("MarkdownToBlocks(%v) returned error %v", c.inFile, err)
 			}
@@ -156,13 +172,13 @@ func Test_MarkdownToBlocks(t *testing.T) {
 
 				opts := cmp.Options{
 					// ignore Id because it will be unique each time it gets run
-					cmpopts.IgnoreFields(agentv1.Block{}, "Id"),
+					cmpopts.IgnoreFields(parserv1.Cell{}, "Id"),
 				}
 
 				// Zero out the metadata field for id
 				delete(aBlock.Metadata, "runme.dev/id")
 
-				if d := cmp.Diff(eBlock, aBlock, testutil.BlockComparer, opts); d != "" {
+				if d := cmp.Diff(eBlock, aBlock, testutil.CellComparer, opts); d != "" {
 					t.Errorf("Unexpected diff block %d:\n%s", i, d)
 				}
 			}
@@ -173,7 +189,7 @@ func Test_MarkdownToBlocks(t *testing.T) {
 func Test_BlockToMarkdown(t *testing.T) {
 	type testCase struct {
 		name      string
-		block     *agentv1.Block
+		block     *parserv1.Cell
 		maxLength int
 		expected  string
 	}
@@ -181,22 +197,22 @@ func Test_BlockToMarkdown(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "markup",
-			block: &agentv1.Block{
-				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-				Contents: "This is a test",
+			block: &parserv1.Cell{
+				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+				Value: "This is a test",
 			},
 			expected: "This is a test\n",
 		},
 		{
 			name: "code",
-			block: &agentv1.Block{
-				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-				Contents: "echo \"something something\"",
-				Outputs: []*agentv1.BlockOutput{
+			block: &parserv1.Cell{
+				Kind:  parserv1.CellKind_CELL_KIND_CODE,
+				Value: "echo \"something something\"",
+				Outputs: []*parserv1.CellOutput{
 					{
-						Items: []*agentv1.BlockOutputItem{
+						Items: []*parserv1.CellOutputItem{
 							{
-								TextData: "something something",
+								Data: []byte("something something"),
 							},
 						},
 					},
@@ -206,23 +222,23 @@ func Test_BlockToMarkdown(t *testing.T) {
 		},
 		{
 			name: "filter-by-mime-type",
-			block: &agentv1.Block{
-				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-				Contents: "echo \"something something\"",
-				Outputs: []*agentv1.BlockOutput{
+			block: &parserv1.Cell{
+				Kind:  parserv1.CellKind_CELL_KIND_CODE,
+				Value: "echo \"something something\"",
+				Outputs: []*parserv1.CellOutput{
 					{
-						Items: []*agentv1.BlockOutputItem{
+						Items: []*parserv1.CellOutputItem{
 							{
-								TextData: "Should be excluded",
-								Mime:     StatefulRunmeOutputItemsMimeType,
+								Data: []byte("Should be excluded"),
+								Mime: StatefulRunmeOutputItemsMimeType,
 							},
 							{
-								TextData: "Terminal be excluded",
-								Mime:     StatefulRunmeTerminalMimeType,
+								Data: []byte("Terminal be excluded"),
+								Mime: StatefulRunmeTerminalMimeType,
 							},
 							{
-								TextData: "Should be included",
-								Mime:     "application/vnd.code.notebook.stdout",
+								Data: []byte("Should be included"),
+								Mime: VSCodeNotebookStdOutMimeType,
 							},
 						},
 					},
@@ -232,14 +248,14 @@ func Test_BlockToMarkdown(t *testing.T) {
 		},
 		{
 			name: "truncate-output",
-			block: &agentv1.Block{
-				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-				Contents: "echo line1\nline2",
-				Outputs: []*agentv1.BlockOutput{
+			block: &parserv1.Cell{
+				Kind:  parserv1.CellKind_CELL_KIND_CODE,
+				Value: "echo line1\nline2",
+				Outputs: []*parserv1.CellOutput{
 					{
-						Items: []*agentv1.BlockOutputItem{
+						Items: []*parserv1.CellOutputItem{
 							{
-								TextData: "some really long output",
+								Data: []byte("some really long output"),
 							},
 						},
 					},
@@ -251,7 +267,7 @@ func Test_BlockToMarkdown(t *testing.T) {
 	}
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
-			actual := BlockToMarkdown(c.block, c.maxLength)
+			actual := CellToMarkdown(c.block, c.maxLength)
 			if d := cmp.Diff(c.expected, actual); d != "" {
 				t.Errorf("Unexpected diff:\n%s", d)
 			}

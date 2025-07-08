@@ -15,4 +15,5 @@ const (
 	StatefulRunmeOutputItemsMimeType = "stateful.runme/output-items"
 	StatefulRunmeTerminalMimeType    = "stateful.runme/terminal"
 	VSCodeNotebookStdOutMimeType     = "application/vnd.code.notebook.stdout"
+	VSCodeNotebookStdErrMimeType     = "application/vnd.code.notebook.stderr"
 )

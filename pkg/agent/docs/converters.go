@@ -6,7 +6,6 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/runme/converters"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/document/editor"
 	"github.com/runmedev/runme/v3/document/identity"
@@ -17,12 +16,12 @@ const (
 	truncationMessage     = "<...stdout was truncated...>"
 )
 
-// MarkdownToBlocks converts a markdown string into a sequence of blocks.
+// MarkdownToCells converts a markdown string into a sequence of blocks.
 // This function relies on RunMe's Markdown->Cells conversion; underneath the hood that uses goldmark to walk the AST.
 // RunMe's deserialization function doesn't have any notion of output in markdown. However, in Foyle outputs
 // are rendered to code blocks of language "output". So we need to do some post processing to convert the outputs
 // into output items
-func MarkdownToBlocks(mdText string) ([]*agentv1.Block, error) {
+func MarkdownToCells(mdText string) ([]*parserv1.Cell, error) {
 	// N.B. We don't need to add any identities
 	resolver := identity.NewResolver(identity.UnspecifiedLifecycleIdentity)
 	options := editor.Options{
@@ -30,9 +29,9 @@ func MarkdownToBlocks(mdText string) ([]*agentv1.Block, error) {
 	}
 	notebook, err := editor.Deserialize([]byte(mdText), options)
 
-	blocks := make([]*agentv1.Block, 0, len(notebook.Cells))
+	cells := make([]*parserv1.Cell, 0, len(notebook.Cells))
 
-	var lastCodeBlock *agentv1.Block
+	var lastCodeCell *parserv1.Cell
 	for _, cell := range notebook.Cells {
 
 		var tr *parserv1.TextRange
@@ -52,24 +51,24 @@ func MarkdownToBlocks(mdText string) ([]*agentv1.Block, error) {
 			TextRange:  tr,
 		}
 
-		block, err := converters.CellToBlock(cellPb)
+		c, err := converters.CellToBlock(cellPb)
 		if err != nil {
 			return nil, err
 		}
 
 		// We need to handle the case where the block is an output code block.
-		if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
-			if block.Language == OUTPUTLANG {
+		if cell.Kind == editor.CodeKind {
+			if cell.LanguageID == OUTPUTLANG {
 				// This is an output block
 				// We need to append the output to the last code block
-				if lastCodeBlock != nil {
-					if lastCodeBlock.Outputs == nil {
-						lastCodeBlock.Outputs = make([]*agentv1.BlockOutput, 0, 1)
+				if lastCodeCell != nil {
+					if lastCodeCell.Outputs == nil {
+						lastCodeCell.Outputs = make([]*parserv1.CellOutput, 0, 1)
 					}
-					lastCodeBlock.Outputs = append(lastCodeBlock.Outputs, &agentv1.BlockOutput{
-						Items: []*agentv1.BlockOutputItem{
+					lastCodeCell.Outputs = append(lastCodeCell.Outputs, &parserv1.CellOutput{
+						Items: []*parserv1.CellOutputItem{
 							{
-								TextData: block.Contents,
+								Data: []byte(c.Value),
 							},
 						},
 					})
@@ -79,33 +78,33 @@ func MarkdownToBlocks(mdText string) ([]*agentv1.Block, error) {
 				// Since we don't have a code block to add the output to just treat it as a code block
 			} else {
 				// Update the lastCodeBlock
-				lastCodeBlock = block
+				lastCodeCell = cellPb
 			}
 		} else {
 			// If we have a non-nil markup block then we zero out lastCodeBlock so that a subsequent output block
 			// wouldn't be added to the last code block.
-			if block.GetContents() != "" {
-				lastCodeBlock = nil
+			if c.GetValue() != "" {
+				lastCodeCell = nil
 			}
 		}
 
-		blocks = append(blocks, block)
+		cells = append(cells, cellPb)
 	}
 
-	return blocks, err
+	return cells, err
 }
 
 // BlockToMarkdown converts a block to markdown
 // maxLength is a maximum length for the generated markdown. This is a soft limit and may be exceeded slightly
 // because we don't account for some characters like the outputLength and the truncation message
 // A value <=0 means no limit.
-func BlockToMarkdown(block *agentv1.Block, maxLength int) string {
+func CellToMarkdown(cell *parserv1.Cell, maxLength int) string {
 	sb := strings.Builder{}
-	writeBlockMarkdown(&sb, block, maxLength)
+	writeCellMarkdown(&sb, cell, maxLength)
 	return sb.String()
 }
 
-func writeBlockMarkdown(sb *strings.Builder, block *agentv1.Block, maxLength int) {
+func writeCellMarkdown(sb *strings.Builder, cell *parserv1.Cell, maxLength int) {
 	maxInputLength := -1
 	maxOutputLength := -1
 
@@ -119,12 +118,12 @@ func writeBlockMarkdown(sb *strings.Builder, block *agentv1.Block, maxLength int
 		maxOutputLength = maxInputLength
 	}
 
-	switch block.GetKind() {
-	case agentv1.BlockKind_BLOCK_KIND_CODE:
+	switch cell.GetKind() {
+	case parserv1.CellKind_CELL_KIND_CODE:
 		// Code just gets written as a code block
 		sb.WriteString("```" + BASHLANG + "\n")
 
-		data := block.GetContents()
+		data := cell.GetValue()
 		if len(data) > maxInputLength && maxInputLength > 0 {
 			data = tailLines(data, maxInputLength)
 			data = codeTruncationMessage + "\n" + data
@@ -139,7 +138,7 @@ func writeBlockMarkdown(sb *strings.Builder, block *agentv1.Block, maxLength int
 	default:
 		// Otherwise assume its a markdown block
 
-		data := block.GetContents()
+		data := cell.GetValue()
 		if len(data) > maxInputLength && maxInputLength > 0 {
 			data = tailLines(data, maxInputLength)
 			remaining := maxLength - len(data)
@@ -151,7 +150,7 @@ func writeBlockMarkdown(sb *strings.Builder, block *agentv1.Block, maxLength int
 	}
 
 	// Handle the outputs
-	for _, output := range block.GetOutputs() {
+	for _, output := range cell.GetOutputs() {
 		for _, oi := range output.Items {
 			if oi.GetMime() == StatefulRunmeOutputItemsMimeType || oi.GetMime() == StatefulRunmeTerminalMimeType {
 				// See: https://github.com/jlewi/foyle/issues/286. This output item contains a JSON dictionary
@@ -169,7 +168,7 @@ func writeBlockMarkdown(sb *strings.Builder, block *agentv1.Block, maxLength int
 			}
 
 			sb.WriteString("```" + OUTPUTLANG + "\n")
-			textData := oi.GetTextData()
+			textData := string(oi.GetData())
 			if 0 < maxOutputLength && len(textData) > maxOutputLength {
 				textData = textData[:maxOutputLength]
 				sb.WriteString(textData)

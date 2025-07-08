@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 )
 
 func TestFillInToolcalls(t *testing.T) {
@@ -17,7 +18,7 @@ func TestFillInToolcalls(t *testing.T) {
 		name               string
 		previousResponseId string
 		cachedResponses    map[string][]string
-		cachedBlocks       map[string]*agentv1.Block
+		cachedCells        map[string]*parserv1.Cell
 		request            *agentv1.GenerateRequest
 		expected           *agentv1.GenerateRequest
 	}{
@@ -27,12 +28,12 @@ func TestFillInToolcalls(t *testing.T) {
 			cachedResponses: map[string][]string{
 				"abc": {"block1"},
 			},
-			cachedBlocks: map[string]*agentv1.Block{
+			cachedCells: map[string]*parserv1.Cell{
 				"block1": {
-					Id:       "block1",
-					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-					Contents: "print('Hello, world!')",
-					CallId:   "call1",
+					Id:     "block1",
+					Kind:   parserv1.CellKind_CELL_KIND_CODE,
+					Value:  "print('Hello, world!')",
+					CallId: "call1",
 				},
 			},
 			request: &agentv1.GenerateRequest{
@@ -40,12 +41,12 @@ func TestFillInToolcalls(t *testing.T) {
 			},
 			expected: &agentv1.GenerateRequest{
 				PreviousResponseId: "abc",
-				Blocks: []*agentv1.Block{
+				Cells: []*parserv1.Cell{
 					{
-						Id:       "block1",
-						Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-						Contents: "print('Hello, world!')",
-						CallId:   "call1",
+						Id:     "block1",
+						Kind:   parserv1.CellKind_CELL_KIND_CODE,
+						Value:  "print('Hello, world!')",
+						CallId: "call1",
 					},
 				},
 			},
@@ -56,34 +57,34 @@ func TestFillInToolcalls(t *testing.T) {
 			cachedResponses: map[string][]string{
 				"abc": {"block1"},
 			},
-			cachedBlocks: map[string]*agentv1.Block{
+			cachedCells: map[string]*parserv1.Cell{
 				"block1": {
-					Id:       "block1",
-					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-					Contents: "print('This was the original command!')",
-					CallId:   "call1",
+					Id:     "block1",
+					Kind:   parserv1.CellKind_CELL_KIND_CODE,
+					Value:  "print('This was the original command!')",
+					CallId: "call1",
 				},
 			},
 			request: &agentv1.GenerateRequest{
 				PreviousResponseId: "abc",
-				Blocks: []*agentv1.Block{
-					// We want to ensure that the block in the request takes precendence over the cache
+				Cells: []*parserv1.Cell{
+					// We want to ensure that the cell in the request takes precendence over the cache
 					{
-						Id:       "block1",
-						Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-						Contents: "print('Actual Command')",
-						CallId:   "call1",
+						Id:     "block1",
+						Kind:   parserv1.CellKind_CELL_KIND_CODE,
+						Value:  "print('Actual Command')",
+						CallId: "call1",
 					},
 				},
 			},
 			expected: &agentv1.GenerateRequest{
 				PreviousResponseId: "abc",
-				Blocks: []*agentv1.Block{
+				Cells: []*parserv1.Cell{
 					{
-						Id:       "block1",
-						Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-						Contents: "print('Actual Command')",
-						CallId:   "call1",
+						Id:     "block1",
+						Kind:   parserv1.CellKind_CELL_KIND_CODE,
+						Value:  "print('Actual Command')",
+						CallId: "call1",
 					},
 				},
 			},
@@ -99,7 +100,7 @@ func TestFillInToolcalls(t *testing.T) {
 				t.Fatalf("Failed to create response cache: %v", err)
 			}
 
-			blocksCache, err := lru.New[string, *agentv1.Block](5)
+			blocksCache, err := lru.New[string, *parserv1.Cell](5)
 			if err != nil {
 				t.Fatalf("Failed to create blocks cache: %v", err)
 			}
@@ -110,7 +111,7 @@ func TestFillInToolcalls(t *testing.T) {
 			}
 
 			// Populate blocks cache
-			for blockID, block := range tc.cachedBlocks {
+			for blockID, block := range tc.cachedCells {
 				blocksCache.Add(blockID, block)
 			}
 

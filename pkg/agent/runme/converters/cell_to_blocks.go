@@ -3,14 +3,13 @@ package converters
 import (
 	"github.com/pkg/errors"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 )
 
 // Doc represents a document
 // This is a hack for when we copied this code over from foyle; if we keep doc; we should make it a proto.
 type Doc struct {
-	Blocks []*agentv1.Block
+	Cells []*parserv1.Cell
 }
 
 // NotebookToDoc converts a runme Notebook to a foyle Doc
@@ -20,7 +19,7 @@ func NotebookToDoc(nb *parserv1.Notebook) (*Doc, error) {
 	}
 
 	doc := &Doc{
-		Blocks: make([]*agentv1.Block, 0, len(nb.Cells)),
+		Cells: make([]*parserv1.Cell, 0, len(nb.Cells)),
 	}
 
 	for _, cell := range nb.Cells {
@@ -28,7 +27,7 @@ func NotebookToDoc(nb *parserv1.Notebook) (*Doc, error) {
 		if err != nil {
 			return nil, err
 		}
-		doc.Blocks = append(doc.Blocks, block)
+		doc.Cells = append(doc.Cells, block)
 	}
 
 	return doc, nil
@@ -37,19 +36,15 @@ func NotebookToDoc(nb *parserv1.Notebook) (*Doc, error) {
 // CellToBlock converts a runme Cell to a foyle Block
 //
 // N.B. cell metadata is currently ignored.
-func CellToBlock(cell *parserv1.Cell) (*agentv1.Block, error) {
+func CellToBlock(cell *parserv1.Cell) (*parserv1.Cell, error) {
 	if cell == nil {
 		return nil, errors.New("Cell is nil")
 	}
 
-	blockOutputs := make([]*agentv1.BlockOutput, 0, len(cell.Outputs))
+	cOutputs := make([]*parserv1.CellOutput, 0, len(cell.Outputs))
 
 	for _, output := range cell.Outputs {
-		bOutput, err := CellOutputToBlockOutput(output)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to convert CellOutput to BlockOutput")
-		}
-		blockOutputs = append(blockOutputs, bOutput)
+		cOutputs = append(cOutputs, output)
 	}
 	blockKind := CellKindToBlockKind(cell.Kind)
 
@@ -61,13 +56,13 @@ func CellToBlock(cell *parserv1.Cell) (*agentv1.Block, error) {
 		}
 	}
 
-	return &agentv1.Block{
-		Id:       id,
-		Language: cell.LanguageId,
-		Contents: cell.Value,
-		Kind:     blockKind,
-		Outputs:  blockOutputs,
-		Metadata: cell.Metadata,
+	return &parserv1.Cell{
+		Id:         id,
+		LanguageId: cell.LanguageId,
+		Value:      cell.Value,
+		Kind:       blockKind,
+		Outputs:    cOutputs,
+		Metadata:   cell.Metadata,
 	}, nil
 }
 
@@ -96,33 +91,33 @@ func SetCellID(cell *parserv1.Cell, id string) {
 	cell.Metadata[RunmeIdField] = id
 }
 
-func CellKindToBlockKind(kind parserv1.CellKind) agentv1.BlockKind {
+func CellKindToBlockKind(kind parserv1.CellKind) parserv1.CellKind {
 	switch kind {
 	case parserv1.CellKind_CELL_KIND_CODE:
-		return agentv1.BlockKind_BLOCK_KIND_CODE
+		return parserv1.CellKind_CELL_KIND_CODE
 	case parserv1.CellKind_CELL_KIND_MARKUP:
-		return agentv1.BlockKind_BLOCK_KIND_MARKUP
+		return parserv1.CellKind_CELL_KIND_MARKUP
 	default:
-		return agentv1.BlockKind_BLOCK_KIND_UNSPECIFIED
+		return parserv1.CellKind_CELL_KIND_UNSPECIFIED
 	}
 }
 
-func CellOutputToBlockOutput(output *parserv1.CellOutput) (*agentv1.BlockOutput, error) {
+func CellOutputToBlockOutput(output *parserv1.CellOutput) (*parserv1.CellOutput, error) {
 	if output == nil {
 		return nil, errors.New("CellOutput is nil")
 	}
 
-	boutput := &agentv1.BlockOutput{
-		Items: make([]*agentv1.BlockOutputItem, 0, len(output.Items)),
+	coutput := &parserv1.CellOutput{
+		Items: make([]*parserv1.CellOutputItem, 0, len(output.Items)),
 	}
 
 	for _, oi := range output.Items {
-		boi := &agentv1.BlockOutputItem{
-			Mime:     oi.Mime,
-			TextData: string(oi.Data),
+		coi := &parserv1.CellOutputItem{
+			Mime: oi.Mime,
+			Data: oi.Data,
 		}
-		boutput.Items = append(boutput.Items, boi)
+		coutput.Items = append(coutput.Items, coi)
 	}
 
-	return boutput, nil
+	return coutput, nil
 }

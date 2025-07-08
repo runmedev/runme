@@ -13,9 +13,11 @@ import (
 	"github.com/openai/openai-go"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
+	"github.com/runmedev/runme/v3/pkg/agent/docs"
 
 	"github.com/go-logr/zapr"
 	"github.com/pkg/errors"
@@ -83,19 +85,19 @@ func Test_Agent(t *testing.T) {
 		t.Fatalf("Failed to create agent: %+v", err)
 	}
 	req := &agentv1.GenerateRequest{
-		Blocks: []*agentv1.Block{
+		Cells: []*parserv1.Cell{
 			{
-				Id:       "1",
-				Contents: "Use kubectl to tell me the current status of the rube-dev deployment in the a0s context? Do not rely on outdated documents.",
-				Role:     agentv1.BlockRole_BLOCK_ROLE_USER,
-				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
+				Id:    "1",
+				Value: "Use kubectl to tell me the current status of the rube-dev deployment in the a0s context? Do not rely on outdated documents.",
+				Role:  parserv1.CellRole_CELL_ROLE_USER,
+				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
 			},
 		},
 	}
 
 	resp := &ServerResponseStream{
 		Events: make([]*agentv1.GenerateResponse, 0, 10),
-		Blocks: make(map[string]*agentv1.Block),
+		Cells:  make(map[string]*parserv1.Cell),
 	}
 
 	if err := agent.ProcessWithOpenAI(context.Background(), req, resp.Send); err != nil {
@@ -108,22 +110,22 @@ func Test_Agent(t *testing.T) {
 	}
 
 	// Check if there is a code execution block
-	codeBlocks := make([]*agentv1.Block, 0, len(resp.Blocks))
-	for _, b := range resp.Blocks {
-		if b.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
-			t.Logf("Found code block with ID: %s", b.Id)
+	codeBlocks := make([]*parserv1.Cell, 0, len(resp.Cells))
+	for _, c := range resp.Cells {
+		if c.Kind == parserv1.CellKind_CELL_KIND_CODE {
+			t.Logf("Found code block with ID: %s", c.Id)
 			// Optionally, you can check the contents of the block
-			t.Logf("Code block contents: %s", b.Contents)
-			matched := exCommand.Match([]byte(b.Contents))
+			t.Logf("Code block contents: %s", c.Value)
+			matched := exCommand.Match([]byte(c.Value))
 
 			if !matched {
-				t.Errorf("Code block does not match expected pattern; got\n%v", b.Contents)
+				t.Errorf("Code block does not match expected pattern; got\n%v", c.Value)
 				continue
 			}
 
 			// Rewrite the command so we know its a command that's safe to execute automatically
-			b.Contents = `kubectl --context=a0s -n rube get deployment rube-dev -o yaml`
-			codeBlocks = append(codeBlocks, b)
+			c.Value = `kubectl --context=a0s -n rube get deployment rube-dev -o yaml`
+			codeBlocks = append(codeBlocks, c)
 		}
 	}
 
@@ -131,9 +133,9 @@ func Test_Agent(t *testing.T) {
 		t.Fatalf("No code blocks found in response")
 	}
 
-	for _, b := range codeBlocks {
-		if b.CallId == "" {
-			t.Fatalf("Code block with ID %s does not have a CallId", b.Id)
+	for _, c := range codeBlocks {
+		if c.Id == "" {
+			t.Fatalf("Code block with ID %s does not have a CallId", c.Id)
 		}
 	}
 
@@ -149,36 +151,36 @@ func Test_Agent(t *testing.T) {
 	// Now we need to send the output back to the AI
 	codeReq := &agentv1.GenerateRequest{
 		PreviousResponseId: previousResponseID,
-		Blocks: []*agentv1.Block{
+		Cells: []*parserv1.Cell{
 			codeBlocks[0],
 		},
 	}
 
 	codeResp := &ServerResponseStream{
 		Events: make([]*agentv1.GenerateResponse, 0, 10),
-		Blocks: make(map[string]*agentv1.Block),
+		Cells:  make(map[string]*parserv1.Cell),
 	}
 
 	if err := agent.ProcessWithOpenAI(context.Background(), codeReq, codeResp.Send); err != nil {
 		t.Fatalf("Error processing request: %+v", err)
 	}
 
-	for _, b := range codeResp.Blocks {
+	for _, c := range codeResp.Cells {
 		o := protojson.MarshalOptions{
 			Multiline: true,
 			Indent:    "  ",
 		}
-		j, err := o.Marshal(b)
+		j, err := o.Marshal(c)
 		if err != nil {
-			t.Fatalf("Failed to marshal block: %+v", err)
+			t.Fatalf("Failed to marshal cell: %+v", err)
 		}
-		t.Logf("Block:\n%+v", string(j))
+		t.Logf("Cell:\n%+v", string(j))
 	}
 }
 
 type ServerResponseStream struct {
 	Events []*agentv1.GenerateResponse
-	Blocks map[string]*agentv1.Block
+	Cells  map[string]*parserv1.Cell
 	mu     sync.Mutex
 }
 
@@ -187,17 +189,17 @@ func (s *ServerResponseStream) Send(e *agentv1.GenerateResponse) error {
 	defer s.mu.Unlock()
 	s.Events = append(s.Events, e)
 
-	for _, b := range e.Blocks {
-		s.Blocks[b.Id] = b
+	for _, c := range e.Cells {
+		s.Cells[c.Id] = c
 	}
 	return nil
 }
 
 // Run the given command and return the output
 // This can either run the command for real or return canned outputs
-func executeBlock(b *agentv1.Block, useCached bool) error {
+func executeBlock(c *parserv1.Cell, useCached bool) error {
 	log := zapr.NewLogger(zap.L())
-	args := strings.Split(b.Contents, " ")
+	args := strings.Split(c.Value, " ")
 
 	stdOutStr := cannedStdout
 	stdErrStr := ""
@@ -210,8 +212,8 @@ func executeBlock(b *agentv1.Block, useCached bool) error {
 
 		err := cmd.Run()
 		if err != nil {
-			log.Error(err, "Failed to run command", "cmd", b.Contents, "stdout", stdout.String(), "stderr", stderr.String())
-			return errors.Wrapf(err, "Failed to run %s", b.Contents)
+			log.Error(err, "Failed to run command", "cmd", c.Value, "stdout", stdout.String(), "stderr", stderr.String())
+			return errors.Wrapf(err, "Failed to run %s", c.Value)
 		}
 
 		log.Info("Command completed successfully", "stdout", stdout.String(), "stderr", stderr.String())
@@ -224,20 +226,20 @@ func executeBlock(b *agentv1.Block, useCached bool) error {
 		stdErrStr = stderr.String()
 
 	}
-	b.Outputs = []*agentv1.BlockOutput{
+	c.Outputs = []*parserv1.CellOutput{
 		{
-			Kind: agentv1.BlockOutputKind_BLOCK_OUTPUT_KIND_STDOUT,
-			Items: []*agentv1.BlockOutputItem{
+			Items: []*parserv1.CellOutputItem{
 				{
-					TextData: stdOutStr,
+					Mime: docs.VSCodeNotebookStdOutMimeType,
+					Data: []byte(stdOutStr),
 				},
 			},
 		},
 		{
-			Kind: agentv1.BlockOutputKind_BLOCK_OUTPUT_KIND_STDERR,
-			Items: []*agentv1.BlockOutputItem{
+			Items: []*parserv1.CellOutputItem{
 				{
-					TextData: stdErrStr,
+					Mime: docs.VSCodeNotebookStdErrMimeType,
+					Data: []byte(stdErrStr),
 				},
 			},
 		},

@@ -32,6 +32,7 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	v2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	streamv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1"
 )
@@ -123,34 +124,34 @@ func Test_GenerateBlocks(t *testing.T) {
 	// to catch various bugs with the SDK;
 	hasFSBlock := false
 	for _, b := range blocks {
-		if b.Kind == agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
+		if b.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
 			hasFSBlock = true
 
-			if len(b.FileSearchResults) <= 0 {
+			if len(b.DocResults) <= 0 {
 				t.Errorf("FileSearchResults block has no results")
 			}
 
-			for _, r := range b.FileSearchResults {
+			for _, r := range b.DocResults {
 				if r.FileName == "" {
-					t.Errorf("FileSearchResults block has empty filename")
+					t.Errorf("DocResults block has empty filename")
 				}
 			}
 		}
 	}
 
 	if !hasFSBlock {
-		t.Errorf("There was no FileSearch block in the results.")
+		t.Errorf("There was no DocResults block in the results.")
 	}
 }
 
-func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
+func runAIClient(baseURL string) (map[string]*parserv1.Cell, error) {
 	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
 
-	blocks := make(map[string]*agentv1.Block)
+	blocks := make(map[string]*parserv1.Cell)
 
-	Block := agentv1.Block{
-		Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-		Contents: "This is a block",
+	Block := parserv1.Cell{
+		Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+		Value: "This is a block",
 	}
 
 	log.Info("Block", logs.ZapProto("block", &Block))
@@ -161,7 +162,7 @@ func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 		return blocks, errors.Wrapf(err, "Failed to parse URL")
 	}
 
-	var client agentv1connect.BlocksServiceClient
+	var client agentv1connect.MessagesServiceClient
 
 	// Mimic what the frontend does
 	options := []connect.ClientOption{connect.WithGRPCWeb()}
@@ -171,7 +172,7 @@ func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 			InsecureSkipVerify: true, // Set to true only for testing; otherwise validate the server's certificate
 		}
 
-		client = agentv1connect.NewBlocksServiceClient(
+		client = agentv1connect.NewMessagesServiceClient(
 			&http.Client{
 				Transport: &http2.Transport{
 					TLSClientConfig: tlsConfig,
@@ -185,7 +186,7 @@ func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 			options...,
 		)
 	} else {
-		client = agentv1connect.NewBlocksServiceClient(
+		client = agentv1connect.NewMessagesServiceClient(
 			&http.Client{
 				Transport: &http2.Transport{
 					AllowHTTP: true,
@@ -207,11 +208,11 @@ func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 
 	ctx := context.Background()
 	genReq := &agentv1.GenerateRequest{
-		Blocks: []*agentv1.Block{
+		Cells: []*parserv1.Cell{
 			{
-				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-				Role:     agentv1.BlockRole_BLOCK_ROLE_USER,
-				Contents: contents,
+				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+				Role:  parserv1.CellRole_CELL_ROLE_USER,
+				Value: contents,
 			},
 		},
 	}
@@ -226,8 +227,8 @@ func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 	for stream.Receive() {
 		response := stream.Msg()
 
-		for _, block := range response.Blocks {
-			blocks[block.Id] = block
+		for _, cell := range response.Cells {
+			blocks[cell.Id] = cell
 
 			options := protojson.MarshalOptions{
 				Multiline: true,
@@ -235,11 +236,11 @@ func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 			}
 
 			// Marshal the protobuf message to JSON
-			jsonData, err := options.Marshal(block)
+			jsonData, err := options.Marshal(cell)
 			if err != nil {
-				log.Error(err, "Failed to marshal block to JSON")
+				log.Error(err, "Failed to marshal cell to JSON")
 			} else {
-				log.Info("Block", "block", string(jsonData))
+				log.Info("Cell", "cell", string(jsonData))
 			}
 		}
 
@@ -631,20 +632,20 @@ func sendExecuteRequest(c *websocket.Conn, executeRequest *v2.ExecuteRequest) er
 	return nil
 }
 
-func waitForCommandToFinish(c *websocket.Conn) (*agentv1.Block, error) {
+func waitForCommandToFinish(c *websocket.Conn) (*parserv1.Cell, error) {
 	log := logs.NewLogger()
 
-	block := &agentv1.Block{
-		Outputs: make([]*agentv1.BlockOutput, 0),
+	block := &parserv1.Cell{
+		Outputs: make([]*parserv1.CellOutput, 0),
 	}
 
-	block.Outputs = append(block.Outputs, &agentv1.BlockOutput{
-		Items: []*agentv1.BlockOutputItem{
+	block.Outputs = append(block.Outputs, &parserv1.CellOutput{
+		Items: []*parserv1.CellOutputItem{
 			{
-				TextData: "",
+				Data: []byte(""),
 			},
 			{
-				TextData: "",
+				Data: []byte(""),
 			},
 		},
 	})
@@ -665,8 +666,8 @@ func waitForCommandToFinish(c *websocket.Conn) (*agentv1.Block, error) {
 		if response.GetExecuteResponse() != nil {
 			resp := response.GetExecuteResponse()
 
-			block.Outputs[0].Items[0].TextData += string(resp.StdoutData)
-			block.Outputs[0].Items[1].TextData += string(resp.StderrData)
+			block.Outputs[0].Items[0].Data = append(block.Outputs[0].Items[0].Data, resp.StdoutData...)
+			block.Outputs[0].Items[1].Data = append(block.Outputs[0].Items[1].Data, resp.StderrData...)
 
 			if resp.GetExitCode() != nil {
 				// Use ExitCode to determine if the message indicates the end of the program

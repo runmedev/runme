@@ -15,13 +15,16 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
+
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel/trace"
+
+	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 )
 
 const (
@@ -67,7 +70,7 @@ type Agent struct {
 	responseCache *lru.Cache[string, []string]
 
 	// blocksCache is a cache to store the mapping from blockID to block
-	blocksCache *lru.Cache[string, *agentv1.Block]
+	blocksCache *lru.Cache[string, *parserv1.Cell]
 
 	useOAuth bool // Use OAuth for authorization; if true then the token must be provided in the GenerateRequest
 }
@@ -120,7 +123,7 @@ func NewAgent(opts AgentOptions) (*Agent, error) {
 		return nil, errors.Wrap(err, "Failed to create response cache")
 	}
 	// Create a cache to store the mapping from blockID to block
-	blocksCache, err := lru.New[string, *agentv1.Block](10000)
+	blocksCache, err := lru.New[string, *parserv1.Cell](10000)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create blocks cache")
 	}
@@ -153,11 +156,12 @@ var shellToolJSONSchema = map[string]any{
 	"additionalProperties": false,
 }
 
+// Use agentv1.GenerateRequest and agentv1.GenerateResponse, but operate on Cells field.
 func (a *Agent) Generate(ctx context.Context, req *connect.Request[agentv1.GenerateRequest], resp *connect.ServerStream[agentv1.GenerateResponse]) error {
 	return a.ProcessWithOpenAI(ctx, req.Msg, resp.Send)
 }
 
-func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequest, sender BlockSender) error {
+func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequest, sender CellSender) error {
 	span := trace.SpanFromContext(ctx)
 	log := logs.FromContext(ctx)
 	traceId := span.SpanContext().TraceID()
@@ -165,8 +169,8 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 	ctx = logr.NewContext(ctx, log)
 	log.Info("Agent.Generate")
 
-	if (len(req.Blocks)) < 1 {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("Blocks must be non-empty"))
+	if (len(req.Cells)) < 1 {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("Cells must be non-empty"))
 	}
 
 	tools := make([]responses.ToolUnionParam, 0, 1)
@@ -198,8 +202,8 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 
 	// If PreviousResponseId is not set then we need to check that the first block is user input.
 	if req.PreviousResponseId == "" {
-		if req.Blocks[0].Role != agentv1.BlockRole_BLOCK_ROLE_USER {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("First block must be user input"))
+		if req.Cells[0].Role != parserv1.CellRole_CELL_ROLE_USER {
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("First cell must be user input"))
 		}
 	}
 
@@ -210,34 +214,36 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 	input := responses.ResponseNewParamsInputUnion{
 		// N.B. Input is a list of list. Is that a bug in the SDK
 		// ResponseInputParam is a type alias for a list. I find that very confusing.
-		OfInputItemList: make([]responses.ResponseInputItemUnionParam, 0, len(req.Blocks)),
+		OfInputItemList: make([]responses.ResponseInputItemUnionParam, 0, len(req.Cells)),
 	}
 
 	if err := fillInToolcalls(ctx, a.responseCache, a.blocksCache, req); err != nil {
 		return connect.NewError(connect.CodeInternal, errors.Wrap(err, "Failed to fill in tool calls"))
 	}
 
-	for _, b := range req.Blocks {
-		switch b.Kind {
-		case agentv1.BlockKind_BLOCK_KIND_MARKUP:
+	for _, c := range req.Cells {
+		switch c.Kind {
+		case parserv1.CellKind_CELL_KIND_MARKUP:
 			input.OfInputItemList = append(input.OfInputItemList, responses.ResponseInputItemUnionParam{
 				// N.B. What's the difference between EasyInputMessage and InputItemMessage
 				OfMessage: &responses.EasyInputMessageParam{
 					Role: responses.EasyInputMessageRoleUser,
 					Content: responses.EasyInputMessageContentUnionParam{
-						OfString: openai.Opt(b.Contents),
+						OfString: openai.Opt(c.Value),
 					},
 				},
 			})
-		case agentv1.BlockKind_BLOCK_KIND_CODE:
+		case parserv1.CellKind_CELL_KIND_CODE:
 			dict := map[string]string{}
 
-			for _, o := range b.Outputs {
-				dict[o.Kind.String()] = ""
+			for _, o := range c.Outputs {
 				for _, item := range o.Items {
-					if item.TextData != "" {
-						dict[o.Kind.String()] += item.TextData
+					// Use item.Type or item.Mime as key, string(item.Data) as value
+					key := item.Type
+					if key == "" {
+						key = item.Mime
 					}
+					dict[key] += string(item.Data)
 				}
 			}
 
@@ -247,7 +253,7 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 			}
 
 			shellArgs := &ShellArgs{
-				Shell: b.Contents,
+				Shell: c.Value,
 			}
 
 			shellArgsJSON, err := json.Marshal(shellArgs)
@@ -259,15 +265,15 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 			// This can happen if
 			// 1. The AI returned code blocks in markdown which we parsed out into code blocks
 			// 2. User manually added the cell
-			if b.CallId == "" {
-				b.CallId = uuid.NewString()
+			if c.CallId == "" {
+				c.CallId = uuid.NewString()
 			}
 
 			// Add the function call to the input
 			input.OfInputItemList = append(input.OfInputItemList, responses.ResponseInputItemUnionParam{
 				OfFunctionCall: &responses.ResponseFunctionToolCallParam{
 					// TODO(jlewi): What if the model didn't tell us to call that function?
-					CallID:    b.CallId,
+					CallID:    c.CallId,
 					Name:      ShellToolName,
 					Arguments: string(shellArgsJSON),
 				},
@@ -276,13 +282,13 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 			input.OfInputItemList = append(input.OfInputItemList, responses.ResponseInputItemUnionParam{
 				OfFunctionCallOutput: &responses.ResponseInputItemFunctionCallOutputParam{
 					// TODO(jlewi): What if the model didn't tell us to call that function?
-					CallID: b.CallId,
+					CallID: c.CallId,
 					Output: string(output),
 				},
 			})
 		default:
-			err := errors.Errorf("Unsupported block kind %s", b.Kind)
-			log.Error(err, "Unsupported block kind", "block", b)
+			err := errors.Errorf("Unsupported cell kind %s", c.Kind)
+			log.Error(err, "Unsupported cell kind", "cell", c)
 			return connect.NewError(connect.CodeInvalidArgument, err)
 		}
 	}
@@ -314,15 +320,14 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 
 	log.Info("ResponseRequest", "request", createResponse)
 	eStream := a.Client.Responses.NewStreaming(ctx, createResponse, opts...)
-	builder := NewBlocksBuilder(a.filenameToLink, a.responseCache, a.blocksCache)
+	builder := NewCellsBuilder(a.filenameToLink, a.responseCache, a.blocksCache)
 
 	return builder.HandleEvents(ctx, eStream, sender)
 }
 
-// fillInToolcalls fills in the tool calls for the request for the previousResponse.
 // This is necessary because OpenAI returns an error if any of the function calls in the previous response
 // are missing output
-func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []string], blocksCache *lru.Cache[string, *agentv1.Block], req *agentv1.GenerateRequest) error {
+func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []string], blocksCache *lru.Cache[string, *parserv1.Cell], req *agentv1.GenerateRequest) error {
 	if req.PreviousResponseId == "" {
 		return nil
 	}
@@ -340,8 +345,8 @@ func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []str
 		missingPrevBlocks[callID] = true
 	}
 
-	for _, b := range req.Blocks {
-		delete(missingPrevBlocks, b.Id)
+	for _, c := range req.Cells {
+		delete(missingPrevBlocks, c.Id)
 	}
 
 	// If there are any missing function calls then add them
@@ -350,8 +355,8 @@ func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []str
 		if !ok {
 			return errors.Errorf("Missing block for block ID; %v", callID)
 		}
-		blockCopy := proto.Clone(b).(*agentv1.Block)
-		req.Blocks = append(req.Blocks, blockCopy)
+		blockCopy := proto.Clone(b).(*parserv1.Cell)
+		req.Cells = append(req.Cells, blockCopy)
 	}
 
 	return nil

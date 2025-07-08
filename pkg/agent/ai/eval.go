@@ -32,6 +32,7 @@ import (
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
 
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/docs"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/version"
@@ -72,34 +73,34 @@ const (
 )
 
 type Asserter interface {
-	Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error
+	Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error
 }
 
-func dumpBlocks(blocks map[string]*agentv1.Block) string {
+func dumpBlocks(blocks map[string]*parserv1.Cell) string {
 	var context_builder strings.Builder
 	for _, block := range blocks {
-		context_builder.WriteString(fmt.Sprintf("Type: %s, Role: %s, Contents: %s\n", block.Kind, block.Role, block.Contents))
+		context_builder.WriteString(fmt.Sprintf("Type: %s, Role: %s, Contents: %s\n", block.Kind, block.Role, block.Value))
 	}
 	return context_builder.String()
 }
 
 type shellRequiredFlag struct{}
 
-func (s shellRequiredFlag) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
+func (s shellRequiredFlag) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
 	shellFlag := as.GetShellRequiredFlag()
 	command := shellFlag.Command
 	flags := shellFlag.Flags
 	contain_command := false                     // Tracks if the target command is found in any code block
 	as.Result = agentv1.Assertion_RESULT_SKIPPED // Default result is SKIPPED unless the command is found
 	for _, block := range blocks {
-		if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
-			if strings.Contains(block.Contents, command) { // Check if the code block contains the target command
+		if block.Kind == parserv1.CellKind_CELL_KIND_CODE {
+			if strings.Contains(block.Value, command) { // Check if the code block contains the target command
 				if !contain_command {
 					contain_command = true
 					as.Result = agentv1.Assertion_RESULT_TRUE // Set to PASSED if the command is present (may be overridden below)
 				}
 				for _, flag := range flags { // If the command is present, check for all required flags
-					if !strings.Contains(block.Contents, flag) {
+					if !strings.Contains(block.Value, flag) {
 						as.FailureReason += fmt.Sprintf("Flag %s is missing", flag)
 						as.Result = agentv1.Assertion_RESULT_FALSE // Set to FAILED if any required flag is missing
 					}
@@ -118,19 +119,19 @@ func (s shellRequiredFlag) Assert(ctx context.Context, as *agentv1.Assertion, in
 
 type toolInvocation struct{}
 
-func (t toolInvocation) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
+func (t toolInvocation) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
 	targetTool := as.GetToolInvocation().GetToolName()
 	as.Result = agentv1.Assertion_RESULT_FALSE // Default to false unless the tool is invoked
 	for _, block := range blocks {
 		// N.B. For now, every tool-call response is treated as code execution in blocks.go.
 		// TODO: When we add additional tools, handle tool-call responses separately.
 		if targetTool == "shell" {
-			if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
+			if block.Kind == parserv1.CellKind_CELL_KIND_CODE {
 				as.Result = agentv1.Assertion_RESULT_TRUE
 				break
 			}
 		} else if targetTool == "file_retrieval" {
-			if block.Kind == agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
+			if block.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
 				as.Result = agentv1.Assertion_RESULT_TRUE
 				break
 			}
@@ -146,12 +147,12 @@ func (t toolInvocation) Assert(ctx context.Context, as *agentv1.Assertion, input
 
 type fileRetrieved struct{}
 
-func (f fileRetrieved) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
+func (f fileRetrieved) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
 	targetFileId := as.GetFileRetrieval().FileId
 	as.Result = agentv1.Assertion_RESULT_FALSE // Default to false unless the file is found
 	for _, block := range blocks {
-		if block.Kind == agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS {
-			for _, file := range block.FileSearchResults {
+		if block.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
+			for _, file := range block.DocResults {
 				if file.FileId == targetFileId {
 					as.Result = agentv1.Assertion_RESULT_TRUE
 					break
@@ -175,11 +176,11 @@ func NewLlmJudge(client *openai.Client) *llmJudge {
 	return &llmJudge{client: client}
 }
 
-func (l llmJudge) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
+func (l llmJudge) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
 	logger, _ := logr.FromContext(ctx)
 	var context_builder strings.Builder
 	for _, block := range blocks {
-		markdown := docs.BlockToMarkdown(block, 10000)
+		markdown := docs.CellToMarkdown(block, 10000)
 		context_builder.WriteString(markdown + "\n")
 	}
 	logger.Info("llm_judge_debug_input", "input", context_builder.String())
@@ -239,7 +240,7 @@ func (l llmJudge) Assert(ctx context.Context, as *agentv1.Assertion, inputText s
 
 type codeblockRegex struct{}
 
-func (c codeblockRegex) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error {
+func (c codeblockRegex) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
 	regexPattern := as.GetCodeblockRegex().Regex
 	if regexPattern == "" {
 		as.Result = agentv1.Assertion_RESULT_SKIPPED
@@ -252,8 +253,8 @@ func (c codeblockRegex) Assert(ctx context.Context, as *agentv1.Assertion, input
 	}
 	matched := false
 	for _, block := range blocks {
-		if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
-			if re.MatchString(block.Contents) {
+		if block.Kind == parserv1.CellKind_CELL_KIND_CODE {
+			if re.MatchString(block.Value) {
 				matched = true
 				break
 			}
@@ -278,14 +279,14 @@ var registry = map[agentv1.Assertion_Type]Asserter{
 	agentv1.Assertion_TYPE_CODEBLOCK_REGEX:     codeblockRegex{},
 }
 
-func runInference(input string, agentCookie string, inferenceEndpoint string) (map[string]*agentv1.Block, error) {
+func runInference(input string, agentCookie string, inferenceEndpoint string) (map[string]*parserv1.Cell, error) {
 	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
 
-	blocks := make(map[string]*agentv1.Block)
+	blocks := make(map[string]*parserv1.Cell)
 
-	Block := agentv1.Block{
-		Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-		Contents: "This is a block",
+	Block := parserv1.Cell{
+		Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+		Value: "This is a block",
 	}
 
 	log.Info("Block", logs.ZapProto("block", &Block))
@@ -301,51 +302,16 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 		return blocks, errors.Wrapf(err, "Failed to parse URL")
 	}
 
-	var client agentv1connect.BlocksServiceClient
-
-	var options []connect.ClientOption
-	if u.Scheme == "https" {
-		// Configure the TLS settings
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true, // Set to true only for testing; otherwise validate the server's certificate
-		}
-
-		client = agentv1connect.NewBlocksServiceClient(
-			&http.Client{
-				Transport: &http2.Transport{
-					TLSClientConfig: tlsConfig,
-					DialTLSContext: func(ctx context.Context, network, addr string, config *tls.Config) (net.Conn, error) {
-						// Create a secure connection with TLS
-						return tls.Dial(network, addr, config)
-					},
-				},
-			},
-			baseURL,
-			options...,
-		)
-	} else {
-		client = agentv1connect.NewBlocksServiceClient(
-			&http.Client{
-				Transport: &http2.Transport{
-					AllowHTTP: true,
-					DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-						// Use the standard Dial function to create a plain TCP connection
-						return net.Dial(network, u.Host)
-					},
-				},
-			},
-			baseURL,
-			options...,
-		)
-	}
+	// Use parserv1.CellKind_CELL_KIND_DOC_RESULTS instead of CELL_KIND_FILE_SEARCH_RESULTS
+	// Remove agentv1connect.BlocksServiceClient and related client code
+	// Update request construction to use Cells, not Blocks
 
 	ctx := context.Background()
 	genReq := &agentv1.GenerateRequest{
-		Blocks: []*agentv1.Block{
+		Cells: []*parserv1.Cell{
 			{
-				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-				Role:     agentv1.BlockRole_BLOCK_ROLE_USER,
-				Contents: input,
+				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+				Value: input,
 			},
 		},
 	}
@@ -356,7 +322,27 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 		Path:  "/",         // adjust if needed
 	}
 	req.Header().Add("Cookie", cookie.String())
-	stream, err := client.Generate(ctx, req)
+	stream, err := agentv1connect.NewMessagesServiceClient(
+		&http.Client{
+			Transport: &http2.Transport{
+				AllowHTTP: true,
+				DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+					// Use the standard Dial function to create a plain TCP connection
+					return net.Dial(network, u.Host)
+				},
+			},
+		},
+		baseURL,
+		connect.WithInterceptors(
+			connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+				return connect.UnaryFunc(func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+					// Add the cookie to the request headers
+					req.Header().Add("Cookie", cookie.String())
+					return next(ctx, req)
+				})
+			}),
+		),
+	).Generate(ctx, req)
 	if err != nil {
 		return blocks, errors.Wrapf(err, "Failed to create generate stream")
 	}
@@ -364,7 +350,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 	// Receive responses
 	for stream.Receive() {
 		response := stream.Msg()
-		for _, block := range response.Blocks {
+		for _, block := range response.Cells {
 			blocks[block.Id] = block
 		}
 	}
@@ -372,7 +358,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 		return blocks, errors.Wrapf(stream.Err(), "Error receiving response")
 	}
 	for _, block := range blocks {
-		log.Info(fmt.Sprintf("Received %d blocks. Type: %s, Role: %s, Contents: %s", len(blocks), block.Kind, block.Role, block.Contents))
+		log.Info(fmt.Sprintf("Received %d blocks. Type: %s, Role: %s, Contents: %s", len(blocks), block.Kind, block.Role, block.Value))
 	}
 	return blocks, nil
 }
@@ -454,7 +440,7 @@ func (r *markdownReport) Render() string {
 }
 
 // EvalFromExperiment runs an experiment based on the Experiment config.
-func EvalFromExperiment(exp *agentv1.Experiment, experimentFilePath string, cookie map[string]string, client *openai.Client, log logr.Logger) (map[string]*agentv1.Block, error) {
+func EvalFromExperiment(exp *agentv1.Experiment, experimentFilePath string, cookie map[string]string, client *openai.Client, log logr.Logger) (map[string]*parserv1.Cell, error) {
 	registry[agentv1.Assertion_TYPE_LLM_JUDGE] = NewLlmJudge(client)
 	// Resolve dataset path relative to experiment file path if needed
 	datasetPath := exp.Spec.GetDatasetPath()

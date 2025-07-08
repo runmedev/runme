@@ -257,7 +257,7 @@ func (s *Server) registerServices() error {
 	}
 
 	if s.agent != nil {
-		aiSvcPath, aiSvcHandler := agentv1connect.NewBlocksServiceHandler(s.agent, connect.WithInterceptors(interceptors...))
+		aiSvcPath, aiSvcHandler := agentv1connect.NewMessagesServiceHandler(s.agent, connect.WithInterceptors(interceptors...))
 		log.Info("Setting up AI service", "path", aiSvcPath)
 		// Protect the AI service
 		mux.HandleProtected(aiSvcPath, aiSvcHandler, s.checker, api.AgentUserRole)
