@@ -18,9 +18,13 @@
         "formatting.gofumpt": true,
         "formatting.local": "github.com/runmedev/runme"
     },
-    "makefile.configureOnOpen": false
+    "makefile.configureOnOpen": false,
     // Uncomment if you want to work on files in ./web.
     // "go.buildTags": "js,wasm",
     // Uncomment if you want to check compilation errors on Windows.
     // "go.buildTags": "windows"
+    "go.testEnvVars": {
+        // "RUN_MANUAL_TESTS": "true", // TODO: Uncomment this to run manual tests.
+        "GITHUB_REPOSITORY_OWNER": "runmedev"
+    }
 }

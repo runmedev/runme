@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
+	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -38,6 +39,7 @@ import (
 const testAppName = "runme-agent"
 
 func Test_HealthCheck(t *testing.T) {
+	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
 	// Try sending a healthcheck to the given server.
 	// This is solely for the purpose of trying to reproduce the grpc-trailer issue
 	SkipIfMissing(t, "RUN_MANUAL_TESTS")
@@ -50,8 +52,19 @@ func Test_HealthCheck(t *testing.T) {
 	if err := app.SetupLogging(); err != nil {
 		t.Fatalf("Error setting up logging; %v", err)
 	}
-	addr := "https://localhost:9080"
-	if err := waitForServer(addr); err != nil {
+	cfg := app.GetConfig()
+	c := *cfg
+	c.AssistantServer = &config.AssistantServerConfig{
+		Port:         9080,
+		StaticAssets: cfg.AssistantServer.StaticAssets,
+	}
+
+	go func() {
+		if err := setupAndRunServer(c); err != nil {
+			log.Error(err, "Error running server")
+		}
+	}()
+	if _, err := waitForServer(c); err != nil {
 		t.Fatalf("Error waiting for server; %v", err)
 	}
 	t.Logf("Server started")
@@ -82,7 +95,6 @@ func Test_GenerateBlocks(t *testing.T) {
 		cfg.AssistantServer = &config.AssistantServerConfig{}
 	}
 	cfg.AssistantServer.Port = port
-	addr := fmt.Sprintf("https://localhost:%v", cfg.AssistantServer.Port)
 
 	go func() {
 		if err := setupAndRunServer(*cfg); err != nil {
@@ -92,7 +104,8 @@ func Test_GenerateBlocks(t *testing.T) {
 
 	// N.B. There's probably a race condition here because the client might start before the server is fully up.
 	// Or maybe that's implicitly handled because the connection won't succeed until the server is up?
-	if err := waitForServer(addr); err != nil {
+	addr, err := waitForServer(*cfg)
+	if err != nil {
 		t.Fatalf("Error waiting for server; %v", err)
 	}
 
@@ -187,13 +200,18 @@ func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 		)
 	}
 
+	contents := "Show me all the AKS clusters at OpenAI"
+	if os.Getenv("GITHUB_REPOSITORY_OWNER") == "runmedev" {
+		contents = "launch a psql session against the staging database as documented"
+	}
+
 	ctx := context.Background()
 	genReq := &agentv1.GenerateRequest{
 		Blocks: []*agentv1.Block{
 			{
 				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
 				Role:     agentv1.BlockRole_BLOCK_ROLE_USER,
-				Contents: "Show me all the AKS clusters at OpenAI",
+				Contents: contents,
 			},
 		},
 	}
@@ -233,7 +251,7 @@ func runAIClient(baseURL string) (map[string]*agentv1.Block, error) {
 	return blocks, nil
 }
 
-func Test_ExecuteWithRunme(t *testing.T) {
+func Test_ExecuteWithRunmeStream(t *testing.T) {
 	SkipIfMissing(t, "RUN_MANUAL_TESTS")
 
 	app := application.NewApp(testAppName)
@@ -241,7 +259,6 @@ func Test_ExecuteWithRunme(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error loading config; %v", err)
 	}
-	cfg := app.AppConfig
 
 	if err := app.SetupLogging(); err != nil {
 		t.Fatalf("Error setting up logging; %v", err)
@@ -249,32 +266,18 @@ func Test_ExecuteWithRunme(t *testing.T) {
 
 	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
 
-	port, err := networking.GetFreePort()
-	if err != nil {
-		t.Fatalf("Error getting free port; %v", err)
-	}
-
-	if cfg.AssistantServer == nil {
-		cfg.AssistantServer = &config.AssistantServerConfig{}
-	}
-	cfg.AssistantServer.Port = port
 	// N.B. Server currently needs to be started manually. Should we start it autommatically?
-	addr := fmt.Sprintf("http://localhost:%v", cfg.AssistantServer.Port)
-	go func() {
-		c := app.GetConfig()
-		if err := setupAndRunServer(*c); err != nil {
-			log.Error(err, "Error running server")
-		}
-	}()
+	cfg := app.GetConfig()
 
 	// N.B. There's probably a race condition here because the client might start before the server is fully up.
 	// Or maybe that's implicitly handled because the connection won't succeed until the server is up?
-	if err := waitForServer(addr); err != nil {
+	addr, err := waitForServer(*cfg)
+	if err != nil {
 		t.Fatalf("Error waiting for server; %v", err)
 	}
 
 	log.Info("Server started")
-	_, err = runRunmeClient(addr)
+	_, err = runWebsocketClient(addr)
 	if err != nil {
 		t.Fatalf("Error running client for addres %v; %v", addr, err)
 	}
@@ -291,7 +294,6 @@ func Test_ExecuteWithRunmeConcurrent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error loading config; %v", err)
 	}
-	cfg := app.AppConfig
 
 	if err := app.SetupLogging(); err != nil {
 		t.Fatalf("Error setting up logging; %v", err)
@@ -299,32 +301,18 @@ func Test_ExecuteWithRunmeConcurrent(t *testing.T) {
 
 	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
 
-	port, err := networking.GetFreePort()
-	if err != nil {
-		t.Fatalf("Error getting free port; %v", err)
-	}
-
-	if cfg.AssistantServer == nil {
-		cfg.AssistantServer = &config.AssistantServerConfig{}
-	}
-	cfg.AssistantServer.Port = port
 	// N.B. Server currently needs to be started manually. Should we start it autommatically?
-	addr := fmt.Sprintf("http://localhost:%v", cfg.AssistantServer.Port)
-	go func() {
-		c := app.GetConfig()
-		if err := setupAndRunServer(*c); err != nil {
-			log.Error(err, "Error running server")
-		}
-	}()
+	cfg := app.GetConfig()
 
 	// N.B. There's probably a race condition here because the client might start before the server is fully up.
 	// Or maybe that's implicitly handled because the connection won't succeed until the server is up?
-	if err := waitForServer(addr); err != nil {
+	addr, err := waitForServer(*cfg)
+	if err != nil {
 		t.Fatalf("Error waiting for server; %v", err)
 	}
 
 	log.Info("Server started")
-	_, err = runRunmeClientConcurrent(addr)
+	_, err = runWebsocketClientConcurrent(addr)
 	if err != nil {
 		t.Fatalf("Error running client for addres %v; %v", addr, err)
 	}
@@ -370,37 +358,48 @@ func setupAndRunServer(cfg config.Config) error {
 	return nil
 }
 
-func waitForServer(addr string) error {
+func waitForServer(cfg config.Config) (string, error) {
+	addr := fmt.Sprintf("https://localhost:%d", cfg.AssistantServer.Port)
+	if cfg.AssistantServer.TLSConfig == nil {
+		addr = fmt.Sprintf("http://localhost:%d", cfg.AssistantServer.Port)
+	}
+
+	u, err := url.Parse(addr)
+	if err != nil {
+		return "", errors.Wrapf(err, "Failed to parse URL")
+	}
+
 	log := zapr.NewLogger(zap.L())
 	log.Info("Waiting for server to start", "address", addr)
 	endTime := time.Now().Add(30 * time.Second)
 	wait := 2 * time.Second
 	for time.Now().Before(endTime) {
-
-		// 1. Create a custom transport that skips TLS verification
-		// Important we need to use http2.Transport to support HTTP/2 and properly handle trailers with gRPCWeb
-		customTransport := &http2.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // ⚠️ Accept ANY cert (dangerous in production!)
-
-			},
-			DialTLSContext: func(ctx context.Context, network, addr string, config *tls.Config) (net.Conn, error) {
-				// Create a secure connection with TLS
-				return tls.Dial(network, addr, config)
-			},
-		}
-
-		// 2. Create an HTTP client using the custom transport
-		customHTTPClient := &http.Client{
-			Timeout:   10 * time.Second,
-			Transport: customTransport,
+		var customHTTPClient *http.Client
+		if u.Scheme == "https" {
+			customTransport := &http2.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true, // ⚠️ Accept ANY cert (dangerous in production!)
+				},
+				DialTLSContext: func(ctx context.Context, network, addr string, config *tls.Config) (net.Conn, error) {
+					// Create a secure connection with TLS
+					return tls.Dial(network, addr, config)
+				},
+			}
+			customHTTPClient = &http.Client{
+				Timeout:   10 * time.Second,
+				Transport: customTransport,
+			}
+		} else {
+			customTransport := &http.Transport{}
+			customHTTPClient = &http.Client{
+				Timeout:   10 * time.Second,
+				Transport: customTransport,
+			}
 		}
 
 		client := connect.NewClient[grpc_health_v1.HealthCheckRequest, grpc_health_v1.HealthCheckResponse](
 			customHTTPClient,
-			// http.DefaultClient,
 			addr+"/grpc.health.v1.Health/Check", // Adjust if using a different route
-			// N.B. We use GRPCWeb to mimic what the frontend does. The frontend will use GRPCWeb to support streaming.
 			connect.WithGRPCWeb(),
 		)
 
@@ -411,15 +410,26 @@ func waitForServer(addr string) error {
 		}
 
 		if resp.Msg.GetStatus() == grpc_health_v1.HealthCheckResponse_SERVING {
-			return nil
+			return addr, nil
 		} else {
 			log.Info("Server not ready", "status", resp.Msg.GetStatus())
 		}
 	}
-	return errors.Errorf("Server didn't start in time")
+	return "", errors.Errorf("Server didn't start in time")
 }
 
-func runRunmeClient(baseURL string) (map[string]any, error) {
+func dialWebsocketConn(runID string, base *url.URL) (*websocket.Conn, error) {
+	rawQuery := fmt.Sprintf("runID=%s&id=%s", runID, uuid.NewString())
+	u := url.URL{Scheme: "ws", Host: base.Host, Path: "/ws", RawQuery: rawQuery}
+
+	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to dial; %v", err)
+	}
+	return c, nil
+}
+
+func runWebsocketClient(baseURL string) (map[string]any, error) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
@@ -433,39 +443,48 @@ func runRunmeClient(baseURL string) (map[string]any, error) {
 		return blocks, errors.Wrapf(err, "Failed to parse URL")
 	}
 
-	u := url.URL{Scheme: "ws", Host: base.Host, Path: "/ws"}
-	log.Info("connecting to", "host", u.String())
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	run1 := uuid.NewString()
+	c1, err := dialWebsocketConn(run1, base)
 	if err != nil {
-		return blocks, errors.Wrapf(err, "Failed to dial; %v", err)
+		return blocks, err
 	}
 	defer func() {
-		if err := c.Close(); err != nil {
+		if err := c1.Close(); err != nil {
 			log.Error(err, "Could not close websocket")
 		}
 	}()
 
 	// Send one command
-	if err := sendExecuteRequest(c, newExecuteRequest([]string{"ls -la"})); err != nil {
+	if err := sendExecuteRequest(c1, newExecuteRequest(run1, []string{"ls -la"})); err != nil {
 		return blocks, errors.Wrapf(err, "Failed to send execute request; %v", err)
 	}
 
 	// Wait for the command to finish.
-	block, err := waitForCommandToFinish(c)
+	block, err := waitForCommandToFinish(c1)
 	if err != nil {
 		return blocks, errors.Wrapf(err, "Failed to wait for command to finish; %v", err)
 	}
 
 	log.Info("Block", "block", logs.ZapProto("block", block))
 
+	run2 := uuid.NewString()
+	c2, err := dialWebsocketConn(run2, base)
+	if err != nil {
+		return blocks, err
+	}
+	defer func() {
+		if err := c2.Close(); err != nil {
+			log.Error(err, "Could not close websocket")
+		}
+	}()
+
 	// Send second command
-	if err := sendExecuteRequest(c, newExecuteRequest([]string{"echo The date is $(DATE)"})); err != nil {
+	if err := sendExecuteRequest(c2, newExecuteRequest(run2, []string{"echo The date is $(DATE)"})); err != nil {
 		return blocks, errors.Wrapf(err, "Failed to send execute request; %v", err)
 	}
 
 	// Wait for the command to finish.
-	block, err = waitForCommandToFinish(c)
+	block, err = waitForCommandToFinish(c2)
 	if err != nil {
 		return blocks, errors.Wrapf(err, "Failed to wait for command to finish; %v", err)
 	}
@@ -475,7 +494,7 @@ func runRunmeClient(baseURL string) (map[string]any, error) {
 	return blocks, nil
 }
 
-func runRunmeClientConcurrent(baseURL string) (map[string]any, error) {
+func runWebsocketClientConcurrent(baseURL string) (map[string]any, error) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
@@ -489,32 +508,50 @@ func runRunmeClientConcurrent(baseURL string) (map[string]any, error) {
 		return blocks, errors.Wrapf(err, "Failed to parse URL")
 	}
 
-	u := url.URL{Scheme: "ws", Host: base.Host, Path: "/ws"}
-	log.Info("connecting to", "host", u.String())
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	run1 := uuid.NewString()
+	c1, err := dialWebsocketConn(run1, base)
 	if err != nil {
 		return blocks, errors.Wrapf(err, "Failed to dial; %v", err)
 	}
 	defer func() {
-		if err := c.Close(); err != nil {
+		if err := c1.Close(); err != nil {
 			log.Error(err, "Could not close websocket")
 		}
 	}()
 
-	req := newExecuteRequest([]string{`
-for i in {1..10}
+	req1 := newExecuteRequest(run1, []string{`
+for i in {1..5}
 do
   echo "hello world - from 1"
   sleep 1
 done`})
 
 	// Send one command
-	if err := sendExecuteRequest(c, req); err != nil {
+	if err := sendExecuteRequest(c1, req1); err != nil {
 		return blocks, errors.Wrapf(err, "Failed to send execute request; %v", err)
 	}
 
-	req2 := newExecuteRequest([]string{`
+	go func() {
+		block1, err := waitForCommandToFinish(c1)
+		if err != nil {
+			log.Error(err, "Failed to wait for command to finish (non-blocking)")
+			return
+		}
+		log.Info("Block", "block1", logs.ZapProto("block", block1))
+		blocks[run1] = block1
+	}()
+
+	run2 := uuid.NewString()
+	c2, err := dialWebsocketConn(run2, base)
+	if err != nil {
+		return blocks, errors.Wrapf(err, "Failed to dial; %v", err)
+	}
+	defer func() {
+		if err := c2.Close(); err != nil {
+			log.Error(err, "Could not close websocket")
+		}
+	}()
+	req2 := newExecuteRequest(run2, []string{`
 for i in {1..10}
 do
   echo "hello world - from 2"
@@ -522,32 +559,39 @@ do
 done`})
 
 	// Send second command
-	if err := sendExecuteRequest(c, req2); err != nil {
+	if err := sendExecuteRequest(c2, req2); err != nil {
 		return blocks, errors.Wrapf(err, "Failed to send execute request; %v", err)
 	}
 
 	// Wait for the command to finish.
-	block, err := waitForCommandToFinish(c)
+	block, err := waitForCommandToFinish(c2)
 	if err != nil {
 		return blocks, errors.Wrapf(err, "Failed to wait for command to finish; %v", err)
 	}
 
-	log.Info("Block", "block", logs.ZapProto("block", block))
+	log.Info("Block", "block2", logs.ZapProto("block", block))
+	blocks[run2] = block
+
+	if len(blocks) != 2 {
+		return blocks, errors.Errorf("Expected 2 blocks; got %d", len(blocks))
+	}
 
 	return blocks, nil
 }
 
 // newExecuteRequest is a helper function to create an ExecuteRequest.
-func newExecuteRequest(commands []string) *v2.ExecuteRequest {
+func newExecuteRequest(runID string, commands []string) *v2.ExecuteRequest {
+	knownID := uuid.NewString()
 	executeRequest := &v2.ExecuteRequest{
 		Config: &v2.ProgramConfig{
+			RunId:         runID,
 			ProgramName:   "/bin/zsh",
 			Arguments:     make([]string, 0),
 			LanguageId:    "sh",
 			Background:    false,
 			FileExtension: "",
 			Env: []string{
-				`RUNME_ID=${blockID}`,
+				"RUNME_ID=" + knownID,
 				"RUNME_RUNNER=v2",
 				"TERM=xterm-256color",
 			},
@@ -558,7 +602,7 @@ func newExecuteRequest(commands []string) *v2.ExecuteRequest {
 			},
 			Interactive: true,
 			Mode:        v2.CommandMode_COMMAND_MODE_INLINE,
-			KnownId:     uuid.NewString(),
+			KnownId:     knownID,
 		},
 		Winsize: &v2.Winsize{Rows: 34, Cols: 100, X: 0, Y: 0},
 	}
@@ -568,6 +612,8 @@ func newExecuteRequest(commands []string) *v2.ExecuteRequest {
 // sendExecuteRequest sends an ExecuteRequest to the server.
 func sendExecuteRequest(c *websocket.Conn, executeRequest *v2.ExecuteRequest) error {
 	socketRequest := &streamv1.WebsocketRequest{
+		KnownId: executeRequest.GetConfig().GetKnownId(),
+		RunId:   executeRequest.GetConfig().GetRunId(),
 		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: executeRequest,
 		},
@@ -612,6 +658,9 @@ func waitForCommandToFinish(c *websocket.Conn) (*agentv1.Block, error) {
 		if err := protojson.Unmarshal(message, response); err != nil {
 			log.Error(err, "Failed to unmarshal message")
 			return block, errors.Wrapf(err, "Failed to unmarshal message; %v", err)
+		}
+		if response.GetStatus() != nil && response.GetStatus().GetCode() != code.Code_OK {
+			return block, errors.New(response.GetStatus().GetMessage())
 		}
 		if response.GetExecuteResponse() != nil {
 			resp := response.GetExecuteResponse()
