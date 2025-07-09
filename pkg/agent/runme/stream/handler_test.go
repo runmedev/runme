@@ -140,11 +140,14 @@ func TestRunmeHandler_Roundtrip(t *testing.T) {
 		return
 	}
 
+	knownID := genULID()
 	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
-		RunId: runID.String(),
+		RunId:   runID.String(),
+		KnownId: knownID.String(),
 		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
+					KnownId: knownID.String(),
 					Source: &v2.ProgramConfig_Commands{
 						Commands: &v2.ProgramConfig_CommandList{
 							Items: []string{"echo", "hi"},
@@ -518,11 +521,14 @@ func TestRunmeHandler_MutliClient(t *testing.T) {
 		connections = append(connections, sc)
 	}
 
+	knownID := genULID()
 	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
-		RunId: runID.String(),
+		RunId:   runID.String(),
+		KnownId: knownID.String(),
 		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
+					KnownId: knownID.String(),
 					Source: &v2.ProgramConfig_Commands{
 						Commands: &v2.ProgramConfig_CommandList{
 							Items: []string{"echo", "hi"},

@@ -126,7 +126,7 @@ func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc
 			}
 
 			// Check if the knownID matches the one in the request.
-			if req.GetKnownId() != s.knownID {
+			if s.knownID == "" || req.GetKnownId() != s.knownID {
 				log.Error(err, "KnownID mismatch", "streamID", streamID, "knownID", req.GetKnownId(), "expectedKnownID", s.knownID)
 				sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, errors.New("KnownID mismatch"))
 				return err
