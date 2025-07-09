@@ -42,10 +42,7 @@ func CellToBlock(cell *parserv1.Cell) (*parserv1.Cell, error) {
 	}
 
 	cOutputs := make([]*parserv1.CellOutput, 0, len(cell.Outputs))
-
-	for _, output := range cell.Outputs {
-		cOutputs = append(cOutputs, output)
-	}
+	cOutputs = append(cOutputs, cell.Outputs...)
 	blockKind := CellKindToBlockKind(cell.Kind)
 
 	id := ""

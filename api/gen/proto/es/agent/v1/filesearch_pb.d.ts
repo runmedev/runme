@@ -85,4 +85,3 @@ export declare type FileSearchResultJson = {
  * Use `create(FileSearchResultSchema)` to create a new message.
  */
 export declare const FileSearchResultSchema: GenMessage<FileSearchResult, FileSearchResultJson>;
-
