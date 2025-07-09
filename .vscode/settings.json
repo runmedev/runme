@@ -1,5 +1,5 @@
 {
-    "go.testTimeout": "10s",
+    "go.testTimeout": "30s",
     "go.buildFlags": [
         "-ldflags=-X=github.com/runmedev/runme/v3/internal/version.BuildVersion=99.9.9",
     ],
@@ -24,7 +24,7 @@
     // Uncomment if you want to check compilation errors on Windows.
     // "go.buildTags": "windows"
     "go.testEnvVars": {
-        // "RUN_MANUAL_TESTS": "true", // TODO: Uncomment this to run manual tests.
+        // "RUN_MANUAL_TESTS": "true", // Uncomment this to run manual tests.
         "GITHUB_REPOSITORY_OWNER": "runmedev"
     }
 }
