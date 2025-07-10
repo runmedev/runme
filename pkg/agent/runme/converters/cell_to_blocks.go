@@ -77,6 +77,11 @@ func GetCellID(cell *parserv1.Cell) string {
 			return id
 		}
 	}
+
+	if cell.RefId != "" {
+		return cell.RefId
+	}
+
 	return ""
 }
 

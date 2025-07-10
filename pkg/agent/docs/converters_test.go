@@ -172,7 +172,7 @@ func Test_MarkdownToBlocks(t *testing.T) {
 
 				opts := cmp.Options{
 					// ignore Id because it will be unique each time it gets run
-					cmpopts.IgnoreFields(parserv1.Cell{}, "Id"),
+					cmpopts.IgnoreFields(parserv1.Cell{}, "RefId"),
 				}
 
 				// Zero out the metadata field for id
