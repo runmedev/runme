@@ -590,7 +590,7 @@ class Cell$Type extends MessageType {
             { no: 5, name: "text_range", kind: "message", T: () => TextRange },
             { no: 6, name: "outputs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CellOutput },
             { no: 7, name: "execution_summary", kind: "message", T: () => CellExecutionSummary },
-            { no: 100, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 100, name: "ref_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 101, name: "role", kind: "enum", T: () => ["runme.parser.v1.CellRole", CellRole, "CELL_ROLE_"] },
             { no: 102, name: "call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 103, name: "doc_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DocResult }
@@ -603,7 +603,7 @@ class Cell$Type extends MessageType {
         message.languageId = "";
         message.metadata = {};
         message.outputs = [];
-        message.id = "";
+        message.refId = "";
         message.role = 0;
         message.callId = "";
         message.docResults = [];
@@ -637,8 +637,8 @@ class Cell$Type extends MessageType {
                 case /* runme.parser.v1.CellExecutionSummary execution_summary */ 7:
                     message.executionSummary = CellExecutionSummary.internalBinaryRead(reader, reader.uint32(), options, message.executionSummary);
                     break;
-                case /* string id */ 100:
-                    message.id = reader.string();
+                case /* string ref_id */ 100:
+                    message.refId = reader.string();
                     break;
                 case /* runme.parser.v1.CellRole role */ 101:
                     message.role = reader.int32();
@@ -698,9 +698,9 @@ class Cell$Type extends MessageType {
         /* runme.parser.v1.CellExecutionSummary execution_summary = 7; */
         if (message.executionSummary)
             CellExecutionSummary.internalBinaryWrite(message.executionSummary, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        /* string id = 100; */
-        if (message.id !== "")
-            writer.tag(100, WireType.LengthDelimited).string(message.id);
+        /* string ref_id = 100; */
+        if (message.refId !== "")
+            writer.tag(100, WireType.LengthDelimited).string(message.refId);
         /* runme.parser.v1.CellRole role = 101; */
         if (message.role !== 0)
             writer.tag(101, WireType.Varint).int32(message.role);

@@ -88,8 +88,8 @@ message Cell {
 
   /* AGENT SPECIFIC FIELDS (porting from Block) */
 
-  // ID is the unique identifier of the cell.
-  string id = 100;
+  // RefID is the agent's original unique identifier.
+  string ref_id = 100;
 
   // Role is the role of the cell, e.g. user or assistant.
   CellRole role = 101;

@@ -186,11 +186,11 @@ export interface Cell {
      */
     executionSummary?: CellExecutionSummary;
     /**
-     * ID is the unique identifier of the cell.
+     * RefID is the agent's original unique identifier.
      *
-     * @generated from protobuf field: string id = 100
+     * @generated from protobuf field: string ref_id = 100
      */
-    id: string;
+    refId: string;
     /**
      * Role is the role of the cell, e.g. user or assistant.
      *

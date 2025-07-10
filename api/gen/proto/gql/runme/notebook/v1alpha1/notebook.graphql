@@ -58,10 +58,10 @@ input CellInput {
 	"""
 	executionSummary: CellExecutionSummaryInput
 	"""
-	 ID is the unique identifier of the cell.
+	 RefID is the agent's original unique identifier.
 
 	"""
-	id: String
+	refId: String
 	"""
 	 Role is the role of the cell, e.g. user or assistant.
 

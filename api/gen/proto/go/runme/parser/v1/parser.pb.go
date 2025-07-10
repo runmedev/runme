@@ -641,8 +641,8 @@ type Cell struct {
 	Outputs []*CellOutput `protobuf:"bytes,6,rep,name=outputs,proto3" json:"outputs,omitempty"`
 	// ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
 	ExecutionSummary *CellExecutionSummary `protobuf:"bytes,7,opt,name=execution_summary,json=executionSummary,proto3" json:"execution_summary,omitempty"`
-	// ID is the unique identifier of the cell.
-	Id string `protobuf:"bytes,100,opt,name=id,proto3" json:"id,omitempty"`
+	// RefID is the agent's original unique identifier.
+	RefId string `protobuf:"bytes,100,opt,name=ref_id,json=refId,proto3" json:"ref_id,omitempty"`
 	// Role is the role of the cell, e.g. user or assistant.
 	Role CellRole `protobuf:"varint,101,opt,name=role,proto3,enum=runme.parser.v1.CellRole" json:"role,omitempty"`
 	// CallID is the unique identifier of the cell call.
@@ -732,9 +732,9 @@ func (x *Cell) GetExecutionSummary() *CellExecutionSummary {
 	return nil
 }
 
-func (x *Cell) GetId() string {
+func (x *Cell) GetRefId() string {
 	if x != nil {
-		return x.Id
+		return x.RefId
 	}
 	return ""
 }
@@ -1390,7 +1390,7 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\x06timing\x18\x03 \x01(\v2'.runme.parser.v1.ExecutionSummaryTimingR\x06timing\"3\n" +
 	"\tTextRange\x12\x14\n" +
 	"\x05start\x18\x01 \x01(\rR\x05start\x12\x10\n" +
-	"\x03end\x18\x02 \x01(\rR\x03end\"\xc5\x04\n" +
+	"\x03end\x18\x02 \x01(\rR\x03end\"\xcc\x04\n" +
 	"\x04Cell\x12-\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x19.runme.parser.v1.CellKindR\x04kind\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\x12\x1f\n" +
@@ -1400,8 +1400,8 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\n" +
 	"text_range\x18\x05 \x01(\v2\x1a.runme.parser.v1.TextRangeR\ttextRange\x125\n" +
 	"\aoutputs\x18\x06 \x03(\v2\x1b.runme.parser.v1.CellOutputR\aoutputs\x12R\n" +
-	"\x11execution_summary\x18\a \x01(\v2%.runme.parser.v1.CellExecutionSummaryR\x10executionSummary\x12\x0e\n" +
-	"\x02id\x18d \x01(\tR\x02id\x12-\n" +
+	"\x11execution_summary\x18\a \x01(\v2%.runme.parser.v1.CellExecutionSummaryR\x10executionSummary\x12\x15\n" +
+	"\x06ref_id\x18d \x01(\tR\x05refId\x12-\n" +
 	"\x04role\x18e \x01(\x0e2\x19.runme.parser.v1.CellRoleR\x04role\x12\x17\n" +
 	"\acall_id\x18f \x01(\tR\x06callId\x12;\n" +
 	"\vdoc_results\x18g \x03(\v2\x1a.runme.parser.v1.DocResultR\n" +
