@@ -30,7 +30,7 @@ func TestFillInToolcalls(t *testing.T) {
 			},
 			cachedCells: map[string]*parserv1.Cell{
 				"block1": {
-					Id:     "block1",
+					RefId:  "block1",
 					Kind:   parserv1.CellKind_CELL_KIND_CODE,
 					Value:  "print('Hello, world!')",
 					CallId: "call1",
@@ -43,7 +43,7 @@ func TestFillInToolcalls(t *testing.T) {
 				PreviousResponseId: "abc",
 				Cells: []*parserv1.Cell{
 					{
-						Id:     "block1",
+						RefId:  "block1",
 						Kind:   parserv1.CellKind_CELL_KIND_CODE,
 						Value:  "print('Hello, world!')",
 						CallId: "call1",
@@ -59,7 +59,7 @@ func TestFillInToolcalls(t *testing.T) {
 			},
 			cachedCells: map[string]*parserv1.Cell{
 				"block1": {
-					Id:     "block1",
+					RefId:  "block1",
 					Kind:   parserv1.CellKind_CELL_KIND_CODE,
 					Value:  "print('This was the original command!')",
 					CallId: "call1",
@@ -70,7 +70,7 @@ func TestFillInToolcalls(t *testing.T) {
 				Cells: []*parserv1.Cell{
 					// We want to ensure that the cell in the request takes precendence over the cache
 					{
-						Id:     "block1",
+						RefId:  "block1",
 						Kind:   parserv1.CellKind_CELL_KIND_CODE,
 						Value:  "print('Actual Command')",
 						CallId: "call1",
@@ -81,7 +81,7 @@ func TestFillInToolcalls(t *testing.T) {
 				PreviousResponseId: "abc",
 				Cells: []*parserv1.Cell{
 					{
-						Id:     "block1",
+						RefId:  "block1",
 						Kind:   parserv1.CellKind_CELL_KIND_CODE,
 						Value:  "print('Actual Command')",
 						CallId: "call1",

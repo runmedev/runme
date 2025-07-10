@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/pkg/agent/runme/converters"
 
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
@@ -43,7 +44,13 @@ func MarkdownToCells(mdText string) ([]*parserv1.Cell, error) {
 			}
 		}
 
+		id, ok := cell.Metadata[converters.RunmeIdField]
+		if !ok {
+			id = ulid.GenerateID()
+		}
+
 		cellPb := &parserv1.Cell{
+			RefId:      id,
 			Kind:       parserv1.CellKind(cell.Kind),
 			Value:      cell.Value,
 			LanguageId: cell.LanguageID,

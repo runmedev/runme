@@ -46,7 +46,7 @@ var cases = []testCase{
 		Doc: &Doc{
 			Cells: []*parserv1.Cell{
 				{
-					Id:         "1234",
+					RefId:      "1234",
 					LanguageId: "python",
 					Value:      "print('Hello World')",
 					Metadata: map[string]string{
@@ -97,7 +97,7 @@ var cases = []testCase{
 		Doc: &Doc{
 			Cells: []*parserv1.Cell{
 				{
-					Id:         "1234",
+					RefId:      "1234",
 					LanguageId: "python",
 					Value:      "print('Hello World')",
 					Metadata: map[string]string{

@@ -15,6 +15,7 @@ import (
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/docs"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
+	"github.com/runmedev/runme/v3/pkg/agent/runme/converters"
 )
 
 // CellsBuilder processes the stream of deltas from the responses API and turns them into
@@ -70,12 +71,12 @@ func (b *CellsBuilder) HandleEvents(ctx context.Context, events *ssestream.Strea
 			resp.Cells = append(resp.Cells, cell)
 
 			// Update the cell
-			b.cellsCache.Add(cell.Id, cell)
+			b.cellsCache.Add(cell.RefId, cell)
 
 			// N.B. This ends up including code cells which we parsed out of the markdown and therefore ones which
 			// the AI didn't actually generate. Do we want to filter those out?
 			if cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
-				previousIDs = append(previousIDs, cell.Id)
+				previousIDs = append(previousIDs, cell.RefId)
 			}
 		}
 
@@ -159,7 +160,11 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 		cell, ok = b.cells[itemID]
 		if !ok {
 			cell = &parserv1.Cell{
-				Id:    itemID,
+				RefId: itemID,
+				Metadata: map[string]string{
+					converters.IdField:      itemID,
+					converters.RunmeIdField: itemID,
+				},
 				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
 				Value: "",
 				Role:  parserv1.CellRole_CELL_ROLE_ASSISTANT,
@@ -191,7 +196,11 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 		if !ok {
 			// There is no existing cell so we need to initialize a new one.
 			cell = &parserv1.Cell{
-				Id:     itemID,
+				RefId: itemID,
+				Metadata: map[string]string{
+					converters.IdField:      itemID,
+					converters.RunmeIdField: itemID,
+				},
 				Kind:   parserv1.CellKind_CELL_KIND_CODE,
 				Value:  "",
 				Role:   parserv1.CellRole_CELL_ROLE_ASSISTANT,
@@ -225,7 +234,11 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 		cell, ok = b.cells[itemID]
 		if !ok {
 			cell = &parserv1.Cell{
-				Id:     itemID,
+				RefId: itemID,
+				Metadata: map[string]string{
+					converters.IdField:      itemID,
+					converters.RunmeIdField: itemID,
+				},
 				Kind:   parserv1.CellKind_CELL_KIND_CODE,
 				Value:  "",
 				Role:   parserv1.CellRole_CELL_ROLE_ASSISTANT,
@@ -319,7 +332,11 @@ func (b *CellsBuilder) fileSearchDoneItemToCell(ctx context.Context, item respon
 	cell, ok = b.cells[item.ID]
 	if !ok {
 		cell = &parserv1.Cell{
-			Id:         item.ID,
+			RefId: item.ID,
+			Metadata: map[string]string{
+				converters.IdField:      item.ID,
+				converters.RunmeIdField: item.ID,
+			},
 			Kind:       parserv1.CellKind_CELL_KIND_DOC_RESULTS,
 			Role:       parserv1.CellRole_CELL_ROLE_ASSISTANT,
 			DocResults: make([]*parserv1.DocResult, 0),

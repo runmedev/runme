@@ -87,7 +87,7 @@ func Test_Agent(t *testing.T) {
 	req := &agentv1.GenerateRequest{
 		Cells: []*parserv1.Cell{
 			{
-				Id:    "1",
+				RefId: "1",
 				Value: "Use kubectl to tell me the current status of the rube-dev deployment in the a0s context? Do not rely on outdated documents.",
 				Role:  parserv1.CellRole_CELL_ROLE_USER,
 				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
@@ -113,7 +113,7 @@ func Test_Agent(t *testing.T) {
 	codeBlocks := make([]*parserv1.Cell, 0, len(resp.Cells))
 	for _, c := range resp.Cells {
 		if c.Kind == parserv1.CellKind_CELL_KIND_CODE {
-			t.Logf("Found code block with ID: %s", c.Id)
+			t.Logf("Found code block with ID: %s", c.RefId)
 			// Optionally, you can check the contents of the block
 			t.Logf("Code block contents: %s", c.Value)
 			matched := exCommand.Match([]byte(c.Value))
@@ -134,8 +134,8 @@ func Test_Agent(t *testing.T) {
 	}
 
 	for _, c := range codeBlocks {
-		if c.Id == "" {
-			t.Fatalf("Code block with ID %s does not have a CallId", c.Id)
+		if c.RefId == "" {
+			t.Fatalf("Code block with ID %s does not have a CallId", c.RefId)
 		}
 	}
 
@@ -190,7 +190,7 @@ func (s *ServerResponseStream) Send(e *agentv1.GenerateResponse) error {
 	s.Events = append(s.Events, e)
 
 	for _, c := range e.Cells {
-		s.Cells[c.Id] = c
+		s.Cells[c.RefId] = c
 	}
 	return nil
 }

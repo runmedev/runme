@@ -228,7 +228,7 @@ func runAIClient(baseURL string) (map[string]*parserv1.Cell, error) {
 		response := stream.Msg()
 
 		for _, cell := range response.Cells {
-			blocks[cell.Id] = cell
+			blocks[cell.RefId] = cell
 
 			options := protojson.MarshalOptions{
 				Multiline: true,

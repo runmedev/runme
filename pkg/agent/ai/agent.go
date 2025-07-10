@@ -346,7 +346,7 @@ func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []str
 	}
 
 	for _, c := range req.Cells {
-		delete(missingPrevBlocks, c.Id)
+		delete(missingPrevBlocks, c.RefId)
 	}
 
 	// If there are any missing function calls then add them

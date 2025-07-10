@@ -351,7 +351,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 	for stream.Receive() {
 		response := stream.Msg()
 		for _, block := range response.Cells {
-			blocks[block.Id] = block
+			blocks[block.RefId] = block
 		}
 	}
 	if stream.Err() != nil {

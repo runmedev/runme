@@ -51,7 +51,7 @@ func Test_ProcessEvent(t *testing.T) {
 			blocks: map[string]*parserv1.Cell{},
 			event:  *textDeltaEventUnion,
 			expectedBlock: &parserv1.Cell{
-				Id:    "abcd",
+				RefId: "abcd",
 				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
 				Role:  parserv1.CellRole_CELL_ROLE_ASSISTANT,
 				Value: "world",
@@ -61,14 +61,14 @@ func Test_ProcessEvent(t *testing.T) {
 			name: "TextDelta-accumulate",
 			blocks: map[string]*parserv1.Cell{
 				"abcd": {
-					Id:    "abcd",
+					RefId: "abcd",
 					Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
 					Value: "hello",
 				},
 			},
 			event: *textDeltaEventUnion,
 			expectedBlock: &parserv1.Cell{
-				Id:    "abcd",
+				RefId: "abcd",
 				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
 				Value: "helloworld",
 			},
@@ -83,9 +83,9 @@ func Test_ProcessEvent(t *testing.T) {
 			if err := b.ProcessEvent(context.TODO(), tc.event, NullOpSender); err != nil {
 				t.Fatalf("Failed to process event: %+v", err)
 			}
-			actual, ok := b.cells[tc.expectedBlock.Id]
+			actual, ok := b.cells[tc.expectedBlock.RefId]
 			if !ok {
-				t.Fatalf("Block %s not found", tc.expectedBlock.Id)
+				t.Fatalf("Block %s not found", tc.expectedBlock.RefId)
 			}
 
 			opts := cmpopts.IgnoreUnexported(parserv1.Cell{})

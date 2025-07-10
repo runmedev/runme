@@ -54,7 +54,7 @@ func CellToBlock(cell *parserv1.Cell) (*parserv1.Cell, error) {
 	}
 
 	return &parserv1.Cell{
-		Id:         id,
+		RefId:      id,
 		LanguageId: cell.LanguageId,
 		Value:      cell.Value,
 		Kind:       blockKind,
