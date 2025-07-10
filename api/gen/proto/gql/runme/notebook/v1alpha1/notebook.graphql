@@ -22,18 +22,71 @@ input CellExecutionSummaryInput {
 	timing: ExecutionSummaryTimingInput
 }
 input CellInput {
+	"""
+	 CellKind is the type of cell, e.g. markup or code.
+
+	"""
 	kind: CellKind
+	"""
+	 Value is the contents of the cell.
+
+	"""
 	value: String
+	"""
+	 LanguageID is the language of the cell.
+
+	"""
 	languageId: String
+	"""
+	 Metadata is additional metadata about the cell in k/v format.
+
+	"""
 	metadata: [Cell_MetadataEntryInput!]
+	"""
+	 TextRange is the range of the cell covering in the markdown source.
+
+	"""
 	textRange: TextRangeInput
+	"""
+	 Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
+
+	"""
 	outputs: [CellOutputInput!]
+	"""
+	 ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
+
+	"""
 	executionSummary: CellExecutionSummaryInput
+	"""
+	 RefID is the agent's original unique identifier.
+
+	"""
+	refId: String
+	"""
+	 Role is the role of the cell, e.g. user or assistant.
+
+	"""
+	role: CellRole
+	"""
+	 CallID is the unique identifier of the cell call.
+
+	"""
+	callId: String
+	"""
+	 DocResults are doc results for a cell returned by, e.g., file search
+
+	"""
+	docResults: [DocResultInput!]
 }
 enum CellKind {
 	CELL_KIND_UNSPECIFIED
 	CELL_KIND_MARKUP
 	CELL_KIND_CODE
+	"""
+	 todo(sebastian): is this needed?
+
+	"""
+	CELL_KIND_DOC_RESULTS
 }
 input CellOutputInput {
 	items: [CellOutputItemInput!]
@@ -53,6 +106,11 @@ input CellOutput_MetadataEntryInput {
 	key: String
 	value: String
 }
+enum CellRole {
+	CELL_ROLE_UNSPECIFIED
+	CELL_ROLE_USER
+	CELL_ROLE_ASSISTANT
+}
 input Cell_MetadataEntryInput {
 	key: String
 	value: String
@@ -63,6 +121,30 @@ enum CommandMode {
 	COMMAND_MODE_TEMP_FILE
 	COMMAND_MODE_TERMINAL
 	COMMAND_MODE_DAGGER
+}
+input DocResultInput {
+	"""
+	 The unique ID of the file.
+
+	"""
+	fileId: String
+	"""
+	 The name of the file.
+
+	"""
+	fileName: String
+	"""
+	 The relevance score of the file.
+
+	"""
+	score: Float
+	"""
+	 Link to display for this file
+
+	 TOO(jlewi): Should we include the file contents?
+
+	"""
+	link: String
 }
 input ExecutionSummaryTimingInput {
 	startTime: Int64ValueInput

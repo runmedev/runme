@@ -3,6 +3,7 @@ syntax = "proto3";
 package runme.parser.v1;
 
 import "google/protobuf/wrappers.proto";
+import "runme/parser/v1/docresult.proto";
 
 option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1;parserv1";
 
@@ -54,18 +55,53 @@ enum CellKind {
   CELL_KIND_UNSPECIFIED = 0;
   CELL_KIND_MARKUP = 1;
   CELL_KIND_CODE = 2;
+  CELL_KIND_DOC_RESULTS = 3; // todo(sebastian): is this needed?
+}
+
+enum CellRole {
+  CELL_ROLE_UNSPECIFIED = 0;
+  CELL_ROLE_USER = 1;
+  CELL_ROLE_ASSISTANT = 2;
 }
 
 message Cell {
+  // CellKind is the type of cell, e.g. markup or code.
   CellKind kind = 1;
+
+  // Value is the contents of the cell.
   string value = 2;
+
+  // LanguageID is the language of the cell.
   string language_id = 3;
+
+  // Metadata is additional metadata about the cell in k/v format.
   map<string, string> metadata = 4;
+
+  // TextRange is the range of the cell covering in the markdown source.
   TextRange text_range = 5;
+
+  // Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
   repeated CellOutput outputs = 6;
+
+  // ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
   CellExecutionSummary execution_summary = 7;
+
+  /* AGENT SPECIFIC FIELDS (porting from Block) */
+
+  // RefID is the agent's original unique identifier.
+  string ref_id = 100;
+
+  // Role is the role of the cell, e.g. user or assistant.
+  CellRole role = 101;
+
+  // CallID is the unique identifier of the cell call.
+  string call_id = 102;
+
+  // DocResults are doc results for a cell returned by, e.g., file search
+  repeated DocResult doc_results = 103;
 }
 
+// RunmeIdentity controls if unique identifiers are inserted if not present.
 enum RunmeIdentity {
   RUNME_IDENTITY_UNSPECIFIED = 0; // aka NONE
   RUNME_IDENTITY_ALL = 1;

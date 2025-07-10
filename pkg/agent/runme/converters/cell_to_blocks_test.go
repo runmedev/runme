@@ -8,7 +8,6 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/testutil"
 
-	agent "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 )
 
@@ -45,22 +44,22 @@ var cases = []testCase{
 			},
 		},
 		Doc: &Doc{
-			Blocks: []*agent.Block{
+			Cells: []*parserv1.Cell{
 				{
-					Id:       "1234",
-					Language: "python",
-					Contents: "print('Hello World')",
+					RefId:      "1234",
+					LanguageId: "python",
+					Value:      "print('Hello World')",
 					Metadata: map[string]string{
 						"id":          "1234",
 						"interactive": "false",
 					},
-					Kind: agent.BlockKind_BLOCK_KIND_CODE,
-					Outputs: []*agent.BlockOutput{
+					Kind: parserv1.CellKind_CELL_KIND_CODE,
+					Outputs: []*parserv1.CellOutput{
 						{
-							Items: []*agent.BlockOutputItem{
+							Items: []*parserv1.CellOutputItem{
 								{
-									TextData: "Hello World\n",
-									Mime:     "text/plain",
+									Data: []byte("Hello World\n"),
+									Mime: "text/plain",
 								},
 							},
 						},
@@ -96,21 +95,21 @@ var cases = []testCase{
 			},
 		},
 		Doc: &Doc{
-			Blocks: []*agent.Block{
+			Cells: []*parserv1.Cell{
 				{
-					Id:       "1234",
-					Language: "python",
-					Contents: "print('Hello World')",
+					RefId:      "1234",
+					LanguageId: "python",
+					Value:      "print('Hello World')",
 					Metadata: map[string]string{
 						"id": "1234",
 					},
-					Kind: agent.BlockKind_BLOCK_KIND_CODE,
-					Outputs: []*agent.BlockOutput{
+					Kind: parserv1.CellKind_CELL_KIND_CODE,
+					Outputs: []*parserv1.CellOutput{
 						{
-							Items: []*agent.BlockOutputItem{
+							Items: []*parserv1.CellOutputItem{
 								{
-									TextData: "Hello World\n",
-									Mime:     "text/plain",
+									Data: []byte("Hello World\n"),
+									Mime: "text/plain",
 								},
 							},
 						},
@@ -130,7 +129,7 @@ func Test_NotebookToDoc(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(c.Doc, actual, testutil.BlockComparer); diff != "" {
+			if diff := cmp.Diff(c.Doc, actual, testutil.CellComparer); diff != "" {
 				t.Errorf("Unexpected Diff:\n%v", diff)
 			}
 		})

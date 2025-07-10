@@ -12,23 +12,17 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
 	"github.com/runmedev/runme/v3/pkg/agent/runme"
 
 	v2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	streamv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1"
 )
-
-// todo(sebastian): reuses Runme's after moving it out under internal
-func genULID() ulid.ULID {
-	runID := ulid.MustNew(ulid.Timestamp(time.Now()), ulid.DefaultEntropy())
-	return runID
-}
 
 // dialWebSocket dials a websocket URL with a random id for testing and returns the connection, response, and error.
 func dialWebSocket(ts *httptest.Server, runID string) (*Connection, *http.Response, error) {
@@ -54,7 +48,7 @@ func TestWebSocketHandler_Handler_SwitchingProtocols(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
 	defer ts.Close()
 
-	sc, resp, err := dialWebSocket(ts, genULID().String())
+	sc, resp, err := dialWebSocket(ts, ulid.GenerateID())
 	if err != nil {
 		t.Errorf("Failed to dial websocket: %v", err)
 	}
@@ -133,21 +127,21 @@ func TestRunmeHandler_Roundtrip(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
 	defer ts.Close()
 
-	runID := genULID()
-	sc, _, err := dialWebSocket(ts, runID.String())
+	runID := ulid.GenerateID()
+	sc, _, err := dialWebSocket(ts, runID)
 	if err != nil {
 		t.Errorf("Failed to dial websocket: %v", err)
 		return
 	}
 
-	knownID := genULID()
+	knownID := ulid.GenerateID()
 	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
-		RunId:   runID.String(),
-		KnownId: knownID.String(),
+		RunId:   runID,
+		KnownId: knownID,
 		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
-					KnownId: knownID.String(),
+					KnownId: knownID,
 					Source: &v2.ProgramConfig_Commands{
 						Commands: &v2.ProgramConfig_CommandList{
 							Items: []string{"echo", "hi"},
@@ -225,8 +219,8 @@ func TestRunmeHandler_InactivityTimeout(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
 	defer ts.Close()
 
-	runID := genULID()
-	sc, _, err := dialWebSocket(ts, runID.String())
+	runID := ulid.GenerateID()
+	sc, _, err := dialWebSocket(ts, runID)
 	if err != nil {
 		t.Errorf("Failed to dial websocket: %v", err)
 	}
@@ -268,16 +262,16 @@ func TestRunmeHandler_DenyMismatchedRunID(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
 	defer ts.Close()
 
-	initRunID := genULID()
-	sc, _, err := dialWebSocket(ts, initRunID.String())
+	initRunID := ulid.GenerateID()
+	sc, _, err := dialWebSocket(ts, initRunID)
 	if err != nil {
 		t.Errorf("Failed to dial websocket: %v", err)
 		return
 	}
 
-	unrelatedRunID := genULID()
+	unrelatedRunID := ulid.GenerateID()
 	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
-		RunId: unrelatedRunID.String(),
+		RunId: unrelatedRunID,
 		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
@@ -349,19 +343,19 @@ func TestRunmeHandler_DenyMismatchedKnownID(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
 	defer ts.Close()
 
-	runID := genULID()
-	sc, _, err := dialWebSocket(ts, runID.String())
+	runID := ulid.GenerateID()
+	sc, _, err := dialWebSocket(ts, runID)
 	if err != nil {
 		t.Fatalf("Failed to dial websocket: %v", err)
 	}
 	defer func() { _ = sc.Close() }()
 
-	knownID1 := genULID()
-	knownID2 := genULID() // This is the mismatching one
+	knownID1 := ulid.GenerateID()
+	knownID2 := ulid.GenerateID() // This is the mismatching one
 
 	req1, _ := protojson.Marshal(&streamv1.WebsocketRequest{
-		KnownId: knownID1.String(),
-		RunId:   runID.String(),
+		KnownId: knownID1,
+		RunId:   runID,
 		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
@@ -375,8 +369,8 @@ func TestRunmeHandler_DenyMismatchedKnownID(t *testing.T) {
 		},
 	})
 	req2, _ := protojson.Marshal(&streamv1.WebsocketRequest{
-		KnownId: knownID2.String(), // Mismatched KnownID
-		RunId:   runID.String(),
+		KnownId: knownID2, // Mismatched KnownID
+		RunId:   runID,
 		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
@@ -430,7 +424,7 @@ func TestRunmeHandler_Ping(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
 	defer ts.Close()
 
-	sc, _, err := dialWebSocket(ts, genULID().String())
+	sc, _, err := dialWebSocket(ts, ulid.GenerateID())
 	if err != nil {
 		t.Fatalf("Failed to dial websocket: %v", err)
 	}
@@ -439,8 +433,8 @@ func TestRunmeHandler_Ping(t *testing.T) {
 	// Send a ping request with knownID and runID
 	ts1 := timestamppb.Now().AsTime().UnixMilli()
 	req1, _ := protojson.Marshal(&streamv1.WebsocketRequest{
-		KnownId: genULID().String(),
-		RunId:   genULID().String(),
+		KnownId: ulid.GenerateID(),
+		RunId:   ulid.GenerateID(),
 		Ping: &streamv1.Ping{
 			Timestamp: ts1,
 		},
@@ -455,8 +449,8 @@ func TestRunmeHandler_Ping(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	ts2 := timestamppb.Now().AsTime().UnixMilli()
 	req2, _ := protojson.Marshal(&streamv1.WebsocketRequest{
-		KnownId: genULID().String(),
-		RunId:   genULID().String(),
+		KnownId: ulid.GenerateID(),
+		RunId:   ulid.GenerateID(),
 		Ping: &streamv1.Ping{
 			Timestamp: ts2,
 		},
@@ -485,7 +479,7 @@ func TestRunmeHandler_Ping(t *testing.T) {
 }
 
 func TestRunmeHandler_MutliClient(t *testing.T) {
-	runID := genULID()
+	runID := ulid.GenerateID()
 	expectSequence := []string{"hello from mock runme", "bye bye"}
 
 	mockRunmeServer := newMockRunmeServer()
@@ -514,21 +508,21 @@ func TestRunmeHandler_MutliClient(t *testing.T) {
 	connections := make([]*Connection, 0, numSockets)
 
 	for i := range numSockets {
-		sc, _, err := dialWebSocket(ts, runID.String())
+		sc, _, err := dialWebSocket(ts, runID)
 		if err != nil {
 			t.Fatalf("Failed to dial websocket %d: %v", i+1, err)
 		}
 		connections = append(connections, sc)
 	}
 
-	knownID := genULID()
+	knownID := ulid.GenerateID()
 	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
-		RunId:   runID.String(),
-		KnownId: knownID.String(),
+		RunId:   runID,
+		KnownId: knownID,
 		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
 			ExecuteRequest: &v2.ExecuteRequest{
 				Config: &v2.ProgramConfig{
-					KnownId: knownID.String(),
+					KnownId: knownID,
 					Source: &v2.ProgramConfig_Commands{
 						Commands: &v2.ProgramConfig_CommandList{
 							Items: []string{"echo", "hi"},

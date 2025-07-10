@@ -13,6 +13,7 @@ import { WireType } from "@protobuf-ts/runtime";
 import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { DocResult } from "./docresult_pb";
 import { BoolValue } from "../../../google/protobuf/wrappers_pb";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 import { Int64Value } from "../../../google/protobuf/wrappers_pb";
@@ -33,8 +34,34 @@ export var CellKind;
      * @generated from protobuf enum value: CELL_KIND_CODE = 2;
      */
     CellKind[CellKind["CODE"] = 2] = "CODE";
+    /**
+     * todo(sebastian): is this needed?
+     *
+     * @generated from protobuf enum value: CELL_KIND_DOC_RESULTS = 3;
+     */
+    CellKind[CellKind["DOC_RESULTS"] = 3] = "DOC_RESULTS";
 })(CellKind || (CellKind = {}));
 /**
+ * @generated from protobuf enum runme.parser.v1.CellRole
+ */
+export var CellRole;
+(function (CellRole) {
+    /**
+     * @generated from protobuf enum value: CELL_ROLE_UNSPECIFIED = 0;
+     */
+    CellRole[CellRole["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: CELL_ROLE_USER = 1;
+     */
+    CellRole[CellRole["USER"] = 1] = "USER";
+    /**
+     * @generated from protobuf enum value: CELL_ROLE_ASSISTANT = 2;
+     */
+    CellRole[CellRole["ASSISTANT"] = 2] = "ASSISTANT";
+})(CellRole || (CellRole = {}));
+/**
+ * RunmeIdentity controls if unique identifiers are inserted if not present.
+ *
  * @generated from protobuf enum runme.parser.v1.RunmeIdentity
  */
 export var RunmeIdentity;
@@ -562,7 +589,11 @@ class Cell$Type extends MessageType {
             { no: 4, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 5, name: "text_range", kind: "message", T: () => TextRange },
             { no: 6, name: "outputs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CellOutput },
-            { no: 7, name: "execution_summary", kind: "message", T: () => CellExecutionSummary }
+            { no: 7, name: "execution_summary", kind: "message", T: () => CellExecutionSummary },
+            { no: 100, name: "ref_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 101, name: "role", kind: "enum", T: () => ["runme.parser.v1.CellRole", CellRole, "CELL_ROLE_"] },
+            { no: 102, name: "call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 103, name: "doc_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DocResult }
         ]);
     }
     create(value) {
@@ -572,6 +603,10 @@ class Cell$Type extends MessageType {
         message.languageId = "";
         message.metadata = {};
         message.outputs = [];
+        message.refId = "";
+        message.role = 0;
+        message.callId = "";
+        message.docResults = [];
         if (value !== undefined)
             reflectionMergePartial(this, message, value);
         return message;
@@ -601,6 +636,18 @@ class Cell$Type extends MessageType {
                     break;
                 case /* runme.parser.v1.CellExecutionSummary execution_summary */ 7:
                     message.executionSummary = CellExecutionSummary.internalBinaryRead(reader, reader.uint32(), options, message.executionSummary);
+                    break;
+                case /* string ref_id */ 100:
+                    message.refId = reader.string();
+                    break;
+                case /* runme.parser.v1.CellRole role */ 101:
+                    message.role = reader.int32();
+                    break;
+                case /* string call_id */ 102:
+                    message.callId = reader.string();
+                    break;
+                case /* repeated runme.parser.v1.DocResult doc_results */ 103:
+                    message.docResults.push(DocResult.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -651,6 +698,18 @@ class Cell$Type extends MessageType {
         /* runme.parser.v1.CellExecutionSummary execution_summary = 7; */
         if (message.executionSummary)
             CellExecutionSummary.internalBinaryWrite(message.executionSummary, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* string ref_id = 100; */
+        if (message.refId !== "")
+            writer.tag(100, WireType.LengthDelimited).string(message.refId);
+        /* runme.parser.v1.CellRole role = 101; */
+        if (message.role !== 0)
+            writer.tag(101, WireType.Varint).int32(message.role);
+        /* string call_id = 102; */
+        if (message.callId !== "")
+            writer.tag(102, WireType.LengthDelimited).string(message.callId);
+        /* repeated runme.parser.v1.DocResult doc_results = 103; */
+        for (let i = 0; i < message.docResults.length; i++)
+            DocResult.internalBinaryWrite(message.docResults[i], writer.tag(103, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

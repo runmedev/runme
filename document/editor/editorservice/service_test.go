@@ -442,8 +442,8 @@ func Test_parserServiceServer_Outputs(t *testing.T) {
 		assert.NoError(t, err)
 
 		var content []string
-		lines := strings.Split(string(resp.Result), "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(string(resp.Result), "\n")
+		for line := range lines {
 			if strings.HasPrefix(line, "    updated:") {
 				content = append(content, "    updated: 0000-00-00 00:00:00Z")
 				continue

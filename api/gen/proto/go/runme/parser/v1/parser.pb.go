@@ -29,6 +29,7 @@ const (
 	CellKind_CELL_KIND_UNSPECIFIED CellKind = 0
 	CellKind_CELL_KIND_MARKUP      CellKind = 1
 	CellKind_CELL_KIND_CODE        CellKind = 2
+	CellKind_CELL_KIND_DOC_RESULTS CellKind = 3 // todo(sebastian): is this needed?
 )
 
 // Enum value maps for CellKind.
@@ -37,11 +38,13 @@ var (
 		0: "CELL_KIND_UNSPECIFIED",
 		1: "CELL_KIND_MARKUP",
 		2: "CELL_KIND_CODE",
+		3: "CELL_KIND_DOC_RESULTS",
 	}
 	CellKind_value = map[string]int32{
 		"CELL_KIND_UNSPECIFIED": 0,
 		"CELL_KIND_MARKUP":      1,
 		"CELL_KIND_CODE":        2,
+		"CELL_KIND_DOC_RESULTS": 3,
 	}
 )
 
@@ -72,6 +75,56 @@ func (CellKind) EnumDescriptor() ([]byte, []int) {
 	return file_runme_parser_v1_parser_proto_rawDescGZIP(), []int{0}
 }
 
+type CellRole int32
+
+const (
+	CellRole_CELL_ROLE_UNSPECIFIED CellRole = 0
+	CellRole_CELL_ROLE_USER        CellRole = 1
+	CellRole_CELL_ROLE_ASSISTANT   CellRole = 2
+)
+
+// Enum value maps for CellRole.
+var (
+	CellRole_name = map[int32]string{
+		0: "CELL_ROLE_UNSPECIFIED",
+		1: "CELL_ROLE_USER",
+		2: "CELL_ROLE_ASSISTANT",
+	}
+	CellRole_value = map[string]int32{
+		"CELL_ROLE_UNSPECIFIED": 0,
+		"CELL_ROLE_USER":        1,
+		"CELL_ROLE_ASSISTANT":   2,
+	}
+)
+
+func (x CellRole) Enum() *CellRole {
+	p := new(CellRole)
+	*p = x
+	return p
+}
+
+func (x CellRole) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CellRole) Descriptor() protoreflect.EnumDescriptor {
+	return file_runme_parser_v1_parser_proto_enumTypes[1].Descriptor()
+}
+
+func (CellRole) Type() protoreflect.EnumType {
+	return &file_runme_parser_v1_parser_proto_enumTypes[1]
+}
+
+func (x CellRole) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CellRole.Descriptor instead.
+func (CellRole) EnumDescriptor() ([]byte, []int) {
+	return file_runme_parser_v1_parser_proto_rawDescGZIP(), []int{1}
+}
+
+// RunmeIdentity controls if unique identifiers are inserted if not present.
 type RunmeIdentity int32
 
 const (
@@ -108,11 +161,11 @@ func (x RunmeIdentity) String() string {
 }
 
 func (RunmeIdentity) Descriptor() protoreflect.EnumDescriptor {
-	return file_runme_parser_v1_parser_proto_enumTypes[1].Descriptor()
+	return file_runme_parser_v1_parser_proto_enumTypes[2].Descriptor()
 }
 
 func (RunmeIdentity) Type() protoreflect.EnumType {
-	return &file_runme_parser_v1_parser_proto_enumTypes[1]
+	return &file_runme_parser_v1_parser_proto_enumTypes[2]
 }
 
 func (x RunmeIdentity) Number() protoreflect.EnumNumber {
@@ -121,7 +174,7 @@ func (x RunmeIdentity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RunmeIdentity.Descriptor instead.
 func (RunmeIdentity) EnumDescriptor() ([]byte, []int) {
-	return file_runme_parser_v1_parser_proto_rawDescGZIP(), []int{1}
+	return file_runme_parser_v1_parser_proto_rawDescGZIP(), []int{2}
 }
 
 type Notebook struct {
@@ -573,16 +626,31 @@ func (x *TextRange) GetEnd() uint32 {
 }
 
 type Cell struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Kind             CellKind               `protobuf:"varint,1,opt,name=kind,proto3,enum=runme.parser.v1.CellKind" json:"kind,omitempty"`
-	Value            string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	LanguageId       string                 `protobuf:"bytes,3,opt,name=language_id,json=languageId,proto3" json:"language_id,omitempty"`
-	Metadata         map[string]string      `protobuf:"bytes,4,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	TextRange        *TextRange             `protobuf:"bytes,5,opt,name=text_range,json=textRange,proto3" json:"text_range,omitempty"`
-	Outputs          []*CellOutput          `protobuf:"bytes,6,rep,name=outputs,proto3" json:"outputs,omitempty"`
-	ExecutionSummary *CellExecutionSummary  `protobuf:"bytes,7,opt,name=execution_summary,json=executionSummary,proto3" json:"execution_summary,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// CellKind is the type of cell, e.g. markup or code.
+	Kind CellKind `protobuf:"varint,1,opt,name=kind,proto3,enum=runme.parser.v1.CellKind" json:"kind,omitempty"`
+	// Value is the contents of the cell.
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	// LanguageID is the language of the cell.
+	LanguageId string `protobuf:"bytes,3,opt,name=language_id,json=languageId,proto3" json:"language_id,omitempty"`
+	// Metadata is additional metadata about the cell in k/v format.
+	Metadata map[string]string `protobuf:"bytes,4,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// TextRange is the range of the cell covering in the markdown source.
+	TextRange *TextRange `protobuf:"bytes,5,opt,name=text_range,json=textRange,proto3" json:"text_range,omitempty"`
+	// Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
+	Outputs []*CellOutput `protobuf:"bytes,6,rep,name=outputs,proto3" json:"outputs,omitempty"`
+	// ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
+	ExecutionSummary *CellExecutionSummary `protobuf:"bytes,7,opt,name=execution_summary,json=executionSummary,proto3" json:"execution_summary,omitempty"`
+	// RefID is the agent's original unique identifier.
+	RefId string `protobuf:"bytes,100,opt,name=ref_id,json=refId,proto3" json:"ref_id,omitempty"`
+	// Role is the role of the cell, e.g. user or assistant.
+	Role CellRole `protobuf:"varint,101,opt,name=role,proto3,enum=runme.parser.v1.CellRole" json:"role,omitempty"`
+	// CallID is the unique identifier of the cell call.
+	CallId string `protobuf:"bytes,102,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
+	// DocResults are doc results for a cell returned by, e.g., file search
+	DocResults    []*DocResult `protobuf:"bytes,103,rep,name=doc_results,json=docResults,proto3" json:"doc_results,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Cell) Reset() {
@@ -660,6 +728,34 @@ func (x *Cell) GetOutputs() []*CellOutput {
 func (x *Cell) GetExecutionSummary() *CellExecutionSummary {
 	if x != nil {
 		return x.ExecutionSummary
+	}
+	return nil
+}
+
+func (x *Cell) GetRefId() string {
+	if x != nil {
+		return x.RefId
+	}
+	return ""
+}
+
+func (x *Cell) GetRole() CellRole {
+	if x != nil {
+		return x.Role
+	}
+	return CellRole_CELL_ROLE_UNSPECIFIED
+}
+
+func (x *Cell) GetCallId() string {
+	if x != nil {
+		return x.CallId
+	}
+	return ""
+}
+
+func (x *Cell) GetDocResults() []*DocResult {
+	if x != nil {
+		return x.DocResults
 	}
 	return nil
 }
@@ -1257,7 +1353,7 @@ var File_runme_parser_v1_parser_proto protoreflect.FileDescriptor
 
 const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\n" +
-	"\x1crunme/parser/v1/parser.proto\x12\x0frunme.parser.v1\x1a\x1egoogle/protobuf/wrappers.proto\"\xf9\x01\n" +
+	"\x1crunme/parser/v1/parser.proto\x12\x0frunme.parser.v1\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1frunme/parser/v1/docresult.proto\"\xf9\x01\n" +
 	"\bNotebook\x12+\n" +
 	"\x05cells\x18\x01 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\x12C\n" +
 	"\bmetadata\x18\x02 \x03(\v2'.runme.parser.v1.Notebook.MetadataEntryR\bmetadata\x12>\n" +
@@ -1294,7 +1390,7 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\x06timing\x18\x03 \x01(\v2'.runme.parser.v1.ExecutionSummaryTimingR\x06timing\"3\n" +
 	"\tTextRange\x12\x14\n" +
 	"\x05start\x18\x01 \x01(\rR\x05start\x12\x10\n" +
-	"\x03end\x18\x02 \x01(\rR\x03end\"\xb0\x03\n" +
+	"\x03end\x18\x02 \x01(\rR\x03end\"\xcc\x04\n" +
 	"\x04Cell\x12-\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x19.runme.parser.v1.CellKindR\x04kind\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\x12\x1f\n" +
@@ -1304,7 +1400,12 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\n" +
 	"text_range\x18\x05 \x01(\v2\x1a.runme.parser.v1.TextRangeR\ttextRange\x125\n" +
 	"\aoutputs\x18\x06 \x03(\v2\x1b.runme.parser.v1.CellOutputR\aoutputs\x12R\n" +
-	"\x11execution_summary\x18\a \x01(\v2%.runme.parser.v1.CellExecutionSummaryR\x10executionSummary\x1a;\n" +
+	"\x11execution_summary\x18\a \x01(\v2%.runme.parser.v1.CellExecutionSummaryR\x10executionSummary\x12\x15\n" +
+	"\x06ref_id\x18d \x01(\tR\x05refId\x12-\n" +
+	"\x04role\x18e \x01(\x0e2\x19.runme.parser.v1.CellRoleR\x04role\x12\x17\n" +
+	"\acall_id\x18f \x01(\tR\x06callId\x12;\n" +
+	"\vdoc_results\x18g \x03(\v2\x1a.runme.parser.v1.DocResultR\n" +
+	"docResults\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\";\n" +
@@ -1342,11 +1443,16 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\bnotebook\x18\x01 \x01(\v2\x19.runme.parser.v1.NotebookR\bnotebook\x12B\n" +
 	"\aoptions\x18\x02 \x01(\v2(.runme.parser.v1.SerializeRequestOptionsR\aoptions\"+\n" +
 	"\x11SerializeResponse\x12\x16\n" +
-	"\x06result\x18\x01 \x01(\fR\x06result*O\n" +
+	"\x06result\x18\x01 \x01(\fR\x06result*j\n" +
 	"\bCellKind\x12\x19\n" +
 	"\x15CELL_KIND_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10CELL_KIND_MARKUP\x10\x01\x12\x12\n" +
-	"\x0eCELL_KIND_CODE\x10\x02*}\n" +
+	"\x0eCELL_KIND_CODE\x10\x02\x12\x19\n" +
+	"\x15CELL_KIND_DOC_RESULTS\x10\x03*R\n" +
+	"\bCellRole\x12\x19\n" +
+	"\x15CELL_ROLE_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eCELL_ROLE_USER\x10\x01\x12\x17\n" +
+	"\x13CELL_ROLE_ASSISTANT\x10\x02*}\n" +
 	"\rRunmeIdentity\x12\x1e\n" +
 	"\x1aRUNME_IDENTITY_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12RUNME_IDENTITY_ALL\x10\x01\x12\x1b\n" +
@@ -1368,77 +1474,81 @@ func file_runme_parser_v1_parser_proto_rawDescGZIP() []byte {
 	return file_runme_parser_v1_parser_proto_rawDescData
 }
 
-var file_runme_parser_v1_parser_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_runme_parser_v1_parser_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_runme_parser_v1_parser_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_runme_parser_v1_parser_proto_goTypes = []any{
 	(CellKind)(0),                         // 0: runme.parser.v1.CellKind
-	(RunmeIdentity)(0),                    // 1: runme.parser.v1.RunmeIdentity
-	(*Notebook)(nil),                      // 2: runme.parser.v1.Notebook
-	(*ExecutionSummaryTiming)(nil),        // 3: runme.parser.v1.ExecutionSummaryTiming
-	(*CellOutputItem)(nil),                // 4: runme.parser.v1.CellOutputItem
-	(*ProcessInfoExitReason)(nil),         // 5: runme.parser.v1.ProcessInfoExitReason
-	(*CellOutputProcessInfo)(nil),         // 6: runme.parser.v1.CellOutputProcessInfo
-	(*CellOutput)(nil),                    // 7: runme.parser.v1.CellOutput
-	(*CellExecutionSummary)(nil),          // 8: runme.parser.v1.CellExecutionSummary
-	(*TextRange)(nil),                     // 9: runme.parser.v1.TextRange
-	(*Cell)(nil),                          // 10: runme.parser.v1.Cell
-	(*RunmeSessionDocument)(nil),          // 11: runme.parser.v1.RunmeSessionDocument
-	(*RunmeSession)(nil),                  // 12: runme.parser.v1.RunmeSession
-	(*FrontmatterRunme)(nil),              // 13: runme.parser.v1.FrontmatterRunme
-	(*Frontmatter)(nil),                   // 14: runme.parser.v1.Frontmatter
-	(*DeserializeRequestOptions)(nil),     // 15: runme.parser.v1.DeserializeRequestOptions
-	(*DeserializeRequest)(nil),            // 16: runme.parser.v1.DeserializeRequest
-	(*DeserializeResponse)(nil),           // 17: runme.parser.v1.DeserializeResponse
-	(*SerializeRequestOutputOptions)(nil), // 18: runme.parser.v1.SerializeRequestOutputOptions
-	(*SerializeRequestOptions)(nil),       // 19: runme.parser.v1.SerializeRequestOptions
-	(*SerializeRequest)(nil),              // 20: runme.parser.v1.SerializeRequest
-	(*SerializeResponse)(nil),             // 21: runme.parser.v1.SerializeResponse
-	nil,                                   // 22: runme.parser.v1.Notebook.MetadataEntry
-	nil,                                   // 23: runme.parser.v1.CellOutput.MetadataEntry
-	nil,                                   // 24: runme.parser.v1.Cell.MetadataEntry
-	(*wrapperspb.Int64Value)(nil),         // 25: google.protobuf.Int64Value
-	(*wrapperspb.UInt32Value)(nil),        // 26: google.protobuf.UInt32Value
-	(*wrapperspb.BoolValue)(nil),          // 27: google.protobuf.BoolValue
+	(CellRole)(0),                         // 1: runme.parser.v1.CellRole
+	(RunmeIdentity)(0),                    // 2: runme.parser.v1.RunmeIdentity
+	(*Notebook)(nil),                      // 3: runme.parser.v1.Notebook
+	(*ExecutionSummaryTiming)(nil),        // 4: runme.parser.v1.ExecutionSummaryTiming
+	(*CellOutputItem)(nil),                // 5: runme.parser.v1.CellOutputItem
+	(*ProcessInfoExitReason)(nil),         // 6: runme.parser.v1.ProcessInfoExitReason
+	(*CellOutputProcessInfo)(nil),         // 7: runme.parser.v1.CellOutputProcessInfo
+	(*CellOutput)(nil),                    // 8: runme.parser.v1.CellOutput
+	(*CellExecutionSummary)(nil),          // 9: runme.parser.v1.CellExecutionSummary
+	(*TextRange)(nil),                     // 10: runme.parser.v1.TextRange
+	(*Cell)(nil),                          // 11: runme.parser.v1.Cell
+	(*RunmeSessionDocument)(nil),          // 12: runme.parser.v1.RunmeSessionDocument
+	(*RunmeSession)(nil),                  // 13: runme.parser.v1.RunmeSession
+	(*FrontmatterRunme)(nil),              // 14: runme.parser.v1.FrontmatterRunme
+	(*Frontmatter)(nil),                   // 15: runme.parser.v1.Frontmatter
+	(*DeserializeRequestOptions)(nil),     // 16: runme.parser.v1.DeserializeRequestOptions
+	(*DeserializeRequest)(nil),            // 17: runme.parser.v1.DeserializeRequest
+	(*DeserializeResponse)(nil),           // 18: runme.parser.v1.DeserializeResponse
+	(*SerializeRequestOutputOptions)(nil), // 19: runme.parser.v1.SerializeRequestOutputOptions
+	(*SerializeRequestOptions)(nil),       // 20: runme.parser.v1.SerializeRequestOptions
+	(*SerializeRequest)(nil),              // 21: runme.parser.v1.SerializeRequest
+	(*SerializeResponse)(nil),             // 22: runme.parser.v1.SerializeResponse
+	nil,                                   // 23: runme.parser.v1.Notebook.MetadataEntry
+	nil,                                   // 24: runme.parser.v1.CellOutput.MetadataEntry
+	nil,                                   // 25: runme.parser.v1.Cell.MetadataEntry
+	(*wrapperspb.Int64Value)(nil),         // 26: google.protobuf.Int64Value
+	(*wrapperspb.UInt32Value)(nil),        // 27: google.protobuf.UInt32Value
+	(*wrapperspb.BoolValue)(nil),          // 28: google.protobuf.BoolValue
+	(*DocResult)(nil),                     // 29: runme.parser.v1.DocResult
 }
 var file_runme_parser_v1_parser_proto_depIdxs = []int32{
-	10, // 0: runme.parser.v1.Notebook.cells:type_name -> runme.parser.v1.Cell
-	22, // 1: runme.parser.v1.Notebook.metadata:type_name -> runme.parser.v1.Notebook.MetadataEntry
-	14, // 2: runme.parser.v1.Notebook.frontmatter:type_name -> runme.parser.v1.Frontmatter
-	25, // 3: runme.parser.v1.ExecutionSummaryTiming.start_time:type_name -> google.protobuf.Int64Value
-	25, // 4: runme.parser.v1.ExecutionSummaryTiming.end_time:type_name -> google.protobuf.Int64Value
-	26, // 5: runme.parser.v1.ProcessInfoExitReason.code:type_name -> google.protobuf.UInt32Value
-	5,  // 6: runme.parser.v1.CellOutputProcessInfo.exit_reason:type_name -> runme.parser.v1.ProcessInfoExitReason
-	25, // 7: runme.parser.v1.CellOutputProcessInfo.pid:type_name -> google.protobuf.Int64Value
-	4,  // 8: runme.parser.v1.CellOutput.items:type_name -> runme.parser.v1.CellOutputItem
-	23, // 9: runme.parser.v1.CellOutput.metadata:type_name -> runme.parser.v1.CellOutput.MetadataEntry
-	6,  // 10: runme.parser.v1.CellOutput.process_info:type_name -> runme.parser.v1.CellOutputProcessInfo
-	26, // 11: runme.parser.v1.CellExecutionSummary.execution_order:type_name -> google.protobuf.UInt32Value
-	27, // 12: runme.parser.v1.CellExecutionSummary.success:type_name -> google.protobuf.BoolValue
-	3,  // 13: runme.parser.v1.CellExecutionSummary.timing:type_name -> runme.parser.v1.ExecutionSummaryTiming
+	11, // 0: runme.parser.v1.Notebook.cells:type_name -> runme.parser.v1.Cell
+	23, // 1: runme.parser.v1.Notebook.metadata:type_name -> runme.parser.v1.Notebook.MetadataEntry
+	15, // 2: runme.parser.v1.Notebook.frontmatter:type_name -> runme.parser.v1.Frontmatter
+	26, // 3: runme.parser.v1.ExecutionSummaryTiming.start_time:type_name -> google.protobuf.Int64Value
+	26, // 4: runme.parser.v1.ExecutionSummaryTiming.end_time:type_name -> google.protobuf.Int64Value
+	27, // 5: runme.parser.v1.ProcessInfoExitReason.code:type_name -> google.protobuf.UInt32Value
+	6,  // 6: runme.parser.v1.CellOutputProcessInfo.exit_reason:type_name -> runme.parser.v1.ProcessInfoExitReason
+	26, // 7: runme.parser.v1.CellOutputProcessInfo.pid:type_name -> google.protobuf.Int64Value
+	5,  // 8: runme.parser.v1.CellOutput.items:type_name -> runme.parser.v1.CellOutputItem
+	24, // 9: runme.parser.v1.CellOutput.metadata:type_name -> runme.parser.v1.CellOutput.MetadataEntry
+	7,  // 10: runme.parser.v1.CellOutput.process_info:type_name -> runme.parser.v1.CellOutputProcessInfo
+	27, // 11: runme.parser.v1.CellExecutionSummary.execution_order:type_name -> google.protobuf.UInt32Value
+	28, // 12: runme.parser.v1.CellExecutionSummary.success:type_name -> google.protobuf.BoolValue
+	4,  // 13: runme.parser.v1.CellExecutionSummary.timing:type_name -> runme.parser.v1.ExecutionSummaryTiming
 	0,  // 14: runme.parser.v1.Cell.kind:type_name -> runme.parser.v1.CellKind
-	24, // 15: runme.parser.v1.Cell.metadata:type_name -> runme.parser.v1.Cell.MetadataEntry
-	9,  // 16: runme.parser.v1.Cell.text_range:type_name -> runme.parser.v1.TextRange
-	7,  // 17: runme.parser.v1.Cell.outputs:type_name -> runme.parser.v1.CellOutput
-	8,  // 18: runme.parser.v1.Cell.execution_summary:type_name -> runme.parser.v1.CellExecutionSummary
-	11, // 19: runme.parser.v1.RunmeSession.document:type_name -> runme.parser.v1.RunmeSessionDocument
-	12, // 20: runme.parser.v1.FrontmatterRunme.session:type_name -> runme.parser.v1.RunmeSession
-	13, // 21: runme.parser.v1.Frontmatter.runme:type_name -> runme.parser.v1.FrontmatterRunme
-	1,  // 22: runme.parser.v1.DeserializeRequestOptions.identity:type_name -> runme.parser.v1.RunmeIdentity
-	15, // 23: runme.parser.v1.DeserializeRequest.options:type_name -> runme.parser.v1.DeserializeRequestOptions
-	2,  // 24: runme.parser.v1.DeserializeResponse.notebook:type_name -> runme.parser.v1.Notebook
-	18, // 25: runme.parser.v1.SerializeRequestOptions.outputs:type_name -> runme.parser.v1.SerializeRequestOutputOptions
-	12, // 26: runme.parser.v1.SerializeRequestOptions.session:type_name -> runme.parser.v1.RunmeSession
-	2,  // 27: runme.parser.v1.SerializeRequest.notebook:type_name -> runme.parser.v1.Notebook
-	19, // 28: runme.parser.v1.SerializeRequest.options:type_name -> runme.parser.v1.SerializeRequestOptions
-	16, // 29: runme.parser.v1.ParserService.Deserialize:input_type -> runme.parser.v1.DeserializeRequest
-	20, // 30: runme.parser.v1.ParserService.Serialize:input_type -> runme.parser.v1.SerializeRequest
-	17, // 31: runme.parser.v1.ParserService.Deserialize:output_type -> runme.parser.v1.DeserializeResponse
-	21, // 32: runme.parser.v1.ParserService.Serialize:output_type -> runme.parser.v1.SerializeResponse
-	31, // [31:33] is the sub-list for method output_type
-	29, // [29:31] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	25, // 15: runme.parser.v1.Cell.metadata:type_name -> runme.parser.v1.Cell.MetadataEntry
+	10, // 16: runme.parser.v1.Cell.text_range:type_name -> runme.parser.v1.TextRange
+	8,  // 17: runme.parser.v1.Cell.outputs:type_name -> runme.parser.v1.CellOutput
+	9,  // 18: runme.parser.v1.Cell.execution_summary:type_name -> runme.parser.v1.CellExecutionSummary
+	1,  // 19: runme.parser.v1.Cell.role:type_name -> runme.parser.v1.CellRole
+	29, // 20: runme.parser.v1.Cell.doc_results:type_name -> runme.parser.v1.DocResult
+	12, // 21: runme.parser.v1.RunmeSession.document:type_name -> runme.parser.v1.RunmeSessionDocument
+	13, // 22: runme.parser.v1.FrontmatterRunme.session:type_name -> runme.parser.v1.RunmeSession
+	14, // 23: runme.parser.v1.Frontmatter.runme:type_name -> runme.parser.v1.FrontmatterRunme
+	2,  // 24: runme.parser.v1.DeserializeRequestOptions.identity:type_name -> runme.parser.v1.RunmeIdentity
+	16, // 25: runme.parser.v1.DeserializeRequest.options:type_name -> runme.parser.v1.DeserializeRequestOptions
+	3,  // 26: runme.parser.v1.DeserializeResponse.notebook:type_name -> runme.parser.v1.Notebook
+	19, // 27: runme.parser.v1.SerializeRequestOptions.outputs:type_name -> runme.parser.v1.SerializeRequestOutputOptions
+	13, // 28: runme.parser.v1.SerializeRequestOptions.session:type_name -> runme.parser.v1.RunmeSession
+	3,  // 29: runme.parser.v1.SerializeRequest.notebook:type_name -> runme.parser.v1.Notebook
+	20, // 30: runme.parser.v1.SerializeRequest.options:type_name -> runme.parser.v1.SerializeRequestOptions
+	17, // 31: runme.parser.v1.ParserService.Deserialize:input_type -> runme.parser.v1.DeserializeRequest
+	21, // 32: runme.parser.v1.ParserService.Serialize:input_type -> runme.parser.v1.SerializeRequest
+	18, // 33: runme.parser.v1.ParserService.Deserialize:output_type -> runme.parser.v1.DeserializeResponse
+	22, // 34: runme.parser.v1.ParserService.Serialize:output_type -> runme.parser.v1.SerializeResponse
+	33, // [33:35] is the sub-list for method output_type
+	31, // [31:33] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_runme_parser_v1_parser_proto_init() }
@@ -1446,12 +1556,13 @@ func file_runme_parser_v1_parser_proto_init() {
 	if File_runme_parser_v1_parser_proto != nil {
 		return
 	}
+	file_runme_parser_v1_docresult_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runme_parser_v1_parser_proto_rawDesc), len(file_runme_parser_v1_parser_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,

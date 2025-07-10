@@ -9,6 +9,7 @@ import type { BinaryReadOptions } from "@protobuf-ts/runtime";
 import type { IBinaryReader } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { DocResult } from "./docresult_pb";
 import { BoolValue } from "../../../google/protobuf/wrappers_pb";
 import { UInt32Value } from "../../../google/protobuf/wrappers_pb";
 import { Int64Value } from "../../../google/protobuf/wrappers_pb";
@@ -141,35 +142,73 @@ export interface TextRange {
  */
 export interface Cell {
     /**
+     * CellKind is the type of cell, e.g. markup or code.
+     *
      * @generated from protobuf field: runme.parser.v1.CellKind kind = 1
      */
     kind: CellKind;
     /**
+     * Value is the contents of the cell.
+     *
      * @generated from protobuf field: string value = 2
      */
     value: string;
     /**
+     * LanguageID is the language of the cell.
+     *
      * @generated from protobuf field: string language_id = 3
      */
     languageId: string;
     /**
+     * Metadata is additional metadata about the cell in k/v format.
+     *
      * @generated from protobuf field: map<string, string> metadata = 4
      */
     metadata: {
         [key: string]: string;
     };
     /**
+     * TextRange is the range of the cell covering in the markdown source.
+     *
      * @generated from protobuf field: runme.parser.v1.TextRange text_range = 5
      */
     textRange?: TextRange;
     /**
+     * Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
+     *
      * @generated from protobuf field: repeated runme.parser.v1.CellOutput outputs = 6
      */
     outputs: CellOutput[];
     /**
+     * ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
+     *
      * @generated from protobuf field: runme.parser.v1.CellExecutionSummary execution_summary = 7
      */
     executionSummary?: CellExecutionSummary;
+    /**
+     * RefID is the agent's original unique identifier.
+     *
+     * @generated from protobuf field: string ref_id = 100
+     */
+    refId: string;
+    /**
+     * Role is the role of the cell, e.g. user or assistant.
+     *
+     * @generated from protobuf field: runme.parser.v1.CellRole role = 101
+     */
+    role: CellRole;
+    /**
+     * CallID is the unique identifier of the cell call.
+     *
+     * @generated from protobuf field: string call_id = 102
+     */
+    callId: string;
+    /**
+     * DocResults are doc results for a cell returned by, e.g., file search
+     *
+     * @generated from protobuf field: repeated runme.parser.v1.DocResult doc_results = 103
+     */
+    docResults: DocResult[];
 }
 /**
  * @generated from protobuf message runme.parser.v1.RunmeSessionDocument
@@ -339,9 +378,34 @@ export declare enum CellKind {
     /**
      * @generated from protobuf enum value: CELL_KIND_CODE = 2;
      */
-    CODE = 2
+    CODE = 2,
+    /**
+     * todo(sebastian): is this needed?
+     *
+     * @generated from protobuf enum value: CELL_KIND_DOC_RESULTS = 3;
+     */
+    DOC_RESULTS = 3
 }
 /**
+ * @generated from protobuf enum runme.parser.v1.CellRole
+ */
+export declare enum CellRole {
+    /**
+     * @generated from protobuf enum value: CELL_ROLE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: CELL_ROLE_USER = 1;
+     */
+    USER = 1,
+    /**
+     * @generated from protobuf enum value: CELL_ROLE_ASSISTANT = 2;
+     */
+    ASSISTANT = 2
+}
+/**
+ * RunmeIdentity controls if unique identifiers are inserted if not present.
+ *
  * @generated from protobuf enum runme.parser.v1.RunmeIdentity
  */
 export declare enum RunmeIdentity {

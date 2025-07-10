@@ -15,19 +15,20 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/ai/e2etests"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 )
 
 func TestAssertions(t *testing.T) {
 	type asserter interface {
-		Assert(ctx context.Context, assertion *agentv1.Assertion, inputText string, blocks map[string]*agentv1.Block) error
+		Assert(ctx context.Context, assertion *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error
 	}
 
 	type testCase struct {
 		name              string
 		asserter          asserter
 		assertion         *agentv1.Assertion
-		blocks            map[string]*agentv1.Block
+		blocks            map[string]*parserv1.Cell
 		expectedAssertion *agentv1.Assertion
 		inputText         string
 	}
@@ -83,10 +84,11 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*agentv1.Block{
+			blocks: map[string]*parserv1.Cell{
 				"1": {
-					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-					Contents: "kubectl get pods --context test -n default",
+					Kind:       parserv1.CellKind_CELL_KIND_CODE,
+					Value:      "kubectl get pods --context test -n default",
+					LanguageId: "bash",
 				},
 			},
 			expectedAssertion: &agentv1.Assertion{
@@ -114,10 +116,11 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*agentv1.Block{
+			blocks: map[string]*parserv1.Cell{
 				"1": {
-					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-					Contents: "kubectl get pods --context test",
+					Kind:       parserv1.CellKind_CELL_KIND_CODE,
+					Value:      "kubectl get pods --context test",
+					LanguageId: "bash",
 				},
 			},
 			expectedAssertion: &agentv1.Assertion{
@@ -145,10 +148,10 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*agentv1.Block{
+			blocks: map[string]*parserv1.Cell{
 				"block1": {
-					Kind: agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS,
-					FileSearchResults: []*agentv1.FileSearchResult{
+					Kind: parserv1.CellKind_CELL_KIND_DOC_RESULTS,
+					DocResults: []*parserv1.DocResult{
 						{FileId: "file-123", FileName: "test.txt"},
 					},
 				},
@@ -178,10 +181,10 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*agentv1.Block{
+			blocks: map[string]*parserv1.Cell{
 				"block1": {
-					Kind: agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS,
-					FileSearchResults: []*agentv1.FileSearchResult{
+					Kind: parserv1.CellKind_CELL_KIND_DOC_RESULTS,
+					DocResults: []*parserv1.DocResult{
 						{FileId: "file-123", FileName: "test.txt"},
 					},
 				},
@@ -210,10 +213,11 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*agentv1.Block{
+			blocks: map[string]*parserv1.Cell{
 				"1": {
-					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-					Contents: "echo hello world",
+					Kind:       parserv1.CellKind_CELL_KIND_CODE,
+					Value:      "echo hello world",
+					LanguageId: "bash",
 				},
 			},
 			expectedAssertion: &agentv1.Assertion{
@@ -239,10 +243,11 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*agentv1.Block{
+			blocks: map[string]*parserv1.Cell{
 				"1": {
-					Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-					Contents: "This is not a code block.",
+					Kind:       parserv1.CellKind_CELL_KIND_MARKUP,
+					Value:      "This is not a code block.",
+					LanguageId: "markdown",
 				},
 			},
 			expectedAssertion: &agentv1.Assertion{
@@ -268,10 +273,11 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*agentv1.Block{
+			blocks: map[string]*parserv1.Cell{
 				"1": {
-					Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-					Contents: "az aks list --query \"[?name=='unified-60'].{Name:name, Location:location}\" --output table",
+					Kind:       parserv1.CellKind_CELL_KIND_CODE,
+					Value:      "az aks list --query \"[?name=='unified-60'].{Name:name, Location:location}\" --output table",
+					LanguageId: "bash",
 				},
 			},
 			expectedAssertion: &agentv1.Assertion{

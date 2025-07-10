@@ -12,18 +12,20 @@ import (
 	"github.com/pkg/errors"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/docs"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
+	"github.com/runmedev/runme/v3/pkg/agent/runme/converters"
 )
 
-// BlocksBuilder processes the stream of deltas from the responses API and turns them into
-// blocks to be streamed back to the frontend. This is a stateful operation because responses are deltas
+// CellsBuilder processes the stream of deltas from the responses API and turns them into
+// cells to be streamed back to the frontend. This is a stateful operation because responses are deltas
 // to be added to previous responses
-type BlocksBuilder struct {
+type CellsBuilder struct {
 	filenameToLink func(string) string
 
 	responseCache *lru.Cache[string, []string]
-	blocksCache   *lru.Cache[string, *agentv1.Block]
+	cellsCache    *lru.Cache[string, *parserv1.Cell]
 
 	responseID string
 
@@ -32,49 +34,49 @@ type BlocksBuilder struct {
 	// item ids and call_ids are not the same
 	// call_ids are provided on response.output_item.added and response.output_item.done events but not
 	// response.function_call_arguments.delta. So we cache them in order to be able to always include the CallID
-	// in blocks.
+	// in cells.
 	idToCallID map[string]string
 
-	// Map from block ID to block
-	blocks map[string]*agentv1.Block
-	mu     sync.Mutex
+	// Map from cell ID to cell
+	cells map[string]*parserv1.Cell
+	mu    sync.Mutex
 }
 
-func NewBlocksBuilder(filenameToLink func(string) string, responseCache *lru.Cache[string, []string], blocksCache *lru.Cache[string, *agentv1.Block]) *BlocksBuilder {
-	return &BlocksBuilder{
-		blocks:         make(map[string]*agentv1.Block),
+func NewCellsBuilder(filenameToLink func(string) string, responseCache *lru.Cache[string, []string], cellsCache *lru.Cache[string, *parserv1.Cell]) *CellsBuilder {
+	return &CellsBuilder{
+		cells:          make(map[string]*parserv1.Cell),
 		filenameToLink: filenameToLink,
 		responseCache:  responseCache,
-		blocksCache:    blocksCache,
+		cellsCache:     cellsCache,
 		idToCallID:     make(map[string]string),
 	}
 }
 
-// BlockSender is a function that sends a block to the client
-type BlockSender func(*agentv1.GenerateResponse) error
+// CellSender is a function that sends a cell to the client
+type CellSender func(*agentv1.GenerateResponse) error
 
 // HandleEvents processes a stream of events from the responses API and updates the internal state of the builder
 // Function will keep running until the context is cancelled or the stream of events is closed
-func (b *BlocksBuilder) HandleEvents(ctx context.Context, events *ssestream.Stream[responses.ResponseStreamEventUnion], sender BlockSender) error {
+func (b *CellsBuilder) HandleEvents(ctx context.Context, events *ssestream.Stream[responses.ResponseStreamEventUnion], sender CellSender) error {
 	log := logs.FromContext(ctx)
 	defer func() {
 		resp := &agentv1.GenerateResponse{
-			Blocks:     make([]*agentv1.Block, 0, len(b.blocks)),
+			Cells:      make([]*parserv1.Cell, 0, len(b.cells)),
 			ResponseId: b.responseID,
 		}
 
-		previousIDs := make([]string, 0, len(b.blocks))
+		previousIDs := make([]string, 0, len(b.cells))
 
-		for _, block := range b.blocks {
-			resp.Blocks = append(resp.Blocks, block)
+		for _, cell := range b.cells {
+			resp.Cells = append(resp.Cells, cell)
 
-			// Update the block
-			b.blocksCache.Add(block.Id, block)
+			// Update the cell
+			b.cellsCache.Add(cell.RefId, cell)
 
-			// N.B. This ends up including code blocks which we parsed out of the markdown and therefore ones which
+			// N.B. This ends up including code cells which we parsed out of the markdown and therefore ones which
 			// the AI didn't actually generate. Do we want to filter those out?
-			if block.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
-				previousIDs = append(previousIDs, block.Id)
+			if cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
+				previousIDs = append(previousIDs, cell.RefId)
 			}
 		}
 
@@ -114,7 +116,7 @@ func (b *BlocksBuilder) HandleEvents(ctx context.Context, events *ssestream.Stre
 }
 
 // ProcessEvent processes a response stream event and updates the internal state of the builder
-func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStreamEventUnion, sender BlockSender) error {
+func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStreamEventUnion, sender CellSender) error {
 	log := logs.FromContext(ctx)
 	log.V(logs.Debug).Info("Processing event", "event", e)
 
@@ -133,7 +135,7 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 
 	resp := &agentv1.GenerateResponse{
 		ResponseId: b.responseID,
-		Blocks:     make([]*agentv1.Block, 0, 5),
+		Cells:      make([]*parserv1.Cell, 0, 5),
 	}
 
 	switch e.AsAny().(type) {
@@ -153,20 +155,24 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		var block *agentv1.Block
+		var cell *parserv1.Cell
 		ok := false
-		block, ok = b.blocks[itemID]
+		cell, ok = b.cells[itemID]
 		if !ok {
-			block = &agentv1.Block{
-				Id:       itemID,
-				Kind:     agentv1.BlockKind_BLOCK_KIND_MARKUP,
-				Contents: "",
-				Role:     agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
+			cell = &parserv1.Cell{
+				RefId: itemID,
+				Metadata: map[string]string{
+					converters.IdField:      itemID,
+					converters.RunmeIdField: itemID,
+				},
+				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+				Value: "",
+				Role:  parserv1.CellRole_CELL_ROLE_ASSISTANT,
 			}
-			b.blocks[itemID] = block
+			b.cells[itemID] = cell
 		}
-		block.Contents += textDelta.Delta
-		resp.Blocks = append(resp.Blocks, block)
+		cell.Value += textDelta.Delta
+		resp.Cells = append(resp.Cells, cell)
 
 	case responses.ResponseFunctionCallArgumentsDeltaEvent:
 		item := e.AsResponseFunctionCallArgumentsDelta()
@@ -176,7 +182,7 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 		}
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		var block *agentv1.Block
+		var cell *parserv1.Cell
 
 		callID, callIDOK := b.idToCallID[itemID]
 
@@ -186,23 +192,27 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 			return errors.New("function call arguments delta has no call ID")
 		}
 		ok := false
-		block, ok = b.blocks[itemID]
+		cell, ok = b.cells[itemID]
 		if !ok {
-			// There is no existing block so we need to initialize a new one.
-			block = &agentv1.Block{
-				Id:       itemID,
-				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-				Contents: "",
-				Role:     agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
-				CallId:   callID,
+			// There is no existing cell so we need to initialize a new one.
+			cell = &parserv1.Cell{
+				RefId: itemID,
+				Metadata: map[string]string{
+					converters.IdField:      itemID,
+					converters.RunmeIdField: itemID,
+				},
+				Kind:   parserv1.CellKind_CELL_KIND_CODE,
+				Value:  "",
+				Role:   parserv1.CellRole_CELL_ROLE_ASSISTANT,
+				CallId: callID,
 			}
-			b.blocks[itemID] = block
+			b.cells[itemID] = cell
 		}
 		// N.B. The delta is the "json string" of the arguments
 		// e.g. the deltas will spell out the string {"shell": } character by character
 		// So ideally we'd do some kind streaming processing to avoid showing "shell" to the user.
-		block.Contents += item.Delta
-		resp.Blocks = append(resp.Blocks, block)
+		cell.Value += item.Delta
+		resp.Cells = append(resp.Cells, cell)
 	case responses.ResponseFunctionCallArgumentsDoneEvent:
 		log.Info(e.Type, "event", e)
 		item := e.AsResponseFunctionCallArgumentsDone()
@@ -219,38 +229,42 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 		}
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		var block *agentv1.Block
+		var cell *parserv1.Cell
 		ok := false
-		block, ok = b.blocks[itemID]
+		cell, ok = b.cells[itemID]
 		if !ok {
-			block = &agentv1.Block{
-				Id:       itemID,
-				Kind:     agentv1.BlockKind_BLOCK_KIND_CODE,
-				Contents: "",
-				Role:     agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
-				CallId:   callID,
+			cell = &parserv1.Cell{
+				RefId: itemID,
+				Metadata: map[string]string{
+					converters.IdField:      itemID,
+					converters.RunmeIdField: itemID,
+				},
+				Kind:   parserv1.CellKind_CELL_KIND_CODE,
+				Value:  "",
+				Role:   parserv1.CellRole_CELL_ROLE_ASSISTANT,
+				CallId: callID,
 			}
-			b.blocks[itemID] = block
+			b.cells[itemID] = cell
 		}
 
 		shellArgs := &ShellArgs{}
 		if err := json.Unmarshal([]byte(e.Arguments), shellArgs); err != nil {
 			log.Error(err, "Failed to unmarshal shell arguments", "delta", e.Arguments)
-			block.Contents = e.Arguments
+			cell.Value = e.Arguments
 		} else {
-			block.Contents = shellArgs.Shell
+			cell.Value = shellArgs.Shell
 		}
-		resp.Blocks = append(resp.Blocks, block)
+		resp.Cells = append(resp.Cells, cell)
 	case responses.ResponseOutputItemDoneEvent:
 		item := e.AsResponseOutputItemDone()
 		log.Info(e.Type, "event", e)
-		blocks, err := b.itemDoneToBlock(ctx, item.Item)
+		cells, err := b.itemDoneToCell(ctx, item.Item)
 		if err != nil {
 			return err
 		}
 
-		if blocks != nil {
-			resp.Blocks = append(resp.Blocks, blocks...)
+		if cells != nil {
+			resp.Cells = append(resp.Cells, cells...)
 		}
 
 	case responses.ResponseTextDoneEvent:
@@ -263,8 +277,8 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 		log.V(logs.Debug).Info("Ignoring event", "event", e)
 	}
 
-	if len(resp.Blocks) == 0 {
-		log.V(logs.Debug).Info("No blocks to send")
+	if len(resp.Cells) == 0 {
+		log.V(logs.Debug).Info("No cells to send")
 		return nil
 	}
 
@@ -275,12 +289,12 @@ func (b *BlocksBuilder) ProcessEvent(ctx context.Context, e responses.ResponseSt
 	return nil
 }
 
-func (b *BlocksBuilder) itemDoneToBlock(ctx context.Context, item responses.ResponseOutputItemUnion) ([]*agentv1.Block, error) {
+func (b *CellsBuilder) itemDoneToCell(ctx context.Context, item responses.ResponseOutputItemUnion) ([]*parserv1.Cell, error) {
 	log := logs.FromContext(ctx)
-	results := make([]*agentv1.Block, 0, 5)
+	results := make([]*parserv1.Cell, 0, 5)
 	switch item.AsAny().(type) {
 	case responses.ResponseOutputMessage:
-		// For regular output messages we want to parse out any code blocks and turn them into code blocks
+		// For regular output messages we want to parse out any code cells and turn them into code cells
 		// so they get rendered as executable code. This is a bit of a hack to make them executable.
 		m := item.AsMessage()
 		for _, message := range m.Content {
@@ -288,46 +302,50 @@ func (b *BlocksBuilder) itemDoneToBlock(ctx context.Context, item responses.Resp
 				continue
 			}
 
-			parsedBlocks, err := docs.MarkdownToBlocks(message.Text)
+			parsedCells, err := docs.MarkdownToCells(message.Text)
 			if err != nil {
 				log.Error(err, "Failed to parse markdown", "text", message.Text)
 				continue
 			}
 
-			for _, b := range parsedBlocks {
-				if b.Kind == agentv1.BlockKind_BLOCK_KIND_CODE {
-					results = append(results, b)
+			for _, c := range parsedCells {
+				if c.Kind == parserv1.CellKind_CELL_KIND_CODE {
+					results = append(results, c)
 				}
 			}
 		}
 		return results, nil
 	case responses.ResponseFileSearchToolCall:
-		b, err := b.fileSearchDoneItemToBlock(ctx, item.AsFileSearchCall())
-		results = append(results, b)
+		c, err := b.fileSearchDoneItemToCell(ctx, item.AsFileSearchCall())
+		results = append(results, c)
 		return results, err
 	}
 	return results, nil
 }
 
 // N.B. It doesn't look like the file search call actually has the results in it. I think its the item done.
-func (b *BlocksBuilder) fileSearchDoneItemToBlock(ctx context.Context, item responses.ResponseFileSearchToolCall) (*agentv1.Block, error) {
+func (b *CellsBuilder) fileSearchDoneItemToCell(ctx context.Context, item responses.ResponseFileSearchToolCall) (*parserv1.Cell, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	var block *agentv1.Block
+	var cell *parserv1.Cell
 	var ok bool
-	block, ok = b.blocks[item.ID]
+	cell, ok = b.cells[item.ID]
 	if !ok {
-		block = &agentv1.Block{
-			Id:                item.ID,
-			Kind:              agentv1.BlockKind_BLOCK_KIND_FILE_SEARCH_RESULTS,
-			Role:              agentv1.BlockRole_BLOCK_ROLE_ASSISTANT,
-			FileSearchResults: make([]*agentv1.FileSearchResult, 0),
+		cell = &parserv1.Cell{
+			RefId: item.ID,
+			Metadata: map[string]string{
+				converters.IdField:      item.ID,
+				converters.RunmeIdField: item.ID,
+			},
+			Kind:       parserv1.CellKind_CELL_KIND_DOC_RESULTS,
+			Role:       parserv1.CellRole_CELL_ROLE_ASSISTANT,
+			DocResults: make([]*parserv1.DocResult, 0),
 		}
-		b.blocks[item.ID] = block
+		b.cells[item.ID] = cell
 	}
 
 	existing := make(map[string]bool)
-	for _, r := range block.FileSearchResults {
+	for _, r := range cell.DocResults {
 		existing[r.FileId] = true
 	}
 
@@ -341,7 +359,7 @@ func (b *BlocksBuilder) fileSearchDoneItemToBlock(ctx context.Context, item resp
 			link = b.filenameToLink(r.Filename)
 		}
 
-		block.FileSearchResults = append(block.FileSearchResults, &agentv1.FileSearchResult{
+		cell.DocResults = append(cell.DocResults, &parserv1.DocResult{
 			FileId:   r.FileID,
 			Score:    r.Score,
 			FileName: r.Filename,
@@ -351,5 +369,5 @@ func (b *BlocksBuilder) fileSearchDoneItemToBlock(ctx context.Context, item resp
 		existing[r.FileID] = true
 	}
 
-	return block, nil
+	return cell, nil
 }

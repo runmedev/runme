@@ -96,6 +96,10 @@ type LoadResponse_StartedWalk {
 type Query {
 	dummy: Boolean
 }
+"""
+ RunmeIdentity controls if unique identifiers are inserted if not present.
+
+"""
 enum RunmeIdentity {
 	"""
 	 aka NONE
