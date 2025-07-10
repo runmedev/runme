@@ -311,6 +311,7 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 		Cells: []*parserv1.Cell{
 			{
 				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+				Role:  parserv1.CellRole_CELL_ROLE_USER,
 				Value: input,
 			},
 		},
@@ -487,6 +488,10 @@ func EvalFromExperiment(exp *agentv1.Experiment, experimentFilePath string, cook
 	}
 
 	agentCookie := cookie["agent-session"]
+	if agentCookie == "" {
+		agentCookie = cookie["cassie-session"]
+	}
+
 	inferenceEndpoint := exp.Spec.GetInferenceEndpoint()
 
 	ctx := logr.NewContext(context.Background(), log)
