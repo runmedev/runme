@@ -23,27 +23,27 @@ func NotebookToDoc(nb *parserv1.Notebook) (*Doc, error) {
 	}
 
 	for _, cell := range nb.Cells {
-		block, err := CellToBlock(cell)
+		cell, err := CellToCell(cell)
 		if err != nil {
 			return nil, err
 		}
-		doc.Cells = append(doc.Cells, block)
+		doc.Cells = append(doc.Cells, cell)
 	}
 
 	return doc, nil
 }
 
-// CellToBlock converts a runme Cell to a foyle Block
+// CellToCell converts a runme Cell to a foyle Cell
 //
 // N.B. cell metadata is currently ignored.
-func CellToBlock(cell *parserv1.Cell) (*parserv1.Cell, error) {
+func CellToCell(cell *parserv1.Cell) (*parserv1.Cell, error) {
 	if cell == nil {
 		return nil, errors.New("Cell is nil")
 	}
 
 	cOutputs := make([]*parserv1.CellOutput, 0, len(cell.Outputs))
 	cOutputs = append(cOutputs, cell.Outputs...)
-	blockKind := CellKindToBlockKind(cell.Kind)
+	cellKind := CellKindToCellKind(cell.Kind)
 
 	id := ""
 	if cell.Metadata != nil {
@@ -57,7 +57,7 @@ func CellToBlock(cell *parserv1.Cell) (*parserv1.Cell, error) {
 		RefId:      id,
 		LanguageId: cell.LanguageId,
 		Value:      cell.Value,
-		Kind:       blockKind,
+		Kind:       cellKind,
 		Outputs:    cOutputs,
 		Metadata:   cell.Metadata,
 	}, nil
@@ -93,7 +93,7 @@ func SetCellID(cell *parserv1.Cell, id string) {
 	cell.Metadata[RunmeIdField] = id
 }
 
-func CellKindToBlockKind(kind parserv1.CellKind) parserv1.CellKind {
+func CellKindToCellKind(kind parserv1.CellKind) parserv1.CellKind {
 	switch kind {
 	case parserv1.CellKind_CELL_KIND_CODE:
 		return parserv1.CellKind_CELL_KIND_CODE
@@ -104,7 +104,7 @@ func CellKindToBlockKind(kind parserv1.CellKind) parserv1.CellKind {
 	}
 }
 
-func CellOutputToBlockOutput(output *parserv1.CellOutput) (*parserv1.CellOutput, error) {
+func CellOutputToCellOutput(output *parserv1.CellOutput) (*parserv1.CellOutput, error) {
 	if output == nil {
 		return nil, errors.New("CellOutput is nil")
 	}

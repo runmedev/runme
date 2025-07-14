@@ -26,11 +26,11 @@ func TestFillInToolcalls(t *testing.T) {
 			name:               "Missing Previous Calls",
 			previousResponseId: "abc",
 			cachedResponses: map[string][]string{
-				"abc": {"block1"},
+				"abc": {"cell1"},
 			},
 			cachedCells: map[string]*parserv1.Cell{
-				"block1": {
-					RefId:  "block1",
+				"cell1": {
+					RefId:  "cell1",
 					Kind:   parserv1.CellKind_CELL_KIND_CODE,
 					Value:  "print('Hello, world!')",
 					CallId: "call1",
@@ -43,7 +43,7 @@ func TestFillInToolcalls(t *testing.T) {
 				PreviousResponseId: "abc",
 				Cells: []*parserv1.Cell{
 					{
-						RefId:  "block1",
+						RefId:  "cell1",
 						Kind:   parserv1.CellKind_CELL_KIND_CODE,
 						Value:  "print('Hello, world!')",
 						CallId: "call1",
@@ -55,11 +55,11 @@ func TestFillInToolcalls(t *testing.T) {
 			name:               "Has Previous Calls",
 			previousResponseId: "abc",
 			cachedResponses: map[string][]string{
-				"abc": {"block1"},
+				"abc": {"cell1"},
 			},
 			cachedCells: map[string]*parserv1.Cell{
-				"block1": {
-					RefId:  "block1",
+				"cell1": {
+					RefId:  "cell1",
 					Kind:   parserv1.CellKind_CELL_KIND_CODE,
 					Value:  "print('This was the original command!')",
 					CallId: "call1",
@@ -70,7 +70,7 @@ func TestFillInToolcalls(t *testing.T) {
 				Cells: []*parserv1.Cell{
 					// We want to ensure that the cell in the request takes precendence over the cache
 					{
-						RefId:  "block1",
+						RefId:  "cell1",
 						Kind:   parserv1.CellKind_CELL_KIND_CODE,
 						Value:  "print('Actual Command')",
 						CallId: "call1",
@@ -81,7 +81,7 @@ func TestFillInToolcalls(t *testing.T) {
 				PreviousResponseId: "abc",
 				Cells: []*parserv1.Cell{
 					{
-						RefId:  "block1",
+						RefId:  "cell1",
 						Kind:   parserv1.CellKind_CELL_KIND_CODE,
 						Value:  "print('Actual Command')",
 						CallId: "call1",
@@ -100,9 +100,9 @@ func TestFillInToolcalls(t *testing.T) {
 				t.Fatalf("Failed to create response cache: %v", err)
 			}
 
-			blocksCache, err := lru.New[string, *parserv1.Cell](5)
+			cellsCache, err := lru.New[string, *parserv1.Cell](5)
 			if err != nil {
-				t.Fatalf("Failed to create blocks cache: %v", err)
+				t.Fatalf("Failed to create cells cache: %v", err)
 			}
 
 			// Populate response cache
@@ -110,12 +110,12 @@ func TestFillInToolcalls(t *testing.T) {
 				responseCache.Add(respID, calls)
 			}
 
-			// Populate blocks cache
-			for blockID, block := range tc.cachedCells {
-				blocksCache.Add(blockID, block)
+			// Populate cells cache
+			for cellID, cell := range tc.cachedCells {
+				cellsCache.Add(cellID, cell)
 			}
 
-			if err := fillInToolcalls(context.Background(), responseCache, blocksCache, tc.request); err != nil {
+			if err := fillInToolcalls(context.Background(), responseCache, cellsCache, tc.request); err != nil {
 				t.Fatalf("Failed to fill in tool calls: %v", err)
 			}
 

@@ -15,7 +15,7 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/testutil"
 )
 
-func Test_MarkdownToBlocks(t *testing.T) {
+func Test_MarkdownToCells(t *testing.T) {
 	type testCase struct {
 		name     string
 		inFile   string
@@ -96,7 +96,7 @@ func Test_MarkdownToBlocks(t *testing.T) {
 				{
 					Kind:     parserv1.CellKind_CELL_KIND_MARKUP,
 					Metadata: make(map[string]string),
-					Value:    "Test code blocks nested in a list",
+					Value:    "Test code cells nested in a list",
 					Outputs:  nil,
 				},
 				{
@@ -157,39 +157,41 @@ func Test_MarkdownToBlocks(t *testing.T) {
 			}
 			actual, err := MarkdownToCells(string(raw))
 			if err != nil {
-				t.Fatalf("MarkdownToBlocks(%v) returned error %v", c.inFile, err)
+				t.Fatalf("MarkdownToCells(%v) returned error %v", c.inFile, err)
 			}
 			if len(actual) != len(c.expected) {
-				t.Errorf("Expected %v blocks got %v", len(c.expected), len(actual))
+				t.Errorf("Expected %v cells got %v", len(c.expected), len(actual))
 			}
 
-			for i, eBlock := range c.expected {
+			for i, eCell := range c.expected {
 				if i >= len(actual) {
 					break
 				}
 
-				aBlock := actual[i]
+				aCell := actual[i]
 
 				opts := cmp.Options{
 					// ignore Id because it will be unique each time it gets run
 					cmpopts.IgnoreFields(parserv1.Cell{}, "RefId"),
+					// ignore TextRange because it varies depending on available space
+					cmpopts.IgnoreFields(parserv1.Cell{}, "TextRange"),
 				}
 
 				// Zero out the metadata field for id
-				delete(aBlock.Metadata, "runme.dev/id")
+				delete(aCell.Metadata, "runme.dev/id")
 
-				if d := cmp.Diff(eBlock, aBlock, testutil.CellComparer, opts); d != "" {
-					t.Errorf("Unexpected diff block %d:\n%s", i, d)
+				if d := cmp.Diff(eCell, aCell, testutil.CellComparer, opts); d != "" {
+					t.Errorf("Unexpected diff cell %d:\n%s", i, d)
 				}
 			}
 		})
 	}
 }
 
-func Test_BlockToMarkdown(t *testing.T) {
+func Test_CellToMarkdown(t *testing.T) {
 	type testCase struct {
 		name      string
-		block     *parserv1.Cell
+		cell      *parserv1.Cell
 		maxLength int
 		expected  string
 	}
@@ -197,7 +199,7 @@ func Test_BlockToMarkdown(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "markup",
-			block: &parserv1.Cell{
+			cell: &parserv1.Cell{
 				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
 				Value: "This is a test",
 			},
@@ -205,7 +207,7 @@ func Test_BlockToMarkdown(t *testing.T) {
 		},
 		{
 			name: "code",
-			block: &parserv1.Cell{
+			cell: &parserv1.Cell{
 				Kind:  parserv1.CellKind_CELL_KIND_CODE,
 				Value: "echo \"something something\"",
 				Outputs: []*parserv1.CellOutput{
@@ -222,7 +224,7 @@ func Test_BlockToMarkdown(t *testing.T) {
 		},
 		{
 			name: "filter-by-mime-type",
-			block: &parserv1.Cell{
+			cell: &parserv1.Cell{
 				Kind:  parserv1.CellKind_CELL_KIND_CODE,
 				Value: "echo \"something something\"",
 				Outputs: []*parserv1.CellOutput{
@@ -248,7 +250,7 @@ func Test_BlockToMarkdown(t *testing.T) {
 		},
 		{
 			name: "truncate-output",
-			block: &parserv1.Cell{
+			cell: &parserv1.Cell{
 				Kind:  parserv1.CellKind_CELL_KIND_CODE,
 				Value: "echo line1\nline2",
 				Outputs: []*parserv1.CellOutput{
@@ -267,7 +269,7 @@ func Test_BlockToMarkdown(t *testing.T) {
 	}
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
-			actual := CellToMarkdown(c.block, c.maxLength)
+			actual := CellToMarkdown(c.cell, c.maxLength)
 			if d := cmp.Diff(c.expected, actual); d != "" {
 				t.Errorf("Unexpected diff:\n%s", d)
 			}

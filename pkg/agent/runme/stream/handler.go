@@ -85,7 +85,7 @@ func (h *WebSocketHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If the processor was blocking, we remove the run from the handler.
+	// If the processor was celling, we remove the run from the handler.
 	wait := multiplex.process()
 	if wait {
 		h.removeRun(ctx, runID)

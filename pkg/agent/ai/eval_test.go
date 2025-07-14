@@ -21,14 +21,14 @@ import (
 
 func TestAssertions(t *testing.T) {
 	type asserter interface {
-		Assert(ctx context.Context, assertion *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error
+		Assert(ctx context.Context, assertion *agentv1.Assertion, inputText string, cells map[string]*parserv1.Cell) error
 	}
 
 	type testCase struct {
 		name              string
 		asserter          asserter
 		assertion         *agentv1.Assertion
-		blocks            map[string]*parserv1.Cell
+		cells             map[string]*parserv1.Cell
 		expectedAssertion *agentv1.Assertion
 		inputText         string
 	}
@@ -84,7 +84,7 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*parserv1.Cell{
+			cells: map[string]*parserv1.Cell{
 				"1": {
 					Kind:       parserv1.CellKind_CELL_KIND_CODE,
 					Value:      "kubectl get pods --context test -n default",
@@ -116,7 +116,7 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*parserv1.Cell{
+			cells: map[string]*parserv1.Cell{
 				"1": {
 					Kind:       parserv1.CellKind_CELL_KIND_CODE,
 					Value:      "kubectl get pods --context test",
@@ -148,8 +148,8 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*parserv1.Cell{
-				"block1": {
+			cells: map[string]*parserv1.Cell{
+				"cell1": {
 					Kind: parserv1.CellKind_CELL_KIND_DOC_RESULTS,
 					DocResults: []*parserv1.DocResult{
 						{FileId: "file-123", FileName: "test.txt"},
@@ -181,8 +181,8 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*parserv1.Cell{
-				"block1": {
+			cells: map[string]*parserv1.Cell{
+				"cell1": {
 					Kind: parserv1.CellKind_CELL_KIND_DOC_RESULTS,
 					DocResults: []*parserv1.DocResult{
 						{FileId: "file-123", FileName: "test.txt"},
@@ -213,7 +213,7 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*parserv1.Cell{
+			cells: map[string]*parserv1.Cell{
 				"1": {
 					Kind:       parserv1.CellKind_CELL_KIND_CODE,
 					Value:      "echo hello world",
@@ -243,10 +243,10 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*parserv1.Cell{
+			cells: map[string]*parserv1.Cell{
 				"1": {
 					Kind:       parserv1.CellKind_CELL_KIND_MARKUP,
-					Value:      "This is not a code block.",
+					Value:      "This is not a code cell.",
 					LanguageId: "markdown",
 				},
 			},
@@ -273,7 +273,7 @@ func TestAssertions(t *testing.T) {
 					},
 				},
 			},
-			blocks: map[string]*parserv1.Cell{
+			cells: map[string]*parserv1.Cell{
 				"1": {
 					Kind:       parserv1.CellKind_CELL_KIND_CODE,
 					Value:      "az aks list --query \"[?name=='unified-60'].{Name:name, Location:location}\" --output table",
@@ -310,7 +310,7 @@ func TestAssertions(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.asserter.Assert(ctx, tc.assertion, tc.inputText, tc.blocks)
+			err := tc.asserter.Assert(ctx, tc.assertion, tc.inputText, tc.cells)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

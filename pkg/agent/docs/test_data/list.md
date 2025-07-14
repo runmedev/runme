@@ -1,10 +1,10 @@
-Test code blocks nested in a list
+Test code cells nested in a list
 
 1. First command
-    ```bash
-    echo 1
-    ```
+   ```bash
+   echo 1
+   ```
 1. Second command
-    ```bash
-    echo 2
-    ```
+   ```bash
+   echo 2
+   ```

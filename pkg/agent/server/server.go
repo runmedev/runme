@@ -128,7 +128,7 @@ func NewServer(opts Options, agent *ai.Agent) (*Server, error) {
 }
 
 // Run starts the http server
-// Blocks until its shutdown.
+// Cells until its shutdown.
 func (s *Server) Run() error {
 	s.shutdownComplete = make(chan bool, 1)
 	trapInterrupt(s)

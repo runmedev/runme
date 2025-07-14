@@ -73,34 +73,34 @@ const (
 )
 
 type Asserter interface {
-	Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error
+	Assert(ctx context.Context, as *agentv1.Assertion, inputText string, cells map[string]*parserv1.Cell) error
 }
 
-func dumpBlocks(blocks map[string]*parserv1.Cell) string {
+func dumpCells(cells map[string]*parserv1.Cell) string {
 	var context_builder strings.Builder
-	for _, block := range blocks {
-		context_builder.WriteString(fmt.Sprintf("Type: %s, Role: %s, Contents: %s\n", block.Kind, block.Role, block.Value))
+	for _, cell := range cells {
+		context_builder.WriteString(fmt.Sprintf("Type: %s, Role: %s, Contents: %s\n", cell.Kind, cell.Role, cell.Value))
 	}
 	return context_builder.String()
 }
 
 type shellRequiredFlag struct{}
 
-func (s shellRequiredFlag) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
+func (s shellRequiredFlag) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, cells map[string]*parserv1.Cell) error {
 	shellFlag := as.GetShellRequiredFlag()
 	command := shellFlag.Command
 	flags := shellFlag.Flags
-	contain_command := false                     // Tracks if the target command is found in any code block
+	contain_command := false                     // Tracks if the target command is found in any code cell
 	as.Result = agentv1.Assertion_RESULT_SKIPPED // Default result is SKIPPED unless the command is found
-	for _, block := range blocks {
-		if block.Kind == parserv1.CellKind_CELL_KIND_CODE {
-			if strings.Contains(block.Value, command) { // Check if the code block contains the target command
+	for _, cell := range cells {
+		if cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
+			if strings.Contains(cell.Value, command) { // Check if the code cell contains the target command
 				if !contain_command {
 					contain_command = true
 					as.Result = agentv1.Assertion_RESULT_TRUE // Set to PASSED if the command is present (may be overridden below)
 				}
 				for _, flag := range flags { // If the command is present, check for all required flags
-					if !strings.Contains(block.Value, flag) {
+					if !strings.Contains(cell.Value, flag) {
 						as.FailureReason += fmt.Sprintf("Flag %s is missing", flag)
 						as.Result = agentv1.Assertion_RESULT_FALSE // Set to FAILED if any required flag is missing
 					}
@@ -119,19 +119,19 @@ func (s shellRequiredFlag) Assert(ctx context.Context, as *agentv1.Assertion, in
 
 type toolInvocation struct{}
 
-func (t toolInvocation) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
+func (t toolInvocation) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, cells map[string]*parserv1.Cell) error {
 	targetTool := as.GetToolInvocation().GetToolName()
 	as.Result = agentv1.Assertion_RESULT_FALSE // Default to false unless the tool is invoked
-	for _, block := range blocks {
-		// N.B. For now, every tool-call response is treated as code execution in blocks.go.
+	for _, cell := range cells {
+		// N.B. For now, every tool-call response is treated as code execution in cells.go.
 		// TODO: When we add additional tools, handle tool-call responses separately.
 		if targetTool == "shell" {
-			if block.Kind == parserv1.CellKind_CELL_KIND_CODE {
+			if cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
 				as.Result = agentv1.Assertion_RESULT_TRUE
 				break
 			}
 		} else if targetTool == "file_retrieval" {
-			if block.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
+			if cell.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
 				as.Result = agentv1.Assertion_RESULT_TRUE
 				break
 			}
@@ -147,12 +147,12 @@ func (t toolInvocation) Assert(ctx context.Context, as *agentv1.Assertion, input
 
 type fileRetrieved struct{}
 
-func (f fileRetrieved) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
+func (f fileRetrieved) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, cells map[string]*parserv1.Cell) error {
 	targetFileId := as.GetFileRetrieval().FileId
 	as.Result = agentv1.Assertion_RESULT_FALSE // Default to false unless the file is found
-	for _, block := range blocks {
-		if block.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
-			for _, file := range block.DocResults {
+	for _, cell := range cells {
+		if cell.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
+			for _, file := range cell.DocResults {
 				if file.FileId == targetFileId {
 					as.Result = agentv1.Assertion_RESULT_TRUE
 					break
@@ -176,11 +176,11 @@ func NewLlmJudge(client *openai.Client) *llmJudge {
 	return &llmJudge{client: client}
 }
 
-func (l llmJudge) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
+func (l llmJudge) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, cells map[string]*parserv1.Cell) error {
 	logger, _ := logr.FromContext(ctx)
 	var context_builder strings.Builder
-	for _, block := range blocks {
-		markdown := docs.CellToMarkdown(block, 10000)
+	for _, cell := range cells {
+		markdown := docs.CellToMarkdown(cell, 10000)
 		context_builder.WriteString(markdown + "\n")
 	}
 	logger.Info("llm_judge_debug_input", "input", context_builder.String())
@@ -238,9 +238,9 @@ func (l llmJudge) Assert(ctx context.Context, as *agentv1.Assertion, inputText s
 	return nil
 }
 
-type codeblockRegex struct{}
+type codecellRegex struct{}
 
-func (c codeblockRegex) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, blocks map[string]*parserv1.Cell) error {
+func (c codecellRegex) Assert(ctx context.Context, as *agentv1.Assertion, inputText string, cells map[string]*parserv1.Cell) error {
 	regexPattern := as.GetCodeblockRegex().Regex
 	if regexPattern == "" {
 		as.Result = agentv1.Assertion_RESULT_SKIPPED
@@ -252,9 +252,9 @@ func (c codeblockRegex) Assert(ctx context.Context, as *agentv1.Assertion, input
 		return errors.Wrapf(err, "invalid regex pattern: %s", regexPattern)
 	}
 	matched := false
-	for _, block := range blocks {
-		if block.Kind == parserv1.CellKind_CELL_KIND_CODE {
-			if re.MatchString(block.Value) {
+	for _, cell := range cells {
+		if cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
+			if re.MatchString(cell.Value) {
 				matched = true
 				break
 			}
@@ -263,11 +263,11 @@ func (c codeblockRegex) Assert(ctx context.Context, as *agentv1.Assertion, input
 	if matched {
 		as.Result = agentv1.Assertion_RESULT_TRUE
 	} else {
-		as.FailureReason = "No codeblock matches regex: " + regexPattern
+		as.FailureReason = "No codecell matches regex: " + regexPattern
 		as.Result = agentv1.Assertion_RESULT_FALSE
 	}
 	logger, _ := logr.FromContext(ctx)
-	logger.Info("codeblockRegex", "assertion", as.Name, "result", as.Result)
+	logger.Info("codecellRegex", "assertion", as.Name, "result", as.Result)
 	return nil
 }
 
@@ -276,35 +276,35 @@ var registry = map[agentv1.Assertion_Type]Asserter{
 	agentv1.Assertion_TYPE_TOOL_INVOKED:        toolInvocation{},
 	agentv1.Assertion_TYPE_FILE_RETRIEVED:      fileRetrieved{},
 	agentv1.Assertion_TYPE_LLM_JUDGE:           llmJudge{},
-	agentv1.Assertion_TYPE_CODEBLOCK_REGEX:     codeblockRegex{},
+	agentv1.Assertion_TYPE_CODEBLOCK_REGEX:     codecellRegex{},
 }
 
 func runInference(input string, agentCookie string, inferenceEndpoint string) (map[string]*parserv1.Cell, error) {
 	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
 
-	blocks := make(map[string]*parserv1.Cell)
+	cells := make(map[string]*parserv1.Cell)
 
-	Block := parserv1.Cell{
+	Cell := parserv1.Cell{
 		Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
-		Value: "This is a block",
+		Value: "This is a cell",
 	}
 
-	log.Info("Block", logs.ZapProto("block", &Block))
+	log.Info("Cell", logs.ZapProto("cell", &Cell))
 
 	baseURL := inferenceEndpoint
 	if baseURL == "" {
-		return blocks, errors.New("inferenceEndpoint is not set in config")
+		return cells, errors.New("inferenceEndpoint is not set in config")
 	}
 
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		log.Error(err, "Failed to parse URL")
-		return blocks, errors.Wrapf(err, "Failed to parse URL")
+		return cells, errors.Wrapf(err, "Failed to parse URL")
 	}
 
 	// Use parserv1.CellKind_CELL_KIND_DOC_RESULTS instead of CELL_KIND_FILE_SEARCH_RESULTS
-	// Remove agentv1connect.BlocksServiceClient and related client code
-	// Update request construction to use Cells, not Blocks
+	// Remove agentv1connect.CellsServiceClient and related client code
+	// Update request construction to use Cells, not Cells
 
 	ctx := context.Background()
 	genReq := &agentv1.GenerateRequest{
@@ -345,23 +345,23 @@ func runInference(input string, agentCookie string, inferenceEndpoint string) (m
 		),
 	).Generate(ctx, req)
 	if err != nil {
-		return blocks, errors.Wrapf(err, "Failed to create generate stream")
+		return cells, errors.Wrapf(err, "Failed to create generate stream")
 	}
 
 	// Receive responses
 	for stream.Receive() {
 		response := stream.Msg()
-		for _, block := range response.Cells {
-			blocks[block.RefId] = block
+		for _, cell := range response.Cells {
+			cells[cell.RefId] = cell
 		}
 	}
 	if stream.Err() != nil {
-		return blocks, errors.Wrapf(stream.Err(), "Error receiving response")
+		return cells, errors.Wrapf(stream.Err(), "Error receiving response")
 	}
-	for _, block := range blocks {
-		log.Info(fmt.Sprintf("Received %d blocks. Type: %s, Role: %s, Contents: %s", len(blocks), block.Kind, block.Role, block.Value))
+	for _, cell := range cells {
+		log.Info(fmt.Sprintf("Received %d cells. Type: %s, Role: %s, Contents: %s", len(cells), cell.Kind, cell.Role, cell.Value))
 	}
-	return blocks, nil
+	return cells, nil
 }
 
 // markdownReport holds the data needed to render the evaluation markdown report
@@ -375,10 +375,10 @@ type markdownReport struct {
 	NumSkipped         int
 	AssertionTypeStats map[string]struct{ Passed, Failed, Skipped int }
 	FailedAssertions   []struct {
-		Sample     string
-		Assertion  string
-		Reason     string
-		BlocksDump string
+		Sample    string
+		Assertion string
+		Reason    string
+		CellsDump string
 	}
 	Commit    string
 	Version   string
@@ -423,9 +423,9 @@ func (r *markdownReport) Render() string {
 	lines = append(lines, "")
 	if len(r.FailedAssertions) > 0 {
 		lines = append(lines, fmt.Sprintf("<details>\n<summary>❌ %d failed assertions (click to expand)</summary>\n", len(r.FailedAssertions)))
-		lines = append(lines, "\n| Sample | Assertion | Reason | Blocks Dump |\n|--------|-----------|--------|-------------|")
+		lines = append(lines, "\n| Sample | Assertion | Reason | Cells Dump |\n|--------|-----------|--------|-------------|")
 		for _, fail := range r.FailedAssertions {
-			escapedDump := strings.ReplaceAll(fail.BlocksDump, "\n", "<br/>")
+			escapedDump := strings.ReplaceAll(fail.CellsDump, "\n", "<br/>")
 			escapedDump = strings.ReplaceAll(escapedDump, "|", "&#124;")
 			escapedReason := strings.ReplaceAll(fail.Reason, "|", "&#124;")
 			escapedReason = strings.ReplaceAll(escapedReason, "\n", "<br/>")
@@ -514,15 +514,15 @@ func EvalFromExperiment(exp *agentv1.Experiment, experimentFilePath string, cook
 	numPassed := 0
 	numFailed := 0
 	numSkipped := 0
-	failedAssertions := []struct{ Sample, Assertion, Reason, BlocksDump string }{}
+	failedAssertions := []struct{ Sample, Assertion, Reason, CellsDump string }{}
 
 	for _, sample := range samples {
-		blocks, err := runInference(sample.InputText, agentCookie, inferenceEndpoint)
+		cells, err := runInference(sample.InputText, agentCookie, inferenceEndpoint)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to run inference")
 		}
 		for _, assertion := range sample.Assertions {
-			err := registry[assertion.Type].Assert(ctx, assertion, sample.InputText, blocks)
+			err := registry[assertion.Type].Assert(ctx, assertion, sample.InputText, cells)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to assert %q", assertion.Name)
 			}
@@ -536,11 +536,11 @@ func EvalFromExperiment(exp *agentv1.Experiment, experimentFilePath string, cook
 			case agentv1.Assertion_RESULT_FALSE:
 				numFailed++
 				stat.Failed++
-				failedAssertions = append(failedAssertions, struct{ Sample, Assertion, Reason, BlocksDump string }{
-					Sample:     sample.Metadata.GetName(),
-					Assertion:  assertion.Name,
-					Reason:     assertion.GetFailureReason(),
-					BlocksDump: dumpBlocks(blocks),
+				failedAssertions = append(failedAssertions, struct{ Sample, Assertion, Reason, CellsDump string }{
+					Sample:    sample.Metadata.GetName(),
+					Assertion: assertion.Name,
+					Reason:    assertion.GetFailureReason(),
+					CellsDump: dumpCells(cells),
 				})
 			case agentv1.Assertion_RESULT_SKIPPED:
 				numSkipped++

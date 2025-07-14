@@ -31,7 +31,7 @@ var (
 // for a given runID. It handles multiple streams and clients, coordinating authenticated requests and responses between them
 // and the Runme runner. The same multiplexer bridges the v2.ExecuteRequest and v2.ExecuteResponse for a run in runme.Runner
 // for one or many Console DOM element with the same runID.
-// Todo(sebastian): Deduplicate Cell/Block ID to the runID to peg the run to a specific cell/block.
+// Todo(sebastian): Deduplicate Cell/Cell ID to the runID to peg the run to a specific cell/cell.
 type Multiplexer struct {
 	ctx    context.Context
 	cancel context.CancelFunc

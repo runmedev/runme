@@ -17,10 +17,10 @@ const (
 	truncationMessage     = "<...stdout was truncated...>"
 )
 
-// MarkdownToCells converts a markdown string into a sequence of blocks.
+// MarkdownToCells converts a markdown string into a sequence of cells.
 // This function relies on RunMe's Markdown->Cells conversion; underneath the hood that uses goldmark to walk the AST.
 // RunMe's deserialization function doesn't have any notion of output in markdown. However, in Foyle outputs
-// are rendered to code blocks of language "output". So we need to do some post processing to convert the outputs
+// are rendered to code cells of language "output". So we need to do some post processing to convert the outputs
 // into output items
 func MarkdownToCells(mdText string) ([]*parserv1.Cell, error) {
 	// N.B. We don't need to add any identities
@@ -58,16 +58,16 @@ func MarkdownToCells(mdText string) ([]*parserv1.Cell, error) {
 			TextRange:  tr,
 		}
 
-		c, err := converters.CellToBlock(cellPb)
+		c, err := converters.CellToCell(cellPb)
 		if err != nil {
 			return nil, err
 		}
 
-		// We need to handle the case where the block is an output code block.
+		// We need to handle the case where the cell is an output code cell.
 		if cell.Kind == editor.CodeKind {
 			if cell.LanguageID == OUTPUTLANG {
-				// This is an output block
-				// We need to append the output to the last code block
+				// This is an output cell
+				// We need to append the output to the last code cell
 				if lastCodeCell != nil {
 					if lastCodeCell.Outputs == nil {
 						lastCodeCell.Outputs = make([]*parserv1.CellOutput, 0, 1)
@@ -82,14 +82,14 @@ func MarkdownToCells(mdText string) ([]*parserv1.Cell, error) {
 					continue
 				}
 
-				// Since we don't have a code block to add the output to just treat it as a code block
+				// Since we don't have a code cell to add the output to just treat it as a code cell
 			} else {
-				// Update the lastCodeBlock
+				// Update the lastCodeCell
 				lastCodeCell = cellPb
 			}
 		} else {
-			// If we have a non-nil markup block then we zero out lastCodeBlock so that a subsequent output block
-			// wouldn't be added to the last code block.
+			// If we have a non-nil markup cell then we zero out lastCodeCell so that a subsequent output cell
+			// wouldn't be added to the last code cell.
 			if c.GetValue() != "" {
 				lastCodeCell = nil
 			}
@@ -101,7 +101,7 @@ func MarkdownToCells(mdText string) ([]*parserv1.Cell, error) {
 	return cells, err
 }
 
-// BlockToMarkdown converts a block to markdown
+// CellToMarkdown converts a cell to markdown
 // maxLength is a maximum length for the generated markdown. This is a soft limit and may be exceeded slightly
 // because we don't account for some characters like the outputLength and the truncation message
 // A value <=0 means no limit.
@@ -127,7 +127,7 @@ func writeCellMarkdown(sb *strings.Builder, cell *parserv1.Cell, maxLength int) 
 
 	switch cell.GetKind() {
 	case parserv1.CellKind_CELL_KIND_CODE:
-		// Code just gets written as a code block
+		// Code just gets written as a code cell
 		sb.WriteString("```" + BASHLANG + "\n")
 
 		data := cell.GetValue()
@@ -143,7 +143,7 @@ func writeCellMarkdown(sb *strings.Builder, cell *parserv1.Cell, maxLength int) 
 		sb.WriteString(data)
 		sb.WriteString("\n```\n")
 	default:
-		// Otherwise assume its a markdown block
+		// Otherwise assume its a markdown cell
 
 		data := cell.GetValue()
 		if len(data) > maxInputLength && maxInputLength > 0 {

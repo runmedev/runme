@@ -109,38 +109,38 @@ func Test_Agent(t *testing.T) {
 		t.Fatalf("Error compiling regex: %v", err)
 	}
 
-	// Check if there is a code execution block
-	codeBlocks := make([]*parserv1.Cell, 0, len(resp.Cells))
+	// Check if there is a code execution cell
+	codeCells := make([]*parserv1.Cell, 0, len(resp.Cells))
 	for _, c := range resp.Cells {
 		if c.Kind == parserv1.CellKind_CELL_KIND_CODE {
-			t.Logf("Found code block with ID: %s", c.RefId)
-			// Optionally, you can check the contents of the block
-			t.Logf("Code block contents: %s", c.Value)
+			t.Logf("Found code cell with ID: %s", c.RefId)
+			// Optionally, you can check the contents of the cell
+			t.Logf("Code cell contents: %s", c.Value)
 			matched := exCommand.Match([]byte(c.Value))
 
 			if !matched {
-				t.Errorf("Code block does not match expected pattern; got\n%v", c.Value)
+				t.Errorf("Code cell does not match expected pattern; got\n%v", c.Value)
 				continue
 			}
 
 			// Rewrite the command so we know its a command that's safe to execute automatically
 			c.Value = `kubectl --context=a0s -n rube get deployment rube-dev -o yaml`
-			codeBlocks = append(codeBlocks, c)
+			codeCells = append(codeCells, c)
 		}
 	}
 
-	if len(codeBlocks) == 0 {
-		t.Fatalf("No code blocks found in response")
+	if len(codeCells) == 0 {
+		t.Fatalf("No code cells found in response")
 	}
 
-	for _, c := range codeBlocks {
+	for _, c := range codeCells {
 		if c.RefId == "" {
-			t.Fatalf("Code block with ID %s does not have a CallId", c.RefId)
+			t.Fatalf("Code cell with ID %s does not have a CallId", c.RefId)
 		}
 	}
 
 	// Now lets execute a command and provide it to the AI to see how it responds.
-	if err := executeBlock(codeBlocks[0], true); err != nil {
+	if err := executeCell(codeCells[0], true); err != nil {
 		t.Fatalf("Failed to execute command: %+v", err)
 	}
 
@@ -152,7 +152,7 @@ func Test_Agent(t *testing.T) {
 	codeReq := &agentv1.GenerateRequest{
 		PreviousResponseId: previousResponseID,
 		Cells: []*parserv1.Cell{
-			codeBlocks[0],
+			codeCells[0],
 		},
 	}
 
@@ -197,7 +197,7 @@ func (s *ServerResponseStream) Send(e *agentv1.GenerateResponse) error {
 
 // Run the given command and return the output
 // This can either run the command for real or return canned outputs
-func executeBlock(c *parserv1.Cell, useCached bool) error {
+func executeCell(c *parserv1.Cell, useCached bool) error {
 	log := zapr.NewLogger(zap.L())
 	args := strings.Split(c.Value, " ")
 
