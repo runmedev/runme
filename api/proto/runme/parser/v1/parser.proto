@@ -86,7 +86,7 @@ message Cell {
   // ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
   CellExecutionSummary execution_summary = 7;
 
-  /* AGENT SPECIFIC FIELDS (porting from Block) */
+  /* Agent-specific fields (ported from formerly Block) */
 
   // RefID is the agent's original unique identifier.
   string ref_id = 100;
