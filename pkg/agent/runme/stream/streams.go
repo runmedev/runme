@@ -20,7 +20,7 @@ import (
 type Streams struct {
 	auth *iam.AuthContext
 
-	// The known ID is the cell/cell ID contained in requests. Once we have a known ID, we can reject requests with mismatched IDs.
+	// The known ID is the cell ID contained in requests. Once we have a known ID, we can reject requests with mismatched IDs.
 	knownID string
 
 	mu    sync.RWMutex
