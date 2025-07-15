@@ -36,6 +36,7 @@ import (
 
 	"github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1/parserv1connect"
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2/runnerv2connect"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
@@ -277,7 +278,7 @@ func (s *Server) registerServices() error {
 	if s.parser != nil {
 		parserSvcPath, parserSvcHandler := parserv1connect.NewParserServiceHandler(s.parser, connect.WithInterceptors(interceptors...))
 		log.Info("Setting up parser service", "path", parserSvcPath)
-		mux.HandleProtected(parserSvcPath, parserSvcHandler, s.checker, api.AgentUserRole)
+		mux.HandleProtected(parserSvcPath, parserSvcHandler, s.checker, api.RunnerUserRole)
 	} else {
 		log.Info("Parser is nil; parser service is disabled")
 	}
@@ -290,7 +291,11 @@ func (s *Server) registerServices() error {
 		})
 		// Unprotected WebSockets handler since socket protection is done on the app-level (messages)
 		mux.Handle("/ws", otelhttp.NewHandler(http.HandlerFunc(sHandler.Handler), "/ws"))
-		log.Info("Setting up runner service", "path", "/ws")
+		log.Info("Setting up runner websocket handler", "path", "/ws")
+
+		runnerSvcPath, runnerSvcHandler := runnerv2connect.NewRunnerServiceHandler(s.runner, connect.WithInterceptors(interceptors...))
+		log.Info("Setting up runner service", "path", runnerSvcPath)
+		mux.HandleProtected(runnerSvcPath, runnerSvcHandler, s.checker, api.RunnerUserRole)
 	}
 
 	// Health check should be public
