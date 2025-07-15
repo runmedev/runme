@@ -394,8 +394,8 @@ type AssistantServerConfig struct {
 	// RunnerService starts the Runme runner service if true otherwise it doesn't start the runner service.
 	RunnerService bool `json:"runnerService" yaml:"runnerService"`
 
-	// EditorService starts the Runme editor service if true otherwise it doesn't start the editor service.
-	EditorService bool `json:"editorService" yaml:"editorService"`
+	// ParserService starts the Runme parser service if true otherwise it doesn't start the parser service.
+	ParserService bool `json:"parserService" yaml:"parserService"`
 
 	// OIDC configuration
 	OIDC *OIDCConfig `json:"oidc,omitempty" yaml:"oidc,omitempty"`

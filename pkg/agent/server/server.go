@@ -50,7 +50,7 @@ type Server struct {
 	engine           http.Handler
 	shutdownComplete chan bool
 	runner           *runme.Runner
-	editor           *runme.Editor
+	parser           *runme.Parser
 	agent            *ai.Agent
 	checker          iam.Checker
 }
@@ -98,10 +98,10 @@ func NewServer(opts Options, agent *ai.Agent) (*Server, error) {
 		log.Info("Runner service is disabled")
 	}
 
-	var editor *runme.Editor
+	var parser *runme.Parser
 
-	if opts.Server.EditorService {
-		editor = runme.NewEditor(zap.L())
+	if opts.Server.ParserService {
+		parser = runme.NewParser(zap.L())
 	}
 
 	if opts.Server.OIDC == nil && opts.IAMPolicy != nil {
@@ -129,7 +129,7 @@ func NewServer(opts Options, agent *ai.Agent) (*Server, error) {
 		serverConfig: opts.Server,
 		webAppConfig: opts.WebApp,
 		runner:       runner,
-		editor:       editor,
+		parser:       parser,
 		agent:        agent,
 		checker:      checker,
 	}
@@ -274,12 +274,12 @@ func (s *Server) registerServices() error {
 		log.Info("Agent is nil; AI service is disabled")
 	}
 
-	if s.editor != nil {
-		editorSvcPath, editorSvcHandler := parserv1connect.NewParserServiceHandler(s.editor, connect.WithInterceptors(interceptors...))
-		log.Info("Setting up editor service", "path", editorSvcPath)
-		mux.HandleProtected(editorSvcPath, editorSvcHandler, s.checker, api.AgentUserRole)
+	if s.parser != nil {
+		parserSvcPath, parserSvcHandler := parserv1connect.NewParserServiceHandler(s.parser, connect.WithInterceptors(interceptors...))
+		log.Info("Setting up parser service", "path", parserSvcPath)
+		mux.HandleProtected(parserSvcPath, parserSvcHandler, s.checker, api.AgentUserRole)
 	} else {
-		log.Info("Editor is nil; editor service is disabled")
+		log.Info("Parser is nil; parser service is disabled")
 	}
 
 	if s.runner != nil {
