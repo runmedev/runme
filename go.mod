@@ -23,7 +23,7 @@ require (
 	github.com/cli/go-gh/v2 v2.12.1
 	github.com/containerd/console v1.0.5
 	github.com/creack/pty v1.1.24
-	github.com/docker/docker v28.3.1+incompatible
+	github.com/docker/docker v28.3.2+incompatible
 	github.com/expr-lang/expr v1.17.5
 	github.com/fatih/color v1.18.0
 	github.com/fullstorydev/grpcurl v1.9.3
