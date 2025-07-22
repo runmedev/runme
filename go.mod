@@ -66,7 +66,7 @@ require (
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sys v0.33.0
 	golang.org/x/term v0.32.0
-	google.golang.org/api v0.240.0
+	google.golang.org/api v0.242.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7
 	google.golang.org/protobuf v1.36.6
 	mvdan.cc/sh/v3 v3.12.0
