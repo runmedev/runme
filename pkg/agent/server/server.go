@@ -18,7 +18,6 @@ import (
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
 
-	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/api"
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
 	"github.com/runmedev/runme/v3/pkg/agent/runme"
@@ -52,7 +51,7 @@ type Server struct {
 	shutdownComplete chan bool
 	runner           *runme.Runner
 	parser           *runme.Parser
-	agent            *ai.Agent
+	agent            agentv1connect.MessagesServiceHandler
 	checker          iam.Checker
 }
 
@@ -64,7 +63,7 @@ type Options struct {
 }
 
 // NewServer creates a new server
-func NewServer(opts Options, agent *ai.Agent) (*Server, error) {
+func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Server, error) {
 	log := zapr.NewLogger(zap.L())
 	if agent == nil {
 		if !opts.Server.RunnerService {
