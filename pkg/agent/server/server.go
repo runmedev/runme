@@ -56,13 +56,17 @@ type Server struct {
 	parser           *runme.Parser
 	agent            agentv1connect.MessagesServiceHandler
 	checker          iam.Checker
+	registerHandlers RegisterHandlers
 }
 
+type RegisterHandlers func(mux *AuthMux, checker iam.Checker) error
 type Options struct {
 	Telemetry *config.TelemetryConfig
 	Server    *config.AssistantServerConfig
 	WebApp    *agentv1.WebAppConfig
 	IAMPolicy *api.IAMPolicy
+	// RegisterHandlers is a callback that allows you to register additional handlers in the server
+	RegisterHandlers RegisterHandlers
 }
 
 // NewServer creates a new server
@@ -128,13 +132,14 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 	}
 
 	s := &Server{
-		telemetry:    opts.Telemetry,
-		serverConfig: opts.Server,
-		webAppConfig: opts.WebApp,
-		runner:       runner,
-		parser:       parser,
-		agent:        agent,
-		checker:      checker,
+		telemetry:        opts.Telemetry,
+		serverConfig:     opts.Server,
+		webAppConfig:     opts.WebApp,
+		runner:           runner,
+		parser:           parser,
+		agent:            agent,
+		checker:          checker,
+		registerHandlers: opts.RegisterHandlers,
 	}
 	return s, nil
 }
@@ -309,6 +314,13 @@ func (s *Server) registerServices() error {
 
 	mux.HandleFunc("/trailerstest", trailersTest)
 	mux.Handle("/metrics", promhttp.Handler())
+
+	if s.registerHandlers != nil {
+		log.Info("Registering additional handlers")
+		if err := s.registerHandlers(mux, s.checker); err != nil {
+			return err
+		}
+	}
 
 	// The single page app is currently only enabled in the agent not the runner.
 	if s.agent != nil {
