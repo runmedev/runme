@@ -13,6 +13,7 @@ import { WireType } from "@protobuf-ts/runtime";
 import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Notebook } from "../../runme/parser/v1/parser_pb";
 import { Cell } from "../../runme/parser/v1/parser_pb";
 // @generated message type with reflection information, may provide speed optimized methods
 class GenerateRequest$Type extends MessageType {
@@ -132,9 +133,99 @@ class GenerateResponse$Type extends MessageType {
  * @generated MessageType for protobuf message agent.v1.GenerateResponse
  */
 export const GenerateResponse = new GenerateResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LogRequest$Type extends MessageType {
+    constructor() {
+        super("agent.v1.LogRequest", [
+            { no: 1, name: "notebook", kind: "message", T: () => Notebook }
+        ]);
+    }
+    create(value) {
+        const message = globalThis.Object.create((this.messagePrototype));
+        if (value !== undefined)
+            reflectionMergePartial(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* runme.parser.v1.Notebook notebook */ 1:
+                    message.notebook = Notebook.internalBinaryRead(reader, reader.uint32(), options, message.notebook);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+        /* runme.parser.v1.Notebook notebook = 1; */
+        if (message.notebook)
+            Notebook.internalBinaryWrite(message.notebook, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message agent.v1.LogRequest
+ */
+export const LogRequest = new LogRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LogResponse$Type extends MessageType {
+    constructor() {
+        super("agent.v1.LogResponse", []);
+    }
+    create(value) {
+        const message = globalThis.Object.create((this.messagePrototype));
+        if (value !== undefined)
+            reflectionMergePartial(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message agent.v1.LogResponse
+ */
+export const LogResponse = new LogResponse$Type();
 /**
  * @generated ServiceType for protobuf service agent.v1.MessagesService
  */
 export const MessagesService = new ServiceType("agent.v1.MessagesService", [
     { name: "Generate", serverStreaming: true, options: {}, I: GenerateRequest, O: GenerateResponse }
+]);
+/**
+ * @generated ServiceType for protobuf service agent.v1.LogService
+ */
+export const LogService = new ServiceType("agent.v1.LogService", [
+    { name: "Log", options: {}, I: LogRequest, O: LogResponse }
 ]);

@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
-import type { Cell, CellJson } from "../../runme/parser/v1/parser_pb";
+import type { Cell, CellJson, Notebook, NotebookJson } from "../../runme/parser/v1/parser_pb";
 
 /**
  * Describes the file agent/v1/service.proto.
@@ -98,6 +98,50 @@ export declare type GenerateResponseJson = {
 export declare const GenerateResponseSchema: GenMessage<GenerateResponse, {jsonType: GenerateResponseJson}>;
 
 /**
+ * @generated from message agent.v1.LogRequest
+ */
+export declare type LogRequest = Message<"agent.v1.LogRequest"> & {
+  /**
+   * @generated from field: runme.parser.v1.Notebook notebook = 1;
+   */
+  notebook?: Notebook;
+};
+
+/**
+ * @generated from message agent.v1.LogRequest
+ */
+export declare type LogRequestJson = {
+  /**
+   * @generated from field: runme.parser.v1.Notebook notebook = 1;
+   */
+  notebook?: NotebookJson;
+};
+
+/**
+ * Describes the message agent.v1.LogRequest.
+ * Use `create(LogRequestSchema)` to create a new message.
+ */
+export declare const LogRequestSchema: GenMessage<LogRequest, {jsonType: LogRequestJson}>;
+
+/**
+ * @generated from message agent.v1.LogResponse
+ */
+export declare type LogResponse = Message<"agent.v1.LogResponse"> & {
+};
+
+/**
+ * @generated from message agent.v1.LogResponse
+ */
+export declare type LogResponseJson = {
+};
+
+/**
+ * Describes the message agent.v1.LogResponse.
+ * Use `create(LogResponseSchema)` to create a new message.
+ */
+export declare const LogResponseSchema: GenMessage<LogResponse, {jsonType: LogResponseJson}>;
+
+/**
  * MessagesService generates blocks.
  *
  * @generated from service agent.v1.MessagesService
@@ -112,5 +156,19 @@ export declare const MessagesService: GenService<{
     methodKind: "server_streaming";
     input: typeof GenerateRequestSchema;
     output: typeof GenerateResponseSchema;
+  },
+}>;
+
+/**
+ * @generated from service agent.v1.LogService
+ */
+export declare const LogService: GenService<{
+  /**
+   * @generated from rpc agent.v1.LogService.Log
+   */
+  log: {
+    methodKind: "unary";
+    input: typeof LogRequestSchema;
+    output: typeof LogResponseSchema;
   },
 }>;

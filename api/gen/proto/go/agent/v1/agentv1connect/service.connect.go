@@ -25,6 +25,8 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// MessagesServiceName is the fully-qualified name of the MessagesService service.
 	MessagesServiceName = "agent.v1.MessagesService"
+	// LogServiceName is the fully-qualified name of the LogService service.
+	LogServiceName = "agent.v1.LogService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -38,6 +40,8 @@ const (
 	// MessagesServiceGenerateProcedure is the fully-qualified name of the MessagesService's Generate
 	// RPC.
 	MessagesServiceGenerateProcedure = "/agent.v1.MessagesService/Generate"
+	// LogServiceLogProcedure is the fully-qualified name of the LogService's Log RPC.
+	LogServiceLogProcedure = "/agent.v1.LogService/Log"
 )
 
 // MessagesServiceClient is a client for the agent.v1.MessagesService service.
@@ -110,4 +114,74 @@ type UnimplementedMessagesServiceHandler struct{}
 
 func (UnimplementedMessagesServiceHandler) Generate(context.Context, *connect.Request[v1.GenerateRequest], *connect.ServerStream[v1.GenerateResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("agent.v1.MessagesService.Generate is not implemented"))
+}
+
+// LogServiceClient is a client for the agent.v1.LogService service.
+type LogServiceClient interface {
+	Log(context.Context, *connect.Request[v1.LogRequest]) (*connect.Response[v1.LogResponse], error)
+}
+
+// NewLogServiceClient constructs a client for the agent.v1.LogService service. By default, it uses
+// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
+// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
+// connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewLogServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) LogServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	logServiceMethods := v1.File_agent_v1_service_proto.Services().ByName("LogService").Methods()
+	return &logServiceClient{
+		log: connect.NewClient[v1.LogRequest, v1.LogResponse](
+			httpClient,
+			baseURL+LogServiceLogProcedure,
+			connect.WithSchema(logServiceMethods.ByName("Log")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// logServiceClient implements LogServiceClient.
+type logServiceClient struct {
+	log *connect.Client[v1.LogRequest, v1.LogResponse]
+}
+
+// Log calls agent.v1.LogService.Log.
+func (c *logServiceClient) Log(ctx context.Context, req *connect.Request[v1.LogRequest]) (*connect.Response[v1.LogResponse], error) {
+	return c.log.CallUnary(ctx, req)
+}
+
+// LogServiceHandler is an implementation of the agent.v1.LogService service.
+type LogServiceHandler interface {
+	Log(context.Context, *connect.Request[v1.LogRequest]) (*connect.Response[v1.LogResponse], error)
+}
+
+// NewLogServiceHandler builds an HTTP handler from the service implementation. It returns the path
+// on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewLogServiceHandler(svc LogServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	logServiceMethods := v1.File_agent_v1_service_proto.Services().ByName("LogService").Methods()
+	logServiceLogHandler := connect.NewUnaryHandler(
+		LogServiceLogProcedure,
+		svc.Log,
+		connect.WithSchema(logServiceMethods.ByName("Log")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/agent.v1.LogService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case LogServiceLogProcedure:
+			logServiceLogHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedLogServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedLogServiceHandler struct{}
+
+func (UnimplementedLogServiceHandler) Log(context.Context, *connect.Request[v1.LogRequest]) (*connect.Response[v1.LogResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.v1.LogService.Log is not implemented"))
 }

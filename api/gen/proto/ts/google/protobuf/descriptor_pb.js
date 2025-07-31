@@ -378,42 +378,6 @@ export var MethodOptions_IdempotencyLevel;
     MethodOptions_IdempotencyLevel[MethodOptions_IdempotencyLevel["IDEMPOTENT"] = 2] = "IDEMPOTENT";
 })(MethodOptions_IdempotencyLevel || (MethodOptions_IdempotencyLevel = {}));
 /**
- * @generated from protobuf enum google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility
- */
-export var FeatureSet_VisibilityFeature_DefaultSymbolVisibility;
-(function (FeatureSet_VisibilityFeature_DefaultSymbolVisibility) {
-    /**
-     * @generated from protobuf enum value: DEFAULT_SYMBOL_VISIBILITY_UNKNOWN = 0;
-     */
-    FeatureSet_VisibilityFeature_DefaultSymbolVisibility[FeatureSet_VisibilityFeature_DefaultSymbolVisibility["DEFAULT_SYMBOL_VISIBILITY_UNKNOWN"] = 0] = "DEFAULT_SYMBOL_VISIBILITY_UNKNOWN";
-    /**
-     * Default pre-EDITION_2024, all UNSET visibility are export.
-     *
-     * @generated from protobuf enum value: EXPORT_ALL = 1;
-     */
-    FeatureSet_VisibilityFeature_DefaultSymbolVisibility[FeatureSet_VisibilityFeature_DefaultSymbolVisibility["EXPORT_ALL"] = 1] = "EXPORT_ALL";
-    /**
-     * All top-level symbols default to export, nested default to local.
-     *
-     * @generated from protobuf enum value: EXPORT_TOP_LEVEL = 2;
-     */
-    FeatureSet_VisibilityFeature_DefaultSymbolVisibility[FeatureSet_VisibilityFeature_DefaultSymbolVisibility["EXPORT_TOP_LEVEL"] = 2] = "EXPORT_TOP_LEVEL";
-    /**
-     * All symbols default to local.
-     *
-     * @generated from protobuf enum value: LOCAL_ALL = 3;
-     */
-    FeatureSet_VisibilityFeature_DefaultSymbolVisibility[FeatureSet_VisibilityFeature_DefaultSymbolVisibility["LOCAL_ALL"] = 3] = "LOCAL_ALL";
-    /**
-     * All symbols local by default. Nested types cannot be exported.
-     * With special case caveat for message { enum {} reserved 1 to max; }
-     * This is the recommended setting for new protos.
-     *
-     * @generated from protobuf enum value: STRICT = 4;
-     */
-    FeatureSet_VisibilityFeature_DefaultSymbolVisibility[FeatureSet_VisibilityFeature_DefaultSymbolVisibility["STRICT"] = 4] = "STRICT";
-})(FeatureSet_VisibilityFeature_DefaultSymbolVisibility || (FeatureSet_VisibilityFeature_DefaultSymbolVisibility = {}));
-/**
  * @generated from protobuf enum google.protobuf.FeatureSet.FieldPresence
  */
 export var FeatureSet_FieldPresence;
@@ -647,30 +611,6 @@ export var Edition;
      */
     Edition[Edition["EDITION_MAX"] = 2147483647] = "EDITION_MAX";
 })(Edition || (Edition = {}));
-/**
- * Describes the 'visibility' of a symbol with respect to the proto import
- * system. Symbols can only be imported when the visibility rules do not prevent
- * it (ex: local symbols cannot be imported).  Visibility modifiers can only set
- * on `message` and `enum` as they are the only types available to be referenced
- * from other files.
- *
- * @generated from protobuf enum google.protobuf.SymbolVisibility
- */
-export var SymbolVisibility;
-(function (SymbolVisibility) {
-    /**
-     * @generated from protobuf enum value: VISIBILITY_UNSET = 0;
-     */
-    SymbolVisibility[SymbolVisibility["VISIBILITY_UNSET"] = 0] = "VISIBILITY_UNSET";
-    /**
-     * @generated from protobuf enum value: VISIBILITY_LOCAL = 1;
-     */
-    SymbolVisibility[SymbolVisibility["VISIBILITY_LOCAL"] = 1] = "VISIBILITY_LOCAL";
-    /**
-     * @generated from protobuf enum value: VISIBILITY_EXPORT = 2;
-     */
-    SymbolVisibility[SymbolVisibility["VISIBILITY_EXPORT"] = 2] = "VISIBILITY_EXPORT";
-})(SymbolVisibility || (SymbolVisibility = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class FileDescriptorSet$Type extends MessageType {
     constructor() {
@@ -727,7 +667,6 @@ class FileDescriptorProto$Type extends MessageType {
             { no: 3, name: "dependency", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "public_dependency", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 5 /*ScalarType.INT32*/ },
             { no: 11, name: "weak_dependency", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 5 /*ScalarType.INT32*/ },
-            { no: 15, name: "option_dependency", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "message_type", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DescriptorProto },
             { no: 5, name: "enum_type", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EnumDescriptorProto },
             { no: 6, name: "service", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ServiceDescriptorProto },
@@ -743,7 +682,6 @@ class FileDescriptorProto$Type extends MessageType {
         message.dependency = [];
         message.publicDependency = [];
         message.weakDependency = [];
-        message.optionDependency = [];
         message.messageType = [];
         message.enumType = [];
         message.service = [];
@@ -779,9 +717,6 @@ class FileDescriptorProto$Type extends MessageType {
                             message.weakDependency.push(reader.int32());
                     else
                         message.weakDependency.push(reader.int32());
-                    break;
-                case /* repeated string option_dependency */ 15:
-                    message.optionDependency.push(reader.string());
                     break;
                 case /* repeated google.protobuf.DescriptorProto message_type */ 4:
                     message.messageType.push(DescriptorProto.internalBinaryRead(reader, reader.uint32(), options));
@@ -858,9 +793,6 @@ class FileDescriptorProto$Type extends MessageType {
         /* optional google.protobuf.Edition edition = 14; */
         if (message.edition !== undefined)
             writer.tag(14, WireType.Varint).int32(message.edition);
-        /* repeated string option_dependency = 15; */
-        for (let i = 0; i < message.optionDependency.length; i++)
-            writer.tag(15, WireType.LengthDelimited).string(message.optionDependency[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -884,8 +816,7 @@ class DescriptorProto$Type extends MessageType {
             { no: 8, name: "oneof_decl", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => OneofDescriptorProto },
             { no: 7, name: "options", kind: "message", T: () => MessageOptions },
             { no: 9, name: "reserved_range", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DescriptorProto_ReservedRange },
-            { no: 10, name: "reserved_name", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "visibility", kind: "enum", opt: true, T: () => ["google.protobuf.SymbolVisibility", SymbolVisibility] }
+            { no: 10, name: "reserved_name", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value) {
@@ -937,9 +868,6 @@ class DescriptorProto$Type extends MessageType {
                 case /* repeated string reserved_name */ 10:
                     message.reservedName.push(reader.string());
                     break;
-                case /* optional google.protobuf.SymbolVisibility visibility */ 11:
-                    message.visibility = reader.int32();
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -982,9 +910,6 @@ class DescriptorProto$Type extends MessageType {
         /* repeated string reserved_name = 10; */
         for (let i = 0; i < message.reservedName.length; i++)
             writer.tag(10, WireType.LengthDelimited).string(message.reservedName[i]);
-        /* optional google.protobuf.SymbolVisibility visibility = 11; */
-        if (message.visibility !== undefined)
-            writer.tag(11, WireType.Varint).int32(message.visibility);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1428,8 +1353,7 @@ class EnumDescriptorProto$Type extends MessageType {
             { no: 2, name: "value", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EnumValueDescriptorProto },
             { no: 3, name: "options", kind: "message", T: () => EnumOptions },
             { no: 4, name: "reserved_range", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EnumDescriptorProto_EnumReservedRange },
-            { no: 5, name: "reserved_name", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "visibility", kind: "enum", opt: true, T: () => ["google.protobuf.SymbolVisibility", SymbolVisibility] }
+            { no: 5, name: "reserved_name", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value) {
@@ -1461,9 +1385,6 @@ class EnumDescriptorProto$Type extends MessageType {
                 case /* repeated string reserved_name */ 5:
                     message.reservedName.push(reader.string());
                     break;
-                case /* optional google.protobuf.SymbolVisibility visibility */ 6:
-                    message.visibility = reader.int32();
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1491,9 +1412,6 @@ class EnumDescriptorProto$Type extends MessageType {
         /* repeated string reserved_name = 5; */
         for (let i = 0; i < message.reservedName.length; i++)
             writer.tag(5, WireType.LengthDelimited).string(message.reservedName[i]);
-        /* optional google.protobuf.SymbolVisibility visibility = 6; */
-        if (message.visibility !== undefined)
-            writer.tag(6, WireType.Varint).int32(message.visibility);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2786,8 +2704,7 @@ class FeatureSet$Type extends MessageType {
             { no: 4, name: "utf8_validation", kind: "enum", opt: true, T: () => ["google.protobuf.FeatureSet.Utf8Validation", FeatureSet_Utf8Validation] },
             { no: 5, name: "message_encoding", kind: "enum", opt: true, T: () => ["google.protobuf.FeatureSet.MessageEncoding", FeatureSet_MessageEncoding] },
             { no: 6, name: "json_format", kind: "enum", opt: true, T: () => ["google.protobuf.FeatureSet.JsonFormat", FeatureSet_JsonFormat] },
-            { no: 7, name: "enforce_naming_style", kind: "enum", opt: true, T: () => ["google.protobuf.FeatureSet.EnforceNamingStyle", FeatureSet_EnforceNamingStyle] },
-            { no: 8, name: "default_symbol_visibility", kind: "enum", opt: true, T: () => ["google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility", FeatureSet_VisibilityFeature_DefaultSymbolVisibility] }
+            { no: 7, name: "enforce_naming_style", kind: "enum", opt: true, T: () => ["google.protobuf.FeatureSet.EnforceNamingStyle", FeatureSet_EnforceNamingStyle] }
         ]);
     }
     create(value) {
@@ -2822,9 +2739,6 @@ class FeatureSet$Type extends MessageType {
                 case /* optional google.protobuf.FeatureSet.EnforceNamingStyle enforce_naming_style */ 7:
                     message.enforceNamingStyle = reader.int32();
                     break;
-                case /* optional google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility default_symbol_visibility */ 8:
-                    message.defaultSymbolVisibility = reader.int32();
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2858,9 +2772,6 @@ class FeatureSet$Type extends MessageType {
         /* optional google.protobuf.FeatureSet.EnforceNamingStyle enforce_naming_style = 7; */
         if (message.enforceNamingStyle !== undefined)
             writer.tag(7, WireType.Varint).int32(message.enforceNamingStyle);
-        /* optional google.protobuf.FeatureSet.VisibilityFeature.DefaultSymbolVisibility default_symbol_visibility = 8; */
-        if (message.defaultSymbolVisibility !== undefined)
-            writer.tag(8, WireType.Varint).int32(message.defaultSymbolVisibility);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2871,44 +2782,6 @@ class FeatureSet$Type extends MessageType {
  * @generated MessageType for protobuf message google.protobuf.FeatureSet
  */
 export const FeatureSet = new FeatureSet$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class FeatureSet_VisibilityFeature$Type extends MessageType {
-    constructor() {
-        super("google.protobuf.FeatureSet.VisibilityFeature", []);
-    }
-    create(value) {
-        const message = globalThis.Object.create((this.messagePrototype));
-        if (value !== undefined)
-            reflectionMergePartial(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader, length, options, target) {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message, writer, options) {
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message google.protobuf.FeatureSet.VisibilityFeature
- */
-export const FeatureSet_VisibilityFeature = new FeatureSet_VisibilityFeature$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class FeatureSetDefaults$Type extends MessageType {
     constructor() {

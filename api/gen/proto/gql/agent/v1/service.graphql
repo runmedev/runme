@@ -1,3 +1,4 @@
+directive @LogService on FIELD_DEFINITION
 """
  MessagesService generates blocks.
 
@@ -275,6 +276,24 @@ input ExecutionSummaryTimingInput {
 	startTime: Int64ValueInput
 	endTime: Int64ValueInput
 }
+input FrontmatterInput {
+	shell: String
+	cwd: String
+	skipPrompts: Boolean
+	runme: FrontmatterRunmeInput
+	"""
+	 Deprecated category in favor of Tag
+
+	"""
+	category: String
+	terminalRows: String
+	tag: String
+}
+input FrontmatterRunmeInput {
+	id: String
+	version: String
+	session: RunmeSessionInput
+}
 input GenerateRequestInput {
 	cells: [CellInput!]
 	previousResponseId: String
@@ -320,6 +339,21 @@ input Int64ValueInput {
 	"""
 	value: Int
 }
+input LogRequestInput {
+	notebook: NotebookInput
+}
+type Mutation {
+	logServiceLog(in: LogRequestInput): Boolean
+}
+input NotebookInput {
+	cells: [CellInput!]
+	metadata: [Notebook_MetadataEntryInput!]
+	frontmatter: FrontmatterInput
+}
+input Notebook_MetadataEntryInput {
+	key: String
+	value: String
+}
 type ProcessInfoExitReason {
 	type: String
 	code: UInt32Value
@@ -330,6 +364,13 @@ input ProcessInfoExitReasonInput {
 }
 type Query {
 	dummy: Boolean
+}
+input RunmeSessionDocumentInput {
+	relativePath: String
+}
+input RunmeSessionInput {
+	id: String
+	document: RunmeSessionDocumentInput
 }
 type Subscription {
 	"""
