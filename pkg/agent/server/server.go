@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -57,6 +58,7 @@ type Server struct {
 	agent            agentv1connect.MessagesServiceHandler
 	checker          iam.Checker
 	registerHandlers RegisterHandlers
+	assetsFS         fs.FS
 }
 
 type RegisterHandlers func(mux *AuthMux, checker iam.Checker, interceptors []connect.Interceptor) error
@@ -132,6 +134,19 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 		checker = &iam.AllowAllChecker{}
 	}
 
+	// Determine whether we want to serve the SPA and if so configure it.
+	// Currently, we infer whether to serve the SPA based on whether the server is running the agent service
+	var assetsFS fs.FS
+	if agent != nil {
+		log.Info("Enabling SPA serving")
+		var err error
+		assetsFS, err = getAssetFileSystem(opts.Server.StaticAssets)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to get asset handler")
+		}
+
+	}
+
 	s := &Server{
 		telemetry:        opts.Telemetry,
 		serverConfig:     opts.Server,
@@ -141,6 +156,7 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 		agent:            agent,
 		checker:          checker,
 		registerHandlers: opts.RegisterHandlers,
+		assetsFS:         assetsFS,
 	}
 	return s, nil
 }
@@ -269,9 +285,16 @@ func (s *Server) registerServices() error {
 
 	// Register auth routes if OIDC is configured
 	if oidc != nil {
-		log.Info("OIDC is configured; registering auth routes")
-		if err := RegisterAuthRoutes(oidc, mux); err != nil {
-			return errors.Wrapf(err, "Failed to register auth routes")
+		// DO NOT SUBMIT force client exchange
+		// if oidc.DoClientExchange() {
+		if true {
+			log.Info("OIDC is configured; callback will be handled on client")
+			mux.HandleFunc(iam.OIDCPathPrefix+"/callback", s.serveIndexHTML)
+		} else {
+			log.Info("OIDC is configured; registering auth routes")
+			if err := RegisterAuthRoutes(oidc, mux); err != nil {
+				return errors.Wrapf(err, "Failed to register auth routes")
+			}
 		}
 	} else {
 		log.Info("OIDC is not configured; auth routes will not be registered")
