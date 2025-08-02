@@ -390,6 +390,7 @@ type AssistantServerConfig struct {
 	// CorsOrigins is a list of allowed origins for CORS requests
 	CorsOrigins []string `json:"corsOrigins" yaml:"corsOrigins"`
 
+	// StaticAssets is the path to the static assets to serve
 	StaticAssets string `json:"staticAssets" yaml:"staticAssets"`
 
 	// RunnerService starts the Runme runner service if true otherwise it doesn't start the runner service.
@@ -403,6 +404,11 @@ type AssistantServerConfig struct {
 
 	// TLSConfig is the TLS configuration
 	TLSConfig *TLSConfig `json:"tlsConfig,omitempty" yaml:"tlsConfig,omitempty"`
+
+	// webAppURL is an optional URL to use for the SPA rather than serving it out of the server.
+	// if configured the server will redirect to that URL for the SPA.
+	// This is primarily useful during development when the SPA could be running on a separate development server.
+	WebAppURL string `json:"webAppURL" yaml:"webAppURL"`
 }
 
 // OIDCConfig contains configuration for OIDC authentication
@@ -415,6 +421,10 @@ type OIDCConfig struct {
 
 	// ForceApproval is a flag to force the user to approve the app again
 	ForceApproval bool `json:"forceApproval" yaml:"forceApproval"`
+
+	// ClientExchange if set to true the token exchange will happen on the client and not the server.
+	// The server callback will just be used to load the appropriate page in the SPA.
+	ClientExchange bool `json:"clientExchange" yaml:"clientExchange"`
 }
 
 // GoogleOIDCConfig contains Google-specific OIDC configuration

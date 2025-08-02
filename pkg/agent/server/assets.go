@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
+
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 
@@ -88,12 +91,11 @@ func (s *Server) processIndexHTMLWithConfig(assetsFS fs.FS) ([]byte, error) {
 // singlePageAppHandler serves a single-page app from static or embedded assets,
 // falling back to index for client-side routing when files don't exist.
 func (s *Server) singlePageAppHandler() (http.Handler, error) {
-	assetsFS, err := getAssetFileSystem(s.serverConfig.StaticAssets)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get asset handler")
+	if s.assetsFS == nil {
+		// This shouldn't happen because this should have been initialized in new.
+		return nil, errors.New("assets fs not configured")
 	}
-
-	fileServer := http.FileServer(http.FS(assetsFS))
+	fileServer := http.FileServer(http.FS(s.assetsFS))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := "/"
@@ -103,22 +105,40 @@ func (s *Server) singlePageAppHandler() (http.Handler, error) {
 
 		// If path is empty, file doesn't exist, or it's index.html, serve processed index
 		if path == "/" || path == "index.html" || os.IsNotExist(func() error {
-			_, err := assetsFS.Open(path)
+			_, err := s.assetsFS.Open(path)
 			return err
 		}()) {
 			// Read and process index.html
-			content, err := s.processIndexHTMLWithConfig(assetsFS)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			// Set content type and write the modified content
-			w.Header().Set("Content-Type", "text/html")
-			_, _ = w.Write(content)
-			return
+			s.serveIndexHTML(w, r)
 		}
 
 		fileServer.ServeHTTP(w, r)
 	}), nil
+}
+
+// serveIndexHTML is the handler that serves the main SPA page.
+func (s *Server) serveIndexHTML(w http.ResponseWriter, r *http.Request) {
+	if s.serverConfig.WebAppURL != "" {
+		// If we are serving on a different URL then we just redirect
+		redirectURL, err := url.Parse(s.serverConfig.WebAppURL)
+		if err != nil {
+			log := logs.FromContext(r.Context())
+			log.Error(err, "Invalid target URL: %v", s.serverConfig.WebAppURL)
+		}
+
+		redirectURL.Path = r.URL.Path
+		redirectURL.RawQuery = r.URL.RawQuery
+		http.Redirect(w, r, redirectURL.String(), http.StatusFound)
+		return
+	}
+	// Read and process index.html
+	content, err := s.processIndexHTMLWithConfig(s.assetsFS)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set content type and write the modified content
+	w.Header().Set("Content-Type", "text/html")
+	_, _ = w.Write(content)
 }
