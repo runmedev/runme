@@ -141,6 +141,11 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 	return oidc, nil
 }
 
+// DoClientExchange true if the token exchange happens on the client
+func (o *OIDC) DoClientExchange() bool {
+	return o.config.ClientExchange
+}
+
 // downloadJWKS downloads the JSON Web Key Set (JWKS) from Google's OAuth2 provider.
 // It fetches the public keys used to verify JWT signatures, decodes them from the
 // JWK format, and stores them in the OIDC instance's publicKeys map indexed by key ID.

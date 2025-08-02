@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	connectcors "connectrpc.com/cors"
 	"github.com/rs/cors"
@@ -157,4 +158,22 @@ func RegisterAuthRoutes(oidc *iam.OIDC, mux *AuthMux) error {
 	mux.HandleFunc("/logout", oidc.LogoutHandler)
 
 	return nil
+}
+
+// callBackRedirect is a callback handler that will redirect to a different URL but pass along
+// all the client arguments. It is used during development to handle the callback clientside but via a frontend
+// running on a different server.
+//
+// TODO(jlewi): We could also use it while still handling the callback
+func callbackRedirect(target string) (http.HandlerFunc, error) {
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Invalid target URL: %v", target)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		redirectURL := *targetURL // copy
+		redirectURL.RawQuery = r.URL.RawQuery
+		http.Redirect(w, r, redirectURL.String(), http.StatusFound)
+	}, nil
 }
