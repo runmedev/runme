@@ -95,8 +95,8 @@ github.com/charmbracelet/x/term v0.2.1 h1:AQeHeLZ1OqSXhrAWpYUtZyX1T3zVxfpZuEQMIQ
 github.com/charmbracelet/x/term v0.2.1/go.mod h1:oQ4enTYFV7QN4m0i9mzHrViD7TQKvNEEkHUMCmsxdUg=
 github.com/chavacava/garif v0.1.0 h1:2JHa3hbYf5D9dsgseMKAmc/MZ109otzgNFk5s87H9Pc=
 github.com/chavacava/garif v0.1.0/go.mod h1:XMyYCkEL58DF0oyW4qDjjnPWONs2HBqYKI+UIPD+Gww=
-github.com/cli/cli/v2 v2.76.1 h1:UW5fN4wMIS480E0f2a4UeMhC7tsGSMeZgusd7WDZnwo=
-github.com/cli/cli/v2 v2.76.1/go.mod h1:gphpdRTZqGyhv3ldrmL4wVpvzBV2t5N2TWp3Liw1Csw=
+github.com/cli/cli/v2 v2.76.2 h1:mvPgORl/mTRhbLracYKsmfrgijT04rF+ql9ZJP/tNJw=
+github.com/cli/cli/v2 v2.76.2/go.mod h1:gphpdRTZqGyhv3ldrmL4wVpvzBV2t5N2TWp3Liw1Csw=
 github.com/cli/go-gh v1.2.1 h1:xFrjejSsgPiwXFP6VYynKWwxLQcNJy3Twbu82ZDlR/o=
 github.com/cli/go-gh v1.2.1/go.mod h1:Jxk8X+TCO4Ui/GarwY9tByWm/8zp4jJktzVZNlTW5VM=
 github.com/cli/go-gh/v2 v2.12.1 h1:SVt1/afj5FRAythyMV3WJKaUfDNsxXTIe7arZbwTWKA=

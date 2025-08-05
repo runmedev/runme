@@ -19,7 +19,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbletea v1.3.6
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
-	github.com/cli/cli/v2 v2.76.1
+	github.com/cli/cli/v2 v2.76.2
 	github.com/cli/go-gh/v2 v2.12.1
 	github.com/containerd/console v1.0.5
 	github.com/creack/pty v1.1.24
