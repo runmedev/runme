@@ -9,6 +9,7 @@ import type { BinaryReadOptions } from "@protobuf-ts/runtime";
 import type { IBinaryReader } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Notebook } from "../../runme/parser/v1/parser_pb";
 import { Cell } from "../../runme/parser/v1/parser_pb";
 /**
  * @generated from protobuf message agent.v1.GenerateRequest
@@ -42,6 +43,20 @@ export interface GenerateResponse {
      */
     responseId: string;
 }
+/**
+ * @generated from protobuf message agent.v1.LogRequest
+ */
+export interface LogRequest {
+    /**
+     * @generated from protobuf field: runme.parser.v1.Notebook notebook = 1
+     */
+    notebook?: Notebook;
+}
+/**
+ * @generated from protobuf message agent.v1.LogResponse
+ */
+export interface LogResponse {
+}
 declare class GenerateRequest$Type extends MessageType<GenerateRequest> {
     constructor();
     create(value?: PartialMessage<GenerateRequest>): GenerateRequest;
@@ -62,8 +77,32 @@ declare class GenerateResponse$Type extends MessageType<GenerateResponse> {
  * @generated MessageType for protobuf message agent.v1.GenerateResponse
  */
 export declare const GenerateResponse: GenerateResponse$Type;
+declare class LogRequest$Type extends MessageType<LogRequest> {
+    constructor();
+    create(value?: PartialMessage<LogRequest>): LogRequest;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LogRequest): LogRequest;
+    internalBinaryWrite(message: LogRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message agent.v1.LogRequest
+ */
+export declare const LogRequest: LogRequest$Type;
+declare class LogResponse$Type extends MessageType<LogResponse> {
+    constructor();
+    create(value?: PartialMessage<LogResponse>): LogResponse;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LogResponse): LogResponse;
+    internalBinaryWrite(message: LogResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message agent.v1.LogResponse
+ */
+export declare const LogResponse: LogResponse$Type;
 /**
  * @generated ServiceType for protobuf service agent.v1.MessagesService
  */
 export declare const MessagesService: any;
+/**
+ * @generated ServiceType for protobuf service agent.v1.LogService
+ */
+export declare const LogService: any;
 export {};

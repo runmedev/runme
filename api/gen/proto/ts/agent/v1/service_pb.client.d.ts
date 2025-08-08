@@ -3,6 +3,9 @@
 // @generated from protobuf file "agent/v1/service.proto" (package "agent.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
+import type { LogResponse } from "./service_pb";
+import type { LogRequest } from "./service_pb";
+import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import type { GenerateResponse } from "./service_pb";
@@ -39,4 +42,27 @@ export declare class MessagesServiceClient implements IMessagesServiceClient, Se
      * @generated from protobuf rpc: Generate
      */
     generate(input: GenerateRequest, options?: RpcOptions): ServerStreamingCall<GenerateRequest, GenerateResponse>;
+}
+/**
+ * @generated from protobuf service agent.v1.LogService
+ */
+export interface ILogServiceClient {
+    /**
+     * @generated from protobuf rpc: Log
+     */
+    log(input: LogRequest, options?: RpcOptions): UnaryCall<LogRequest, LogResponse>;
+}
+/**
+ * @generated from protobuf service agent.v1.LogService
+ */
+export declare class LogServiceClient implements ILogServiceClient, ServiceInfo {
+    private readonly _transport;
+    typeName: any;
+    methods: any;
+    options: any;
+    constructor(_transport: RpcTransport);
+    /**
+     * @generated from protobuf rpc: Log
+     */
+    log(input: LogRequest, options?: RpcOptions): UnaryCall<LogRequest, LogResponse>;
 }

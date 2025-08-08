@@ -9,7 +9,7 @@ import { file_runme_parser_v1_parser } from "../../runme/parser/v1/parser_pb";
  * Describes the file agent/v1/service.proto.
  */
 export const file_agent_v1_service = /*@__PURE__*/
-  fileDesc("ChZhZ2VudC92MS9zZXJ2aWNlLnByb3RvEghhZ2VudC52MSJyCg9HZW5lcmF0ZVJlcXVlc3QSJAoFY2VsbHMYASADKAsyFS5ydW5tZS5wYXJzZXIudjEuQ2VsbBIcChRwcmV2aW91c19yZXNwb25zZV9pZBgCIAEoCRIbChNvcGVuYWlfYWNjZXNzX3Rva2VuGAMgASgJIk0KEEdlbmVyYXRlUmVzcG9uc2USJAoFY2VsbHMYASADKAsyFS5ydW5tZS5wYXJzZXIudjEuQ2VsbBITCgtyZXNwb25zZV9pZBgCIAEoCTJYCg9NZXNzYWdlc1NlcnZpY2USRQoIR2VuZXJhdGUSGS5hZ2VudC52MS5HZW5lcmF0ZVJlcXVlc3QaGi5hZ2VudC52MS5HZW5lcmF0ZVJlc3BvbnNlIgAwAUJAWj5naXRodWIuY29tL3J1bm1lZGV2L3J1bm1lL3YzL2FwaS9nZW4vcHJvdG8vZ28vYWdlbnQvdjE7YWdlbnR2MWIGcHJvdG8z", [file_runme_parser_v1_parser]);
+  fileDesc("ChZhZ2VudC92MS9zZXJ2aWNlLnByb3RvEghhZ2VudC52MSJyCg9HZW5lcmF0ZVJlcXVlc3QSJAoFY2VsbHMYASADKAsyFS5ydW5tZS5wYXJzZXIudjEuQ2VsbBIcChRwcmV2aW91c19yZXNwb25zZV9pZBgCIAEoCRIbChNvcGVuYWlfYWNjZXNzX3Rva2VuGAMgASgJIk0KEEdlbmVyYXRlUmVzcG9uc2USJAoFY2VsbHMYASADKAsyFS5ydW5tZS5wYXJzZXIudjEuQ2VsbBITCgtyZXNwb25zZV9pZBgCIAEoCSI5CgpMb2dSZXF1ZXN0EisKCG5vdGVib29rGAEgASgLMhkucnVubWUucGFyc2VyLnYxLk5vdGVib29rIg0KC0xvZ1Jlc3BvbnNlMlgKD01lc3NhZ2VzU2VydmljZRJFCghHZW5lcmF0ZRIZLmFnZW50LnYxLkdlbmVyYXRlUmVxdWVzdBoaLmFnZW50LnYxLkdlbmVyYXRlUmVzcG9uc2UiADABMkIKCkxvZ1NlcnZpY2USNAoDTG9nEhQuYWdlbnQudjEuTG9nUmVxdWVzdBoVLmFnZW50LnYxLkxvZ1Jlc3BvbnNlIgBCQFo+Z2l0aHViLmNvbS9ydW5tZWRldi9ydW5tZS92My9hcGkvZ2VuL3Byb3RvL2dvL2FnZW50L3YxO2FnZW50djFiBnByb3RvMw", [file_runme_parser_v1_parser]);
 
 /**
  * Describes the message agent.v1.GenerateRequest.
@@ -26,9 +26,29 @@ export const GenerateResponseSchema = /*@__PURE__*/
   messageDesc(file_agent_v1_service, 1);
 
 /**
+ * Describes the message agent.v1.LogRequest.
+ * Use `create(LogRequestSchema)` to create a new message.
+ */
+export const LogRequestSchema = /*@__PURE__*/
+  messageDesc(file_agent_v1_service, 2);
+
+/**
+ * Describes the message agent.v1.LogResponse.
+ * Use `create(LogResponseSchema)` to create a new message.
+ */
+export const LogResponseSchema = /*@__PURE__*/
+  messageDesc(file_agent_v1_service, 3);
+
+/**
  * MessagesService generates blocks.
  *
  * @generated from service agent.v1.MessagesService
  */
 export const MessagesService = /*@__PURE__*/
   serviceDesc(file_agent_v1_service, 0);
+
+/**
+ * @generated from service agent.v1.LogService
+ */
+export const LogService = /*@__PURE__*/
+  serviceDesc(file_agent_v1_service, 1);

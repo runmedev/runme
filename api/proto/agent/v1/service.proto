@@ -24,3 +24,13 @@ message GenerateResponse {
   repeated runme.parser.v1.Cell cells = 1;
   string response_id = 2;
 }
+
+service LogService {
+  rpc Log(LogRequest) returns (LogResponse) {}
+}
+
+message LogRequest {
+  runme.parser.v1.Notebook notebook = 1;
+}
+
+message LogResponse {}
