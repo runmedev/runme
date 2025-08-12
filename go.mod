@@ -69,7 +69,7 @@ require (
 	golang.org/x/term v0.33.0
 	google.golang.org/api v0.243.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250728155136-f173205681a0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.7
 	mvdan.cc/sh/v3 v3.12.0
 )
 
