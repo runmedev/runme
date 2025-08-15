@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/jlewi/monogo/helpers"
+
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
@@ -105,11 +107,13 @@ func (s *Server) singlePageAppHandler() (http.Handler, error) {
 
 		// If path is empty, file doesn't exist, or it's index.html, serve processed index
 		if path == "/" || path == "index.html" || os.IsNotExist(func() error {
-			_, err := s.assetsFS.Open(path)
+			f, err := s.assetsFS.Open(path)
+			helpers.DeferIgnoreError(f.Close)
 			return err
 		}()) {
 			// Read and process index.html
 			s.serveIndexHTML(w, r)
+			return
 		}
 
 		fileServer.ServeHTTP(w, r)

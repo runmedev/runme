@@ -252,7 +252,8 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 			log.Error(err, "Failed to unmarshal shell arguments", "delta", e.Arguments)
 			cell.Value = e.Arguments
 		} else {
-			cell.Value = shellArgs.Shell
+			cell.Value = shellArgs.Code
+			cell.LanguageId = shellArgs.Language
 		}
 		resp.Cells = append(resp.Cells, cell)
 	case responses.ResponseOutputItemDoneEvent:

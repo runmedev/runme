@@ -1,5 +1,6 @@
 package ai
 
 type ShellArgs struct {
-	Shell string `json:"shell"`
+	Code     string `json:"code"`
+	Language string `json:"language"`
 }

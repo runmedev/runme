@@ -261,7 +261,8 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 			}
 
 			shellArgs := &ShellArgs{
-				Shell: c.Value,
+				Code:     c.Value,
+				Language: c.LanguageId,
 			}
 
 			shellArgsJSON, err := json.Marshal(shellArgs)
