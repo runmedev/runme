@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
+	"github.com/jlewi/monogo/helpers"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -105,11 +106,13 @@ func (s *Server) singlePageAppHandler() (http.Handler, error) {
 
 		// If path is empty, file doesn't exist, or it's index.html, serve processed index
 		if path == "/" || path == "index.html" || os.IsNotExist(func() error {
-			_, err := s.assetsFS.Open(path)
+			f, err := s.assetsFS.Open(path)
+			helpers.DeferIgnoreError(f.Close)
 			return err
 		}()) {
 			// Read and process index.html
 			s.serveIndexHTML(w, r)
+			return
 		}
 
 		fileServer.ServeHTTP(w, r)
