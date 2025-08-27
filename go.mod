@@ -7,7 +7,7 @@ toolchain go1.24.5
 // replace github.com/stateful/godotenv => ../godotenv
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250717185734-6c6e0d3c608e.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.8-20250717185734-6c6e0d3c608e.1
 	buf.build/go/protovalidate v0.14.0
 	cloud.google.com/go/secretmanager v1.15.0
 	connectrpc.com/connect v1.18.1
@@ -69,7 +69,7 @@ require (
 	golang.org/x/term v0.33.0
 	google.golang.org/api v0.243.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250728155136-f173205681a0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.8
 	mvdan.cc/sh/v3 v3.12.0
 )
 
