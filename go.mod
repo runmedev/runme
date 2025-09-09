@@ -23,7 +23,7 @@ require (
 	github.com/cli/go-gh/v2 v2.12.2
 	github.com/containerd/console v1.0.5
 	github.com/creack/pty v1.1.24
-	github.com/docker/docker v28.3.3+incompatible
+	github.com/docker/docker v28.4.0+incompatible
 	github.com/expr-lang/expr v1.17.6
 	github.com/fatih/color v1.18.0
 	github.com/fullstorydev/grpcurl v1.9.3
@@ -116,7 +116,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/goccy/go-yaml v1.11.3 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/cel-go v0.26.1 // indirect
 	github.com/google/generative-ai-go v0.19.0 // indirect
