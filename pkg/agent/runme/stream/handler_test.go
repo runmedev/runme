@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"google.golang.org/genproto/googleapis/rpc/code"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
@@ -114,7 +114,7 @@ func TestRunmeHandler_Roundtrip(t *testing.T) {
 		}
 		time.Sleep(200 * time.Millisecond)
 		mockRunmeServer.executeResponses <- &v2.ExecuteResponse{
-			ExitCode: &wrappers.UInt32Value{Value: 0},
+			ExitCode: &wrapperspb.UInt32Value{Value: 0},
 		}
 		return nil
 	})
@@ -206,7 +206,7 @@ func TestRunmeHandler_InactivityTimeout(t *testing.T) {
 	mockRunmeServer := newMockRunmeServer()
 	mockRunmeServer.SetResponder(func() error {
 		mockRunmeServer.executeResponses <- &v2.ExecuteResponse{
-			ExitCode: &wrappers.UInt32Value{Value: 1},
+			ExitCode: &wrapperspb.UInt32Value{Value: 1},
 		}
 		return nil
 	})
@@ -249,7 +249,7 @@ func TestRunmeHandler_DenyMismatchedRunID(t *testing.T) {
 	mockRunmeServer := newMockRunmeServer()
 	mockRunmeServer.SetResponder(func() error {
 		mockRunmeServer.executeResponses <- &v2.ExecuteResponse{
-			ExitCode: &wrappers.UInt32Value{Value: 1},
+			ExitCode: &wrapperspb.UInt32Value{Value: 1},
 		}
 		return nil
 	})
@@ -331,7 +331,7 @@ func TestRunmeHandler_DenyMismatchedKnownID(t *testing.T) {
 		}
 		time.Sleep(100 * time.Millisecond)
 		mockRunmeServer.executeResponses <- &v2.ExecuteResponse{
-			ExitCode: &wrappers.UInt32Value{Value: 1},
+			ExitCode: &wrapperspb.UInt32Value{Value: 1},
 		}
 		return nil
 	})
@@ -412,7 +412,7 @@ func TestRunmeHandler_Ping(t *testing.T) {
 	mockRunmeServer := newMockRunmeServer()
 	mockRunmeServer.SetResponder(func() error {
 		mockRunmeServer.executeResponses <- &v2.ExecuteResponse{
-			ExitCode: &wrappers.UInt32Value{Value: 1},
+			ExitCode: &wrapperspb.UInt32Value{Value: 1},
 		}
 		return nil
 	})
@@ -491,7 +491,7 @@ func TestRunmeHandler_MutliClient(t *testing.T) {
 			time.Sleep(10 * time.Millisecond * time.Duration(i+1))
 		}
 		mockRunmeServer.executeResponses <- &v2.ExecuteResponse{
-			ExitCode: &wrappers.UInt32Value{Value: 0},
+			ExitCode: &wrapperspb.UInt32Value{Value: 0},
 		}
 		return nil
 	})
