@@ -19,7 +19,12 @@ import (
 )
 
 func init() {
-	dumpCmd = "env -0"
+	envPath, err := exec.LookPath("env")
+	if err != nil {
+		panic(err)
+	}
+
+	dumpCmd = envPath + " -0"
 }
 
 func Test_command(t *testing.T) {

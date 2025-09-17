@@ -62,7 +62,7 @@ func TestCommand(t *testing.T) {
 				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			expectedStdout: "test",
-			expectedStderr: "+ echo -n test\n+ __cleanup\n+ rv=0\n+ env -0\n+ exit 0\n",
+			expectedStderr: "+ echo -n test\n+ __cleanup\n+ rv=0\n+ " + envDumpCommand + "\n+ exit 0\n",
 		},
 		{
 			name: "Input",
