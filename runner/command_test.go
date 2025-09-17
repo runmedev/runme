@@ -251,7 +251,7 @@ func Test_command(t *testing.T) {
 				Stdout:      io.Discard,
 				Stderr:      io.Discard,
 				CommandMode: CommandModeInlineShell,
-				Script:      `source "$HOME/.cargo/env"`,
+				Script:      `[ ! -e "$HOME/.cargo/env" ] || . "$HOME/.cargo/env"`,
 				Logger:      logger,
 			},
 		)
