@@ -57,12 +57,12 @@ func TestCommand(t *testing.T) {
 			cfg: &ProgramConfig{
 				ProgramName: "sh",
 				Source: &runnerv2.ProgramConfig_Script{
-					Script: "#!/usr/bin/env sh\n\nset -x -e\n\necho -n test\n",
+					Script: "#!/usr/bin/env sh\n\nset -x -e\n\nprintf \"test\"\n",
 				},
 				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
 			expectedStdout: "test",
-			expectedStderr: "+ echo -n test\n+ __cleanup\n+ rv=0\n+ " + envDumpCommand + "\n+ exit 0\n",
+			expectedStderr: "+ printf test\n+ __cleanup\n+ rv=0\n+ /usr/bin/env -0\n+ exit 0\n",
 		},
 		{
 			name: "Input",
@@ -205,7 +205,7 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 		},
 		{
 			name:           "FrontmatterShell",
-			source:         "---\nshell: sh\n---\n```sh\necho -n \"${0##*/}\"\n```",
+			source:         "---\nshell: sh\n---\n```sh\n$ printf \"%s\" \"${0##*/}\"\n```",
 			expectedStdout: "sh",
 		},
 		{
@@ -488,7 +488,7 @@ func TestCommand_SimulateCtrlC(t *testing.T) {
 		defer close(errc)
 
 		time.Sleep(time.Millisecond * 500)
-		_, err = stdinW.Write([]byte("sleep infinity\n"))
+		_, err = stdinW.Write([]byte("sleep 60\n"))
 		errc <- err
 
 		// cancel sleep
