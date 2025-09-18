@@ -54,7 +54,7 @@ runtime:
       dockerfile: Dockerfile
 
 server:
-  # Also unix:///path/to/file.sock is supported.
+  # Also unix:/path/to/file.sock is supported.
   address: localhost:7998
   tls:
     enabled: true

@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"crypto/tls"
+	"errors"
+	"fmt"
 	"net"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -20,6 +21,7 @@ import (
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	"github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/document/editor/editorservice"
+	"github.com/runmedev/runme/v3/internal/server"
 	runmetls "github.com/runmedev/runme/v3/internal/tls"
 	notebookservice "github.com/runmedev/runme/v3/notebook"
 	"github.com/runmedev/runme/v3/project/projectservice"
@@ -75,22 +77,24 @@ The kernel is used to run long running processes like shells and interacting wit
 			}
 
 			var lis net.Listener
-			protocol := "tcp"
 
-			if strings.HasPrefix(addr, "unix://") {
-				addr = strings.TrimPrefix(addr, "unix://")
+			network, addr, err := server.SplitAddress(addr)
+			if err != nil {
+				return err
+			}
 
+			if network == "unix" {
 				// TODO: consolidate removing address into a single place
-				_ = os.Remove(addr)
-				protocol = "unix"
-
+				if err := os.Remove(addr); err != nil && !errors.Is(err, os.ErrNotExist) {
+					return fmt.Errorf("cannot use UNIX socket path: %w", err)
+				}
 				defer func() { _ = os.Remove(addr) }()
 			}
 
 			if tlsConfig == nil {
-				lis, err = net.Listen(protocol, addr)
+				lis, err = net.Listen(network, addr)
 			} else {
-				lis, err = tls.Listen(protocol, addr, tlsConfig)
+				lis, err = tls.Listen(network, addr, tlsConfig)
 			}
 
 			if err != nil {
@@ -141,7 +145,7 @@ The kernel is used to run long running processes like shells and interacting wit
 
 	setDefaultFlags(&cmd)
 
-	cmd.Flags().StringVarP(&addr, "address", "a", defaultAddr, "Address to create unix (unix:///path/to/socket) or IP socket (localhost:7890)")
+	cmd.Flags().StringVarP(&addr, "address", "a", defaultAddr, "Address to listen on; either IP socket (localhost:7890) or UNIX socket (unix:/path/to/socket)")
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Enable development mode")
 	cmd.Flags().BoolVar(&enableRunner, "runner", true, "Enable runner service (legacy, defaults to true)")
 	cmd.Flags().StringVar(&tlsDir, "tls", defaultTLSDir, "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")

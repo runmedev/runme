@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/url"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -112,7 +113,10 @@ func TestResolveProgramLocal(t *testing.T) {
 
 	remoteRunner, err := NewRemoteRunner(
 		context.Background(),
-		fmt.Sprintf("unix://%s", list.Addr().String()),
+		(&url.URL{
+			Scheme: "unix", OmitHost: true,
+			Path: filepath.ToSlash(list.Addr().String()),
+		}).String(),
 		runnerOpts...,
 	)
 	assert.NoError(t, err)
