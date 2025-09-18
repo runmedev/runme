@@ -55,9 +55,9 @@ func TestCommand(t *testing.T) {
 		{
 			name: "ShellScript",
 			cfg: &ProgramConfig{
-				ProgramName: "bash",
+				ProgramName: "sh",
 				Source: &runnerv2.ProgramConfig_Script{
-					Script: "#!/usr/local/bin/bash\n\nset -x -e -o pipefail\n\necho -n test\n",
+					Script: "#!/usr/bin/env sh\n\nset -x -e\n\necho -n test\n",
 				},
 				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
@@ -152,13 +152,13 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 		},
 		{
 			name:           "ShellScript",
-			source:         "```shellscript\n#!/usr/local/bin/bash\n\nset -x -e -o pipefail\n\necho -n test\n```",
+			source:         "```shellscript\n#!/usr/bin/env sh\n\nset -x -e\n\necho -n test\n```",
 			expectedStdout: "test",
 			expectedStderr: "+ echo -n test\n", // due to -x
 		},
 		{
 			name:           "ShellScriptInteractive",
-			source:         "```shellscript {\"interactive\": true}\n#!/usr/local/bin/bash\n\nset -x -e -o pipefail\n\necho -n test\n```",
+			source:         "```shellscript {\"interactive\": true}\n#!/bin/sh -i\n\nset -x -e\n\necho -n test\n```",
 			expectedStdout: "+ echo -n test\r\ntest", // due to -x
 		},
 		{
