@@ -67,9 +67,9 @@ func TestCommand(t *testing.T) {
 		{
 			name: "Input",
 			cfg: &ProgramConfig{
-				ProgramName: "bash",
+				ProgramName: "sh",
 				Source: &runnerv2.ProgramConfig_Script{
-					Script: "read line; echo $line | tr a-z A-Z",
+					Script: "read line; echo $line | /usr/bin/env tr a-z A-Z",
 				},
 				Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 			},
@@ -79,9 +79,9 @@ func TestCommand(t *testing.T) {
 		{
 			name: "InputInteractive",
 			cfg: &ProgramConfig{
-				ProgramName: "bash",
+				ProgramName: "sh",
 				Source: &runnerv2.ProgramConfig_Script{
-					Script: "read line; echo $line | tr a-z A-Z",
+					Script: "read line; echo $line | /usr/bin/env tr a-z A-Z",
 				},
 				Interactive: true,
 				Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
@@ -92,11 +92,11 @@ func TestCommand(t *testing.T) {
 		{
 			name: "StdoutStderr",
 			cfg: &runnerv2.ProgramConfig{
-				ProgramName: "bash",
+				ProgramName: "sh",
 				Source: &runnerv2.ProgramConfig_Commands{
 					Commands: &runnerv2.ProgramConfig_CommandList{
 						Items: []string{
-							"echo test | tee >(cat >&2)",
+							"echo test && echo test >&2",
 						},
 					},
 				},
@@ -182,13 +182,13 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 		},
 		{
 			name:           "WithInput",
-			source:         "```bash\nread line; echo $line | tr a-z A-Z\n```",
+			source:         "```sh\nread line; echo $line | /usr/bin/env tr a-z A-Z\n```",
 			input:          []byte("test\n"),
 			expectedStdout: "TEST\n",
 		},
 		{
 			name:           "WithInputInteractive",
-			source:         "```bash {\"interactive\": true}\nread line; echo $line | tr a-z A-Z\n```",
+			source:         "```sh {\"interactive\": true}\nread line; echo $line | /usr/bin/env tr a-z A-Z\n```",
 			input:          []byte("test\n"),
 			expectedStdout: "TEST\r\n",
 		},
@@ -205,8 +205,8 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 		},
 		{
 			name:           "FrontmatterShell",
-			source:         "---\nshell: bash\n---\n```sh\necho -n $0 | xargs basename\n```",
-			expectedStdout: "bash\n",
+			source:         "---\nshell: sh\n---\n```sh\necho -n \"${0##*/}\"\n```",
+			expectedStdout: "sh",
 		},
 		{
 			name:           "DefaultToCat",
@@ -334,10 +334,14 @@ func TestCommand_SetWinsize(t *testing.T) {
 
 		cmd, err := factory.Build(
 			&ProgramConfig{
-				ProgramName: "bash",
+				ProgramName: "sh",
 				Source: &runnerv2.ProgramConfig_Commands{
 					Commands: &runnerv2.ProgramConfig_CommandList{
-						Items: []string{"sleep 1", "tput cols -T linux", "tput lines -T linux"},
+						Items: []string{
+							"/usr/bin/env sleep 1",
+							"/usr/bin/env tput cols -T linux",
+							"/usr/bin/env tput lines -T linux",
+						},
 					},
 				},
 				Interactive: true,
@@ -458,7 +462,7 @@ func TestCommand_Session(t *testing.T) {
 
 func TestCommand_SimulateCtrlC(t *testing.T) {
 	idResolver := identity.NewResolver(identity.AllLifecycleIdentity)
-	doc := document.New([]byte("```sh {\"interactive\": true}\nbash\n```"), idResolver)
+	doc := document.New([]byte("```sh {\"interactive\": true}\n/bin/sh -i\n```"), idResolver)
 	node, err := doc.Root()
 	require.NoError(t, err)
 	blocks := document.CollectCodeBlocks(node)
@@ -484,7 +488,7 @@ func TestCommand_SimulateCtrlC(t *testing.T) {
 		defer close(errc)
 
 		time.Sleep(time.Millisecond * 500)
-		_, err = stdinW.Write([]byte("sleep 30\n"))
+		_, err = stdinW.Write([]byte("sleep infinity\n"))
 		errc <- err
 
 		// cancel sleep
