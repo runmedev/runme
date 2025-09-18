@@ -1,48 +1,38 @@
-env SHELL=/bin/bash
 exec runme run --all --tag=foo --filename=TAGS.md
 cmp stdout foo-bar-list.txt
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run --all --tag=bar --filename=TAGS.md
 cmp stdout bar-list.txt
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run -t buzz -t bar --filename=TAGS.md
 cmp stdout buzz-bar-list.txt
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run --all --tag=foo --filename=CATEGORIES.md
 cmp stdout foo-bar-list.txt
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run --all --tag=bar --filename=CATEGORIES.md
 cmp stdout bar-list.txt
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run -t buzz -t bar --filename=CATEGORIES.md
 cmp stdout buzz-bar-list.txt
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run --all --allow-unnamed -y --tag solution-2
 cmp stdout doc-category-with-unnamed.txt
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run --all --skip-prompts --tag solution-2
 cmp stdout doc-category.txt
 ! stderr .
 
-env SHELL=/bin/bash
 ! exec runme run --all --skip-prompts --tag solution
 stderr 'could not execute command: No tasks to execute with the tag provided'
 
-env SHELL=/bin/bash
 exec runme run --all --skip-prompts -e --tag solution
 cmp stdout tag-pattern-matches.txt
 ! stderr .
