@@ -155,12 +155,17 @@ var shellToolJSONSchema = map[string]any{
 	"title":   "Shell Function Schema",
 	"type":    "object",
 	"properties": map[string]interface{}{
-		"shell": map[string]interface{}{
+		"code": map[string]interface{}{
 			"type":        "string",
 			"description": "A short bash program to be executed by bash",
 		},
+		"language": map[string]interface{}{
+			"type": "string",
+			"description": `The language the code is written in.
+			Use "shell" if its a shell script.`,
+		},
 	},
-	"required":             []string{"shell"},
+	"required":             []string{"code", "language"},
 	"additionalProperties": false,
 }
 
