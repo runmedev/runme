@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"strings"
 
 	"github.com/fullstorydev/grpcurl"
 	"github.com/jhump/protoreflect/grpcreflect"
@@ -11,6 +10,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/runmedev/runme/v3/internal/config"
+	"github.com/runmedev/runme/v3/internal/server"
 	runmetls "github.com/runmedev/runme/v3/internal/tls"
 )
 
@@ -34,9 +34,9 @@ func dialServer(ctx context.Context, cfg *config.Config) (*grpc.ClientConn, erro
 
 	creds := credentials.NewTLS(tlsConf)
 
-	network, addr := "tcp", cfg.Server.Address
-	if strings.HasPrefix(addr, "unix://") {
-		network, addr = "unix", strings.TrimPrefix(addr, "unix://")
+	network, addr, err := server.SplitAddress(cfg.Server.Address)
+	if err != nil {
+		return nil, err
 	}
 
 	cc, err := grpcurl.BlockingDial(ctx, network, addr, creds)

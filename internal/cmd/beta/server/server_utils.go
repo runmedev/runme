@@ -4,19 +4,19 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
+
+	"github.com/runmedev/runme/v3/internal/server"
 )
 
 func pidFileNameFromAddr(addr string) string {
-	if !strings.HasPrefix(addr, "unix://") {
+	network, addr, err := server.SplitAddress(addr)
+	if err != nil || network != "unix" {
 		return ""
 	}
-	path := strings.TrimPrefix(addr, "unix://")
-	path = filepath.Dir(path)
-	path = filepath.Join(path, "runme.pid")
-	return path
+
+	return filepath.Join(filepath.Dir(addr), "runme.pid")
 }
 
 func createFileWithPID(path string) error {

@@ -1,10 +1,11 @@
 package server
 
 import (
+	"cmp"
 	"crypto/tls"
 	"net"
+	"net/url"
 	"os"
-	"strings"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -26,6 +27,19 @@ type Server struct {
 }
 
 type ServiceRegistrar func(grpc.ServiceRegistrar)
+
+func SplitAddress(raw string) (network, addr string, _ error) {
+	if u, err := url.Parse(raw); err == nil {
+		switch u.Scheme {
+		case "tcp":
+			return u.Scheme, cmp.Or(u.Opaque, u.Host), nil
+		case "unix":
+			return u.Scheme, cmp.Or(u.Opaque, u.Path), nil
+		}
+	}
+
+	return "tcp", raw, nil
+}
 
 func New(
 	cfg *config.Config,
@@ -84,17 +98,20 @@ func (s *Server) Shutdown() {
 }
 
 func createListener(addr string) (net.Listener, error) {
-	protocol := "tcp"
+	network, addr, err := SplitAddress(addr)
+	if err != nil {
+		return nil, err
+	}
 
-	if strings.HasPrefix(addr, "unix://") {
-		protocol = "unix"
-		addr = strings.TrimPrefix(addr, "unix://")
-		if _, err := os.Stat(addr); !os.IsNotExist(err) {
+	if network == "unix" {
+		if _, err := os.Stat(addr); err == nil {
+			return nil, &os.PathError{Op: "listen", Path: addr, Err: os.ErrExist}
+		} else if !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
 	}
 
-	lis, err := net.Listen(protocol, addr)
+	lis, err := net.Listen(network, addr)
 	return lis, errors.WithStack(err)
 }
 
