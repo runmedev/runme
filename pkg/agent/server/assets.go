@@ -108,7 +108,9 @@ func (s *Server) singlePageAppHandler() (http.Handler, error) {
 		// If path is empty, file doesn't exist, or it's index.html, serve processed index
 		if path == "/" || path == "index.html" || os.IsNotExist(func() error {
 			f, err := s.assetsFS.Open(path)
-			helpers.DeferIgnoreError(f.Close)
+			if f != nil {
+				helpers.DeferIgnoreError(f.Close)
+			}
 			return err
 		}()) {
 			// Read and process index.html
