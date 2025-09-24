@@ -102,7 +102,7 @@ func (c *base) ProgramPath() (string, []string, error) {
 		}
 	}
 
-	return c.findDefaultProgram(c.cfg.ProgramName, c.cfg.Arguments)
+	return c.findDefaultProgram(c.cfg.LanguageId, c.cfg.Arguments)
 }
 
 func (c *base) limitEnviron(environ []string) error {
@@ -156,15 +156,14 @@ func (c *base) lookPath(path string) (string, error) {
 	return c.runtime.LookPathUsingPathEnv(path, pathEnv)
 }
 
-func (c *base) findDefaultProgram(name string, args []string) (string, []string, error) {
-	name, normArgs := normalizeProgramName(name)
-	if IsShellLanguage(name) {
+func (c *base) findDefaultProgram(languageID string, args []string) (string, []string, error) {
+	if IsShellLanguage(languageID) {
 		globalShell := shellFromShellPath(c.globalShellPath())
 		res, err := c.lookPath(globalShell)
 		if err != nil {
 			return "", nil, errors.Errorf("failed lookup default shell %s", globalShell)
 		}
-		return res, append(normArgs, args...), nil
+		return res, args, nil
 	}
 	// Default to "cat" for shebang++
 	res, err := c.lookPath("cat")
