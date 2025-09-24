@@ -674,3 +674,160 @@ func Test_exitCodeFromErr(t *testing.T) {
 	assert.Error(t, exiterr)
 	assert.Equal(t, 99, exitCodeFromErr(exiterr))
 }
+
+func Test_Command_inferFileProgram(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		programName string
+		languageID  string
+		// Note: Expected paths may vary based on system, so we'll check for common patterns
+		expectedProgramPathPattern string
+		expectedArgs               []string
+		expectError                bool
+	}{
+		{
+			name:                       "bash with empty program name",
+			programName:                "",
+			languageID:                 "bash",
+			expectedProgramPathPattern: "/bin/bash",
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "sh with empty program name",
+			programName:                "",
+			languageID:                 "sh",
+			expectedProgramPathPattern: "/bin/bash", // sh maps to bash in the programByLanguageID
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "zsh with empty program name",
+			programName:                "",
+			languageID:                 "zsh",
+			expectedProgramPathPattern: "/bin/zsh",
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "sql with empty program name",
+			programName:                "",
+			languageID:                 "sql",
+			expectedProgramPathPattern: "/bin/cat",
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "yaml with empty program name",
+			programName:                "",
+			languageID:                 "yaml",
+			expectedProgramPathPattern: "/bin/cat",
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "python with empty program name",
+			programName:                "",
+			languageID:                 "python",
+			expectedProgramPathPattern: "python", // Should be python3 or python
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "python with python3 program name",
+			programName:                "/usr/bin/python3", // explicitly set python3
+			languageID:                 "python",
+			expectedProgramPathPattern: "/usr/bin/python3",
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "javascript with empty program name",
+			programName:                "",
+			languageID:                 "javascript",
+			expectedProgramPathPattern: "node",
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "typescript with empty program name",
+			programName:                "",
+			languageID:                 "typescript",
+			expectedProgramPathPattern: "deno", // deno run is found instead of ts-node
+			expectedArgs:               []string{"run"},
+			expectError:                false,
+		},
+		{
+			name:                       "ruby with empty program name",
+			programName:                "",
+			languageID:                 "ruby",
+			expectedProgramPathPattern: "ruby",
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "bash with explicit program name",
+			programName:                "bash",
+			languageID:                 "bash",
+			expectedProgramPathPattern: "/bin/bash",
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "bash with program name and args",
+			programName:                "bash -x",
+			languageID:                 "bash",
+			expectedProgramPathPattern: "/bin/bash",
+			expectedArgs:               []string{"-x"},
+			expectError:                false,
+		},
+		{
+			name:                       "invalid language ID",
+			programName:                "",
+			languageID:                 "invalid-lang",
+			expectedProgramPathPattern: "cat", // Falls back to cat when language is invalid
+			expectedArgs:               []string(nil),
+			expectError:                false,
+		},
+		{
+			name:                       "invalid program name",
+			programName:                "nonexistent-program-xyz",
+			languageID:                 "bash",
+			expectedProgramPathPattern: "",
+			expectedArgs:               []string(nil),
+			expectError:                true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			cmd, err := newCommand(
+				context.Background(),
+				&commandConfig{
+					ProgramName: tc.programName,
+					LanguageID:  tc.languageID,
+					Logger:      testCreateLogger(t),
+				},
+			)
+
+			if tc.expectError {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			// Check that the program path contains the expected pattern
+			assert.Contains(t, cmd.ProgramPath, tc.expectedProgramPathPattern,
+				"ProgramPath should contain expected pattern")
+
+			// Check args
+			assert.Equal(t, tc.expectedArgs, cmd.Args,
+				"Args should match expected value")
+		})
+	}
+}
