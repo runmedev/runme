@@ -16,6 +16,8 @@ import (
 	"github.com/creack/pty"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/runmedev/runme/v3/command/testdata"
 )
 
 func init() {
@@ -673,4 +675,38 @@ func Test_exitCodeFromErr(t *testing.T) {
 	exiterr := cmd.Wait()
 	assert.Error(t, exiterr)
 	assert.Equal(t, 99, exitCodeFromErr(exiterr))
+}
+
+func Test_Command_DetectProgramPath(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range testdata.DetectProgramPathTestCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
+
+			cmd, err := newCommand(
+				context.Background(),
+				&commandConfig{
+					ProgramName: tc.ProgramName,
+					LanguageID:  tc.LanguageID,
+					Logger:      testCreateLogger(t),
+				},
+			)
+
+			if tc.ExpectError {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			// Check that the program path contains the expected pattern
+			assert.Contains(t, cmd.ProgramPath, tc.ExpectedProgramPathPattern,
+				"ProgramPath should contain expected pattern")
+
+			// Check args
+			assert.Equal(t, tc.ExpectedArgs, cmd.Args,
+				"Args should match expected value")
+		})
+	}
 }
