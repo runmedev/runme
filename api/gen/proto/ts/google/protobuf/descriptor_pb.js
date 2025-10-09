@@ -2087,7 +2087,7 @@ class FieldOptions$Type extends MessageType {
                 case /* optional bool deprecated = 3 [default = false] */ 3:
                     message.deprecated = reader.bool();
                     break;
-                case /* optional bool weak = 10 [default = false] */ 10:
+                case /* optional bool weak = 10 [default = false, deprecated = true] */ 10:
                     message.weak = reader.bool();
                     break;
                 case /* optional bool debug_redact = 16 [default = false] */ 16:
@@ -2142,7 +2142,7 @@ class FieldOptions$Type extends MessageType {
         /* optional google.protobuf.FieldOptions.JSType jstype = 6 [default = JS_NORMAL]; */
         if (message.jstype !== undefined)
             writer.tag(6, WireType.Varint).int32(message.jstype);
-        /* optional bool weak = 10 [default = false]; */
+        /* optional bool weak = 10 [default = false, deprecated = true]; */
         if (message.weak !== undefined)
             writer.tag(10, WireType.Varint).bool(message.weak);
         /* optional bool unverified_lazy = 15 [default = false]; */
