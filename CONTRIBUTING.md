@@ -247,10 +247,10 @@ make proto/dev/reset
 
 ### Publish Protobuf Definitions
 
-Firstly, set up your Buffer (Buf) token by exporting it as an environment variable. Replace `Your buf token` with your actual Buf token:
+Firstly, set up your Buffer (Buf) by logging into your account locally.
 
-```sh {"id":"01HF7BT3HEQBTBM9SSSNM5ZT19"}
-export BUF_TOKEN=Your buf token
+```sh
+buf registry login buf.build
 ```
 
 After setting the Buf token, proceed to publish the updated protobuf definitions. The `make proto/publish` command below will trigger the publishing process, ensuring your protobuf definitions are released and available for use:
