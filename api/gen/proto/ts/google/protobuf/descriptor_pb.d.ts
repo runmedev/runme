@@ -1116,9 +1116,11 @@ export interface FieldOptions {
      */
     deprecated?: boolean;
     /**
+     * DEPRECATED. DO NOT USE!
      * For Google-internal migration only. Do not use.
      *
-     * @generated from protobuf field: optional bool weak = 10 [default = false]
+     * @deprecated
+     * @generated from protobuf field: optional bool weak = 10 [default = false, deprecated = true]
      */
     weak?: boolean;
     /**

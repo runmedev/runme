@@ -1,5 +1,5 @@
 version: v1
-name: buf.build/stateful/runme
+name: buf.build/runmedev/runme
 deps:
   - buf.build/googleapis/googleapis
   - buf.build/bufbuild/protovalidate:v0.13.4
