@@ -14,7 +14,7 @@ require (
 	connectrpc.com/otelconnect v0.8.0
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/atotto/clipboard v0.1.4
-	github.com/charmbracelet/bubbletea v1.3.9
+	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/cli/cli/v2 v2.79.0
 	github.com/cli/go-gh/v2 v2.12.2
