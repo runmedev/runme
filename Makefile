@@ -143,7 +143,7 @@ proto/_generate:
 	buf lint
 	buf format -w
 	buf generate
-	echo '{"type":"module","name":"@buf/stateful_runme.bufbuild_es","dependencies":{"@bufbuild/protobuf":"2.6.0","@buf/bufbuild_protovalidate.bufbuild_es":"2.6.0-20250625184727-c923a0c2a132.1","@buf/googleapis_googleapis.bufbuild_es":"2.6.0-20250411203938-61b203b9a916.1"}}' > api/gen/proto/es/package.json
+	echo '{"type":"module","name":"@buf/stateful_runme.bufbuild_es","dependencies":{"@buf/bufbuild_protovalidate.bufbuild_es":"2.9.0-20250912141014-52f32327d4b0.1","@buf/googleapis_googleapis.bufbuild_es":"2.9.0-20251009205305-72c8614f3bd0.1","@bufbuild/protobuf":"2.9.0"}}' > api/gen/proto/es/package.json
 
 .PHONY: proto/clean
 proto/clean:
