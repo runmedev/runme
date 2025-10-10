@@ -17,7 +17,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v5
         with:
-          go-version: ">=1.24"
+          go-version: ">=1.25"
       - name: Install dependencies
         run: make install/dev
       # It duplicates running linter from pre-commit
@@ -33,7 +33,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go: ["1.24"]
+        go: ["1.25"]
         os: [ubuntu-latest, windows-latest]
     name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
     steps:

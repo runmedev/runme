@@ -1,8 +1,6 @@
 module github.com/runmedev/runme/v3
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.2
 
 // replace github.com/stateful/godotenv => ../godotenv
 
