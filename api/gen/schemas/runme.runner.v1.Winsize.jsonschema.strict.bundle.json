@@ -1,0 +1,45 @@
+{
+  "$defs": {
+    "runme.runner.v1.Winsize.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "cols": {
+          "description": "number of columns (in cells)",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rows": {
+          "description": "number of rows (in cells)",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "x": {
+          "description": "width in pixels",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "y": {
+          "description": "height in pixels",
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rows",
+        "cols",
+        "x",
+        "y"
+      ],
+      "title": "Winsize",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v1.Winsize.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v1.Winsize.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

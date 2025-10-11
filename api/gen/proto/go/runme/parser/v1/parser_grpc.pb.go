@@ -8,7 +8,6 @@ package parserv1
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -153,6 +152,110 @@ var ParserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Serialize",
 			Handler:    _ParserService_Serialize_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "runme/parser/v1/parser.proto",
+}
+
+const (
+	UpdateCellsMCP_UpdateCell_FullMethodName = "/runme.parser.v1.UpdateCellsMCP/UpdateCell"
+)
+
+// UpdateCellsMCPClient is the client API for UpdateCellsMCP service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type UpdateCellsMCPClient interface {
+	// UpdateCell updates a cell in the document.
+	UpdateCell(ctx context.Context, in *UpdateCellRequest, opts ...grpc.CallOption) (*UpdateCellResponse, error)
+}
+
+type updateCellsMCPClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewUpdateCellsMCPClient(cc grpc.ClientConnInterface) UpdateCellsMCPClient {
+	return &updateCellsMCPClient{cc}
+}
+
+func (c *updateCellsMCPClient) UpdateCell(ctx context.Context, in *UpdateCellRequest, opts ...grpc.CallOption) (*UpdateCellResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateCellResponse)
+	err := c.cc.Invoke(ctx, UpdateCellsMCP_UpdateCell_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// UpdateCellsMCPServer is the server API for UpdateCellsMCP service.
+// All implementations must embed UnimplementedUpdateCellsMCPServer
+// for forward compatibility.
+type UpdateCellsMCPServer interface {
+	// UpdateCell updates a cell in the document.
+	UpdateCell(context.Context, *UpdateCellRequest) (*UpdateCellResponse, error)
+	mustEmbedUnimplementedUpdateCellsMCPServer()
+}
+
+// UnimplementedUpdateCellsMCPServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedUpdateCellsMCPServer struct{}
+
+func (UnimplementedUpdateCellsMCPServer) UpdateCell(context.Context, *UpdateCellRequest) (*UpdateCellResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateCell not implemented")
+}
+func (UnimplementedUpdateCellsMCPServer) mustEmbedUnimplementedUpdateCellsMCPServer() {}
+func (UnimplementedUpdateCellsMCPServer) testEmbeddedByValue()                        {}
+
+// UnsafeUpdateCellsMCPServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to UpdateCellsMCPServer will
+// result in compilation errors.
+type UnsafeUpdateCellsMCPServer interface {
+	mustEmbedUnimplementedUpdateCellsMCPServer()
+}
+
+func RegisterUpdateCellsMCPServer(s grpc.ServiceRegistrar, srv UpdateCellsMCPServer) {
+	// If the following call pancis, it indicates UnimplementedUpdateCellsMCPServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&UpdateCellsMCP_ServiceDesc, srv)
+}
+
+func _UpdateCellsMCP_UpdateCell_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateCellRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateCellsMCPServer).UpdateCell(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UpdateCellsMCP_UpdateCell_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateCellsMCPServer).UpdateCell(ctx, req.(*UpdateCellRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// UpdateCellsMCP_ServiceDesc is the grpc.ServiceDesc for UpdateCellsMCP service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var UpdateCellsMCP_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "runme.parser.v1.UpdateCellsMCP",
+	HandlerType: (*UpdateCellsMCPServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "UpdateCell",
+			Handler:    _UpdateCellsMCP_UpdateCell_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

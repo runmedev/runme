@@ -1,0 +1,19 @@
+{
+  "$id": "runme.parser.v1.SerializeRequestOutputOptions.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean"
+    },
+    "summary": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "enabled",
+    "summary"
+  ],
+  "title": "Serialize Request Output Options",
+  "type": "object"
+}

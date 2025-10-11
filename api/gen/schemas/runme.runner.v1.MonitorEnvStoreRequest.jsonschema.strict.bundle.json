@@ -1,0 +1,49 @@
+{
+  "$defs": {
+    "runme.runner.v1.MonitorEnvStoreRequest.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "$ref": "#/$defs/runme.runner.v1.Session.jsonschema.strict.json"
+        }
+      },
+      "title": "Monitor Env Store Request",
+      "type": "object"
+    },
+    "runme.runner.v1.Session.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "envs": {
+          "description": "envs keeps track of session environment variables.\n They can be modified by executing programs which\n alter them through \"export\" and \"unset\" commands.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "metadata is a map of client specific metadata.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Session",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v1.MonitorEnvStoreRequest.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v1.MonitorEnvStoreRequest.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

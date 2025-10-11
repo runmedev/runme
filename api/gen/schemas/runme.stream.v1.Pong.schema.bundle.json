@@ -1,0 +1,28 @@
+{
+  "$defs": {
+    "runme.stream.v1.Pong.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Pong message for protocol-level keep-alive response",
+      "properties": {
+        "timestamp": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "pattern": "^-?[0-9]+$",
+              "type": "string"
+            }
+          ],
+          "default": 0
+        }
+      },
+      "title": "Pong",
+      "type": "object"
+    }
+  },
+  "$id": "runme.stream.v1.Pong.schema.bundle.json",
+  "$ref": "#/$defs/runme.stream.v1.Pong.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

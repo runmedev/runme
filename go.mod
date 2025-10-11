@@ -40,6 +40,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jhump/protoreflect v1.17.0
 	github.com/jlewi/monogo v0.0.0-20241216141120-2e83e825aa81
+	github.com/mark3labs/mcp-go v0.41.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
@@ -48,6 +49,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
+	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20250930092048-a98b94b5957a
 	github.com/rogpeppe/go-internal v1.14.1
 	github.com/rs/cors v1.11.1
 	github.com/spf13/viper v1.21.0
@@ -73,6 +75,7 @@ require (
 )
 
 require (
+	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.34.2-20240917150400-3f349e63f44a.2 // indirect
 	cel.dev/expr v0.24.0 // indirect
 	cloud.google.com/go v0.122.0 // indirect
 	cloud.google.com/go/ai v0.8.0 // indirect
@@ -88,8 +91,10 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/atombender/go-jsonschema v0.16.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bufbuild/protocompile v0.14.1 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/ccojocar/zxcvbn-go v1.0.2 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -129,7 +134,9 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/icholy/gomajor v0.13.1 // indirect
+	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mgechev/dots v0.0.0-20210922191527-e955255bf517 // indirect
 	github.com/mgechev/revive v1.7.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
@@ -145,6 +152,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
+	github.com/redpanda-data/common-go/api v0.0.0-20250801174835-9eea07f1ea06 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sanity-io/litter v1.5.5 // indirect
 	github.com/securego/gosec/v2 v2.22.1 // indirect
@@ -158,7 +166,9 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
+	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.63.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0 // indirect

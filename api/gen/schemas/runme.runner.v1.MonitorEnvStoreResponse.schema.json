@@ -1,0 +1,33 @@
+{
+  "$id": "runme.runner.v1.MonitorEnvStoreResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "snapshot": {
+      "$ref": "runme.runner.v1.MonitorEnvStoreResponseSnapshot.schema.json"
+    },
+    "type": {
+      "anyOf": [
+        {
+          "pattern": "^MONITOR_ENV_STORE_TYPE_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "MONITOR_ENV_STORE_TYPE_SNAPSHOT"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "title": "Monitor Env Store Type"
+    }
+  },
+  "title": "Monitor Env Store Response",
+  "type": "object"
+}

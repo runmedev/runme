@@ -1,0 +1,139 @@
+{
+  "$id": "runme.runner.v1.ExecuteRequest.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "arguments": {
+      "description": "arguments is a list of arguments passed to the program.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "background": {
+      "description": "background indicates a background process\n this will send the process' PID as a first response",
+      "type": "boolean"
+    },
+    "command_mode": {
+      "enum": [
+        "COMMAND_MODE_UNSPECIFIED",
+        "COMMAND_MODE_INLINE_SHELL",
+        "COMMAND_MODE_TEMP_FILE",
+        "COMMAND_MODE_TERMINAL",
+        "COMMAND_MODE_DAGGER"
+      ],
+      "title": "Command Mode",
+      "type": "string"
+    },
+    "commands": {
+      "description": "commands are commands to be executed by the program.\n The commands are joined and executed as a script.\n For example: \"echo 'Hello, World'\", \"ls -l /etc\".\n This is mutually exclusive with the script field.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "directory": {
+      "description": "directory to execute the program in.",
+      "type": "string"
+    },
+    "envs": {
+      "description": "envs is a list of additional environment variables\n that will be injected to the executed program.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "file_extension": {
+      "description": "file extension associated with script",
+      "type": "string"
+    },
+    "input_data": {
+      "description": "input_data is a byte array that will be send as input\n to the program.",
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "known_id": {
+      "description": "optional well known id for cell/block. \"know\" meaning that\n CLI/notebook UX have id/name for cells/blocks that contain commands.\n While the runner doesn't require the name to work, it is useful for\n auxiliary concerns (e.g. tracing, logging, etc).",
+      "type": "string"
+    },
+    "known_name": {
+      "description": "optional well known name for cell/block. \"know\" meaning that\n CLI/notebook UX have id/name for cells/blocks that contain commands.\n While the runner doesn't require the name to work, it is useful for\n auxiliary concerns (e.g. tracing, logging, etc).",
+      "type": "string"
+    },
+    "language_id": {
+      "description": "language id associated with script",
+      "type": "string"
+    },
+    "program_name": {
+      "description": "program_name is a name of the program to execute.\n If it's not a path (relative or absolute), the runner\n will try to resolve the name.\n For example: \"sh\", \"/bin/bash\".",
+      "type": "string"
+    },
+    "project": {
+      "$ref": "runme.runner.v1.Project.schema.strict.json",
+      "description": "project for this runner\n used to load environment variables from .env files"
+    },
+    "run_id": {
+      "description": "optional run ID to track the execution of the program",
+      "type": "string"
+    },
+    "script": {
+      "description": "script is code to be executed by the program.\n Individual lines are joined with the new line character.\n This is mutually exclusive with the commands field.",
+      "type": "string"
+    },
+    "session_id": {
+      "description": "session_id indicates in which Session the program should execute.\n Executing in a Session might provide additional context like\n environment variables.",
+      "type": "string"
+    },
+    "session_strategy": {
+      "description": "strategy for selecting session",
+      "enum": [
+        "SESSION_STRATEGY_UNSPECIFIED",
+        "SESSION_STRATEGY_MOST_RECENT"
+      ],
+      "title": "Session Strategy",
+      "type": "string"
+    },
+    "stop": {
+      "description": "stop requests the running process to be stopped.\n It is allowed only in the consecutive calls.",
+      "enum": [
+        "EXECUTE_STOP_UNSPECIFIED",
+        "EXECUTE_STOP_INTERRUPT",
+        "EXECUTE_STOP_KILL"
+      ],
+      "title": "Execute Stop",
+      "type": "string"
+    },
+    "store_last_output": {
+      "description": "whether to store the stdout of the last ran\n block in the environment variable `__`",
+      "type": "boolean"
+    },
+    "tty": {
+      "description": "tty when true allocates a pseudo-TTY.",
+      "type": "boolean"
+    },
+    "winsize": {
+      "$ref": "runme.runner.v1.Winsize.schema.strict.json",
+      "description": "sets pty winsize\n has no effect in non-interactive mode"
+    }
+  },
+  "required": [
+    "program_name",
+    "directory",
+    "script",
+    "tty",
+    "input_data",
+    "stop",
+    "background",
+    "session_id",
+    "session_strategy",
+    "store_last_output",
+    "command_mode",
+    "language_id",
+    "file_extension",
+    "known_id",
+    "known_name",
+    "run_id"
+  ],
+  "title": "Execute Request",
+  "type": "object"
+}

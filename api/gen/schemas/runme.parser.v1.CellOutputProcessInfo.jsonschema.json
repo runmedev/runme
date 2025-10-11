@@ -1,0 +1,20 @@
+{
+  "$id": "runme.parser.v1.CellOutputProcessInfo.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(exit_reason)$": {
+      "$ref": "runme.parser.v1.ProcessInfoExitReason.jsonschema.json"
+    }
+  },
+  "properties": {
+    "exitReason": {
+      "$ref": "runme.parser.v1.ProcessInfoExitReason.jsonschema.json"
+    },
+    "pid": {
+      "$ref": "google.protobuf.Int64Value.jsonschema.json"
+    }
+  },
+  "title": "Cell Output Process Info",
+  "type": "object"
+}

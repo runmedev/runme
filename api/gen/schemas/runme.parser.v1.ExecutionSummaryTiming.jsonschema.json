@@ -1,0 +1,23 @@
+{
+  "$id": "runme.parser.v1.ExecutionSummaryTiming.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(end_time)$": {
+      "$ref": "google.protobuf.Int64Value.jsonschema.json"
+    },
+    "^(start_time)$": {
+      "$ref": "google.protobuf.Int64Value.jsonschema.json"
+    }
+  },
+  "properties": {
+    "endTime": {
+      "$ref": "google.protobuf.Int64Value.jsonschema.json"
+    },
+    "startTime": {
+      "$ref": "google.protobuf.Int64Value.jsonschema.json"
+    }
+  },
+  "title": "Execution Summary Timing",
+  "type": "object"
+}

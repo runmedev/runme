@@ -1,0 +1,59 @@
+{
+  "$id": "agent.v1.Assertion.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "-------------------------------------------------------------------------\n Assertions\n -------------------------------------------------------------------------",
+  "properties": {
+    "codeblockRegex": {
+      "$ref": "agent.v1.Assertion.CodeblockRegex.jsonschema.strict.json"
+    },
+    "failureReason": {
+      "type": "string"
+    },
+    "fileRetrieval": {
+      "$ref": "agent.v1.Assertion.FileRetrieval.jsonschema.strict.json"
+    },
+    "llmJudge": {
+      "$ref": "agent.v1.Assertion.LLMJudge.jsonschema.strict.json"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "result": {
+      "enum": [
+        "RESULT_UNSPECIFIED",
+        "RESULT_TRUE",
+        "RESULT_FALSE",
+        "RESULT_SKIPPED"
+      ],
+      "title": "Result",
+      "type": "string"
+    },
+    "shellRequiredFlag": {
+      "$ref": "agent.v1.Assertion.ShellRequiredFlag.jsonschema.strict.json"
+    },
+    "toolInvocation": {
+      "$ref": "agent.v1.Assertion.ToolInvocation.jsonschema.strict.json"
+    },
+    "type": {
+      "enum": [
+        "TYPE_SHELL_REQUIRED_FLAG",
+        "TYPE_TOOL_INVOKED",
+        "TYPE_FILE_RETRIEVED",
+        "TYPE_LLM_JUDGE",
+        "TYPE_CODEBLOCK_REGEX"
+      ],
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "result",
+    "failureReason"
+  ],
+  "title": "Assertion",
+  "type": "object"
+}

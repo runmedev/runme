@@ -1,0 +1,19 @@
+{
+  "$defs": {
+    "runme.runner.v1.DeleteSessionRequest.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Delete Session Request",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v1.DeleteSessionRequest.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.runner.v1.DeleteSessionRequest.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

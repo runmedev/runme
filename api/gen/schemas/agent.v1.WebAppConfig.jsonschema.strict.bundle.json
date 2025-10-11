@@ -1,0 +1,31 @@
+{
+  "$defs": {
+    "agent.v1.WebAppConfig.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "WebAppConfig is the application configuration.",
+      "properties": {
+        "invertedOrder": {
+          "description": "InvertedOrder is a flag to invert the order of the blocks.",
+          "type": "boolean"
+        },
+        "reconnect": {
+          "description": "Reconnect is a flag to enable automatic reconnecting to the runner.",
+          "type": "boolean"
+        },
+        "runner": {
+          "description": "runner is the address of the runner that the application should use.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runner"
+      ],
+      "title": "Web App Config",
+      "type": "object"
+    }
+  },
+  "$id": "agent.v1.WebAppConfig.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/agent.v1.WebAppConfig.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

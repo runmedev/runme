@@ -1,0 +1,33 @@
+{
+  "$id": "agent.v1.EvalSample.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "-------------------------------------------------------------------------\n EvalSample – Represents a single evaluation input and its expected assertions\n -------------------------------------------------------------------------",
+  "properties": {
+    "assertions": {
+      "items": {
+        "$ref": "agent.v1.Assertion.jsonschema.strict.json"
+      },
+      "type": "array"
+    },
+    "inputText": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "kind": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "agent.v1.ObjectMeta.jsonschema.strict.json"
+    }
+  },
+  "required": [
+    "kind",
+    "metadata",
+    "inputText",
+    "assertions"
+  ],
+  "title": "Eval Sample",
+  "type": "object"
+}

@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "runme.runner.v2.ResolveProgramCommandList.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "lines": {
+          "description": "commands are commands to be executed by the program.\n The commands are joined and executed as a script.\n For example: [\"echo 'Hello, World'\", \"ls -l /etc\"].",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "title": "Resolve Program Command List",
+      "type": "object"
+    },
+    "runme.runner.v2.ResolveProgramResponse.VarResult.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "name is the name of the environment variable.",
+          "type": "string"
+        },
+        "original_value": {
+          "description": "original_value is a default value of the environment variable.\n It might be a value that is assigned to the variable in the script,\n like FOO=bar or FOO=${FOO:-bar}.\n If the variable is not assigned, it is an empty string.",
+          "type": "string"
+        },
+        "resolved_value": {
+          "description": "resolved_value is a value of the environment variable resolved from a source.\n If it is an empty string, it means that the environment variable is not resolved.",
+          "type": "string"
+        },
+        "status": {
+          "description": "prompt indicates the resolution status of the env variable.",
+          "enum": [
+            "STATUS_UNSPECIFIED",
+            "STATUS_RESOLVED",
+            "STATUS_UNRESOLVED_WITH_MESSAGE",
+            "STATUS_UNRESOLVED_WITH_PLACEHOLDER",
+            "STATUS_UNRESOLVED_WITH_SECRET"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "name",
+        "original_value",
+        "resolved_value"
+      ],
+      "title": "Var Result",
+      "type": "object"
+    },
+    "runme.runner.v2.ResolveProgramResponse.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "$ref": "#/$defs/runme.runner.v2.ResolveProgramCommandList.schema.strict.json",
+          "description": "use script until commands normalization is implemented"
+        },
+        "script": {
+          "type": "string"
+        },
+        "vars": {
+          "items": {
+            "$ref": "#/$defs/runme.runner.v2.ResolveProgramResponse.VarResult.schema.strict.json"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "script"
+      ],
+      "title": "Resolve Program Response",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v2.ResolveProgramResponse.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v2.ResolveProgramResponse.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,15 @@
+{
+  "$id": "runme.parser.v1.SerializeRequestOptions.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "outputs": {
+      "$ref": "runme.parser.v1.SerializeRequestOutputOptions.jsonschema.json"
+    },
+    "session": {
+      "$ref": "runme.parser.v1.RunmeSession.jsonschema.json"
+    }
+  },
+  "title": "Serialize Request Options",
+  "type": "object"
+}

@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "runme.parser.v1.DeserializeRequest.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "options": {
+          "$ref": "#/$defs/runme.parser.v1.DeserializeRequestOptions.schema.strict.json"
+        },
+        "source": {
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "Deserialize Request",
+      "type": "object"
+    },
+    "runme.parser.v1.DeserializeRequestOptions.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "enum": [
+            "RUNME_IDENTITY_UNSPECIFIED",
+            "RUNME_IDENTITY_ALL",
+            "RUNME_IDENTITY_DOCUMENT",
+            "RUNME_IDENTITY_CELL"
+          ],
+          "title": "Runme Identity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity"
+      ],
+      "title": "Deserialize Request Options",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.DeserializeRequest.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.DeserializeRequest.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

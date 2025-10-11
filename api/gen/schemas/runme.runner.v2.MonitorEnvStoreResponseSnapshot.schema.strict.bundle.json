@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "runme.runner.v2.MonitorEnvStoreResponseSnapshot.Error.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Error",
+      "type": "object"
+    },
+    "runme.runner.v2.MonitorEnvStoreResponseSnapshot.SnapshotEnv.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "create_time": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "errors": {
+          "items": {
+            "$ref": "#/$defs/runme.runner.v2.MonitorEnvStoreResponseSnapshot.Error.schema.strict.json"
+          },
+          "type": "array"
+        },
+        "is_required": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "origin": {
+          "type": "string"
+        },
+        "original_value": {
+          "type": "string"
+        },
+        "resolved_value": {
+          "type": "string"
+        },
+        "spec": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "STATUS_UNSPECIFIED",
+            "STATUS_LITERAL",
+            "STATUS_HIDDEN",
+            "STATUS_MASKED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "update_time": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "name",
+        "description",
+        "spec",
+        "is_required",
+        "origin",
+        "original_value",
+        "resolved_value",
+        "create_time",
+        "update_time"
+      ],
+      "title": "Snapshot Env",
+      "type": "object"
+    },
+    "runme.runner.v2.MonitorEnvStoreResponseSnapshot.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "envs": {
+          "items": {
+            "$ref": "#/$defs/runme.runner.v2.MonitorEnvStoreResponseSnapshot.SnapshotEnv.schema.strict.json"
+          },
+          "type": "array"
+        }
+      },
+      "title": "Monitor Env Store Response Snapshot",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v2.MonitorEnvStoreResponseSnapshot.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

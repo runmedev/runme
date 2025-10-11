@@ -1,0 +1,9 @@
+{
+  "$id": "google.protobuf.UInt32Value.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The uint32 value.",
+  "maximum": 4294967295,
+  "minimum": 0,
+  "title": "U Int32 Value",
+  "type": "integer"
+}

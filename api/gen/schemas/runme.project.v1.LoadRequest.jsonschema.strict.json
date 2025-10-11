@@ -1,0 +1,28 @@
+{
+  "$id": "runme.project.v1.LoadRequest.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "directory": {
+      "$ref": "runme.project.v1.DirectoryProjectOptions.jsonschema.strict.json"
+    },
+    "file": {
+      "$ref": "runme.project.v1.FileProjectOptions.jsonschema.strict.json"
+    },
+    "identity": {
+      "enum": [
+        "RUNME_IDENTITY_UNSPECIFIED",
+        "RUNME_IDENTITY_ALL",
+        "RUNME_IDENTITY_DOCUMENT",
+        "RUNME_IDENTITY_CELL"
+      ],
+      "title": "Runme Identity",
+      "type": "string"
+    }
+  },
+  "required": [
+    "identity"
+  ],
+  "title": "Load Request",
+  "type": "object"
+}

@@ -1,0 +1,21 @@
+{
+  "$defs": {
+    "runme.runner.v1.ProcessPID.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "pid": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pid"
+      ],
+      "title": "ProcessPID",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v1.ProcessPID.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v1.ProcessPID.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

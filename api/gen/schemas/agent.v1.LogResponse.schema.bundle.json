@@ -1,0 +1,14 @@
+{
+  "$defs": {
+    "agent.v1.LogResponse.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {},
+      "title": "Log Response",
+      "type": "object"
+    }
+  },
+  "$id": "agent.v1.LogResponse.schema.bundle.json",
+  "$ref": "#/$defs/agent.v1.LogResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

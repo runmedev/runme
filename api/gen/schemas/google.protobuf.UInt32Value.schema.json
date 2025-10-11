@@ -1,0 +1,17 @@
+{
+  "$id": "google.protobuf.UInt32Value.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "maximum": 4294967295,
+      "minimum": 0,
+      "type": "integer"
+    },
+    {
+      "pattern": "^[0-9]+$",
+      "type": "string"
+    }
+  ],
+  "description": "The uint32 value.",
+  "title": "U Int32 Value"
+}

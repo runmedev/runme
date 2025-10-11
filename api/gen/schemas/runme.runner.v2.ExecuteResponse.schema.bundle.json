@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "google.protobuf.UInt32Value.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The uint32 value.",
+      "title": "U Int32 Value"
+    },
+    "runme.runner.v2.ExecuteResponse.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(exitCode)$": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json",
+          "description": "exit_code is sent only in the final message."
+        },
+        "^(mimeType)$": {
+          "default": "",
+          "description": "This is only sent once in the first response containing stdout_data.",
+          "title": "mime_type is a detected MIME type of the stdout_data.",
+          "type": "string"
+        },
+        "^(stderrData)$": {
+          "default": null,
+          "description": "stderr_data contains bytes from stderr since the last response.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "^(stdoutData)$": {
+          "default": null,
+          "description": "stdout_data contains bytes from stdout since the last response.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "exit_code": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json",
+          "description": "exit_code is sent only in the final message."
+        },
+        "mime_type": {
+          "default": "",
+          "description": "This is only sent once in the first response containing stdout_data.",
+          "title": "mime_type is a detected MIME type of the stdout_data.",
+          "type": "string"
+        },
+        "pid": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json",
+          "description": "This is only sent once in an initial response for background processes.",
+          "title": "pid contains the process' PID."
+        },
+        "stderr_data": {
+          "default": null,
+          "description": "stderr_data contains bytes from stderr since the last response.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "stdout_data": {
+          "default": null,
+          "description": "stdout_data contains bytes from stdout since the last response.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "title": "Execute Response",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v2.ExecuteResponse.schema.bundle.json",
+  "$ref": "#/$defs/runme.runner.v2.ExecuteResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

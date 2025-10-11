@@ -1,0 +1,50 @@
+{
+  "$defs": {
+    "agent.v1.OAuthToken.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "accessToken": {
+          "description": "The OAuth token.",
+          "type": "string"
+        },
+        "expiresAt": {
+          "description": "The expiration time of the token in seconds since epoch.",
+          "type": "integer"
+        },
+        "expiresIn": {
+          "type": "integer"
+        },
+        "expiry": {
+          "$ref": "#/$defs/google.protobuf.Timestamp.jsonschema.strict.json",
+          "description": "Expiration time"
+        },
+        "refreshToken": {
+          "type": "string"
+        },
+        "tokenType": {
+          "description": "The type of the token.\n e.g. \"Bearer\"",
+          "type": "string"
+        }
+      },
+      "required": [
+        "accessToken",
+        "tokenType",
+        "refreshToken",
+        "expiresAt",
+        "expiresIn"
+      ],
+      "title": "O Auth Token",
+      "type": "object"
+    },
+    "google.protobuf.Timestamp.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    }
+  },
+  "$id": "agent.v1.OAuthToken.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/agent.v1.OAuthToken.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

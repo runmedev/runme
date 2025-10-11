@@ -1,0 +1,37 @@
+{
+  "$id": "runme.runner.v1.ExecuteResponse.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "exit_code": {
+      "$ref": "google.protobuf.UInt32Value.schema.strict.json",
+      "description": "exit_code is sent only in the final message."
+    },
+    "mime_type": {
+      "description": "This is only sent once in the first response containing stdout_data.",
+      "title": "mime_type is a detected MIME type of the stdout_data.",
+      "type": "string"
+    },
+    "pid": {
+      "$ref": "runme.runner.v1.ProcessPID.schema.strict.json",
+      "description": "pid contains the process' PID\n this is only sent once in an initial response for background processes."
+    },
+    "stderr_data": {
+      "description": "stderr_data contains bytes from stderr since the last response.",
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "stdout_data": {
+      "description": "stdout_data contains bytes from stdout since the last response.",
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "stdout_data",
+    "stderr_data",
+    "mime_type"
+  ],
+  "title": "Execute Response",
+  "type": "object"
+}

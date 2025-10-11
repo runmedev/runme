@@ -1,0 +1,43 @@
+{
+  "$id": "runme.parser.v1.DocResult.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "file_id": {
+      "description": "The unique ID of the file.",
+      "type": "string"
+    },
+    "file_name": {
+      "description": "The name of the file.",
+      "type": "string"
+    },
+    "link": {
+      "description": "Link to display for this file",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "enum": [
+            "Infinity",
+            "-Infinity",
+            "NaN"
+          ],
+          "type": "string"
+        }
+      ],
+      "description": "The relevance score of the file."
+    }
+  },
+  "required": [
+    "file_id",
+    "file_name",
+    "score",
+    "link"
+  ],
+  "title": "Doc Result",
+  "type": "object"
+}

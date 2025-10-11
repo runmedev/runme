@@ -1,0 +1,19 @@
+{
+  "$defs": {
+    "runme.project.v1.LoadEventFoundFile.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Load Event Found File",
+      "type": "object"
+    }
+  },
+  "$id": "runme.project.v1.LoadEventFoundFile.schema.bundle.json",
+  "$ref": "#/$defs/runme.project.v1.LoadEventFoundFile.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "runme.project.v1.DirectoryProjectOptions.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "ignoreFilePatterns": {
+          "description": "A list of file patterns, compatible with .gitignore syntax,\n to ignore.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "path": {
+          "description": "Path to a directory containing the project.",
+          "type": "string"
+        },
+        "skipGitignore": {
+          "description": "If true, .gitignore file is ignored, as well as .git/info/exclude.",
+          "type": "boolean"
+        },
+        "skipRepoLookupUpward": {
+          "description": "If true, it disables lookuping up for .git folder\n in the parent directories.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "skipGitignore",
+        "skipRepoLookupUpward"
+      ],
+      "title": "Directory Project Options",
+      "type": "object"
+    },
+    "runme.project.v1.FileProjectOptions.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "File Project Options",
+      "type": "object"
+    },
+    "runme.project.v1.LoadRequest.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "directory": {
+          "$ref": "#/$defs/runme.project.v1.DirectoryProjectOptions.jsonschema.strict.json"
+        },
+        "file": {
+          "$ref": "#/$defs/runme.project.v1.FileProjectOptions.jsonschema.strict.json"
+        },
+        "identity": {
+          "enum": [
+            "RUNME_IDENTITY_UNSPECIFIED",
+            "RUNME_IDENTITY_ALL",
+            "RUNME_IDENTITY_DOCUMENT",
+            "RUNME_IDENTITY_CELL"
+          ],
+          "title": "Runme Identity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity"
+      ],
+      "title": "Load Request",
+      "type": "object"
+    }
+  },
+  "$id": "runme.project.v1.LoadRequest.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.project.v1.LoadRequest.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

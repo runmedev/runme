@@ -1,0 +1,31 @@
+{
+  "$id": "agent.v1.Assertion.FileRetrieval.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Verifies that a file **is** or **is not** retrieved.",
+  "patternProperties": {
+    "^(file_id)$": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "^(file_name)$": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "fileId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "fileName": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "required": [
+    "fileId"
+  ],
+  "title": "File Retrieval",
+  "type": "object"
+}

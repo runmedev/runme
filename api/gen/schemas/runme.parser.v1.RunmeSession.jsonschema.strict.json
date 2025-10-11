@@ -1,0 +1,18 @@
+{
+  "$id": "runme.parser.v1.RunmeSession.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "document": {
+      "$ref": "runme.parser.v1.RunmeSessionDocument.jsonschema.strict.json"
+    },
+    "id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id"
+  ],
+  "title": "Runme Session",
+  "type": "object"
+}

@@ -1,0 +1,30 @@
+{
+  "$defs": {
+    "runme.parser.v1.CellOutputItem.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "mime": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "data",
+        "type",
+        "mime"
+      ],
+      "title": "Cell Output Item",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.CellOutputItem.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.CellOutputItem.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

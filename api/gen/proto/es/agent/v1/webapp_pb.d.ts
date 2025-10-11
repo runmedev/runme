@@ -71,3 +71,4 @@ export declare type WebAppConfigJson = {
  * Use `create(WebAppConfigSchema)` to create a new message.
  */
 export declare const WebAppConfigSchema: GenMessage<WebAppConfig, {jsonType: WebAppConfigJson}>;
+

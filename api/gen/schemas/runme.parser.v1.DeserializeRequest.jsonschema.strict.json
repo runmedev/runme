@@ -1,0 +1,19 @@
+{
+  "$id": "runme.parser.v1.DeserializeRequest.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "options": {
+      "$ref": "runme.parser.v1.DeserializeRequestOptions.jsonschema.strict.json"
+    },
+    "source": {
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source"
+  ],
+  "title": "Deserialize Request",
+  "type": "object"
+}

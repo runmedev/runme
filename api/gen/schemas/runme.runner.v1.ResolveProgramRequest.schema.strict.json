@@ -1,0 +1,72 @@
+{
+  "$id": "runme.runner.v1.ResolveProgramRequest.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "commands": {
+      "$ref": "runme.runner.v1.ResolveProgramCommandList.schema.strict.json",
+      "description": "commands are commands to be executed by the program.\n The commands are joined and executed as a script."
+    },
+    "env": {
+      "description": "env is a list of explicit environment variables that will be used\n to resolve the environment variables found in the source.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "language_id": {
+      "description": "language id associated with script",
+      "type": "string"
+    },
+    "mode": {
+      "description": "mode determines how variables resolution occurs.\n It is usually based on document or cell annotation config.",
+      "enum": [
+        "MODE_UNSPECIFIED",
+        "MODE_PROMPT_ALL",
+        "MODE_SKIP_ALL"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "project": {
+      "$ref": "runme.runner.v1.Project.schema.strict.json",
+      "description": "project used to load environment variables from .env files."
+    },
+    "retention": {
+      "description": "retention determines how variables are retained once resolved.",
+      "enum": [
+        "RETENTION_UNSPECIFIED",
+        "RETENTION_FIRST_RUN",
+        "RETENTION_LAST_RUN"
+      ],
+      "title": "Retention",
+      "type": "string"
+    },
+    "script": {
+      "description": "script is code to be executed by the program.\n Individual lines are joined with the new line character.",
+      "type": "string"
+    },
+    "session_id": {
+      "description": "session_id indicates which session is the source of\n environment variables. If not provided, the most recent\n session can be used using session_strategy.",
+      "type": "string"
+    },
+    "session_strategy": {
+      "description": "session_strategy is a strategy for selecting the session.",
+      "enum": [
+        "SESSION_STRATEGY_UNSPECIFIED",
+        "SESSION_STRATEGY_MOST_RECENT"
+      ],
+      "title": "Session Strategy",
+      "type": "string"
+    }
+  },
+  "required": [
+    "mode",
+    "session_id",
+    "session_strategy",
+    "language_id",
+    "retention"
+  ],
+  "title": "Resolve Program Request",
+  "type": "object"
+}

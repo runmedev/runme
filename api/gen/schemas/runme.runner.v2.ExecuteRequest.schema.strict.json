@@ -1,0 +1,59 @@
+{
+  "$id": "runme.runner.v2.ExecuteRequest.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "config": {
+      "$ref": "runme.runner.v2.ProgramConfig.schema.strict.json"
+    },
+    "input_data": {
+      "description": "input_data is a byte array that will be send as input\n to the program.",
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "project": {
+      "$ref": "runme.runner.v2.Project.schema.strict.json",
+      "description": "project used to load environment variables from .env files."
+    },
+    "session_id": {
+      "description": "session_id indicates in which Session the program should execute.\n Executing in a Session might provide additional context like\n environment variables.",
+      "type": "string"
+    },
+    "session_strategy": {
+      "description": "session_strategy is a strategy for selecting the session.",
+      "enum": [
+        "SESSION_STRATEGY_UNSPECIFIED",
+        "SESSION_STRATEGY_MOST_RECENT"
+      ],
+      "title": "Session Strategy",
+      "type": "string"
+    },
+    "stop": {
+      "description": "stop requests the running process to be stopped.\n It is allowed only in the consecutive calls.",
+      "enum": [
+        "EXECUTE_STOP_UNSPECIFIED",
+        "EXECUTE_STOP_INTERRUPT",
+        "EXECUTE_STOP_KILL"
+      ],
+      "title": "Execute Stop",
+      "type": "string"
+    },
+    "store_stdout_in_env": {
+      "description": "store_stdout_in_env, if true, will store the stdout under well known name\n and the last ran block in the environment variable `__`.",
+      "type": "boolean"
+    },
+    "winsize": {
+      "$ref": "runme.runner.v2.Winsize.schema.strict.json",
+      "description": "sets pty winsize\n has no effect in non-interactive mode"
+    }
+  },
+  "required": [
+    "input_data",
+    "stop",
+    "session_id",
+    "session_strategy",
+    "store_stdout_in_env"
+  ],
+  "title": "Execute Request",
+  "type": "object"
+}

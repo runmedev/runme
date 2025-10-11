@@ -1,0 +1,47 @@
+{
+  "$id": "runme.stream.v1.WebsocketRequest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "WebsocketRequest defines the message sent by the client over a websocket.\n The request is a union of types that indicate the type of message.",
+  "patternProperties": {
+    "^(executeRequest)$": {
+      "$ref": "runme.runner.v2.ExecuteRequest.schema.json"
+    },
+    "^(knownId)$": {
+      "default": "",
+      "description": "Optional Known ID to track the origin cell/block of the request.",
+      "type": "string"
+    },
+    "^(runId)$": {
+      "default": "",
+      "description": "Optional Run ID to track and resume execution.",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "authorization": {
+      "default": "",
+      "description": "Optional authorization header, similar to the HTTP Authorization header.",
+      "type": "string"
+    },
+    "execute_request": {
+      "$ref": "runme.runner.v2.ExecuteRequest.schema.json"
+    },
+    "known_id": {
+      "default": "",
+      "description": "Optional Known ID to track the origin cell/block of the request.",
+      "type": "string"
+    },
+    "ping": {
+      "$ref": "runme.stream.v1.Ping.schema.json",
+      "description": "Protocol-level ping for frontend heartbeat. Unlike websocket servers which\n have a spec-integral heartbeat (https://developer.mozilla.org/en-US/docs/Web/API/WebWebsockets_API/Writing_WebWebsocket_servers#pings_and_pongs_the_heartbeat_of_websockets),\n we need to specify our own to cover client-\u003eserver. The integral heartbeat\n only works server-\u003eclient and the browser sandbox is not privy to it.\n Once the server receives a ping, it will send a pong response with the\n exact same timestamp."
+    },
+    "run_id": {
+      "default": "",
+      "description": "Optional Run ID to track and resume execution.",
+      "type": "string"
+    }
+  },
+  "title": "Websocket Request",
+  "type": "object"
+}

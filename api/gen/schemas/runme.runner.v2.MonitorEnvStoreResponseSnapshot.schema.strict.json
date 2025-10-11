@@ -1,0 +1,15 @@
+{
+  "$id": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "envs": {
+      "items": {
+        "$ref": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.SnapshotEnv.schema.strict.json"
+      },
+      "type": "array"
+    }
+  },
+  "title": "Monitor Env Store Response Snapshot",
+  "type": "object"
+}

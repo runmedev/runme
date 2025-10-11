@@ -1,0 +1,197 @@
+{
+  "$defs": {
+    "google.protobuf.UInt32Value.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The uint32 value.",
+      "title": "U Int32 Value"
+    },
+    "runme.runner.v2.ExecuteResponse.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(exitCode)$": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json",
+          "description": "exit_code is sent only in the final message."
+        },
+        "^(mimeType)$": {
+          "default": "",
+          "description": "This is only sent once in the first response containing stdout_data.",
+          "title": "mime_type is a detected MIME type of the stdout_data.",
+          "type": "string"
+        },
+        "^(stderrData)$": {
+          "default": null,
+          "description": "stderr_data contains bytes from stderr since the last response.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "^(stdoutData)$": {
+          "default": null,
+          "description": "stdout_data contains bytes from stdout since the last response.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "exit_code": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json",
+          "description": "exit_code is sent only in the final message."
+        },
+        "mime_type": {
+          "default": "",
+          "description": "This is only sent once in the first response containing stdout_data.",
+          "title": "mime_type is a detected MIME type of the stdout_data.",
+          "type": "string"
+        },
+        "pid": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json",
+          "description": "This is only sent once in an initial response for background processes.",
+          "title": "pid contains the process' PID."
+        },
+        "stderr_data": {
+          "default": null,
+          "description": "stderr_data contains bytes from stderr since the last response.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "stdout_data": {
+          "default": null,
+          "description": "stdout_data contains bytes from stdout since the last response.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "title": "Execute Response",
+      "type": "object"
+    },
+    "runme.stream.v1.Pong.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Pong message for protocol-level keep-alive response",
+      "properties": {
+        "timestamp": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "pattern": "^-?[0-9]+$",
+              "type": "string"
+            }
+          ],
+          "default": 0
+        }
+      },
+      "title": "Pong",
+      "type": "object"
+    },
+    "runme.stream.v1.WebsocketResponse.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "WebsocketResponse defines the message sent by the server over a websocket.\n The response is a union of types that indicate the type of message.",
+      "patternProperties": {
+        "^(executeResponse)$": {
+          "$ref": "#/$defs/runme.runner.v2.ExecuteResponse.schema.json"
+        },
+        "^(knownId)$": {
+          "default": "",
+          "description": "Optional Known ID to track the origin cell/block of the request.",
+          "type": "string"
+        },
+        "^(runId)$": {
+          "default": "",
+          "description": "Optional Run ID to track and resume execution.",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "execute_response": {
+          "$ref": "#/$defs/runme.runner.v2.ExecuteResponse.schema.json"
+        },
+        "known_id": {
+          "default": "",
+          "description": "Optional Known ID to track the origin cell/block of the request.",
+          "type": "string"
+        },
+        "pong": {
+          "$ref": "#/$defs/runme.stream.v1.Pong.schema.json",
+          "description": "Protocol-level pong for frontend heartbeat. Once the server receives\n a ping, it will send a pong response with the exact same timestamp.\n This allows the frontend (client) to detect if the connection is\n still alive or stale/inactive. See WebsocketRequest's ping for more details."
+        },
+        "run_id": {
+          "default": "",
+          "description": "Optional Run ID to track and resume execution.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/runme.stream.v1.WebsocketStatus.schema.json",
+          "description": "Optional websocket-level status."
+        }
+      },
+      "title": "Websocket Response",
+      "type": "object"
+    },
+    "runme.stream.v1.WebsocketStatus.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Represents websocket-level status (e.g., for auth, protocol, or other errors).",
+      "properties": {
+        "code": {
+          "anyOf": [
+            {
+              "pattern": "^OK$",
+              "type": "string"
+            },
+            {
+              "enum": [
+                "CANCELLED",
+                "UNKNOWN",
+                "INVALID_ARGUMENT",
+                "DEADLINE_EXCEEDED",
+                "NOT_FOUND",
+                "ALREADY_EXISTS",
+                "PERMISSION_DENIED",
+                "UNAUTHENTICATED",
+                "RESOURCE_EXHAUSTED",
+                "FAILED_PRECONDITION",
+                "ABORTED",
+                "OUT_OF_RANGE",
+                "UNIMPLEMENTED",
+                "INTERNAL",
+                "UNAVAILABLE",
+                "DATA_LOSS"
+              ],
+              "type": "string"
+            },
+            {
+              "maximum": 2147483647,
+              "minimum": -2147483648,
+              "type": "integer"
+            }
+          ],
+          "default": 0,
+          "title": "Code"
+        },
+        "message": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Websocket Status",
+      "type": "object"
+    }
+  },
+  "$id": "runme.stream.v1.WebsocketResponse.schema.bundle.json",
+  "$ref": "#/$defs/runme.stream.v1.WebsocketResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

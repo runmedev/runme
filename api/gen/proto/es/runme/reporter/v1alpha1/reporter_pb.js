@@ -72,3 +72,4 @@ export const ReporterDeviceSchema = /*@__PURE__*/
  */
 export const ReporterService = /*@__PURE__*/
   serviceDesc(file_runme_reporter_v1alpha1_reporter, 0);
+

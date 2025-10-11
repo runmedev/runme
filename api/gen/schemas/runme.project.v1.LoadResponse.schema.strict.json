@@ -1,0 +1,51 @@
+{
+  "$id": "runme.project.v1.LoadResponse.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "$ref": "runme.project.v1.LoadEventError.schema.strict.json"
+    },
+    "finished_parsing_doc": {
+      "$ref": "runme.project.v1.LoadEventFinishedParsingDoc.schema.strict.json"
+    },
+    "finished_walk": {
+      "$ref": "runme.project.v1.LoadEventFinishedWalk.schema.strict.json"
+    },
+    "found_dir": {
+      "$ref": "runme.project.v1.LoadEventFoundDir.schema.strict.json"
+    },
+    "found_file": {
+      "$ref": "runme.project.v1.LoadEventFoundFile.schema.strict.json"
+    },
+    "found_task": {
+      "$ref": "runme.project.v1.LoadEventFoundTask.schema.strict.json"
+    },
+    "started_parsing_doc": {
+      "$ref": "runme.project.v1.LoadEventStartedParsingDoc.schema.strict.json"
+    },
+    "started_walk": {
+      "$ref": "runme.project.v1.LoadEventStartedWalk.schema.strict.json"
+    },
+    "type": {
+      "enum": [
+        "LOAD_EVENT_TYPE_UNSPECIFIED",
+        "LOAD_EVENT_TYPE_STARTED_WALK",
+        "LOAD_EVENT_TYPE_FOUND_DIR",
+        "LOAD_EVENT_TYPE_FOUND_FILE",
+        "LOAD_EVENT_TYPE_FINISHED_WALK",
+        "LOAD_EVENT_TYPE_STARTED_PARSING_DOC",
+        "LOAD_EVENT_TYPE_FINISHED_PARSING_DOC",
+        "LOAD_EVENT_TYPE_FOUND_TASK",
+        "LOAD_EVENT_TYPE_ERROR"
+      ],
+      "title": "Load Event Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "title": "Load Response",
+  "type": "object"
+}

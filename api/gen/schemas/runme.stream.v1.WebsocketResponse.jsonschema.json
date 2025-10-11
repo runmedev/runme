@@ -1,0 +1,46 @@
+{
+  "$id": "runme.stream.v1.WebsocketResponse.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "WebsocketResponse defines the message sent by the server over a websocket.\n The response is a union of types that indicate the type of message.",
+  "patternProperties": {
+    "^(execute_response)$": {
+      "$ref": "runme.runner.v2.ExecuteResponse.jsonschema.json"
+    },
+    "^(known_id)$": {
+      "default": "",
+      "description": "Optional Known ID to track the origin cell/block of the request.",
+      "type": "string"
+    },
+    "^(run_id)$": {
+      "default": "",
+      "description": "Optional Run ID to track and resume execution.",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "executeResponse": {
+      "$ref": "runme.runner.v2.ExecuteResponse.jsonschema.json"
+    },
+    "knownId": {
+      "default": "",
+      "description": "Optional Known ID to track the origin cell/block of the request.",
+      "type": "string"
+    },
+    "pong": {
+      "$ref": "runme.stream.v1.Pong.jsonschema.json",
+      "description": "Protocol-level pong for frontend heartbeat. Once the server receives\n a ping, it will send a pong response with the exact same timestamp.\n This allows the frontend (client) to detect if the connection is\n still alive or stale/inactive. See WebsocketRequest's ping for more details."
+    },
+    "runId": {
+      "default": "",
+      "description": "Optional Run ID to track and resume execution.",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "runme.stream.v1.WebsocketStatus.jsonschema.json",
+      "description": "Optional websocket-level status."
+    }
+  },
+  "title": "Websocket Response",
+  "type": "object"
+}

@@ -1,0 +1,14 @@
+{
+  "$defs": {
+    "runme.runner.v2.DeleteSessionResponse.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {},
+      "title": "Delete Session Response",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v2.DeleteSessionResponse.schema.bundle.json",
+  "$ref": "#/$defs/runme.runner.v2.DeleteSessionResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

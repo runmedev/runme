@@ -1,0 +1,93 @@
+{
+  "$id": "agent.v1.OAuthToken.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(access_token)$": {
+      "default": "",
+      "description": "The OAuth token.",
+      "type": "string"
+    },
+    "^(expires_at)$": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "default": 0,
+      "description": "The expiration time of the token in seconds since epoch."
+    },
+    "^(expires_in)$": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "default": 0
+    },
+    "^(refresh_token)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(token_type)$": {
+      "default": "",
+      "description": "The type of the token.\n e.g. \"Bearer\"",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "accessToken": {
+      "default": "",
+      "description": "The OAuth token.",
+      "type": "string"
+    },
+    "expiresAt": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "default": 0,
+      "description": "The expiration time of the token in seconds since epoch."
+    },
+    "expiresIn": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "default": 0
+    },
+    "expiry": {
+      "$ref": "google.protobuf.Timestamp.jsonschema.json",
+      "description": "Expiration time"
+    },
+    "refreshToken": {
+      "default": "",
+      "type": "string"
+    },
+    "tokenType": {
+      "default": "",
+      "description": "The type of the token.\n e.g. \"Bearer\"",
+      "type": "string"
+    }
+  },
+  "title": "O Auth Token",
+  "type": "object"
+}

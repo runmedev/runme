@@ -1,0 +1,70 @@
+{
+  "$defs": {
+    "runme.parser.v1.RunmeSession.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/runme.parser.v1.RunmeSessionDocument.jsonschema.strict.json"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Runme Session",
+      "type": "object"
+    },
+    "runme.parser.v1.RunmeSessionDocument.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "relativePath": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "relativePath"
+      ],
+      "title": "Runme Session Document",
+      "type": "object"
+    },
+    "runme.parser.v1.SerializeRequestOptions.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "outputs": {
+          "$ref": "#/$defs/runme.parser.v1.SerializeRequestOutputOptions.jsonschema.strict.json"
+        },
+        "session": {
+          "$ref": "#/$defs/runme.parser.v1.RunmeSession.jsonschema.strict.json"
+        }
+      },
+      "title": "Serialize Request Options",
+      "type": "object"
+    },
+    "runme.parser.v1.SerializeRequestOutputOptions.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled",
+        "summary"
+      ],
+      "title": "Serialize Request Output Options",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.SerializeRequestOptions.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.SerializeRequestOptions.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

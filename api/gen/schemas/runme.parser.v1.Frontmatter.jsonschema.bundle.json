@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "runme.parser.v1.Frontmatter.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(skip_prompts)$": {
+          "default": false,
+          "type": "boolean"
+        },
+        "^(terminal_rows)$": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "category": {
+          "default": "",
+          "description": "Deprecated category in favor of Tag",
+          "type": "string"
+        },
+        "cwd": {
+          "default": "",
+          "type": "string"
+        },
+        "runme": {
+          "$ref": "#/$defs/runme.parser.v1.FrontmatterRunme.jsonschema.json"
+        },
+        "shell": {
+          "default": "",
+          "type": "string"
+        },
+        "skipPrompts": {
+          "default": false,
+          "type": "boolean"
+        },
+        "tag": {
+          "default": "",
+          "type": "string"
+        },
+        "terminalRows": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Frontmatter",
+      "type": "object"
+    },
+    "runme.parser.v1.FrontmatterRunme.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "default": "",
+          "type": "string"
+        },
+        "session": {
+          "$ref": "#/$defs/runme.parser.v1.RunmeSession.jsonschema.json"
+        },
+        "version": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Frontmatter Runme",
+      "type": "object"
+    },
+    "runme.parser.v1.RunmeSession.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/runme.parser.v1.RunmeSessionDocument.jsonschema.json"
+        },
+        "id": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Runme Session",
+      "type": "object"
+    },
+    "runme.parser.v1.RunmeSessionDocument.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(relative_path)$": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "relativePath": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Runme Session Document",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.Frontmatter.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.Frontmatter.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

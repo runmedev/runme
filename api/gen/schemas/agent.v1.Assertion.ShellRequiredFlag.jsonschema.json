@@ -1,0 +1,24 @@
+{
+  "$id": "agent.v1.Assertion.ShellRequiredFlag.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Verifies that a shell command includes specific flags.",
+  "properties": {
+    "command": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "flags": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "command",
+    "flags"
+  ],
+  "title": "Shell Required Flag",
+  "type": "object"
+}

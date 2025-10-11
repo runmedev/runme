@@ -1,0 +1,27 @@
+{
+  "$id": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.Error.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "anyOf": [
+        {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "default": 0
+    },
+    "message": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Error",
+  "type": "object"
+}

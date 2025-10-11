@@ -1,0 +1,25 @@
+{
+  "$defs": {
+    "runme.parser.v1.RunmeSessionDocument.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(relative_path)$": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "relativePath": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Runme Session Document",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.RunmeSessionDocument.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.RunmeSessionDocument.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

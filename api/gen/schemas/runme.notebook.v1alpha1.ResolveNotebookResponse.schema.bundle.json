@@ -1,0 +1,19 @@
+{
+  "$defs": {
+    "runme.notebook.v1alpha1.ResolveNotebookResponse.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "script": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Resolve Notebook Response",
+      "type": "object"
+    }
+  },
+  "$id": "runme.notebook.v1alpha1.ResolveNotebookResponse.schema.bundle.json",
+  "$ref": "#/$defs/runme.notebook.v1alpha1.ResolveNotebookResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

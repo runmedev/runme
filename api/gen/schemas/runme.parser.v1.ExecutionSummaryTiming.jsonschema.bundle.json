@@ -1,0 +1,43 @@
+{
+  "$defs": {
+    "google.protobuf.Int64Value.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The int64 value.",
+      "title": "Int64 Value"
+    },
+    "runme.parser.v1.ExecutionSummaryTiming.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(end_time)$": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        },
+        "^(start_time)$": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        }
+      },
+      "properties": {
+        "endTime": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        },
+        "startTime": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        }
+      },
+      "title": "Execution Summary Timing",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.ExecutionSummaryTiming.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.ExecutionSummaryTiming.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

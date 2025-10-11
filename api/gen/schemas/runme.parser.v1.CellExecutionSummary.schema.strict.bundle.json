@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "google.protobuf.BoolValue.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The bool value.",
+      "title": "Bool Value",
+      "type": "boolean"
+    },
+    "google.protobuf.Int64Value.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The int64 value.",
+      "title": "Int64 Value",
+      "type": "integer"
+    },
+    "google.protobuf.UInt32Value.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The uint32 value.",
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "U Int32 Value",
+      "type": "integer"
+    },
+    "runme.parser.v1.CellExecutionSummary.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "execution_order": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.strict.json"
+        },
+        "success": {
+          "$ref": "#/$defs/google.protobuf.BoolValue.schema.strict.json"
+        },
+        "timing": {
+          "$ref": "#/$defs/runme.parser.v1.ExecutionSummaryTiming.schema.strict.json"
+        }
+      },
+      "title": "Cell Execution Summary",
+      "type": "object"
+    },
+    "runme.parser.v1.ExecutionSummaryTiming.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "end_time": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.schema.strict.json"
+        },
+        "start_time": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.schema.strict.json"
+        }
+      },
+      "title": "Execution Summary Timing",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.CellExecutionSummary.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.CellExecutionSummary.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

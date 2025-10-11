@@ -1,0 +1,46 @@
+{
+  "$id": "agent.v1.ExperimentSpec.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(datasetPath)$": {
+      "description": "Path to the folder containing the dataset to evaluate.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "^(inferenceEndpoint)$": {
+      "description": "URL of the backend inference service to call during evaluation.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "^(outputDir)$": {
+      "description": "Directory where experiment reports will be written.",
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "properties": {
+    "dataset_path": {
+      "description": "Path to the folder containing the dataset to evaluate.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "inference_endpoint": {
+      "description": "URL of the backend inference service to call during evaluation.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "output_dir": {
+      "description": "Directory where experiment reports will be written.",
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "dataset_path",
+    "output_dir",
+    "inference_endpoint"
+  ],
+  "title": "Experiment Spec",
+  "type": "object"
+}

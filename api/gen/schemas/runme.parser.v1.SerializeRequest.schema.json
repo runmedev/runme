@@ -1,0 +1,15 @@
+{
+  "$id": "runme.parser.v1.SerializeRequest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "notebook": {
+      "$ref": "runme.parser.v1.Notebook.schema.json"
+    },
+    "options": {
+      "$ref": "runme.parser.v1.SerializeRequestOptions.schema.json"
+    }
+  },
+  "title": "Serialize Request",
+  "type": "object"
+}

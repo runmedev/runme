@@ -1,0 +1,25 @@
+{
+  "$defs": {
+    "runme.parser.v1.SerializeRequestOutputOptions.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled",
+        "summary"
+      ],
+      "title": "Serialize Request Output Options",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.SerializeRequestOutputOptions.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.SerializeRequestOutputOptions.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

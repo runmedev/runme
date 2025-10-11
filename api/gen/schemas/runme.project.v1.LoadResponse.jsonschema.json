@@ -1,0 +1,84 @@
+{
+  "$id": "runme.project.v1.LoadResponse.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(finished_parsing_doc)$": {
+      "$ref": "runme.project.v1.LoadEventFinishedParsingDoc.jsonschema.json"
+    },
+    "^(finished_walk)$": {
+      "$ref": "runme.project.v1.LoadEventFinishedWalk.jsonschema.json"
+    },
+    "^(found_dir)$": {
+      "$ref": "runme.project.v1.LoadEventFoundDir.jsonschema.json"
+    },
+    "^(found_file)$": {
+      "$ref": "runme.project.v1.LoadEventFoundFile.jsonschema.json"
+    },
+    "^(found_task)$": {
+      "$ref": "runme.project.v1.LoadEventFoundTask.jsonschema.json"
+    },
+    "^(started_parsing_doc)$": {
+      "$ref": "runme.project.v1.LoadEventStartedParsingDoc.jsonschema.json"
+    },
+    "^(started_walk)$": {
+      "$ref": "runme.project.v1.LoadEventStartedWalk.jsonschema.json"
+    }
+  },
+  "properties": {
+    "error": {
+      "$ref": "runme.project.v1.LoadEventError.jsonschema.json"
+    },
+    "finishedParsingDoc": {
+      "$ref": "runme.project.v1.LoadEventFinishedParsingDoc.jsonschema.json"
+    },
+    "finishedWalk": {
+      "$ref": "runme.project.v1.LoadEventFinishedWalk.jsonschema.json"
+    },
+    "foundDir": {
+      "$ref": "runme.project.v1.LoadEventFoundDir.jsonschema.json"
+    },
+    "foundFile": {
+      "$ref": "runme.project.v1.LoadEventFoundFile.jsonschema.json"
+    },
+    "foundTask": {
+      "$ref": "runme.project.v1.LoadEventFoundTask.jsonschema.json"
+    },
+    "startedParsingDoc": {
+      "$ref": "runme.project.v1.LoadEventStartedParsingDoc.jsonschema.json"
+    },
+    "startedWalk": {
+      "$ref": "runme.project.v1.LoadEventStartedWalk.jsonschema.json"
+    },
+    "type": {
+      "anyOf": [
+        {
+          "pattern": "^LOAD_EVENT_TYPE_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "LOAD_EVENT_TYPE_STARTED_WALK",
+            "LOAD_EVENT_TYPE_FOUND_DIR",
+            "LOAD_EVENT_TYPE_FOUND_FILE",
+            "LOAD_EVENT_TYPE_FINISHED_WALK",
+            "LOAD_EVENT_TYPE_STARTED_PARSING_DOC",
+            "LOAD_EVENT_TYPE_FINISHED_PARSING_DOC",
+            "LOAD_EVENT_TYPE_FOUND_TASK",
+            "LOAD_EVENT_TYPE_ERROR"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "title": "Load Event Type"
+    }
+  },
+  "title": "Load Response",
+  "type": "object"
+}

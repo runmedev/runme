@@ -1,0 +1,33 @@
+{
+  "$id": "agent.v1.Experiment.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "api_version": {
+      "description": "API version of the resource, e.g. \"cloudassistant.io/v1alpha1\".",
+      "minLength": 1,
+      "type": "string"
+    },
+    "kind": {
+      "description": "Kind of the resource. Always \"Experiment\" for this CRD.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "agent.v1.ObjectMeta.schema.strict.json",
+      "description": "Standard Kubernetes object metadata (name, labels, annotations, etc.)."
+    },
+    "spec": {
+      "$ref": "agent.v1.ExperimentSpec.schema.strict.json",
+      "description": "User-defined configuration for the experiment."
+    }
+  },
+  "required": [
+    "api_version",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "title": "Experiment",
+  "type": "object"
+}

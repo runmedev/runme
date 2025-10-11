@@ -1,0 +1,68 @@
+{
+  "$id": "runme.notebook.v1alpha1.ResolveNotebookRequest.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(cell_index)$": {
+      "$ref": "google.protobuf.UInt32Value.jsonschema.json"
+    },
+    "^(command_mode)$": {
+      "anyOf": [
+        {
+          "pattern": "^COMMAND_MODE_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "COMMAND_MODE_INLINE_SHELL",
+            "COMMAND_MODE_TEMP_FILE",
+            "COMMAND_MODE_TERMINAL",
+            "COMMAND_MODE_DAGGER"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "title": "Command Mode"
+    }
+  },
+  "properties": {
+    "cellIndex": {
+      "$ref": "google.protobuf.UInt32Value.jsonschema.json"
+    },
+    "commandMode": {
+      "anyOf": [
+        {
+          "pattern": "^COMMAND_MODE_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "COMMAND_MODE_INLINE_SHELL",
+            "COMMAND_MODE_TEMP_FILE",
+            "COMMAND_MODE_TERMINAL",
+            "COMMAND_MODE_DAGGER"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "title": "Command Mode"
+    },
+    "notebook": {
+      "$ref": "runme.parser.v1.Notebook.jsonschema.json"
+    }
+  },
+  "title": "Resolve Notebook Request",
+  "type": "object"
+}

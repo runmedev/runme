@@ -1,0 +1,47 @@
+{
+  "$id": "runme.parser.v1.Frontmatter.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(skip_prompts)$": {
+      "default": false,
+      "type": "boolean"
+    },
+    "^(terminal_rows)$": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "category": {
+      "default": "",
+      "description": "Deprecated category in favor of Tag",
+      "type": "string"
+    },
+    "cwd": {
+      "default": "",
+      "type": "string"
+    },
+    "runme": {
+      "$ref": "runme.parser.v1.FrontmatterRunme.jsonschema.json"
+    },
+    "shell": {
+      "default": "",
+      "type": "string"
+    },
+    "skipPrompts": {
+      "default": false,
+      "type": "boolean"
+    },
+    "tag": {
+      "default": "",
+      "type": "string"
+    },
+    "terminalRows": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Frontmatter",
+  "type": "object"
+}

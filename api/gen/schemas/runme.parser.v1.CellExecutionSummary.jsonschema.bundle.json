@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "google.protobuf.BoolValue.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The bool value.",
+      "title": "Bool Value",
+      "type": "boolean"
+    },
+    "google.protobuf.Int64Value.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The int64 value.",
+      "title": "Int64 Value"
+    },
+    "google.protobuf.UInt32Value.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The uint32 value.",
+      "title": "U Int32 Value"
+    },
+    "runme.parser.v1.CellExecutionSummary.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(execution_order)$": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.jsonschema.json"
+        }
+      },
+      "properties": {
+        "executionOrder": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.jsonschema.json"
+        },
+        "success": {
+          "$ref": "#/$defs/google.protobuf.BoolValue.jsonschema.json"
+        },
+        "timing": {
+          "$ref": "#/$defs/runme.parser.v1.ExecutionSummaryTiming.jsonschema.json"
+        }
+      },
+      "title": "Cell Execution Summary",
+      "type": "object"
+    },
+    "runme.parser.v1.ExecutionSummaryTiming.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(end_time)$": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        },
+        "^(start_time)$": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        }
+      },
+      "properties": {
+        "endTime": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        },
+        "startTime": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        }
+      },
+      "title": "Execution Summary Timing",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.CellExecutionSummary.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.CellExecutionSummary.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

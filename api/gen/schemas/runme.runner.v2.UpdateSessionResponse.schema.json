@@ -1,0 +1,12 @@
+{
+  "$id": "runme.runner.v2.UpdateSessionResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "session": {
+      "$ref": "runme.runner.v2.Session.schema.json"
+    }
+  },
+  "title": "Update Session Response",
+  "type": "object"
+}

@@ -1,0 +1,15 @@
+{
+  "$id": "runme.runner.v1.ListSessionsResponse.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "sessions": {
+      "items": {
+        "$ref": "runme.runner.v1.Session.jsonschema.json"
+      },
+      "type": "array"
+    }
+  },
+  "title": "List Sessions Response",
+  "type": "object"
+}

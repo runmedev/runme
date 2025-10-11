@@ -1,0 +1,39 @@
+{
+  "$id": "runme.runner.v1.ResolveProgramResponse.VarResult.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "description": "name is the name of the environment variable.",
+      "type": "string"
+    },
+    "originalValue": {
+      "description": "original_value is a default value of the environment variable.\n It might be a value that is assigned to the variable in the script,\n like FOO=bar or FOO=${FOO:-bar}.\n If the variable is not assigned, it is an empty string.",
+      "type": "string"
+    },
+    "resolvedValue": {
+      "description": "resolved_value is a value of the environment variable resolved from a source.\n If it is an empty string, it means that the environment variable is not resolved.",
+      "type": "string"
+    },
+    "status": {
+      "description": "prompt indicates the resolution status of the env variable.",
+      "enum": [
+        "STATUS_UNSPECIFIED",
+        "STATUS_UNRESOLVED_WITH_MESSAGE",
+        "STATUS_UNRESOLVED_WITH_PLACEHOLDER",
+        "STATUS_RESOLVED",
+        "STATUS_UNRESOLVED_WITH_SECRET"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "name",
+    "originalValue",
+    "resolvedValue"
+  ],
+  "title": "Var Result",
+  "type": "object"
+}

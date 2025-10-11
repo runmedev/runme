@@ -1,0 +1,17 @@
+{
+  "$id": "agent.v1.Assertion.CodeblockRegex.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Checks if at least one code block matches the regex.",
+  "properties": {
+    "regex": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "regex"
+  ],
+  "title": "Codeblock Regex",
+  "type": "object"
+}

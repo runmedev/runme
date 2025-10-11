@@ -1,0 +1,93 @@
+{
+  "$id": "runme.reporter.v1alpha1.ReporterDevice.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(mac_address)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(vs_app_host)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(vs_app_name)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(vs_app_session_id)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(vs_machine_id)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(vs_metadata)$": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
+  "properties": {
+    "arch": {
+      "default": "",
+      "type": "string"
+    },
+    "hostname": {
+      "default": "",
+      "type": "string"
+    },
+    "macAddress": {
+      "default": "",
+      "type": "string"
+    },
+    "platform": {
+      "default": "",
+      "type": "string"
+    },
+    "release": {
+      "default": "",
+      "type": "string"
+    },
+    "shell": {
+      "default": "",
+      "type": "string"
+    },
+    "vendor": {
+      "default": "",
+      "type": "string"
+    },
+    "vsAppHost": {
+      "default": "",
+      "type": "string"
+    },
+    "vsAppName": {
+      "default": "",
+      "type": "string"
+    },
+    "vsAppSessionId": {
+      "default": "",
+      "type": "string"
+    },
+    "vsMachineId": {
+      "default": "",
+      "type": "string"
+    },
+    "vsMetadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
+  "title": "Reporter Device",
+  "type": "object"
+}

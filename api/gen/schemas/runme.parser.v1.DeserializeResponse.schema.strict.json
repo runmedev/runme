@@ -1,0 +1,12 @@
+{
+  "$id": "runme.parser.v1.DeserializeResponse.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "notebook": {
+      "$ref": "runme.parser.v1.Notebook.schema.strict.json"
+    }
+  },
+  "title": "Deserialize Response",
+  "type": "object"
+}

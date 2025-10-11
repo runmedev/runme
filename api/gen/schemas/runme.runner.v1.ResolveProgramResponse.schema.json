@@ -1,0 +1,23 @@
+{
+  "$id": "runme.runner.v1.ResolveProgramResponse.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "commands": {
+      "$ref": "runme.runner.v1.ResolveProgramCommandList.schema.json",
+      "description": "use script until commands normalization is implemented"
+    },
+    "script": {
+      "default": "",
+      "type": "string"
+    },
+    "vars": {
+      "items": {
+        "$ref": "runme.runner.v1.ResolveProgramResponse.VarResult.schema.json"
+      },
+      "type": "array"
+    }
+  },
+  "title": "Resolve Program Response",
+  "type": "object"
+}

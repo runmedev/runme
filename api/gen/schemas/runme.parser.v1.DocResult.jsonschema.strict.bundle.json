@@ -1,0 +1,49 @@
+{
+  "$defs": {
+    "runme.parser.v1.DocResult.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "fileId": {
+          "description": "The unique ID of the file.",
+          "type": "string"
+        },
+        "fileName": {
+          "description": "The name of the file.",
+          "type": "string"
+        },
+        "link": {
+          "description": "Link to display for this file",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "enum": [
+                "Infinity",
+                "-Infinity",
+                "NaN"
+              ],
+              "type": "string"
+            }
+          ],
+          "description": "The relevance score of the file."
+        }
+      },
+      "required": [
+        "fileId",
+        "fileName",
+        "score",
+        "link"
+      ],
+      "title": "Doc Result",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.DocResult.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.DocResult.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

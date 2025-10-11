@@ -1,0 +1,27 @@
+{
+  "$defs": {
+    "google.protobuf.Int64Value.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The int64 value.",
+      "title": "Int64 Value",
+      "type": "integer"
+    },
+    "runme.parser.v1.ExecutionSummaryTiming.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "endTime": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.strict.json"
+        },
+        "startTime": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.strict.json"
+        }
+      },
+      "title": "Execution Summary Timing",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.ExecutionSummaryTiming.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.ExecutionSummaryTiming.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,29 @@
+{
+  "$id": "agent.v1.WebAppConfig.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "WebAppConfig is the application configuration.",
+  "patternProperties": {
+    "^(inverted_order)$": {
+      "description": "InvertedOrder is a flag to invert the order of the blocks.",
+      "type": "boolean"
+    }
+  },
+  "properties": {
+    "invertedOrder": {
+      "description": "InvertedOrder is a flag to invert the order of the blocks.",
+      "type": "boolean"
+    },
+    "reconnect": {
+      "description": "Reconnect is a flag to enable automatic reconnecting to the runner.",
+      "type": "boolean"
+    },
+    "runner": {
+      "default": "",
+      "description": "runner is the address of the runner that the application should use.",
+      "type": "string"
+    }
+  },
+  "title": "Web App Config",
+  "type": "object"
+}

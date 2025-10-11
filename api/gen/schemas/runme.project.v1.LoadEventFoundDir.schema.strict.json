@@ -1,0 +1,15 @@
+{
+  "$id": "runme.project.v1.LoadEventFoundDir.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "path"
+  ],
+  "title": "Load Event Found Dir",
+  "type": "object"
+}

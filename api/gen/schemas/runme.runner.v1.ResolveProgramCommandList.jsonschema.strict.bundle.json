@@ -1,0 +1,22 @@
+{
+  "$defs": {
+    "runme.runner.v1.ResolveProgramCommandList.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "lines": {
+          "description": "commands are commands to be executed by the program.\n The commands are joined and executed as a script.\n For example: [\"echo 'Hello, World'\", \"ls -l /etc\"].",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "title": "Resolve Program Command List",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v1.ResolveProgramCommandList.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v1.ResolveProgramCommandList.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

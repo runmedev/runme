@@ -1,0 +1,25 @@
+{
+  "$id": "agent.v1.GenerateResponse.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(response_id)$": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "cells": {
+      "items": {
+        "$ref": "runme.parser.v1.Cell.jsonschema.json"
+      },
+      "type": "array"
+    },
+    "responseId": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Generate Response",
+  "type": "object"
+}

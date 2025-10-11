@@ -85,3 +85,4 @@ export declare type DocResultJson = {
  * Use `create(DocResultSchema)` to create a new message.
  */
 export declare const DocResultSchema: GenMessage<DocResult, {jsonType: DocResultJson}>;
+

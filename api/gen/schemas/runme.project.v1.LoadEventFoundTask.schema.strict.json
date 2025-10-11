@@ -1,0 +1,27 @@
+{
+  "$id": "runme.project.v1.LoadEventFoundTask.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "document_path": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "is_name_generated": {
+      "type": "boolean"
+    },
+    "name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "document_path",
+    "id",
+    "name",
+    "is_name_generated"
+  ],
+  "title": "Load Event Found Task",
+  "type": "object"
+}

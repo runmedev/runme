@@ -1,0 +1,13 @@
+{
+  "$id": "runme.project.v1.LoadEventStartedParsingDoc.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Load Event Started Parsing Doc",
+  "type": "object"
+}

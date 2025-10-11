@@ -1,0 +1,18 @@
+{
+  "$id": "runme.parser.v1.CellExecutionSummary.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "execution_order": {
+      "$ref": "google.protobuf.UInt32Value.schema.strict.json"
+    },
+    "success": {
+      "$ref": "google.protobuf.BoolValue.schema.strict.json"
+    },
+    "timing": {
+      "$ref": "runme.parser.v1.ExecutionSummaryTiming.schema.strict.json"
+    }
+  },
+  "title": "Cell Execution Summary",
+  "type": "object"
+}

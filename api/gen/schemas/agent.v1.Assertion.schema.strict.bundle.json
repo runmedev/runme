@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "agent.v1.Assertion.CodeblockRegex.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Checks if at least one code block matches the regex.",
+      "properties": {
+        "regex": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "regex"
+      ],
+      "title": "Codeblock Regex",
+      "type": "object"
+    },
+    "agent.v1.Assertion.FileRetrieval.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Verifies that a file **is** or **is not** retrieved.",
+      "properties": {
+        "file_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "file_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id",
+        "file_name"
+      ],
+      "title": "File Retrieval",
+      "type": "object"
+    },
+    "agent.v1.Assertion.LLMJudge.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Asks an LLM to grade the assistant's answer.",
+      "properties": {
+        "prompt": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "title": "LLM Judge",
+      "type": "object"
+    },
+    "agent.v1.Assertion.ShellRequiredFlag.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Verifies that a shell command includes specific flags.",
+      "properties": {
+        "command": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "command",
+        "flags"
+      ],
+      "title": "Shell Required Flag",
+      "type": "object"
+    },
+    "agent.v1.Assertion.ToolInvocation.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Verifies that a tool **is** or **is not** invoked.",
+      "properties": {
+        "tool_name": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool_name"
+      ],
+      "title": "Tool Invocation",
+      "type": "object"
+    },
+    "agent.v1.Assertion.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "-------------------------------------------------------------------------\n Assertions\n -------------------------------------------------------------------------",
+      "properties": {
+        "codeblock_regex": {
+          "$ref": "#/$defs/agent.v1.Assertion.CodeblockRegex.schema.strict.json"
+        },
+        "failure_reason": {
+          "type": "string"
+        },
+        "file_retrieval": {
+          "$ref": "#/$defs/agent.v1.Assertion.FileRetrieval.schema.strict.json"
+        },
+        "llm_judge": {
+          "$ref": "#/$defs/agent.v1.Assertion.LLMJudge.schema.strict.json"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "RESULT_UNSPECIFIED",
+            "RESULT_TRUE",
+            "RESULT_FALSE",
+            "RESULT_SKIPPED"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "shell_required_flag": {
+          "$ref": "#/$defs/agent.v1.Assertion.ShellRequiredFlag.schema.strict.json"
+        },
+        "tool_invocation": {
+          "$ref": "#/$defs/agent.v1.Assertion.ToolInvocation.schema.strict.json"
+        },
+        "type": {
+          "enum": [
+            "TYPE_SHELL_REQUIRED_FLAG",
+            "TYPE_TOOL_INVOKED",
+            "TYPE_FILE_RETRIEVED",
+            "TYPE_LLM_JUDGE",
+            "TYPE_CODEBLOCK_REGEX"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "result",
+        "failure_reason"
+      ],
+      "title": "Assertion",
+      "type": "object"
+    }
+  },
+  "$id": "agent.v1.Assertion.schema.strict.bundle.json",
+  "$ref": "#/$defs/agent.v1.Assertion.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

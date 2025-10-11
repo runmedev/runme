@@ -1,0 +1,15 @@
+{
+  "$id": "agent.v1.EvalDataset.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "samples": {
+      "items": {
+        "$ref": "agent.v1.EvalSample.jsonschema.strict.json"
+      },
+      "type": "array"
+    }
+  },
+  "title": "Eval Dataset",
+  "type": "object"
+}

@@ -1,0 +1,78 @@
+{
+  "$id": "runme.reporter.v1alpha1.TransformRequestExtension.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "arch": {
+      "type": "string"
+    },
+    "autoSave": {
+      "type": "boolean"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "commit": {
+      "type": "string"
+    },
+    "fileContent": {
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "filePath": {
+      "type": "string"
+    },
+    "hostname": {
+      "type": "string"
+    },
+    "macAddress": {
+      "type": "string"
+    },
+    "maskedOutput": {
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "plainOutput": {
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "platform": {
+      "type": "string"
+    },
+    "release": {
+      "type": "string"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "shell": {
+      "type": "string"
+    },
+    "vendor": {
+      "type": "string"
+    },
+    "vsAppHost": {
+      "type": "string"
+    },
+    "vsAppName": {
+      "type": "string"
+    },
+    "vsAppSessionId": {
+      "type": "string"
+    },
+    "vsMachineId": {
+      "type": "string"
+    },
+    "vsMetadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
+  "title": "Transform Request Extension",
+  "type": "object"
+}

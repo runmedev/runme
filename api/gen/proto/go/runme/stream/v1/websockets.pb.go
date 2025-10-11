@@ -7,15 +7,13 @@
 package streamv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
+	v2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	code "google.golang.org/genproto/googleapis/rpc/code"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
-	v2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (

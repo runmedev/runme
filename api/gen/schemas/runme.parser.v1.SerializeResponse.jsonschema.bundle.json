@@ -1,0 +1,20 @@
+{
+  "$defs": {
+    "runme.parser.v1.SerializeResponse.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "result": {
+          "default": null,
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "title": "Serialize Response",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.SerializeResponse.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.SerializeResponse.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

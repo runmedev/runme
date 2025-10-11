@@ -1,0 +1,83 @@
+{
+  "$id": "runme.runner.v2.CreateSessionRequest.Config.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(envStoreSeeding)$": {
+      "anyOf": [
+        {
+          "enum": [
+            "SESSION_ENV_STORE_SEEDING_UNSPECIFIED",
+            "SESSION_ENV_STORE_SEEDING_SYSTEM"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "description": "how to seed initial ENV",
+      "title": "Session Env Store Seeding"
+    },
+    "^(envStoreType)$": {
+      "anyOf": [
+        {
+          "enum": [
+            "SESSION_ENV_STORE_TYPE_UNSPECIFIED",
+            "SESSION_ENV_STORE_TYPE_OWL"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "description": "optional selection of which env store implementation to use.",
+      "title": "Session Env Store Type"
+    }
+  },
+  "properties": {
+    "env_store_seeding": {
+      "anyOf": [
+        {
+          "enum": [
+            "SESSION_ENV_STORE_SEEDING_UNSPECIFIED",
+            "SESSION_ENV_STORE_SEEDING_SYSTEM"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "description": "how to seed initial ENV",
+      "title": "Session Env Store Seeding"
+    },
+    "env_store_type": {
+      "anyOf": [
+        {
+          "enum": [
+            "SESSION_ENV_STORE_TYPE_UNSPECIFIED",
+            "SESSION_ENV_STORE_TYPE_OWL"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "description": "optional selection of which env store implementation to use.",
+      "title": "Session Env Store Type"
+    }
+  },
+  "title": "Config",
+  "type": "object"
+}

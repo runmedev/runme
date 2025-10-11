@@ -1,0 +1,42 @@
+{
+  "$id": "runme.runner.v1.CreateSessionRequest.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "envStoreType": {
+      "description": "optional selection of which env store implementation to sue",
+      "enum": [
+        "SESSION_ENV_STORE_TYPE_UNSPECIFIED",
+        "SESSION_ENV_STORE_TYPE_OWL"
+      ],
+      "title": "Session Env Store Type",
+      "type": "string"
+    },
+    "envs": {
+      "description": "envs field provides an initial set of environment variables\n for a newly created session.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "metadata is a map of client specific metadata.",
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "project": {
+      "$ref": "runme.runner.v1.Project.jsonschema.strict.json",
+      "description": "optional project from which to immediately load environment variables"
+    }
+  },
+  "required": [
+    "envStoreType"
+  ],
+  "title": "Create Session Request",
+  "type": "object"
+}

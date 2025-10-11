@@ -3,6 +3,8 @@
 // @generated from protobuf file "runme/parser/v1/parser.proto" (package "runme.parser.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
+import type { UpdateCellResponse } from "./parser_pb";
+import type { UpdateCellRequest } from "./parser_pb";
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import type { SerializeResponse } from "./parser_pb";
@@ -41,4 +43,31 @@ export declare class ParserServiceClient implements IParserServiceClient, Servic
      * @generated from protobuf rpc: Serialize
      */
     serialize(input: SerializeRequest, options?: RpcOptions): UnaryCall<SerializeRequest, SerializeResponse>;
+}
+/**
+ * @generated from protobuf service runme.parser.v1.UpdateCellsMCP
+ */
+export interface IUpdateCellsMCPClient {
+    /**
+     * UpdateCell updates a cell in the document.
+     *
+     * @generated from protobuf rpc: UpdateCell
+     */
+    updateCell(input: UpdateCellRequest, options?: RpcOptions): UnaryCall<UpdateCellRequest, UpdateCellResponse>;
+}
+/**
+ * @generated from protobuf service runme.parser.v1.UpdateCellsMCP
+ */
+export declare class UpdateCellsMCPClient implements IUpdateCellsMCPClient, ServiceInfo {
+    private readonly _transport;
+    typeName: any;
+    methods: any;
+    options: any;
+    constructor(_transport: RpcTransport);
+    /**
+     * UpdateCell updates a cell in the document.
+     *
+     * @generated from protobuf rpc: UpdateCell
+     */
+    updateCell(input: UpdateCellRequest, options?: RpcOptions): UnaryCall<UpdateCellRequest, UpdateCellResponse>;
 }

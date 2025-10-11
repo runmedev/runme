@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "agent.v1.Assertion.CodeblockRegex.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Checks if at least one code block matches the regex.",
+      "properties": {
+        "regex": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "regex"
+      ],
+      "title": "Codeblock Regex",
+      "type": "object"
+    },
+    "agent.v1.Assertion.FileRetrieval.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Verifies that a file **is** or **is not** retrieved.",
+      "properties": {
+        "fileId": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "fileName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "fileId",
+        "fileName"
+      ],
+      "title": "File Retrieval",
+      "type": "object"
+    },
+    "agent.v1.Assertion.LLMJudge.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Asks an LLM to grade the assistant's answer.",
+      "properties": {
+        "prompt": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "title": "LLM Judge",
+      "type": "object"
+    },
+    "agent.v1.Assertion.ShellRequiredFlag.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Verifies that a shell command includes specific flags.",
+      "properties": {
+        "command": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "command",
+        "flags"
+      ],
+      "title": "Shell Required Flag",
+      "type": "object"
+    },
+    "agent.v1.Assertion.ToolInvocation.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Verifies that a tool **is** or **is not** invoked.",
+      "properties": {
+        "toolName": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "toolName"
+      ],
+      "title": "Tool Invocation",
+      "type": "object"
+    },
+    "agent.v1.Assertion.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "-------------------------------------------------------------------------\n Assertions\n -------------------------------------------------------------------------",
+      "properties": {
+        "codeblockRegex": {
+          "$ref": "#/$defs/agent.v1.Assertion.CodeblockRegex.jsonschema.strict.json"
+        },
+        "failureReason": {
+          "type": "string"
+        },
+        "fileRetrieval": {
+          "$ref": "#/$defs/agent.v1.Assertion.FileRetrieval.jsonschema.strict.json"
+        },
+        "llmJudge": {
+          "$ref": "#/$defs/agent.v1.Assertion.LLMJudge.jsonschema.strict.json"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "RESULT_UNSPECIFIED",
+            "RESULT_TRUE",
+            "RESULT_FALSE",
+            "RESULT_SKIPPED"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "shellRequiredFlag": {
+          "$ref": "#/$defs/agent.v1.Assertion.ShellRequiredFlag.jsonschema.strict.json"
+        },
+        "toolInvocation": {
+          "$ref": "#/$defs/agent.v1.Assertion.ToolInvocation.jsonschema.strict.json"
+        },
+        "type": {
+          "enum": [
+            "TYPE_SHELL_REQUIRED_FLAG",
+            "TYPE_TOOL_INVOKED",
+            "TYPE_FILE_RETRIEVED",
+            "TYPE_LLM_JUDGE",
+            "TYPE_CODEBLOCK_REGEX"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "result",
+        "failureReason"
+      ],
+      "title": "Assertion",
+      "type": "object"
+    },
+    "agent.v1.EvalDataset.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "samples": {
+          "items": {
+            "$ref": "#/$defs/agent.v1.EvalSample.jsonschema.strict.json"
+          },
+          "type": "array"
+        }
+      },
+      "title": "Eval Dataset",
+      "type": "object"
+    },
+    "agent.v1.EvalSample.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "-------------------------------------------------------------------------\n EvalSample – Represents a single evaluation input and its expected assertions\n -------------------------------------------------------------------------",
+      "properties": {
+        "assertions": {
+          "items": {
+            "$ref": "#/$defs/agent.v1.Assertion.jsonschema.strict.json"
+          },
+          "type": "array"
+        },
+        "inputText": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/agent.v1.ObjectMeta.jsonschema.strict.json"
+        }
+      },
+      "required": [
+        "kind",
+        "metadata",
+        "inputText",
+        "assertions"
+      ],
+      "title": "Eval Sample",
+      "type": "object"
+    },
+    "agent.v1.ObjectMeta.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Name of the resource, e.g. \"experiment-test\".",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Object Meta",
+      "type": "object"
+    }
+  },
+  "$id": "agent.v1.EvalDataset.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/agent.v1.EvalDataset.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

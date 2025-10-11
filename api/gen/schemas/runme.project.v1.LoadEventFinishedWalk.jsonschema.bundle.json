@@ -1,0 +1,14 @@
+{
+  "$defs": {
+    "runme.project.v1.LoadEventFinishedWalk.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {},
+      "title": "Load Event Finished Walk",
+      "type": "object"
+    }
+  },
+  "$id": "runme.project.v1.LoadEventFinishedWalk.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.project.v1.LoadEventFinishedWalk.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

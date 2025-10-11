@@ -1,0 +1,437 @@
+{
+  "$defs": {
+    "agent.v1.GenerateRequest.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(openaiAccessToken)$": {
+          "default": "",
+          "description": "openai_access_token is the OpenAI access token to use when contacting the OpenAI API.",
+          "type": "string"
+        },
+        "^(previousResponseId)$": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/runme.parser.v1.Cell.schema.json"
+          },
+          "type": "array"
+        },
+        "openai_access_token": {
+          "default": "",
+          "description": "openai_access_token is the OpenAI access token to use when contacting the OpenAI API.",
+          "type": "string"
+        },
+        "previous_response_id": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Generate Request",
+      "type": "object"
+    },
+    "google.protobuf.BoolValue.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The bool value.",
+      "title": "Bool Value",
+      "type": "boolean"
+    },
+    "google.protobuf.Int64Value.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The int64 value.",
+      "title": "Int64 Value"
+    },
+    "google.protobuf.UInt32Value.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The uint32 value.",
+      "title": "U Int32 Value"
+    },
+    "runme.parser.v1.Cell.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(callId)$": {
+          "default": "",
+          "description": "CallID is the unique identifier of the cell call.",
+          "type": "string"
+        },
+        "^(docResults)$": {
+          "description": "DocResults are doc results for a cell returned by, e.g., file search",
+          "items": {
+            "$ref": "#/$defs/runme.parser.v1.DocResult.schema.json"
+          },
+          "type": "array"
+        },
+        "^(executionSummary)$": {
+          "$ref": "#/$defs/runme.parser.v1.CellExecutionSummary.schema.json",
+          "description": "ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time."
+        },
+        "^(languageId)$": {
+          "default": "",
+          "description": "LanguageID is the language of the cell.",
+          "type": "string"
+        },
+        "^(refId)$": {
+          "default": "",
+          "description": "RefID is the agent's original unique identifier.",
+          "type": "string"
+        },
+        "^(textRange)$": {
+          "$ref": "#/$defs/runme.parser.v1.TextRange.schema.json",
+          "description": "TextRange is the range of the cell covering in the markdown source."
+        }
+      },
+      "properties": {
+        "call_id": {
+          "default": "",
+          "description": "CallID is the unique identifier of the cell call.",
+          "type": "string"
+        },
+        "doc_results": {
+          "description": "DocResults are doc results for a cell returned by, e.g., file search",
+          "items": {
+            "$ref": "#/$defs/runme.parser.v1.DocResult.schema.json"
+          },
+          "type": "array"
+        },
+        "execution_summary": {
+          "$ref": "#/$defs/runme.parser.v1.CellExecutionSummary.schema.json",
+          "description": "ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time."
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "pattern": "^CELL_KIND_UNSPECIFIED$",
+              "type": "string"
+            },
+            {
+              "enum": [
+                "CELL_KIND_MARKUP",
+                "CELL_KIND_CODE",
+                "CELL_KIND_DOC_RESULTS"
+              ],
+              "type": "string"
+            },
+            {
+              "maximum": 2147483647,
+              "minimum": -2147483648,
+              "type": "integer"
+            }
+          ],
+          "default": 0,
+          "description": "CellKind is the type of cell, e.g. markup or code.",
+          "title": "Cell Kind"
+        },
+        "language_id": {
+          "default": "",
+          "description": "LanguageID is the language of the cell.",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Metadata is additional metadata about the cell in k/v format.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "outputs": {
+          "description": "Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.",
+          "items": {
+            "$ref": "#/$defs/runme.parser.v1.CellOutput.schema.json"
+          },
+          "type": "array"
+        },
+        "ref_id": {
+          "default": "",
+          "description": "RefID is the agent's original unique identifier.",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "pattern": "^CELL_ROLE_UNSPECIFIED$",
+              "type": "string"
+            },
+            {
+              "enum": [
+                "CELL_ROLE_USER",
+                "CELL_ROLE_ASSISTANT"
+              ],
+              "type": "string"
+            },
+            {
+              "maximum": 2147483647,
+              "minimum": -2147483648,
+              "type": "integer"
+            }
+          ],
+          "default": 0,
+          "description": "Role is the role of the cell, e.g. user or assistant.",
+          "title": "Cell Role"
+        },
+        "text_range": {
+          "$ref": "#/$defs/runme.parser.v1.TextRange.schema.json",
+          "description": "TextRange is the range of the cell covering in the markdown source."
+        },
+        "value": {
+          "default": "",
+          "description": "Value is the contents of the cell.",
+          "type": "string"
+        }
+      },
+      "title": "Cell",
+      "type": "object"
+    },
+    "runme.parser.v1.CellExecutionSummary.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(executionOrder)$": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json"
+        }
+      },
+      "properties": {
+        "execution_order": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json"
+        },
+        "success": {
+          "$ref": "#/$defs/google.protobuf.BoolValue.schema.json"
+        },
+        "timing": {
+          "$ref": "#/$defs/runme.parser.v1.ExecutionSummaryTiming.schema.json"
+        }
+      },
+      "title": "Cell Execution Summary",
+      "type": "object"
+    },
+    "runme.parser.v1.CellOutput.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(processInfo)$": {
+          "$ref": "#/$defs/runme.parser.v1.CellOutputProcessInfo.schema.json"
+        }
+      },
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/runme.parser.v1.CellOutputItem.schema.json"
+          },
+          "type": "array"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "process_info": {
+          "$ref": "#/$defs/runme.parser.v1.CellOutputProcessInfo.schema.json"
+        }
+      },
+      "title": "Cell Output",
+      "type": "object"
+    },
+    "runme.parser.v1.CellOutputItem.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "default": null,
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "mime": {
+          "default": "",
+          "type": "string"
+        },
+        "type": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Cell Output Item",
+      "type": "object"
+    },
+    "runme.parser.v1.CellOutputProcessInfo.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(exitReason)$": {
+          "$ref": "#/$defs/runme.parser.v1.ProcessInfoExitReason.schema.json"
+        }
+      },
+      "properties": {
+        "exit_reason": {
+          "$ref": "#/$defs/runme.parser.v1.ProcessInfoExitReason.schema.json"
+        },
+        "pid": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.schema.json"
+        }
+      },
+      "title": "Cell Output Process Info",
+      "type": "object"
+    },
+    "runme.parser.v1.DocResult.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(fileId)$": {
+          "default": "",
+          "description": "The unique ID of the file.",
+          "type": "string"
+        },
+        "^(fileName)$": {
+          "default": "",
+          "description": "The name of the file.",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "file_id": {
+          "default": "",
+          "description": "The unique ID of the file.",
+          "type": "string"
+        },
+        "file_name": {
+          "default": "",
+          "description": "The name of the file.",
+          "type": "string"
+        },
+        "link": {
+          "default": "",
+          "description": "Link to display for this file",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "enum": [
+                "Infinity",
+                "-Infinity",
+                "NaN"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": 0,
+          "description": "The relevance score of the file."
+        }
+      },
+      "title": "Doc Result",
+      "type": "object"
+    },
+    "runme.parser.v1.ExecutionSummaryTiming.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(endTime)$": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.schema.json"
+        },
+        "^(startTime)$": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.schema.json"
+        }
+      },
+      "properties": {
+        "end_time": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.schema.json"
+        },
+        "start_time": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.schema.json"
+        }
+      },
+      "title": "Execution Summary Timing",
+      "type": "object"
+    },
+    "runme.parser.v1.ProcessInfoExitReason.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json"
+        },
+        "type": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Process Info Exit Reason",
+      "type": "object"
+    },
+    "runme.parser.v1.TextRange.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "anyOf": [
+            {
+              "maximum": 4294967295,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^[0-9]+$",
+              "type": "string"
+            }
+          ],
+          "default": 0
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maximum": 4294967295,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^[0-9]+$",
+              "type": "string"
+            }
+          ],
+          "default": 0
+        }
+      },
+      "title": "Text Range",
+      "type": "object"
+    }
+  },
+  "$id": "agent.v1.GenerateRequest.schema.bundle.json",
+  "$ref": "#/$defs/agent.v1.GenerateRequest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,15 @@
+{
+  "$id": "google.protobuf.Int64Value.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "integer"
+    },
+    {
+      "pattern": "^-?[0-9]+$",
+      "type": "string"
+    }
+  ],
+  "description": "The int64 value.",
+  "title": "Int64 Value"
+}

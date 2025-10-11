@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "runme.runner.v2.Project.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "envLoadOrder": {
+          "description": "env_load_order is list of environment files\n to try and load env from.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "root": {
+          "description": "root is a root directory of the project.\n The semantic is the same as for the \"--project\"\n flag in \"runme\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "title": "Project",
+      "type": "object"
+    },
+    "runme.runner.v2.UpdateSessionRequest.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "env": {
+          "description": "env field provides an initial set of environment variables\n for a newly created session.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "metadata is a map of client specific metadata.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "project": {
+          "$ref": "#/$defs/runme.runner.v2.Project.jsonschema.strict.json",
+          "description": "project from which to load environment variables.\n They will be appended to the list from the env field.\n The env field has a higher priority."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Update Session Request",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v2.UpdateSessionRequest.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v2.UpdateSessionRequest.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

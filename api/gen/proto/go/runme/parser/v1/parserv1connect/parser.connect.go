@@ -5,14 +5,12 @@
 package parserv1connect
 
 import (
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	http "net/http"
 	strings "strings"
-
-	connect "connectrpc.com/connect"
-
-	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 )
 
 // This is a compile-time assertion to ensure that this generated file and the connect package are
@@ -25,6 +23,8 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// ParserServiceName is the fully-qualified name of the ParserService service.
 	ParserServiceName = "runme.parser.v1.ParserService"
+	// UpdateCellsMCPName is the fully-qualified name of the UpdateCellsMCP service.
+	UpdateCellsMCPName = "runme.parser.v1.UpdateCellsMCP"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -40,6 +40,9 @@ const (
 	ParserServiceDeserializeProcedure = "/runme.parser.v1.ParserService/Deserialize"
 	// ParserServiceSerializeProcedure is the fully-qualified name of the ParserService's Serialize RPC.
 	ParserServiceSerializeProcedure = "/runme.parser.v1.ParserService/Serialize"
+	// UpdateCellsMCPUpdateCellProcedure is the fully-qualified name of the UpdateCellsMCP's UpdateCell
+	// RPC.
+	UpdateCellsMCPUpdateCellProcedure = "/runme.parser.v1.UpdateCellsMCP/UpdateCell"
 )
 
 // ParserServiceClient is a client for the runme.parser.v1.ParserService service.
@@ -136,4 +139,76 @@ func (UnimplementedParserServiceHandler) Deserialize(context.Context, *connect.R
 
 func (UnimplementedParserServiceHandler) Serialize(context.Context, *connect.Request[v1.SerializeRequest]) (*connect.Response[v1.SerializeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("runme.parser.v1.ParserService.Serialize is not implemented"))
+}
+
+// UpdateCellsMCPClient is a client for the runme.parser.v1.UpdateCellsMCP service.
+type UpdateCellsMCPClient interface {
+	// UpdateCell updates a cell in the document.
+	UpdateCell(context.Context, *connect.Request[v1.UpdateCellRequest]) (*connect.Response[v1.UpdateCellResponse], error)
+}
+
+// NewUpdateCellsMCPClient constructs a client for the runme.parser.v1.UpdateCellsMCP service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewUpdateCellsMCPClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) UpdateCellsMCPClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	updateCellsMCPMethods := v1.File_runme_parser_v1_parser_proto.Services().ByName("UpdateCellsMCP").Methods()
+	return &updateCellsMCPClient{
+		updateCell: connect.NewClient[v1.UpdateCellRequest, v1.UpdateCellResponse](
+			httpClient,
+			baseURL+UpdateCellsMCPUpdateCellProcedure,
+			connect.WithSchema(updateCellsMCPMethods.ByName("UpdateCell")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// updateCellsMCPClient implements UpdateCellsMCPClient.
+type updateCellsMCPClient struct {
+	updateCell *connect.Client[v1.UpdateCellRequest, v1.UpdateCellResponse]
+}
+
+// UpdateCell calls runme.parser.v1.UpdateCellsMCP.UpdateCell.
+func (c *updateCellsMCPClient) UpdateCell(ctx context.Context, req *connect.Request[v1.UpdateCellRequest]) (*connect.Response[v1.UpdateCellResponse], error) {
+	return c.updateCell.CallUnary(ctx, req)
+}
+
+// UpdateCellsMCPHandler is an implementation of the runme.parser.v1.UpdateCellsMCP service.
+type UpdateCellsMCPHandler interface {
+	// UpdateCell updates a cell in the document.
+	UpdateCell(context.Context, *connect.Request[v1.UpdateCellRequest]) (*connect.Response[v1.UpdateCellResponse], error)
+}
+
+// NewUpdateCellsMCPHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewUpdateCellsMCPHandler(svc UpdateCellsMCPHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	updateCellsMCPMethods := v1.File_runme_parser_v1_parser_proto.Services().ByName("UpdateCellsMCP").Methods()
+	updateCellsMCPUpdateCellHandler := connect.NewUnaryHandler(
+		UpdateCellsMCPUpdateCellProcedure,
+		svc.UpdateCell,
+		connect.WithSchema(updateCellsMCPMethods.ByName("UpdateCell")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/runme.parser.v1.UpdateCellsMCP/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case UpdateCellsMCPUpdateCellProcedure:
+			updateCellsMCPUpdateCellHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedUpdateCellsMCPHandler returns CodeUnimplemented from all methods.
+type UnimplementedUpdateCellsMCPHandler struct{}
+
+func (UnimplementedUpdateCellsMCPHandler) UpdateCell(context.Context, *connect.Request[v1.UpdateCellRequest]) (*connect.Response[v1.UpdateCellResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("runme.parser.v1.UpdateCellsMCP.UpdateCell is not implemented"))
 }

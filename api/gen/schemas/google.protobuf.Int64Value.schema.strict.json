@@ -1,0 +1,7 @@
+{
+  "$id": "google.protobuf.Int64Value.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The int64 value.",
+  "title": "Int64 Value",
+  "type": "integer"
+}

@@ -1,0 +1,23 @@
+{
+  "$id": "runme.runner.v2.MonitorEnvStoreResponse.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "snapshot": {
+      "$ref": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.schema.strict.json"
+    },
+    "type": {
+      "enum": [
+        "MONITOR_ENV_STORE_TYPE_UNSPECIFIED",
+        "MONITOR_ENV_STORE_TYPE_SNAPSHOT"
+      ],
+      "title": "Monitor Env Store Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "title": "Monitor Env Store Response",
+  "type": "object"
+}

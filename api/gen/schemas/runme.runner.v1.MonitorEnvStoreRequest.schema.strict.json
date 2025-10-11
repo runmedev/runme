@@ -1,0 +1,12 @@
+{
+  "$id": "runme.runner.v1.MonitorEnvStoreRequest.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "session": {
+      "$ref": "runme.runner.v1.Session.schema.strict.json"
+    }
+  },
+  "title": "Monitor Env Store Request",
+  "type": "object"
+}

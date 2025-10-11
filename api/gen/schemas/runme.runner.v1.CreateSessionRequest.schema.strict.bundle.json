@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "runme.runner.v1.CreateSessionRequest.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "env_store_type": {
+          "description": "optional selection of which env store implementation to sue",
+          "enum": [
+            "SESSION_ENV_STORE_TYPE_UNSPECIFIED",
+            "SESSION_ENV_STORE_TYPE_OWL"
+          ],
+          "title": "Session Env Store Type",
+          "type": "string"
+        },
+        "envs": {
+          "description": "envs field provides an initial set of environment variables\n for a newly created session.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "metadata is a map of client specific metadata.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "project": {
+          "$ref": "#/$defs/runme.runner.v1.Project.schema.strict.json",
+          "description": "optional project from which to immediately load environment variables"
+        }
+      },
+      "required": [
+        "env_store_type"
+      ],
+      "title": "Create Session Request",
+      "type": "object"
+    },
+    "runme.runner.v1.Project.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "env_direnv": {
+          "description": "specifies if and how direnv should be used",
+          "enum": [
+            "DIR_ENV_UNSPECIFIED",
+            "DIR_ENV_ENABLED_WARN",
+            "DIR_ENV_ENABLED_ERROR",
+            "DIR_ENV_DISABLED"
+          ],
+          "title": "Dir Env",
+          "type": "string"
+        },
+        "env_load_order": {
+          "description": "list of environment files to try and load\n start with",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "root": {
+          "description": "project root folder",
+          "type": "string"
+        }
+      },
+      "required": [
+        "root",
+        "env_direnv"
+      ],
+      "title": "Project",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v1.CreateSessionRequest.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v1.CreateSessionRequest.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

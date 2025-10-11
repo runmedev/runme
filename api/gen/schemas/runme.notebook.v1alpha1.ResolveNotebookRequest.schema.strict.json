@@ -1,0 +1,29 @@
+{
+  "$id": "runme.notebook.v1alpha1.ResolveNotebookRequest.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cell_index": {
+      "$ref": "google.protobuf.UInt32Value.schema.strict.json"
+    },
+    "command_mode": {
+      "enum": [
+        "COMMAND_MODE_UNSPECIFIED",
+        "COMMAND_MODE_INLINE_SHELL",
+        "COMMAND_MODE_TEMP_FILE",
+        "COMMAND_MODE_TERMINAL",
+        "COMMAND_MODE_DAGGER"
+      ],
+      "title": "Command Mode",
+      "type": "string"
+    },
+    "notebook": {
+      "$ref": "runme.parser.v1.Notebook.schema.strict.json"
+    }
+  },
+  "required": [
+    "command_mode"
+  ],
+  "title": "Resolve Notebook Request",
+  "type": "object"
+}

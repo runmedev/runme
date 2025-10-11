@@ -1,0 +1,96 @@
+{
+  "$id": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.SnapshotEnv.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(create_time)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(is_required)$": {
+      "default": false,
+      "type": "boolean"
+    },
+    "^(original_value)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(resolved_value)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(update_time)$": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "createTime": {
+      "default": "",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "type": "string"
+    },
+    "errors": {
+      "items": {
+        "$ref": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.Error.jsonschema.json"
+      },
+      "type": "array"
+    },
+    "isRequired": {
+      "default": false,
+      "type": "boolean"
+    },
+    "name": {
+      "default": "",
+      "type": "string"
+    },
+    "origin": {
+      "default": "",
+      "type": "string"
+    },
+    "originalValue": {
+      "default": "",
+      "type": "string"
+    },
+    "resolvedValue": {
+      "default": "",
+      "type": "string"
+    },
+    "spec": {
+      "default": "",
+      "type": "string"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "pattern": "^STATUS_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "STATUS_LITERAL",
+            "STATUS_HIDDEN",
+            "STATUS_MASKED"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "title": "Status"
+    },
+    "updateTime": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Snapshot Env",
+  "type": "object"
+}

@@ -1,0 +1,41 @@
+{
+  "$defs": {
+    "runme.project.v1.LoadEventFoundTask.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(document_path)$": {
+          "default": "",
+          "type": "string"
+        },
+        "^(is_name_generated)$": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "properties": {
+        "documentPath": {
+          "default": "",
+          "type": "string"
+        },
+        "id": {
+          "default": "",
+          "type": "string"
+        },
+        "isNameGenerated": {
+          "default": false,
+          "type": "boolean"
+        },
+        "name": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Load Event Found Task",
+      "type": "object"
+    }
+  },
+  "$id": "runme.project.v1.LoadEventFoundTask.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.project.v1.LoadEventFoundTask.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,26 @@
+{
+  "$id": "agent.v1.GenerateRequest.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cells": {
+      "items": {
+        "$ref": "runme.parser.v1.Cell.jsonschema.strict.json"
+      },
+      "type": "array"
+    },
+    "openaiAccessToken": {
+      "description": "openai_access_token is the OpenAI access token to use when contacting the OpenAI API.",
+      "type": "string"
+    },
+    "previousResponseId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "previousResponseId",
+    "openaiAccessToken"
+  ],
+  "title": "Generate Request",
+  "type": "object"
+}

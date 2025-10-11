@@ -1,0 +1,19 @@
+{
+  "$defs": {
+    "runme.project.v1.LoadEventFinishedParsingDoc.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Load Event Finished Parsing Doc",
+      "type": "object"
+    }
+  },
+  "$id": "runme.project.v1.LoadEventFinishedParsingDoc.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.project.v1.LoadEventFinishedParsingDoc.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

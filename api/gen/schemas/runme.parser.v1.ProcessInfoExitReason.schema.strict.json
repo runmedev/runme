@@ -1,0 +1,18 @@
+{
+  "$id": "runme.parser.v1.ProcessInfoExitReason.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "$ref": "google.protobuf.UInt32Value.schema.strict.json"
+    },
+    "type": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "title": "Process Info Exit Reason",
+  "type": "object"
+}

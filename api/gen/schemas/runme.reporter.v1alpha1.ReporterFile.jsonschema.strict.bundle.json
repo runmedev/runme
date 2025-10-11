@@ -1,0 +1,26 @@
+{
+  "$defs": {
+    "runme.reporter.v1alpha1.ReporterFile.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "content"
+      ],
+      "title": "Reporter File",
+      "type": "object"
+    }
+  },
+  "$id": "runme.reporter.v1alpha1.ReporterFile.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.reporter.v1alpha1.ReporterFile.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

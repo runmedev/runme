@@ -7,16 +7,14 @@
 package notebookv1alpha1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
+	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
+	v11 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
-	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
-	v11 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (

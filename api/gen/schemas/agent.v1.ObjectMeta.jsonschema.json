@@ -1,0 +1,17 @@
+{
+  "$id": "agent.v1.ObjectMeta.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "description": "Name of the resource, e.g. \"experiment-test\".",
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "title": "Object Meta",
+  "type": "object"
+}

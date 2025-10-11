@@ -1,0 +1,23 @@
+{
+  "$id": "runme.parser.v1.CellExecutionSummary.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(executionOrder)$": {
+      "$ref": "google.protobuf.UInt32Value.schema.json"
+    }
+  },
+  "properties": {
+    "execution_order": {
+      "$ref": "google.protobuf.UInt32Value.schema.json"
+    },
+    "success": {
+      "$ref": "google.protobuf.BoolValue.schema.json"
+    },
+    "timing": {
+      "$ref": "runme.parser.v1.ExecutionSummaryTiming.schema.json"
+    }
+  },
+  "title": "Cell Execution Summary",
+  "type": "object"
+}

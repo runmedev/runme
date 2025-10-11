@@ -3,6 +3,7 @@ package e2etests
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"regexp"
@@ -11,6 +12,9 @@ import (
 	"testing"
 
 	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/responses"
+	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
+	"github.com/runmedev/runme/v3/api/gen/mcp/runme/parser/v1/parserv1mcp"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
@@ -24,6 +28,87 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 )
+
+func Test_MCP(t *testing.T) {
+	tool := parserv1mcp.UpdateCellsMCP_UpdateCellToolOpenAI
+
+	client, err := ai.NewClient(config.OpenAIConfig{
+		APIKeyFile: "/Users/jlewi/secrets/openai.api.key",
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parameters := make(map[string]any)
+	if err := json.Unmarshal(tool.RawInputSchema, &parameters); err != nil {
+		t.Fatal(err)
+	}
+	shellTool := &responses.FunctionToolParam{
+		Name:        tool.GetName(),
+		Description: openai.Opt(tool.Description),
+		Parameters:  parameters,
+		// N.B. I'm not sure what the point of strict would be since we have a single string argument.
+		Strict: openai.Opt(true),
+	}
+
+	updateTool := responses.ToolUnionParam{
+		OfFunction: shellTool,
+	}
+
+	tools := make([]responses.ToolUnionParam, 0, 1)
+	tools = append(tools, updateTool)
+
+	input := responses.EasyInputMessageParam{
+		Role: responses.EasyInputMessageRoleUser,
+		Content: responses.EasyInputMessageContentUnionParam{
+			OfString: openai.Opt("Create a cell that prints hello world"),
+		},
+	}
+
+	allInput := responses.ResponseNewParamsInputUnion{
+		OfInputItemList: []responses.ResponseInputItemUnionParam{
+			{
+				OfMessage: &input,
+			},
+		},
+	}
+	createResponse := responses.ResponseNewParams{
+		Input: allInput,
+		//Instructions:      openai.Opt(a.instructions),
+		Model:             openai.ChatModelGPT4_1Mini,
+		Tools:             tools,
+		ParallelToolCalls: openai.Bool(true),
+		//ToolChoice:        toolChoice,
+	}
+
+	result, err := client.Responses.New(t.Context(), createResponse)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, o := range result.Output {
+		update := &parserv1.UpdateCellRequest{}
+
+		rawResult := make(map[string]any)
+		if err := json.Unmarshal([]byte(o.Arguments), &rawResult); err != nil {
+			t.Fatal(err)
+		}
+		runtime.FixOpenAI(update.ProtoReflect().Descriptor(), rawResult)
+
+		fixedJson, err := json.Marshal(rawResult)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := protojson.Unmarshal(fixedJson, update); err != nil {
+			t.Logf("failed to unmarshal update request:\n%v", o.Arguments)
+			t.Fatal(err)
+		}
+		t.Logf("Got cell: %+v", update)
+	}
+
+	t.Logf("Running tests on MCP; %+v", result)
+}
 
 func Test_Agent(t *testing.T) {
 	// This test verifies that function calling works.

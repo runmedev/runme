@@ -1,0 +1,12 @@
+{
+  "$id": "runme.runner.v2.GetSessionResponse.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "session": {
+      "$ref": "runme.runner.v2.Session.jsonschema.strict.json"
+    }
+  },
+  "title": "Get Session Response",
+  "type": "object"
+}

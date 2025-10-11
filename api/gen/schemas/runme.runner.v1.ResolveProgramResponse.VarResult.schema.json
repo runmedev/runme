@@ -1,0 +1,61 @@
+{
+  "$id": "runme.runner.v1.ResolveProgramResponse.VarResult.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(originalValue)$": {
+      "default": "",
+      "description": "original_value is a default value of the environment variable.\n It might be a value that is assigned to the variable in the script,\n like FOO=bar or FOO=${FOO:-bar}.\n If the variable is not assigned, it is an empty string.",
+      "type": "string"
+    },
+    "^(resolvedValue)$": {
+      "default": "",
+      "description": "resolved_value is a value of the environment variable resolved from a source.\n If it is an empty string, it means that the environment variable is not resolved.",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "name": {
+      "default": "",
+      "description": "name is the name of the environment variable.",
+      "type": "string"
+    },
+    "original_value": {
+      "default": "",
+      "description": "original_value is a default value of the environment variable.\n It might be a value that is assigned to the variable in the script,\n like FOO=bar or FOO=${FOO:-bar}.\n If the variable is not assigned, it is an empty string.",
+      "type": "string"
+    },
+    "resolved_value": {
+      "default": "",
+      "description": "resolved_value is a value of the environment variable resolved from a source.\n If it is an empty string, it means that the environment variable is not resolved.",
+      "type": "string"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "pattern": "^STATUS_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "STATUS_UNRESOLVED_WITH_MESSAGE",
+            "STATUS_UNRESOLVED_WITH_PLACEHOLDER",
+            "STATUS_RESOLVED",
+            "STATUS_UNRESOLVED_WITH_SECRET"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "description": "prompt indicates the resolution status of the env variable.",
+      "title": "Status"
+    }
+  },
+  "title": "Var Result",
+  "type": "object"
+}

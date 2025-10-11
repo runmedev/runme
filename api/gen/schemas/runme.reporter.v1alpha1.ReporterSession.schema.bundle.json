@@ -1,0 +1,37 @@
+{
+  "$defs": {
+    "runme.reporter.v1alpha1.ReporterSession.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(maskedOutput)$": {
+          "default": null,
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "^(plainOutput)$": {
+          "default": null,
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "masked_output": {
+          "default": null,
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "plain_output": {
+          "default": null,
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        }
+      },
+      "title": "Reporter Session",
+      "type": "object"
+    }
+  },
+  "$id": "runme.reporter.v1alpha1.ReporterSession.schema.bundle.json",
+  "$ref": "#/$defs/runme.reporter.v1alpha1.ReporterSession.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "runme.project.v1.LoadEventError.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "errorMessage": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "errorMessage"
+      ],
+      "title": "Load Event Error",
+      "type": "object"
+    },
+    "runme.project.v1.LoadEventFinishedParsingDoc.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "Load Event Finished Parsing Doc",
+      "type": "object"
+    },
+    "runme.project.v1.LoadEventFinishedWalk.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {},
+      "title": "Load Event Finished Walk",
+      "type": "object"
+    },
+    "runme.project.v1.LoadEventFoundDir.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "Load Event Found Dir",
+      "type": "object"
+    },
+    "runme.project.v1.LoadEventFoundFile.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "Load Event Found File",
+      "type": "object"
+    },
+    "runme.project.v1.LoadEventFoundTask.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "documentPath": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isNameGenerated": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "documentPath",
+        "id",
+        "name",
+        "isNameGenerated"
+      ],
+      "title": "Load Event Found Task",
+      "type": "object"
+    },
+    "runme.project.v1.LoadEventStartedParsingDoc.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "Load Event Started Parsing Doc",
+      "type": "object"
+    },
+    "runme.project.v1.LoadEventStartedWalk.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {},
+      "title": "Load Event Started Walk",
+      "type": "object"
+    },
+    "runme.project.v1.LoadResponse.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/runme.project.v1.LoadEventError.jsonschema.strict.json"
+        },
+        "finishedParsingDoc": {
+          "$ref": "#/$defs/runme.project.v1.LoadEventFinishedParsingDoc.jsonschema.strict.json"
+        },
+        "finishedWalk": {
+          "$ref": "#/$defs/runme.project.v1.LoadEventFinishedWalk.jsonschema.strict.json"
+        },
+        "foundDir": {
+          "$ref": "#/$defs/runme.project.v1.LoadEventFoundDir.jsonschema.strict.json"
+        },
+        "foundFile": {
+          "$ref": "#/$defs/runme.project.v1.LoadEventFoundFile.jsonschema.strict.json"
+        },
+        "foundTask": {
+          "$ref": "#/$defs/runme.project.v1.LoadEventFoundTask.jsonschema.strict.json"
+        },
+        "startedParsingDoc": {
+          "$ref": "#/$defs/runme.project.v1.LoadEventStartedParsingDoc.jsonschema.strict.json"
+        },
+        "startedWalk": {
+          "$ref": "#/$defs/runme.project.v1.LoadEventStartedWalk.jsonschema.strict.json"
+        },
+        "type": {
+          "enum": [
+            "LOAD_EVENT_TYPE_UNSPECIFIED",
+            "LOAD_EVENT_TYPE_STARTED_WALK",
+            "LOAD_EVENT_TYPE_FOUND_DIR",
+            "LOAD_EVENT_TYPE_FOUND_FILE",
+            "LOAD_EVENT_TYPE_FINISHED_WALK",
+            "LOAD_EVENT_TYPE_STARTED_PARSING_DOC",
+            "LOAD_EVENT_TYPE_FINISHED_PARSING_DOC",
+            "LOAD_EVENT_TYPE_FOUND_TASK",
+            "LOAD_EVENT_TYPE_ERROR"
+          ],
+          "title": "Load Event Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Load Response",
+      "type": "object"
+    }
+  },
+  "$id": "runme.project.v1.LoadResponse.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.project.v1.LoadResponse.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

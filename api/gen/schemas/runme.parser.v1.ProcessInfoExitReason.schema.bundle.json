@@ -1,0 +1,38 @@
+{
+  "$defs": {
+    "google.protobuf.UInt32Value.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The uint32 value.",
+      "title": "U Int32 Value"
+    },
+    "runme.parser.v1.ProcessInfoExitReason.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.schema.json"
+        },
+        "type": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Process Info Exit Reason",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.ProcessInfoExitReason.schema.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.ProcessInfoExitReason.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

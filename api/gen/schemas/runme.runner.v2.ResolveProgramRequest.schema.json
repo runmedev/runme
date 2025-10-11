@@ -1,0 +1,140 @@
+{
+  "$id": "runme.runner.v2.ResolveProgramRequest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(languageId)$": {
+      "default": "",
+      "description": "language id associated with script.",
+      "type": "string"
+    },
+    "^(sessionId)$": {
+      "default": "",
+      "description": "session_id indicates which session is the source of\n environment variables. If not provided, the most recent\n session can be used using session_strategy.",
+      "type": "string"
+    },
+    "^(sessionStrategy)$": {
+      "anyOf": [
+        {
+          "pattern": "^SESSION_STRATEGY_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "SESSION_STRATEGY_MOST_RECENT"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "description": "session_strategy is a strategy for selecting the session.",
+      "title": "Session Strategy"
+    }
+  },
+  "properties": {
+    "commands": {
+      "$ref": "runme.runner.v2.ResolveProgramCommandList.schema.json",
+      "description": "commands are commands to be executed by the program.\n The commands are joined and executed as a script."
+    },
+    "env": {
+      "description": "env is a list of explicit environment variables that will be used\n to resolve the environment variables found in the source.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "language_id": {
+      "default": "",
+      "description": "language id associated with script.",
+      "type": "string"
+    },
+    "mode": {
+      "anyOf": [
+        {
+          "pattern": "^MODE_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "MODE_PROMPT_ALL",
+            "MODE_SKIP_ALL"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "description": "mode determines how variables resolution occurs.\n It is usually based on document or cell annotation config.",
+      "title": "Mode"
+    },
+    "project": {
+      "$ref": "runme.runner.v2.Project.schema.json",
+      "description": "project used to load environment variables from .env files."
+    },
+    "retention": {
+      "anyOf": [
+        {
+          "pattern": "^RETENTION_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "RETENTION_FIRST_RUN",
+            "RETENTION_LAST_RUN"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "description": "retention determines how variables are retained once resolved.",
+      "title": "Retention"
+    },
+    "script": {
+      "description": "script is code to be executed by the program.\n Individual lines are joined with the new line character.",
+      "type": "string"
+    },
+    "session_id": {
+      "default": "",
+      "description": "session_id indicates which session is the source of\n environment variables. If not provided, the most recent\n session can be used using session_strategy.",
+      "type": "string"
+    },
+    "session_strategy": {
+      "anyOf": [
+        {
+          "pattern": "^SESSION_STRATEGY_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "SESSION_STRATEGY_MOST_RECENT"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "description": "session_strategy is a strategy for selecting the session.",
+      "title": "Session Strategy"
+    }
+  },
+  "title": "Resolve Program Request",
+  "type": "object"
+}

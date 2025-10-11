@@ -16,3 +16,4 @@ export const file_agent_v1_webapp = /*@__PURE__*/
  */
 export const WebAppConfigSchema = /*@__PURE__*/
   messageDesc(file_agent_v1_webapp, 0);
+

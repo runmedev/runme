@@ -1,0 +1,25 @@
+{
+  "$defs": {
+    "runme.project.v1.LoadEventError.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(error_message)$": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "errorMessage": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Load Event Error",
+      "type": "object"
+    }
+  },
+  "$id": "runme.project.v1.LoadEventError.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.project.v1.LoadEventError.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

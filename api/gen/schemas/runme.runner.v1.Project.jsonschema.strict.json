@@ -1,0 +1,35 @@
+{
+  "$id": "runme.runner.v1.Project.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "envDirenv": {
+      "description": "specifies if and how direnv should be used",
+      "enum": [
+        "DIR_ENV_UNSPECIFIED",
+        "DIR_ENV_ENABLED_WARN",
+        "DIR_ENV_ENABLED_ERROR",
+        "DIR_ENV_DISABLED"
+      ],
+      "title": "Dir Env",
+      "type": "string"
+    },
+    "envLoadOrder": {
+      "description": "list of environment files to try and load\n start with",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "root": {
+      "description": "project root folder",
+      "type": "string"
+    }
+  },
+  "required": [
+    "root",
+    "envDirenv"
+  ],
+  "title": "Project",
+  "type": "object"
+}

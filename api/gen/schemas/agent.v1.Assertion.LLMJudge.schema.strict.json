@@ -1,0 +1,17 @@
+{
+  "$id": "agent.v1.Assertion.LLMJudge.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Asks an LLM to grade the assistant's answer.",
+  "properties": {
+    "prompt": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "prompt"
+  ],
+  "title": "LLM Judge",
+  "type": "object"
+}

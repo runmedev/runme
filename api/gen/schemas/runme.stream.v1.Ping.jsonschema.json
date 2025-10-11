@@ -1,0 +1,22 @@
+{
+  "$id": "runme.stream.v1.Ping.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Ping message for protocol-level keep-alive",
+  "properties": {
+    "timestamp": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "default": 0
+    }
+  },
+  "title": "Ping",
+  "type": "object"
+}

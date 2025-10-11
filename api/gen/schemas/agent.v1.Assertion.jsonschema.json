@@ -1,0 +1,106 @@
+{
+  "$id": "agent.v1.Assertion.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "-------------------------------------------------------------------------\n Assertions\n -------------------------------------------------------------------------",
+  "patternProperties": {
+    "^(codeblock_regex)$": {
+      "$ref": "agent.v1.Assertion.CodeblockRegex.jsonschema.json"
+    },
+    "^(failure_reason)$": {
+      "default": "",
+      "type": "string"
+    },
+    "^(file_retrieval)$": {
+      "$ref": "agent.v1.Assertion.FileRetrieval.jsonschema.json"
+    },
+    "^(llm_judge)$": {
+      "$ref": "agent.v1.Assertion.LLMJudge.jsonschema.json"
+    },
+    "^(shell_required_flag)$": {
+      "$ref": "agent.v1.Assertion.ShellRequiredFlag.jsonschema.json"
+    },
+    "^(tool_invocation)$": {
+      "$ref": "agent.v1.Assertion.ToolInvocation.jsonschema.json"
+    }
+  },
+  "properties": {
+    "codeblockRegex": {
+      "$ref": "agent.v1.Assertion.CodeblockRegex.jsonschema.json"
+    },
+    "failureReason": {
+      "default": "",
+      "type": "string"
+    },
+    "fileRetrieval": {
+      "$ref": "agent.v1.Assertion.FileRetrieval.jsonschema.json"
+    },
+    "llmJudge": {
+      "$ref": "agent.v1.Assertion.LLMJudge.jsonschema.json"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "pattern": "^RESULT_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "RESULT_TRUE",
+            "RESULT_FALSE",
+            "RESULT_SKIPPED"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "title": "Result"
+    },
+    "shellRequiredFlag": {
+      "$ref": "agent.v1.Assertion.ShellRequiredFlag.jsonschema.json"
+    },
+    "toolInvocation": {
+      "$ref": "agent.v1.Assertion.ToolInvocation.jsonschema.json"
+    },
+    "type": {
+      "anyOf": [
+        {
+          "enum": [
+            "TYPE_SHELL_REQUIRED_FLAG",
+            "TYPE_TOOL_INVOKED",
+            "TYPE_FILE_RETRIEVED",
+            "TYPE_LLM_JUDGE",
+            "TYPE_CODEBLOCK_REGEX"
+          ],
+          "type": "string"
+        },
+        {
+          "exclusiveMaximum": 0,
+          "minimum": -2147483648,
+          "type": "integer"
+        },
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 2147483647,
+          "type": "integer"
+        }
+      ],
+      "title": "Type"
+    }
+  },
+  "required": [
+    "name",
+    "type"
+  ],
+  "title": "Assertion",
+  "type": "object"
+}

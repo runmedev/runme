@@ -1,0 +1,39 @@
+{
+  "$defs": {
+    "runme.project.v1.DirectoryProjectOptions.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "ignore_file_patterns": {
+          "description": "A list of file patterns, compatible with .gitignore syntax,\n to ignore.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "path": {
+          "description": "Path to a directory containing the project.",
+          "type": "string"
+        },
+        "skip_gitignore": {
+          "description": "If true, .gitignore file is ignored, as well as .git/info/exclude.",
+          "type": "boolean"
+        },
+        "skip_repo_lookup_upward": {
+          "description": "If true, it disables lookuping up for .git folder\n in the parent directories.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "skip_gitignore",
+        "skip_repo_lookup_upward"
+      ],
+      "title": "Directory Project Options",
+      "type": "object"
+    }
+  },
+  "$id": "runme.project.v1.DirectoryProjectOptions.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.project.v1.DirectoryProjectOptions.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,19 @@
+{
+  "$id": "runme.project.v1.LoadEventError.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(errorMessage)$": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "error_message": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Load Event Error",
+  "type": "object"
+}

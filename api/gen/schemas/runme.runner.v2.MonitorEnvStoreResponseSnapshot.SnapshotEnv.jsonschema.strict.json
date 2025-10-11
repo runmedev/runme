@@ -1,0 +1,64 @@
+{
+  "$id": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.SnapshotEnv.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "createTime": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "errors": {
+      "items": {
+        "$ref": "runme.runner.v2.MonitorEnvStoreResponseSnapshot.Error.jsonschema.strict.json"
+      },
+      "type": "array"
+    },
+    "isRequired": {
+      "type": "boolean"
+    },
+    "name": {
+      "type": "string"
+    },
+    "origin": {
+      "type": "string"
+    },
+    "originalValue": {
+      "type": "string"
+    },
+    "resolvedValue": {
+      "type": "string"
+    },
+    "spec": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "STATUS_UNSPECIFIED",
+        "STATUS_LITERAL",
+        "STATUS_HIDDEN",
+        "STATUS_MASKED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "updateTime": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "name",
+    "description",
+    "spec",
+    "isRequired",
+    "origin",
+    "originalValue",
+    "resolvedValue",
+    "createTime",
+    "updateTime"
+  ],
+  "title": "Snapshot Env",
+  "type": "object"
+}

@@ -1,0 +1,32 @@
+{
+  "$id": "runme.parser.v1.CellOutput.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(process_info)$": {
+      "$ref": "runme.parser.v1.CellOutputProcessInfo.jsonschema.json"
+    }
+  },
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "runme.parser.v1.CellOutputItem.jsonschema.json"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "processInfo": {
+      "$ref": "runme.parser.v1.CellOutputProcessInfo.jsonschema.json"
+    }
+  },
+  "title": "Cell Output",
+  "type": "object"
+}

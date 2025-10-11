@@ -1,0 +1,15 @@
+{
+  "$id": "runme.notebook.v1alpha1.ResolveNotebookResponse.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "script": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "script"
+  ],
+  "title": "Resolve Notebook Response",
+  "type": "object"
+}

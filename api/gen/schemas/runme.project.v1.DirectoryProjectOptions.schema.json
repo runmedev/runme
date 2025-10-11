@@ -1,0 +1,50 @@
+{
+  "$id": "runme.project.v1.DirectoryProjectOptions.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(ignoreFilePatterns)$": {
+      "description": "A list of file patterns, compatible with .gitignore syntax,\n to ignore.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "^(skipGitignore)$": {
+      "default": false,
+      "description": "If true, .gitignore file is ignored, as well as .git/info/exclude.",
+      "type": "boolean"
+    },
+    "^(skipRepoLookupUpward)$": {
+      "default": false,
+      "description": "If true, it disables lookuping up for .git folder\n in the parent directories.",
+      "type": "boolean"
+    }
+  },
+  "properties": {
+    "ignore_file_patterns": {
+      "description": "A list of file patterns, compatible with .gitignore syntax,\n to ignore.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "path": {
+      "default": "",
+      "description": "Path to a directory containing the project.",
+      "type": "string"
+    },
+    "skip_gitignore": {
+      "default": false,
+      "description": "If true, .gitignore file is ignored, as well as .git/info/exclude.",
+      "type": "boolean"
+    },
+    "skip_repo_lookup_upward": {
+      "default": false,
+      "description": "If true, it disables lookuping up for .git folder\n in the parent directories.",
+      "type": "boolean"
+    }
+  },
+  "title": "Directory Project Options",
+  "type": "object"
+}

@@ -1,0 +1,23 @@
+{
+  "$id": "agent.v1.Assertion.ToolInvocation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Verifies that a tool **is** or **is not** invoked.",
+  "patternProperties": {
+    "^(toolName)$": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "properties": {
+    "tool_name": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "tool_name"
+  ],
+  "title": "Tool Invocation",
+  "type": "object"
+}

@@ -1,0 +1,27 @@
+{
+  "$id": "runme.parser.v1.Notebook.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cells": {
+      "items": {
+        "$ref": "runme.parser.v1.Cell.schema.json"
+      },
+      "type": "array"
+    },
+    "frontmatter": {
+      "$ref": "runme.parser.v1.Frontmatter.schema.json"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    }
+  },
+  "title": "Notebook",
+  "type": "object"
+}

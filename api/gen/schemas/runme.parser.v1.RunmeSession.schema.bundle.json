@@ -1,0 +1,40 @@
+{
+  "$defs": {
+    "runme.parser.v1.RunmeSession.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/runme.parser.v1.RunmeSessionDocument.schema.json"
+        },
+        "id": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Runme Session",
+      "type": "object"
+    },
+    "runme.parser.v1.RunmeSessionDocument.schema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(relativePath)$": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "relative_path": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Runme Session Document",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.RunmeSession.schema.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.RunmeSession.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

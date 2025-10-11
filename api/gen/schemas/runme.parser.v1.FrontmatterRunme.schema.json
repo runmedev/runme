@@ -1,0 +1,20 @@
+{
+  "$id": "runme.parser.v1.FrontmatterRunme.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "default": "",
+      "type": "string"
+    },
+    "session": {
+      "$ref": "runme.parser.v1.RunmeSession.schema.json"
+    },
+    "version": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Frontmatter Runme",
+  "type": "object"
+}

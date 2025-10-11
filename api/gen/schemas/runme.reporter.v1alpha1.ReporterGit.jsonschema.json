@@ -1,0 +1,21 @@
+{
+  "$id": "runme.reporter.v1alpha1.ReporterGit.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "branch": {
+      "default": "",
+      "type": "string"
+    },
+    "commit": {
+      "default": "",
+      "type": "string"
+    },
+    "repository": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Reporter Git",
+  "type": "object"
+}

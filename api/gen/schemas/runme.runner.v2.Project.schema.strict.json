@@ -1,0 +1,23 @@
+{
+  "$id": "runme.runner.v2.Project.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "env_load_order": {
+      "description": "env_load_order is list of environment files\n to try and load env from.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "root": {
+      "description": "root is a root directory of the project.\n The semantic is the same as for the \"--project\"\n flag in \"runme\".",
+      "type": "string"
+    }
+  },
+  "required": [
+    "root"
+  ],
+  "title": "Project",
+  "type": "object"
+}

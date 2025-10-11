@@ -1,0 +1,19 @@
+{
+  "$defs": {
+    "runme.runner.v2.GetSessionRequest.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Get Session Request",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v2.GetSessionRequest.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.runner.v2.GetSessionRequest.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

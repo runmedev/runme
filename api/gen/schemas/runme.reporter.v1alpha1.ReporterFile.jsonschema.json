@@ -1,0 +1,18 @@
+{
+  "$id": "runme.reporter.v1alpha1.ReporterFile.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "content": {
+      "default": null,
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "path": {
+      "default": "",
+      "type": "string"
+    }
+  },
+  "title": "Reporter File",
+  "type": "object"
+}

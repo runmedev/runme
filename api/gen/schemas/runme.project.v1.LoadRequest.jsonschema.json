@@ -1,0 +1,38 @@
+{
+  "$id": "runme.project.v1.LoadRequest.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "directory": {
+      "$ref": "runme.project.v1.DirectoryProjectOptions.jsonschema.json"
+    },
+    "file": {
+      "$ref": "runme.project.v1.FileProjectOptions.jsonschema.json"
+    },
+    "identity": {
+      "anyOf": [
+        {
+          "pattern": "^RUNME_IDENTITY_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "RUNME_IDENTITY_ALL",
+            "RUNME_IDENTITY_DOCUMENT",
+            "RUNME_IDENTITY_CELL"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "title": "Runme Identity"
+    }
+  },
+  "title": "Load Request",
+  "type": "object"
+}

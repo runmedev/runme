@@ -1,0 +1,227 @@
+{
+  "$defs": {
+    "runme.runner.v2.ExecuteRequest.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/runme.runner.v2.ProgramConfig.jsonschema.strict.json"
+        },
+        "inputData": {
+          "description": "input_data is a byte array that will be send as input\n to the program.",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+          "type": "string"
+        },
+        "project": {
+          "$ref": "#/$defs/runme.runner.v2.Project.jsonschema.strict.json",
+          "description": "project used to load environment variables from .env files."
+        },
+        "sessionId": {
+          "description": "session_id indicates in which Session the program should execute.\n Executing in a Session might provide additional context like\n environment variables.",
+          "type": "string"
+        },
+        "sessionStrategy": {
+          "description": "session_strategy is a strategy for selecting the session.",
+          "enum": [
+            "SESSION_STRATEGY_UNSPECIFIED",
+            "SESSION_STRATEGY_MOST_RECENT"
+          ],
+          "title": "Session Strategy",
+          "type": "string"
+        },
+        "stop": {
+          "description": "stop requests the running process to be stopped.\n It is allowed only in the consecutive calls.",
+          "enum": [
+            "EXECUTE_STOP_UNSPECIFIED",
+            "EXECUTE_STOP_INTERRUPT",
+            "EXECUTE_STOP_KILL"
+          ],
+          "title": "Execute Stop",
+          "type": "string"
+        },
+        "storeStdoutInEnv": {
+          "description": "store_stdout_in_env, if true, will store the stdout under well known name\n and the last ran block in the environment variable `__`.",
+          "type": "boolean"
+        },
+        "winsize": {
+          "$ref": "#/$defs/runme.runner.v2.Winsize.jsonschema.strict.json",
+          "description": "sets pty winsize\n has no effect in non-interactive mode"
+        }
+      },
+      "required": [
+        "inputData",
+        "stop",
+        "sessionId",
+        "sessionStrategy",
+        "storeStdoutInEnv"
+      ],
+      "title": "Execute Request",
+      "type": "object"
+    },
+    "runme.runner.v2.ProgramConfig.CommandList.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "description": "commands are commands to be executed by the program.\n The commands are joined and executed as a script.\n For example: [\"echo 'Hello, World'\", \"ls -l /etc\"].",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "title": "Command List",
+      "type": "object"
+    },
+    "runme.runner.v2.ProgramConfig.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "ProgramConfig is a configuration for a program to execute.\n From this configuration, any program can be built.",
+      "properties": {
+        "arguments": {
+          "description": "arguments is a list of arguments passed to the program.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "background": {
+          "description": "background indicates a background process\n required to handle running background tasks via CLI in C/I",
+          "type": "boolean"
+        },
+        "commands": {
+          "$ref": "#/$defs/runme.runner.v2.ProgramConfig.CommandList.jsonschema.strict.json",
+          "description": "commands are commands to be executed by the program.\n The commands are joined and executed as a script."
+        },
+        "directory": {
+          "description": "directory to execute the program in.",
+          "type": "string"
+        },
+        "env": {
+          "description": "env is a list of additional environment variables\n that will be injected to the executed program.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "fileExtension": {
+          "description": "file_extension associated with script. Some interpreters are strict\n about file extensions, such as tsc which requires \"ts\" extension.",
+          "type": "string"
+        },
+        "interactive": {
+          "description": "interactive, if true, uses a pseudo-tty to execute the program.\n Otherwise, the program is executed using in-memory buffers for I/O.",
+          "type": "boolean"
+        },
+        "knownId": {
+          "description": "optional well known id for cell/block",
+          "type": "string"
+        },
+        "knownName": {
+          "description": "optional well known name for cell/block",
+          "type": "string"
+        },
+        "languageId": {
+          "description": "language_id associated with script to allow interpreter\n detection if no specific interpreter program is provided.",
+          "type": "string"
+        },
+        "mode": {
+          "description": "TODO(adamb): understand motivation for this. In theory, source\n should tell whether to execute it inline or as a file.",
+          "enum": [
+            "COMMAND_MODE_UNSPECIFIED",
+            "COMMAND_MODE_INLINE",
+            "COMMAND_MODE_FILE",
+            "COMMAND_MODE_TERMINAL",
+            "COMMAND_MODE_CLI"
+          ],
+          "title": "Command Mode",
+          "type": "string"
+        },
+        "programName": {
+          "description": "program_name is a name of the program to execute.\n If it's not a path (relative or absolute), the runner\n will try to resolve the name.\n For example: \"sh\", \"/bin/bash\".",
+          "type": "string"
+        },
+        "runId": {
+          "description": "optional run ID to track the execution of the program",
+          "type": "string"
+        },
+        "script": {
+          "description": "script is code to be executed by the program.\n Individual lines are joined with the new line character.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "programName",
+        "directory",
+        "languageId",
+        "background",
+        "fileExtension",
+        "interactive",
+        "mode",
+        "knownId",
+        "knownName",
+        "runId"
+      ],
+      "title": "Program Config",
+      "type": "object"
+    },
+    "runme.runner.v2.Project.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "envLoadOrder": {
+          "description": "env_load_order is list of environment files\n to try and load env from.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "root": {
+          "description": "root is a root directory of the project.\n The semantic is the same as for the \"--project\"\n flag in \"runme\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "title": "Project",
+      "type": "object"
+    },
+    "runme.runner.v2.Winsize.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "cols": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rows": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "x": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "y": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rows",
+        "cols",
+        "x",
+        "y"
+      ],
+      "title": "Winsize",
+      "type": "object"
+    }
+  },
+  "$id": "runme.runner.v2.ExecuteRequest.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.runner.v2.ExecuteRequest.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

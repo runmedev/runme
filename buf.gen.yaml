@@ -28,5 +28,16 @@ plugins:
     include_imports: true
 
   # Local plugin to generate GQL schema
-  - local: protoc-gen-gql
-    out: api/gen/proto/gql
+#  - local: protoc-gen-gql
+#    out: api/gen/proto/gql
+
+  # Try MCP generation
+  - local:
+      - go
+      - run
+      - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@latest
+    out: api/gen/mcp
+    opt: paths=source_relative
+  # https://buf.build/bufbuild/protoschema-jsonschema?version=v0.5.2
+#  - remote: buf.build/bufbuild/protoschema-jsonschema:v0.5.2
+#    out: api/gen/schemas

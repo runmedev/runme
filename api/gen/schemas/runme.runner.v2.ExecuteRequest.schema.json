@@ -1,0 +1,121 @@
+{
+  "$id": "runme.runner.v2.ExecuteRequest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(inputData)$": {
+      "default": null,
+      "description": "input_data is a byte array that will be send as input\n to the program.",
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "^(sessionId)$": {
+      "default": "",
+      "description": "session_id indicates in which Session the program should execute.\n Executing in a Session might provide additional context like\n environment variables.",
+      "type": "string"
+    },
+    "^(sessionStrategy)$": {
+      "anyOf": [
+        {
+          "pattern": "^SESSION_STRATEGY_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "SESSION_STRATEGY_MOST_RECENT"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "description": "session_strategy is a strategy for selecting the session.",
+      "title": "Session Strategy"
+    },
+    "^(storeStdoutInEnv)$": {
+      "default": false,
+      "description": "store_stdout_in_env, if true, will store the stdout under well known name\n and the last ran block in the environment variable `__`.",
+      "type": "boolean"
+    }
+  },
+  "properties": {
+    "config": {
+      "$ref": "runme.runner.v2.ProgramConfig.schema.json"
+    },
+    "input_data": {
+      "default": null,
+      "description": "input_data is a byte array that will be send as input\n to the program.",
+      "pattern": "^[A-Za-z0-9+/]*={0,2}$",
+      "type": "string"
+    },
+    "project": {
+      "$ref": "runme.runner.v2.Project.schema.json",
+      "description": "project used to load environment variables from .env files."
+    },
+    "session_id": {
+      "default": "",
+      "description": "session_id indicates in which Session the program should execute.\n Executing in a Session might provide additional context like\n environment variables.",
+      "type": "string"
+    },
+    "session_strategy": {
+      "anyOf": [
+        {
+          "pattern": "^SESSION_STRATEGY_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "SESSION_STRATEGY_MOST_RECENT"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "description": "session_strategy is a strategy for selecting the session.",
+      "title": "Session Strategy"
+    },
+    "stop": {
+      "anyOf": [
+        {
+          "pattern": "^EXECUTE_STOP_UNSPECIFIED$",
+          "type": "string"
+        },
+        {
+          "enum": [
+            "EXECUTE_STOP_INTERRUPT",
+            "EXECUTE_STOP_KILL"
+          ],
+          "type": "string"
+        },
+        {
+          "maximum": 2147483647,
+          "minimum": -2147483648,
+          "type": "integer"
+        }
+      ],
+      "default": 0,
+      "description": "stop requests the running process to be stopped.\n It is allowed only in the consecutive calls.",
+      "title": "Execute Stop"
+    },
+    "store_stdout_in_env": {
+      "default": false,
+      "description": "store_stdout_in_env, if true, will store the stdout under well known name\n and the last ran block in the environment variable `__`.",
+      "type": "boolean"
+    },
+    "winsize": {
+      "$ref": "runme.runner.v2.Winsize.schema.json",
+      "description": "sets pty winsize\n has no effect in non-interactive mode"
+    }
+  },
+  "title": "Execute Request",
+  "type": "object"
+}

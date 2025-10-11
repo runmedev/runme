@@ -364,6 +364,26 @@ export interface SerializeResponse {
     result: Uint8Array;
 }
 /**
+ * @generated from protobuf message runme.parser.v1.UpdateCellRequest
+ */
+export interface UpdateCellRequest {
+    /**
+     * Cell is the cell to create or update. To update
+     * an existing cell specify the ID of that cell in the ref_id field.
+     * To create a new cell leave ref_id blank.
+     *
+     * cell.metadata should be a dictionary of string -> string.
+     *
+     * @generated from protobuf field: runme.parser.v1.Cell cell = 1
+     */
+    cell?: Cell;
+}
+/**
+ * @generated from protobuf message runme.parser.v1.UpdateCellResponse
+ */
+export interface UpdateCellResponse {
+}
+/**
  * @generated from protobuf enum runme.parser.v1.CellKind
  */
 export declare enum CellKind {
@@ -631,8 +651,32 @@ declare class SerializeResponse$Type extends MessageType<SerializeResponse> {
  * @generated MessageType for protobuf message runme.parser.v1.SerializeResponse
  */
 export declare const SerializeResponse: SerializeResponse$Type;
+declare class UpdateCellRequest$Type extends MessageType<UpdateCellRequest> {
+    constructor();
+    create(value?: PartialMessage<UpdateCellRequest>): UpdateCellRequest;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateCellRequest): UpdateCellRequest;
+    internalBinaryWrite(message: UpdateCellRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.UpdateCellRequest
+ */
+export declare const UpdateCellRequest: UpdateCellRequest$Type;
+declare class UpdateCellResponse$Type extends MessageType<UpdateCellResponse> {
+    constructor();
+    create(value?: PartialMessage<UpdateCellResponse>): UpdateCellResponse;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateCellResponse): UpdateCellResponse;
+    internalBinaryWrite(message: UpdateCellResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message runme.parser.v1.UpdateCellResponse
+ */
+export declare const UpdateCellResponse: UpdateCellResponse$Type;
 /**
  * @generated ServiceType for protobuf service runme.parser.v1.ParserService
  */
 export declare const ParserService: any;
+/**
+ * @generated ServiceType for protobuf service runme.parser.v1.UpdateCellsMCP
+ */
+export declare const UpdateCellsMCP: any;
 export {};

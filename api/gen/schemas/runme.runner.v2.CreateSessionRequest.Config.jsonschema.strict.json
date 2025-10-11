@@ -1,0 +1,27 @@
+{
+  "$id": "runme.runner.v2.CreateSessionRequest.Config.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "envStoreSeeding": {
+      "description": "how to seed initial ENV",
+      "enum": [
+        "SESSION_ENV_STORE_SEEDING_UNSPECIFIED",
+        "SESSION_ENV_STORE_SEEDING_SYSTEM"
+      ],
+      "title": "Session Env Store Seeding",
+      "type": "string"
+    },
+    "envStoreType": {
+      "description": "optional selection of which env store implementation to use.",
+      "enum": [
+        "SESSION_ENV_STORE_TYPE_UNSPECIFIED",
+        "SESSION_ENV_STORE_TYPE_OWL"
+      ],
+      "title": "Session Env Store Type",
+      "type": "string"
+    }
+  },
+  "title": "Config",
+  "type": "object"
+}

@@ -1,0 +1,29 @@
+{
+  "$defs": {
+    "runme.parser.v1.TextRange.schema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "start": {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "Text Range",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.TextRange.schema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.TextRange.schema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

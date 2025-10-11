@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "google.protobuf.BoolValue.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The bool value.",
+      "title": "Bool Value",
+      "type": "boolean"
+    },
+    "google.protobuf.Int64Value.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The int64 value.",
+      "title": "Int64 Value",
+      "type": "integer"
+    },
+    "google.protobuf.UInt32Value.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "The uint32 value.",
+      "maximum": 4294967295,
+      "minimum": 0,
+      "title": "U Int32 Value",
+      "type": "integer"
+    },
+    "runme.parser.v1.CellExecutionSummary.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "executionOrder": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.jsonschema.strict.json"
+        },
+        "success": {
+          "$ref": "#/$defs/google.protobuf.BoolValue.jsonschema.strict.json"
+        },
+        "timing": {
+          "$ref": "#/$defs/runme.parser.v1.ExecutionSummaryTiming.jsonschema.strict.json"
+        }
+      },
+      "title": "Cell Execution Summary",
+      "type": "object"
+    },
+    "runme.parser.v1.ExecutionSummaryTiming.jsonschema.strict.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "endTime": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.strict.json"
+        },
+        "startTime": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.strict.json"
+        }
+      },
+      "title": "Execution Summary Timing",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.CellExecutionSummary.jsonschema.strict.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.CellExecutionSummary.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

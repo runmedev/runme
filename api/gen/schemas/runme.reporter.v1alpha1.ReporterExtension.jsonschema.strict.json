@@ -1,0 +1,27 @@
+{
+  "$id": "runme.reporter.v1alpha1.ReporterExtension.jsonschema.strict.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "autoSave": {
+      "type": "boolean"
+    },
+    "device": {
+      "$ref": "runme.reporter.v1alpha1.ReporterDevice.jsonschema.strict.json"
+    },
+    "file": {
+      "$ref": "runme.reporter.v1alpha1.ReporterFile.jsonschema.strict.json"
+    },
+    "git": {
+      "$ref": "runme.reporter.v1alpha1.ReporterGit.jsonschema.strict.json"
+    },
+    "session": {
+      "$ref": "runme.reporter.v1alpha1.ReporterSession.jsonschema.strict.json"
+    }
+  },
+  "required": [
+    "autoSave"
+  ],
+  "title": "Reporter Extension",
+  "type": "object"
+}

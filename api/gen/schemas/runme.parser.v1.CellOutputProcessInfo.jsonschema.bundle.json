@@ -1,0 +1,71 @@
+{
+  "$defs": {
+    "google.protobuf.Int64Value.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^-?[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The int64 value.",
+      "title": "Int64 Value"
+    },
+    "google.protobuf.UInt32Value.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "maximum": 4294967295,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^[0-9]+$",
+          "type": "string"
+        }
+      ],
+      "description": "The uint32 value.",
+      "title": "U Int32 Value"
+    },
+    "runme.parser.v1.CellOutputProcessInfo.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(exit_reason)$": {
+          "$ref": "#/$defs/runme.parser.v1.ProcessInfoExitReason.jsonschema.json"
+        }
+      },
+      "properties": {
+        "exitReason": {
+          "$ref": "#/$defs/runme.parser.v1.ProcessInfoExitReason.jsonschema.json"
+        },
+        "pid": {
+          "$ref": "#/$defs/google.protobuf.Int64Value.jsonschema.json"
+        }
+      },
+      "title": "Cell Output Process Info",
+      "type": "object"
+    },
+    "runme.parser.v1.ProcessInfoExitReason.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/google.protobuf.UInt32Value.jsonschema.json"
+        },
+        "type": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "title": "Process Info Exit Reason",
+      "type": "object"
+    }
+  },
+  "$id": "runme.parser.v1.CellOutputProcessInfo.jsonschema.bundle.json",
+  "$ref": "#/$defs/runme.parser.v1.CellOutputProcessInfo.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
