@@ -1,0 +1,55 @@
+syntax = "proto3";
+package agent.v1;
+import "runme/parser/v1/parser.proto";
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agentv1";
+
+// NotebookService defines methods the AI can use to interact with the notebook.
+// This is used to generate JSON schemas that can be used to define tool calls (or potentially) MCP server.
+// Using https://github.com/redpanda-data/protoc-gen-go-mcp.
+//
+// It looks like only comments on the method get translated into the description.
+service NotebookService {
+  // UpdateCell updates a cell in the document.
+  // Cell is the cell to create or update. To update
+  // an existing cell specify the ID of that cell in the ref_id field.
+  // To create a new cell leave ref_id blank.
+  //
+  // You can use cell.metadata["agent/summary"] to include a short summary or description of the cell.
+  // You should set the description so that its useful for deciding what cells you should read to answer the user's
+  // queries.
+  rpc UpdateCell(UpdateCellRequest) returns (UpdateCellResponse) {}
+
+
+  // GetCells fetches the cells with the given ref_ids.
+  // Use this to read the contents of cells in the notebook.
+  rpc GetCells(GetCellRequest) returns (GetCellResponse) {}
+
+
+  // ListCells lists the cells in a notebook.
+  // Important: Only the ref_id and metadata will be populated. You should use that to decide
+  // which cells to read.
+  rpc ListCells(ListCellsRequest) returns (ListCellResponses) {}
+}
+
+message ListCellsRequest {
+}
+
+message ListCellResponses {
+  repeated runme.parser.v1.Cell cells = 2;
+}
+
+message GetCellRequest {
+  repeated string ref_ids = 1;
+}
+
+message GetCellResponse {
+  runme.parser.v1.Cell cell = 1;
+}
+
+message UpdateCellRequest {
+  runme.parser.v1.Cell cell = 1;
+}
+
+message UpdateCellResponse {
+}

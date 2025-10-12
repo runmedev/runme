@@ -14,7 +14,7 @@ import (
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
 	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
-	"github.com/runmedev/runme/v3/api/gen/mcp/runme/parser/v1/parserv1mcp"
+	"github.com/runmedev/runme/v3/api/gen/mcp/agent/v1/agentv1mcp"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
@@ -30,7 +30,8 @@ import (
 )
 
 func Test_MCP(t *testing.T) {
-	tool := parserv1mcp.UpdateCellsMCP_UpdateCellToolOpenAI
+	// We are using the OpenAI compatible definition
+	tool := agentv1mcp.NotebookService_UpdateCellToolOpenAI
 
 	client, err := ai.NewClient(config.OpenAIConfig{
 		APIKeyFile: "/Users/jlewi/secrets/openai.api.key",
@@ -88,7 +89,7 @@ func Test_MCP(t *testing.T) {
 	}
 
 	for _, o := range result.Output {
-		update := &parserv1.UpdateCellRequest{}
+		update := &agentv1.UpdateCellRequest{}
 
 		rawResult := make(map[string]any)
 		if err := json.Unmarshal([]byte(o.Arguments), &rawResult); err != nil {

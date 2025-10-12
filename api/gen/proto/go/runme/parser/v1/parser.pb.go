@@ -1348,91 +1348,6 @@ func (x *SerializeResponse) GetResult() []byte {
 	return nil
 }
 
-type UpdateCellRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Cell is the cell to create or update. To update
-	// an existing cell specify the ID of that cell in the ref_id field.
-	// To create a new cell leave ref_id blank.
-	//
-	// cell.metadata should be a dictionary of string -> string.
-	Cell          *Cell `protobuf:"bytes,1,opt,name=cell,proto3" json:"cell,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateCellRequest) Reset() {
-	*x = UpdateCellRequest{}
-	mi := &file_runme_parser_v1_parser_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateCellRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateCellRequest) ProtoMessage() {}
-
-func (x *UpdateCellRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_parser_v1_parser_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateCellRequest.ProtoReflect.Descriptor instead.
-func (*UpdateCellRequest) Descriptor() ([]byte, []int) {
-	return file_runme_parser_v1_parser_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *UpdateCellRequest) GetCell() *Cell {
-	if x != nil {
-		return x.Cell
-	}
-	return nil
-}
-
-type UpdateCellResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateCellResponse) Reset() {
-	*x = UpdateCellResponse{}
-	mi := &file_runme_parser_v1_parser_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateCellResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateCellResponse) ProtoMessage() {}
-
-func (x *UpdateCellResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_parser_v1_parser_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateCellResponse.ProtoReflect.Descriptor instead.
-func (*UpdateCellResponse) Descriptor() ([]byte, []int) {
-	return file_runme_parser_v1_parser_proto_rawDescGZIP(), []int{21}
-}
-
 var File_runme_parser_v1_parser_proto protoreflect.FileDescriptor
 
 const file_runme_parser_v1_parser_proto_rawDesc = "" +
@@ -1527,10 +1442,7 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\bnotebook\x18\x01 \x01(\v2\x19.runme.parser.v1.NotebookR\bnotebook\x12B\n" +
 	"\aoptions\x18\x02 \x01(\v2(.runme.parser.v1.SerializeRequestOptionsR\aoptions\"+\n" +
 	"\x11SerializeResponse\x12\x16\n" +
-	"\x06result\x18\x01 \x01(\fR\x06result\">\n" +
-	"\x11UpdateCellRequest\x12)\n" +
-	"\x04cell\x18\x01 \x01(\v2\x15.runme.parser.v1.CellR\x04cell\"\x14\n" +
-	"\x12UpdateCellResponse*j\n" +
+	"\x06result\x18\x01 \x01(\fR\x06result*j\n" +
 	"\bCellKind\x12\x19\n" +
 	"\x15CELL_KIND_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10CELL_KIND_MARKUP\x10\x01\x12\x12\n" +
@@ -1547,10 +1459,7 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\x13RUNME_IDENTITY_CELL\x10\x032\xc1\x01\n" +
 	"\rParserService\x12Z\n" +
 	"\vDeserialize\x12#.runme.parser.v1.DeserializeRequest\x1a$.runme.parser.v1.DeserializeResponse\"\x00\x12T\n" +
-	"\tSerialize\x12!.runme.parser.v1.SerializeRequest\x1a\".runme.parser.v1.SerializeResponse\"\x002i\n" +
-	"\x0eUpdateCellsMCP\x12W\n" +
-	"\n" +
-	"UpdateCell\x12\".runme.parser.v1.UpdateCellRequest\x1a#.runme.parser.v1.UpdateCellResponse\"\x00BHZFgithub.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1;parserv1b\x06proto3"
+	"\tSerialize\x12!.runme.parser.v1.SerializeRequest\x1a\".runme.parser.v1.SerializeResponse\"\x00BHZFgithub.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1;parserv1b\x06proto3"
 
 var (
 	file_runme_parser_v1_parser_proto_rawDescOnce sync.Once
@@ -1565,7 +1474,7 @@ func file_runme_parser_v1_parser_proto_rawDescGZIP() []byte {
 }
 
 var file_runme_parser_v1_parser_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_runme_parser_v1_parser_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_runme_parser_v1_parser_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_runme_parser_v1_parser_proto_goTypes = []any{
 	(CellKind)(0),                         // 0: runme.parser.v1.CellKind
 	(CellRole)(0),                         // 1: runme.parser.v1.CellRole
@@ -1590,38 +1499,36 @@ var file_runme_parser_v1_parser_proto_goTypes = []any{
 	(*SerializeRequestOptions)(nil),       // 20: runme.parser.v1.SerializeRequestOptions
 	(*SerializeRequest)(nil),              // 21: runme.parser.v1.SerializeRequest
 	(*SerializeResponse)(nil),             // 22: runme.parser.v1.SerializeResponse
-	(*UpdateCellRequest)(nil),             // 23: runme.parser.v1.UpdateCellRequest
-	(*UpdateCellResponse)(nil),            // 24: runme.parser.v1.UpdateCellResponse
-	nil,                                   // 25: runme.parser.v1.Notebook.MetadataEntry
-	nil,                                   // 26: runme.parser.v1.CellOutput.MetadataEntry
-	nil,                                   // 27: runme.parser.v1.Cell.MetadataEntry
-	(*wrapperspb.Int64Value)(nil),         // 28: google.protobuf.Int64Value
-	(*wrapperspb.UInt32Value)(nil),        // 29: google.protobuf.UInt32Value
-	(*wrapperspb.BoolValue)(nil),          // 30: google.protobuf.BoolValue
-	(*DocResult)(nil),                     // 31: runme.parser.v1.DocResult
+	nil,                                   // 23: runme.parser.v1.Notebook.MetadataEntry
+	nil,                                   // 24: runme.parser.v1.CellOutput.MetadataEntry
+	nil,                                   // 25: runme.parser.v1.Cell.MetadataEntry
+	(*wrapperspb.Int64Value)(nil),         // 26: google.protobuf.Int64Value
+	(*wrapperspb.UInt32Value)(nil),        // 27: google.protobuf.UInt32Value
+	(*wrapperspb.BoolValue)(nil),          // 28: google.protobuf.BoolValue
+	(*DocResult)(nil),                     // 29: runme.parser.v1.DocResult
 }
 var file_runme_parser_v1_parser_proto_depIdxs = []int32{
 	11, // 0: runme.parser.v1.Notebook.cells:type_name -> runme.parser.v1.Cell
-	25, // 1: runme.parser.v1.Notebook.metadata:type_name -> runme.parser.v1.Notebook.MetadataEntry
+	23, // 1: runme.parser.v1.Notebook.metadata:type_name -> runme.parser.v1.Notebook.MetadataEntry
 	15, // 2: runme.parser.v1.Notebook.frontmatter:type_name -> runme.parser.v1.Frontmatter
-	28, // 3: runme.parser.v1.ExecutionSummaryTiming.start_time:type_name -> google.protobuf.Int64Value
-	28, // 4: runme.parser.v1.ExecutionSummaryTiming.end_time:type_name -> google.protobuf.Int64Value
-	29, // 5: runme.parser.v1.ProcessInfoExitReason.code:type_name -> google.protobuf.UInt32Value
+	26, // 3: runme.parser.v1.ExecutionSummaryTiming.start_time:type_name -> google.protobuf.Int64Value
+	26, // 4: runme.parser.v1.ExecutionSummaryTiming.end_time:type_name -> google.protobuf.Int64Value
+	27, // 5: runme.parser.v1.ProcessInfoExitReason.code:type_name -> google.protobuf.UInt32Value
 	6,  // 6: runme.parser.v1.CellOutputProcessInfo.exit_reason:type_name -> runme.parser.v1.ProcessInfoExitReason
-	28, // 7: runme.parser.v1.CellOutputProcessInfo.pid:type_name -> google.protobuf.Int64Value
+	26, // 7: runme.parser.v1.CellOutputProcessInfo.pid:type_name -> google.protobuf.Int64Value
 	5,  // 8: runme.parser.v1.CellOutput.items:type_name -> runme.parser.v1.CellOutputItem
-	26, // 9: runme.parser.v1.CellOutput.metadata:type_name -> runme.parser.v1.CellOutput.MetadataEntry
+	24, // 9: runme.parser.v1.CellOutput.metadata:type_name -> runme.parser.v1.CellOutput.MetadataEntry
 	7,  // 10: runme.parser.v1.CellOutput.process_info:type_name -> runme.parser.v1.CellOutputProcessInfo
-	29, // 11: runme.parser.v1.CellExecutionSummary.execution_order:type_name -> google.protobuf.UInt32Value
-	30, // 12: runme.parser.v1.CellExecutionSummary.success:type_name -> google.protobuf.BoolValue
+	27, // 11: runme.parser.v1.CellExecutionSummary.execution_order:type_name -> google.protobuf.UInt32Value
+	28, // 12: runme.parser.v1.CellExecutionSummary.success:type_name -> google.protobuf.BoolValue
 	4,  // 13: runme.parser.v1.CellExecutionSummary.timing:type_name -> runme.parser.v1.ExecutionSummaryTiming
 	0,  // 14: runme.parser.v1.Cell.kind:type_name -> runme.parser.v1.CellKind
-	27, // 15: runme.parser.v1.Cell.metadata:type_name -> runme.parser.v1.Cell.MetadataEntry
+	25, // 15: runme.parser.v1.Cell.metadata:type_name -> runme.parser.v1.Cell.MetadataEntry
 	10, // 16: runme.parser.v1.Cell.text_range:type_name -> runme.parser.v1.TextRange
 	8,  // 17: runme.parser.v1.Cell.outputs:type_name -> runme.parser.v1.CellOutput
 	9,  // 18: runme.parser.v1.Cell.execution_summary:type_name -> runme.parser.v1.CellExecutionSummary
 	1,  // 19: runme.parser.v1.Cell.role:type_name -> runme.parser.v1.CellRole
-	31, // 20: runme.parser.v1.Cell.doc_results:type_name -> runme.parser.v1.DocResult
+	29, // 20: runme.parser.v1.Cell.doc_results:type_name -> runme.parser.v1.DocResult
 	12, // 21: runme.parser.v1.RunmeSession.document:type_name -> runme.parser.v1.RunmeSessionDocument
 	13, // 22: runme.parser.v1.FrontmatterRunme.session:type_name -> runme.parser.v1.RunmeSession
 	14, // 23: runme.parser.v1.Frontmatter.runme:type_name -> runme.parser.v1.FrontmatterRunme
@@ -1632,18 +1539,15 @@ var file_runme_parser_v1_parser_proto_depIdxs = []int32{
 	13, // 28: runme.parser.v1.SerializeRequestOptions.session:type_name -> runme.parser.v1.RunmeSession
 	3,  // 29: runme.parser.v1.SerializeRequest.notebook:type_name -> runme.parser.v1.Notebook
 	20, // 30: runme.parser.v1.SerializeRequest.options:type_name -> runme.parser.v1.SerializeRequestOptions
-	11, // 31: runme.parser.v1.UpdateCellRequest.cell:type_name -> runme.parser.v1.Cell
-	17, // 32: runme.parser.v1.ParserService.Deserialize:input_type -> runme.parser.v1.DeserializeRequest
-	21, // 33: runme.parser.v1.ParserService.Serialize:input_type -> runme.parser.v1.SerializeRequest
-	23, // 34: runme.parser.v1.UpdateCellsMCP.UpdateCell:input_type -> runme.parser.v1.UpdateCellRequest
-	18, // 35: runme.parser.v1.ParserService.Deserialize:output_type -> runme.parser.v1.DeserializeResponse
-	22, // 36: runme.parser.v1.ParserService.Serialize:output_type -> runme.parser.v1.SerializeResponse
-	24, // 37: runme.parser.v1.UpdateCellsMCP.UpdateCell:output_type -> runme.parser.v1.UpdateCellResponse
-	35, // [35:38] is the sub-list for method output_type
-	32, // [32:35] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	17, // 31: runme.parser.v1.ParserService.Deserialize:input_type -> runme.parser.v1.DeserializeRequest
+	21, // 32: runme.parser.v1.ParserService.Serialize:input_type -> runme.parser.v1.SerializeRequest
+	18, // 33: runme.parser.v1.ParserService.Deserialize:output_type -> runme.parser.v1.DeserializeResponse
+	22, // 34: runme.parser.v1.ParserService.Serialize:output_type -> runme.parser.v1.SerializeResponse
+	33, // [33:35] is the sub-list for method output_type
+	31, // [31:33] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_runme_parser_v1_parser_proto_init() }
@@ -1658,9 +1562,9 @@ func file_runme_parser_v1_parser_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runme_parser_v1_parser_proto_rawDesc), len(file_runme_parser_v1_parser_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   25,
+			NumMessages:   23,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   1,
 		},
 		GoTypes:           file_runme_parser_v1_parser_proto_goTypes,
 		DependencyIndexes: file_runme_parser_v1_parser_proto_depIdxs,

@@ -931,62 +931,6 @@ export declare type SerializeResponseJson = {
 export declare const SerializeResponseSchema: GenMessage<SerializeResponse, {jsonType: SerializeResponseJson}>;
 
 /**
- * @generated from message runme.parser.v1.UpdateCellRequest
- */
-export declare type UpdateCellRequest = Message<"runme.parser.v1.UpdateCellRequest"> & {
-  /**
-   * Cell is the cell to create or update. To update
-   * an existing cell specify the ID of that cell in the ref_id field.
-   * To create a new cell leave ref_id blank.
-   *
-   * cell.metadata should be a dictionary of string -> string.
-   *
-   * @generated from field: runme.parser.v1.Cell cell = 1;
-   */
-  cell?: Cell;
-};
-
-/**
- * @generated from message runme.parser.v1.UpdateCellRequest
- */
-export declare type UpdateCellRequestJson = {
-  /**
-   * Cell is the cell to create or update. To update
-   * an existing cell specify the ID of that cell in the ref_id field.
-   * To create a new cell leave ref_id blank.
-   *
-   * cell.metadata should be a dictionary of string -> string.
-   *
-   * @generated from field: runme.parser.v1.Cell cell = 1;
-   */
-  cell?: CellJson;
-};
-
-/**
- * Describes the message runme.parser.v1.UpdateCellRequest.
- * Use `create(UpdateCellRequestSchema)` to create a new message.
- */
-export declare const UpdateCellRequestSchema: GenMessage<UpdateCellRequest, {jsonType: UpdateCellRequestJson}>;
-
-/**
- * @generated from message runme.parser.v1.UpdateCellResponse
- */
-export declare type UpdateCellResponse = Message<"runme.parser.v1.UpdateCellResponse"> & {
-};
-
-/**
- * @generated from message runme.parser.v1.UpdateCellResponse
- */
-export declare type UpdateCellResponseJson = {
-};
-
-/**
- * Describes the message runme.parser.v1.UpdateCellResponse.
- * Use `create(UpdateCellResponseSchema)` to create a new message.
- */
-export declare const UpdateCellResponseSchema: GenMessage<UpdateCellResponse, {jsonType: UpdateCellResponseJson}>;
-
-/**
  * @generated from enum runme.parser.v1.CellKind
  */
 export enum CellKind {
@@ -1113,22 +1057,6 @@ export declare const ParserService: GenService<{
     methodKind: "unary";
     input: typeof SerializeRequestSchema;
     output: typeof SerializeResponseSchema;
-  },
-}>;
-
-/**
- * @generated from service runme.parser.v1.UpdateCellsMCP
- */
-export declare const UpdateCellsMCP: GenService<{
-  /**
-   * UpdateCell updates a cell in the document.
-   *
-   * @generated from rpc runme.parser.v1.UpdateCellsMCP.UpdateCell
-   */
-  updateCell: {
-    methodKind: "unary";
-    input: typeof UpdateCellRequestSchema;
-    output: typeof UpdateCellResponseSchema;
   },
 }>;
 

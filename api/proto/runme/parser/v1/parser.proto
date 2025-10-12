@@ -172,19 +172,3 @@ service ParserService {
   rpc Serialize(SerializeRequest) returns (SerializeResponse) {}
 }
 
-service UpdateCellsMCP {
-  // UpdateCell updates a cell in the document.
-  rpc UpdateCell(UpdateCellRequest) returns (UpdateCellResponse) {}
-}
-
-message UpdateCellRequest {
-  // Cell is the cell to create or update. To update
-  // an existing cell specify the ID of that cell in the ref_id field.
-  // To create a new cell leave ref_id blank.
-  //
-  // cell.metadata should be a dictionary of string -> string.
-  Cell cell = 1;
-}
-
-message UpdateCellResponse {
-}
