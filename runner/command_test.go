@@ -21,7 +21,12 @@ import (
 )
 
 func init() {
-	dumpCmd = "env -0"
+	envPath, err := exec.LookPath("env")
+	if err != nil {
+		panic(err)
+	}
+
+	dumpCmd = envPath + " -0"
 }
 
 func Test_command(t *testing.T) {
@@ -248,7 +253,7 @@ func Test_command(t *testing.T) {
 				Stdout:      io.Discard,
 				Stderr:      io.Discard,
 				CommandMode: CommandModeInlineShell,
-				Script:      `source "$HOME/.cargo/env"`,
+				Script:      `[ ! -e "$HOME/.cargo/env" ] || . "$HOME/.cargo/env"`,
 				Logger:      logger,
 			},
 		)
