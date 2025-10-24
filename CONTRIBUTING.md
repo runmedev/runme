@@ -211,7 +211,7 @@ make proto/generate
 
 Protocol buffer generation is done with [buf](https://buf.build/), and the buf CLI will need to be installed in order for `make proto/generate` to work.
 
-Currently, we use `timostamm-protobuf-ts` to generate TypeScript definitions. These are uploaded to [a remote `buf.build` registry](https://buf.build/gen/npm/v1/@buf/stateful_runme.community_timostamm-protobuf-ts) which can be used in any `npm` compatible project - see the [client-ts](/examples/client-ts/) example.
+Currently, we use `timostamm-protobuf-ts` to generate TypeScript definitions. These are uploaded to [a remote `buf.build` registry](https://buf.build/gen/npm/v1/@buf/runmedev_runme.community_timostamm-protobuf-ts) which can be used in any `npm` compatible project - see the [client-ts](/examples/client-ts/) example.
 
 Note that for protocol buffers to work with `npm` projects, you'll need to add the [`@buf` registry](https://docs.buf.build/bsr/remote-packages/npm) to your `npm` or `yarn` config:
 
