@@ -24,7 +24,7 @@ require (
 	github.com/expr-lang/expr v1.17.6
 	github.com/fatih/color v1.18.0
 	github.com/fullstorydev/grpcurl v1.9.3
-	github.com/gabriel-vasile/mimetype v1.4.10
+	github.com/gabriel-vasile/mimetype v1.4.11
 	github.com/go-git/go-billy/v5 v5.6.2
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
