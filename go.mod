@@ -62,7 +62,7 @@ require (
 	go.uber.org/multierr v1.11.0
 	golang.org/x/net v0.46.0
 	golang.org/x/oauth2 v0.32.0
-	golang.org/x/sys v0.37.0
+	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.36.0
 	google.golang.org/api v0.252.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251007200510-49b9836ed3ff
