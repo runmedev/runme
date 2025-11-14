@@ -95,6 +95,7 @@ func (c *base) ProgramPath() (string, []string, error) {
 	}
 
 	// If language ID is empty, interpreter lookup is futile.
+	// todo(sebastian): why are we passing language ID here? it's not the same as program name.
 	if c.cfg.LanguageId != "" {
 		path, args, err := c.findProgramInKnownInterpreters(c.cfg.LanguageId, c.cfg.Arguments)
 		if err == nil {
