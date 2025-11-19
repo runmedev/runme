@@ -134,7 +134,7 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 			relativePath = req.Options.Session.Document.GetRelativePath()
 		}
 
-		profile := ""
+		profile := editor.OutputProfileDefault
 		if req.Options != nil && req.Options.Outputs != nil {
 			profile = req.Options.Outputs.GetProfile()
 		}
