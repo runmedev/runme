@@ -341,6 +341,25 @@ export interface ExecuteResponse {
      * @generated from protobuf field: string mime_type = 5
      */
     mimeType: string;
+    /**
+     * pwd contains the current and previous working directories as set by shell.
+     *
+     * @generated from protobuf field: runme.runner.v2.ExecuteResponse.Pwd pwd = 7
+     */
+    pwd?: ExecuteResponse_Pwd;
+}
+/**
+ * @generated from protobuf message runme.runner.v2.ExecuteResponse.Pwd
+ */
+export interface ExecuteResponse_Pwd {
+    /**
+     * @generated from protobuf field: string current = 1
+     */
+    current: string;
+    /**
+     * @generated from protobuf field: string previous = 2
+     */
+    previous: string;
 }
 /**
  * @generated from protobuf message runme.runner.v2.ResolveProgramCommandList
@@ -929,6 +948,16 @@ declare class ExecuteResponse$Type extends MessageType<ExecuteResponse> {
  * @generated MessageType for protobuf message runme.runner.v2.ExecuteResponse
  */
 export declare const ExecuteResponse: ExecuteResponse$Type;
+declare class ExecuteResponse_Pwd$Type extends MessageType<ExecuteResponse_Pwd> {
+    constructor();
+    create(value?: PartialMessage<ExecuteResponse_Pwd>): ExecuteResponse_Pwd;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecuteResponse_Pwd): ExecuteResponse_Pwd;
+    internalBinaryWrite(message: ExecuteResponse_Pwd, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.ExecuteResponse.Pwd
+ */
+export declare const ExecuteResponse_Pwd: ExecuteResponse_Pwd$Type;
 declare class ResolveProgramCommandList$Type extends MessageType<ResolveProgramCommandList> {
     constructor();
     create(value?: PartialMessage<ResolveProgramCommandList>): ResolveProgramCommandList;

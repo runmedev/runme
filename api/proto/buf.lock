@@ -14,5 +14,5 @@ deps:
   - remote: buf.build
     owner: protocolbuffers
     repository: wellknowntypes
-    commit: a4aee59cf3714106961b09d99b349cd1
-    digest: shake256:7e2aa4fb37e2be8dc8a4bcbebaec00635abbcc7333df40ba6412a666335f66c5c0705ce4cc5c207e728412ac3d81850545f90e8535da66712a17ab42923be6bd
+    commit: 9220c3cb4fac4bb4a8587d4fd7aa7582
+    digest: shake256:49b3059e6608c257ea7cf60926a16fb8bb1f3d37f39862e66db55338a4ebf59a4aebff39fdfd1f6d4e66ece567db327ff5846a09b51762574b857a27e77a2b55

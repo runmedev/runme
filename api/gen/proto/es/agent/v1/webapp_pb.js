@@ -8,11 +8,18 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
  * Describes the file agent/v1/webapp.proto.
  */
 export const file_agent_v1_webapp = /*@__PURE__*/
-  fileDesc("ChVhZ2VudC92MS93ZWJhcHAucHJvdG8SCGFnZW50LnYxInQKDFdlYkFwcENvbmZpZxIOCgZydW5uZXIYASABKAkSFgoJcmVjb25uZWN0GAIgASgISACIAQESGwoOaW52ZXJ0ZWRfb3JkZXIYAyABKAhIAYgBAUIMCgpfcmVjb25uZWN0QhEKD19pbnZlcnRlZF9vcmRlckJAWj5naXRodWIuY29tL3J1bm1lZGV2L3J1bm1lL3YzL2FwaS9nZW4vcHJvdG8vZ28vYWdlbnQvdjE7YWdlbnR2MWIGcHJvdG8z");
+  fileDesc("ChVhZ2VudC92MS93ZWJhcHAucHJvdG8SCGFnZW50LnYxIoEBChJJbml0aWFsQ29uZmlnU3RhdGUSJwoHd2ViX2FwcBgBIAEoCzIWLmFnZW50LnYxLldlYkFwcENvbmZpZxIWCg5hZ2VudF9lbmRwb2ludBgCIAEoCRIUCgxyZXF1aXJlX2F1dGgYAyABKAgSFAoMc3lzdGVtX3NoZWxsGAQgASgJInQKDFdlYkFwcENvbmZpZxIOCgZydW5uZXIYASABKAkSFgoJcmVjb25uZWN0GAIgASgISACIAQESGwoOaW52ZXJ0ZWRfb3JkZXIYAyABKAhIAYgBAUIMCgpfcmVjb25uZWN0QhEKD19pbnZlcnRlZF9vcmRlckJAWj5naXRodWIuY29tL3J1bm1lZGV2L3J1bm1lL3YzL2FwaS9nZW4vcHJvdG8vZ28vYWdlbnQvdjE7YWdlbnR2MWIGcHJvdG8z");
+
+/**
+ * Describes the message agent.v1.InitialConfigState.
+ * Use `create(InitialConfigStateSchema)` to create a new message.
+ */
+export const InitialConfigStateSchema = /*@__PURE__*/
+  messageDesc(file_agent_v1_webapp, 0);
 
 /**
  * Describes the message agent.v1.WebAppConfig.
  * Use `create(WebAppConfigSchema)` to create a new message.
  */
 export const WebAppConfigSchema = /*@__PURE__*/
-  messageDesc(file_agent_v1_webapp, 0);
+  messageDesc(file_agent_v1_webapp, 1);

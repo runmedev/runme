@@ -152,6 +152,7 @@ message DeserializeResponse {
 message SerializeRequestOutputOptions {
   bool enabled = 1;
   bool summary = 2;
+  string profile = 3;
 }
 
 message SerializeRequestOptions {

@@ -783,6 +783,13 @@ export declare type ExecuteResponse = Message<"runme.runner.v2.ExecuteResponse">
    * @generated from field: string mime_type = 5;
    */
   mimeType: string;
+
+  /**
+   * pwd contains the current and previous working directories as set by shell.
+   *
+   * @generated from field: runme.runner.v2.ExecuteResponse.Pwd pwd = 7;
+   */
+  pwd?: ExecuteResponse_Pwd;
 };
 
 /**
@@ -827,6 +834,13 @@ export declare type ExecuteResponseJson = {
    * @generated from field: string mime_type = 5;
    */
   mimeType?: string;
+
+  /**
+   * pwd contains the current and previous working directories as set by shell.
+   *
+   * @generated from field: runme.runner.v2.ExecuteResponse.Pwd pwd = 7;
+   */
+  pwd?: ExecuteResponse_PwdJson;
 };
 
 /**
@@ -834,6 +848,42 @@ export declare type ExecuteResponseJson = {
  * Use `create(ExecuteResponseSchema)` to create a new message.
  */
 export declare const ExecuteResponseSchema: GenMessage<ExecuteResponse, {jsonType: ExecuteResponseJson}>;
+
+/**
+ * @generated from message runme.runner.v2.ExecuteResponse.Pwd
+ */
+export declare type ExecuteResponse_Pwd = Message<"runme.runner.v2.ExecuteResponse.Pwd"> & {
+  /**
+   * @generated from field: string current = 1;
+   */
+  current: string;
+
+  /**
+   * @generated from field: string previous = 2;
+   */
+  previous: string;
+};
+
+/**
+ * @generated from message runme.runner.v2.ExecuteResponse.Pwd
+ */
+export declare type ExecuteResponse_PwdJson = {
+  /**
+   * @generated from field: string current = 1;
+   */
+  current?: string;
+
+  /**
+   * @generated from field: string previous = 2;
+   */
+  previous?: string;
+};
+
+/**
+ * Describes the message runme.runner.v2.ExecuteResponse.Pwd.
+ * Use `create(ExecuteResponse_PwdSchema)` to create a new message.
+ */
+export declare const ExecuteResponse_PwdSchema: GenMessage<ExecuteResponse_Pwd, {jsonType: ExecuteResponse_PwdJson}>;
 
 /**
  * @generated from message runme.runner.v2.ResolveProgramCommandList

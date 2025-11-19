@@ -22,7 +22,80 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WebAppConfig is the application configuration.
+// InitialConfigState is the initial configuration state for the application, provided to the frontend.
+type InitialConfigState struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// web_app is the configuration for the web application.
+	WebApp *WebAppConfig `protobuf:"bytes,1,opt,name=web_app,json=webApp,proto3" json:"web_app,omitempty"`
+	// agent_endpoint is the API endpoint for the agent.
+	AgentEndpoint string `protobuf:"bytes,2,opt,name=agent_endpoint,json=agentEndpoint,proto3" json:"agent_endpoint,omitempty"`
+	// require_auth specifies if authentication is required.
+	RequireAuth bool `protobuf:"varint,3,opt,name=require_auth,json=requireAuth,proto3" json:"require_auth,omitempty"`
+	// system_shell is the default shell for system commands.
+	SystemShell   string `protobuf:"bytes,4,opt,name=system_shell,json=systemShell,proto3" json:"system_shell,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitialConfigState) Reset() {
+	*x = InitialConfigState{}
+	mi := &file_agent_v1_webapp_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitialConfigState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitialConfigState) ProtoMessage() {}
+
+func (x *InitialConfigState) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_webapp_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitialConfigState.ProtoReflect.Descriptor instead.
+func (*InitialConfigState) Descriptor() ([]byte, []int) {
+	return file_agent_v1_webapp_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *InitialConfigState) GetWebApp() *WebAppConfig {
+	if x != nil {
+		return x.WebApp
+	}
+	return nil
+}
+
+func (x *InitialConfigState) GetAgentEndpoint() string {
+	if x != nil {
+		return x.AgentEndpoint
+	}
+	return ""
+}
+
+func (x *InitialConfigState) GetRequireAuth() bool {
+	if x != nil {
+		return x.RequireAuth
+	}
+	return false
+}
+
+func (x *InitialConfigState) GetSystemShell() string {
+	if x != nil {
+		return x.SystemShell
+	}
+	return ""
+}
+
+// WebAppConfig is the web application configuration.
 type WebAppConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// runner is the address of the runner that the application should use.
@@ -37,7 +110,7 @@ type WebAppConfig struct {
 
 func (x *WebAppConfig) Reset() {
 	*x = WebAppConfig{}
-	mi := &file_agent_v1_webapp_proto_msgTypes[0]
+	mi := &file_agent_v1_webapp_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +122,7 @@ func (x *WebAppConfig) String() string {
 func (*WebAppConfig) ProtoMessage() {}
 
 func (x *WebAppConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_webapp_proto_msgTypes[0]
+	mi := &file_agent_v1_webapp_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +135,7 @@ func (x *WebAppConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebAppConfig.ProtoReflect.Descriptor instead.
 func (*WebAppConfig) Descriptor() ([]byte, []int) {
-	return file_agent_v1_webapp_proto_rawDescGZIP(), []int{0}
+	return file_agent_v1_webapp_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *WebAppConfig) GetRunner() string {
@@ -90,7 +163,12 @@ var File_agent_v1_webapp_proto protoreflect.FileDescriptor
 
 const file_agent_v1_webapp_proto_rawDesc = "" +
 	"\n" +
-	"\x15agent/v1/webapp.proto\x12\bagent.v1\"\x96\x01\n" +
+	"\x15agent/v1/webapp.proto\x12\bagent.v1\"\xb2\x01\n" +
+	"\x12InitialConfigState\x12/\n" +
+	"\aweb_app\x18\x01 \x01(\v2\x16.agent.v1.WebAppConfigR\x06webApp\x12%\n" +
+	"\x0eagent_endpoint\x18\x02 \x01(\tR\ragentEndpoint\x12!\n" +
+	"\frequire_auth\x18\x03 \x01(\bR\vrequireAuth\x12!\n" +
+	"\fsystem_shell\x18\x04 \x01(\tR\vsystemShell\"\x96\x01\n" +
 	"\fWebAppConfig\x12\x16\n" +
 	"\x06runner\x18\x01 \x01(\tR\x06runner\x12!\n" +
 	"\treconnect\x18\x02 \x01(\bH\x00R\treconnect\x88\x01\x01\x12*\n" +
@@ -111,16 +189,18 @@ func file_agent_v1_webapp_proto_rawDescGZIP() []byte {
 	return file_agent_v1_webapp_proto_rawDescData
 }
 
-var file_agent_v1_webapp_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_agent_v1_webapp_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_agent_v1_webapp_proto_goTypes = []any{
-	(*WebAppConfig)(nil), // 0: agent.v1.WebAppConfig
+	(*InitialConfigState)(nil), // 0: agent.v1.InitialConfigState
+	(*WebAppConfig)(nil),       // 1: agent.v1.WebAppConfig
 }
 var file_agent_v1_webapp_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	1, // 0: agent.v1.InitialConfigState.web_app:type_name -> agent.v1.WebAppConfig
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_agent_v1_webapp_proto_init() }
@@ -128,14 +208,14 @@ func file_agent_v1_webapp_proto_init() {
 	if File_agent_v1_webapp_proto != nil {
 		return
 	}
-	file_agent_v1_webapp_proto_msgTypes[0].OneofWrappers = []any{}
+	file_agent_v1_webapp_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_v1_webapp_proto_rawDesc), len(file_agent_v1_webapp_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
