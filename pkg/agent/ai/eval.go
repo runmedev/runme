@@ -123,15 +123,16 @@ func (t toolInvocation) Assert(ctx context.Context, as *agentv1.Assertion, input
 	targetTool := as.GetToolInvocation().GetToolName()
 	as.Result = agentv1.Assertion_RESULT_FALSE // Default to false unless the tool is invoked
 	for _, cell := range cells {
-		// N.B. For now, every tool-call response is treated as code execution in cells.go.
-		// TODO: When we add additional tools, handle tool-call responses separately.
-		if targetTool == "shell" {
+		// N.B. Every tool-call response was previously treated as code execution in cells.go.
+		// TODO(sebastian): We likely have to handle tool-call responses separately. However, back-compat is important.
+		if targetTool == "shell" || targetTool == "code" {
 			if cell.Kind == parserv1.CellKind_CELL_KIND_CODE {
 				as.Result = agentv1.Assertion_RESULT_TRUE
 				break
 			}
-		} else if targetTool == "file_retrieval" {
-			if cell.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
+		}
+		if targetTool == "file_retrieval" {
+			if (cell.Kind == parserv1.CellKind_CELL_KIND_TOOL || cell.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS) && cell.Value == "file_search" {
 				as.Result = agentv1.Assertion_RESULT_TRUE
 				break
 			}
@@ -151,7 +152,7 @@ func (f fileRetrieved) Assert(ctx context.Context, as *agentv1.Assertion, inputT
 	targetFileId := as.GetFileRetrieval().FileId
 	as.Result = agentv1.Assertion_RESULT_FALSE // Default to false unless the file is found
 	for _, cell := range cells {
-		if cell.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
+		if (cell.Kind == parserv1.CellKind_CELL_KIND_TOOL || cell.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS) && cell.Value == "file_search" {
 			for _, file := range cell.DocResults {
 				if file.FileId == targetFileId {
 					as.Result = agentv1.Assertion_RESULT_TRUE

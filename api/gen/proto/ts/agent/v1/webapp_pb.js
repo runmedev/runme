@@ -8,6 +8,76 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 // @generated message type with reflection information, may provide speed optimized methods
+class InitialConfigState$Type extends MessageType {
+    constructor() {
+        super("agent.v1.InitialConfigState", [
+            { no: 1, name: "web_app", kind: "message", T: () => WebAppConfig },
+            { no: 2, name: "agent_endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "require_auth", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "system_shell", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value) {
+        const message = globalThis.Object.create((this.messagePrototype));
+        message.agentEndpoint = "";
+        message.requireAuth = false;
+        message.systemShell = "";
+        if (value !== undefined)
+            reflectionMergePartial(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* agent.v1.WebAppConfig web_app */ 1:
+                    message.webApp = WebAppConfig.internalBinaryRead(reader, reader.uint32(), options, message.webApp);
+                    break;
+                case /* string agent_endpoint */ 2:
+                    message.agentEndpoint = reader.string();
+                    break;
+                case /* bool require_auth */ 3:
+                    message.requireAuth = reader.bool();
+                    break;
+                case /* string system_shell */ 4:
+                    message.systemShell = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+        /* agent.v1.WebAppConfig web_app = 1; */
+        if (message.webApp)
+            WebAppConfig.internalBinaryWrite(message.webApp, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_endpoint = 2; */
+        if (message.agentEndpoint !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentEndpoint);
+        /* bool require_auth = 3; */
+        if (message.requireAuth !== false)
+            writer.tag(3, WireType.Varint).bool(message.requireAuth);
+        /* string system_shell = 4; */
+        if (message.systemShell !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.systemShell);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message agent.v1.InitialConfigState
+ */
+export const InitialConfigState = new InitialConfigState$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class WebAppConfig$Type extends MessageType {
     constructor() {
         super("agent.v1.WebAppConfig", [

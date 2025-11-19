@@ -46,6 +46,7 @@ func (s *parserServiceServer) Deserialize(_ context.Context, req *parserv1.Deser
 
 		cells = append(cells, &parserv1.Cell{
 			Kind:       parserv1.CellKind(cell.Kind),
+			Role:       parserv1.CellRole(cell.Role),
 			Value:      cell.Value,
 			LanguageId: cell.LanguageID,
 			Metadata:   cell.Metadata,
@@ -108,11 +109,16 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 
 	cells := make([]*editor.Cell, 0, len(req.Notebook.Cells))
 	for _, cell := range req.Notebook.Cells {
+		if cell.Kind == parserv1.CellKind_CELL_KIND_TOOL || cell.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
+			continue // skip tool cells
+		}
+
 		outputs := s.serializeCellOutputs(cell, req.Options)
 		executionSummary := s.serializeCellExecutionSummary(cell, req.Options)
 
 		cells = append(cells, &editor.Cell{
 			Kind:             editor.CellKind(cell.Kind),
+			Role:             editor.CellRole(cell.Role),
 			Value:            cell.Value,
 			LanguageID:       cell.LanguageId,
 			Metadata:         cell.Metadata,
@@ -128,21 +134,33 @@ func (s *parserServiceServer) Serialize(_ context.Context, req *parserv1.Seriali
 			relativePath = req.Options.Session.Document.GetRelativePath()
 		}
 
+		profile := ""
+		if req.Options != nil && req.Options.Outputs != nil {
+			profile = req.Options.Outputs.GetProfile()
+		}
+
 		outputMetadata = &document.RunmeMetadata{
 			Session: &document.RunmeMetadataSession{
 				ID: req.Options.Session.GetId(),
 			},
 			Document: &document.RunmeMetadataDocument{
 				RelativePath: relativePath,
+				Profile:      profile,
 			},
 		}
 
 	}
 
-	data, err := editor.Serialize(&editor.Notebook{
-		Cells:    cells,
-		Metadata: req.Notebook.Metadata,
-	}, outputMetadata, editor.Options{LoggerInstance: s.logger})
+	data, err := editor.Serialize(
+		&editor.Notebook{
+			Cells:    cells,
+			Metadata: req.Notebook.Metadata,
+		},
+		outputMetadata,
+		editor.Options{
+			LoggerInstance: s.logger,
+		},
+	)
 	if err != nil {
 		s.logger.Info("failed to call Serialize", zap.Error(err))
 		return nil, err

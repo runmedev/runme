@@ -332,6 +332,10 @@ func getConfigFromViper(v *viper.Viper) (*Config, error) {
 	return cfg, nil
 }
 
+func SystemShell() string {
+	return os.Getenv("SHELL")
+}
+
 func binHome(configDir string) string {
 	log := zapr.NewLogger(zap.L())
 	usr, err := user.Current()
@@ -395,6 +399,9 @@ type AssistantServerConfig struct {
 
 	// RunnerService starts the Runme runner service if true otherwise it doesn't start the runner service.
 	RunnerService bool `json:"runnerService" yaml:"runnerService"`
+
+	// RunnerReconnect is a flag to enable automatic reconnecting to the runner from the frontend.
+	RunnerReconnect bool `json:"runnerReconnect,omitempty" yaml:"runnerReconnect,omitempty"`
 
 	// ParserService starts the Runme parser service if true otherwise it doesn't start the parser service.
 	ParserService bool `json:"parserService" yaml:"parserService"`

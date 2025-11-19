@@ -11,7 +11,83 @@ import type { Message } from "@bufbuild/protobuf";
 export declare const file_agent_v1_webapp: GenFile;
 
 /**
- * WebAppConfig is the application configuration.
+ * InitialConfigState is the initial configuration state for the application, provided to the frontend.
+ *
+ * @generated from message agent.v1.InitialConfigState
+ */
+export declare type InitialConfigState = Message<"agent.v1.InitialConfigState"> & {
+  /**
+   * web_app is the configuration for the web application.
+   *
+   * @generated from field: agent.v1.WebAppConfig web_app = 1;
+   */
+  webApp?: WebAppConfig;
+
+  /**
+   * agent_endpoint is the API endpoint for the agent.
+   *
+   * @generated from field: string agent_endpoint = 2;
+   */
+  agentEndpoint: string;
+
+  /**
+   * require_auth specifies if authentication is required.
+   *
+   * @generated from field: bool require_auth = 3;
+   */
+  requireAuth: boolean;
+
+  /**
+   * system_shell is the default shell for system commands.
+   *
+   * @generated from field: string system_shell = 4;
+   */
+  systemShell: string;
+};
+
+/**
+ * InitialConfigState is the initial configuration state for the application, provided to the frontend.
+ *
+ * @generated from message agent.v1.InitialConfigState
+ */
+export declare type InitialConfigStateJson = {
+  /**
+   * web_app is the configuration for the web application.
+   *
+   * @generated from field: agent.v1.WebAppConfig web_app = 1;
+   */
+  webApp?: WebAppConfigJson;
+
+  /**
+   * agent_endpoint is the API endpoint for the agent.
+   *
+   * @generated from field: string agent_endpoint = 2;
+   */
+  agentEndpoint?: string;
+
+  /**
+   * require_auth specifies if authentication is required.
+   *
+   * @generated from field: bool require_auth = 3;
+   */
+  requireAuth?: boolean;
+
+  /**
+   * system_shell is the default shell for system commands.
+   *
+   * @generated from field: string system_shell = 4;
+   */
+  systemShell?: string;
+};
+
+/**
+ * Describes the message agent.v1.InitialConfigState.
+ * Use `create(InitialConfigStateSchema)` to create a new message.
+ */
+export declare const InitialConfigStateSchema: GenMessage<InitialConfigState, {jsonType: InitialConfigStateJson}>;
+
+/**
+ * WebAppConfig is the web application configuration.
  *
  * @generated from message agent.v1.WebAppConfig
  */
@@ -39,7 +115,7 @@ export declare type WebAppConfig = Message<"agent.v1.WebAppConfig"> & {
 };
 
 /**
- * WebAppConfig is the application configuration.
+ * WebAppConfig is the web application configuration.
  *
  * @generated from message agent.v1.WebAppConfig
  */

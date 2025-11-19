@@ -106,6 +106,7 @@ var formatters = map[string]formatter{
 
 type RunmeMetadataDocument struct {
 	RelativePath string `yaml:"relativePath,omitempty" json:"relativePath,omitempty" toml:"relativePath,omitempty"`
+	Profile      string `yaml:"profile,omitempty" json:"profile,omitempty" toml:"profile,omitempty"`
 }
 
 type RunmeMetadataSession struct {

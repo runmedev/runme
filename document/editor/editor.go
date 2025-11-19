@@ -22,6 +22,7 @@ const (
 type Options struct {
 	IdentityResolver *identity.IdentityResolver
 	LoggerInstance   *zap.Logger
+	Profile          string
 	Reset            bool
 }
 
@@ -178,7 +179,7 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata, opts 
 	}
 
 	// Serialize cells.
-	serializedCells, err := serializeCells(notebook.Cells, labelComment)
+	serializedCells, err := serializeCells(notebook.Cells, opts.Profile, labelComment)
 	if err != nil {
 		return nil, err
 	}

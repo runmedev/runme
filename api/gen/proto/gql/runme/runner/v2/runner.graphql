@@ -169,6 +169,15 @@ type ExecuteResponse {
 
 	"""
 	mimeType: String
+	"""
+	 pwd contains the current and previous working directories as set by shell.
+
+	"""
+	pwd: ExecuteResponse_Pwd
+}
+type ExecuteResponse_Pwd {
+	current: String
+	previous: String
 }
 enum ExecuteStop {
 	EXECUTE_STOP_UNSPECIFIED

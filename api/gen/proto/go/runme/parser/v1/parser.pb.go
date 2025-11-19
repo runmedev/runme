@@ -29,7 +29,8 @@ const (
 	CellKind_CELL_KIND_UNSPECIFIED CellKind = 0
 	CellKind_CELL_KIND_MARKUP      CellKind = 1
 	CellKind_CELL_KIND_CODE        CellKind = 2
-	CellKind_CELL_KIND_DOC_RESULTS CellKind = 3 // todo(sebastian): is this needed?
+	CellKind_CELL_KIND_DOC_RESULTS CellKind = 3 // Deprecated use CELL_KIND_TOOL instead
+	CellKind_CELL_KIND_TOOL        CellKind = 4
 )
 
 // Enum value maps for CellKind.
@@ -39,12 +40,14 @@ var (
 		1: "CELL_KIND_MARKUP",
 		2: "CELL_KIND_CODE",
 		3: "CELL_KIND_DOC_RESULTS",
+		4: "CELL_KIND_TOOL",
 	}
 	CellKind_value = map[string]int32{
 		"CELL_KIND_UNSPECIFIED": 0,
 		"CELL_KIND_MARKUP":      1,
 		"CELL_KIND_CODE":        2,
 		"CELL_KIND_DOC_RESULTS": 3,
+		"CELL_KIND_TOOL":        4,
 	}
 )
 
@@ -647,7 +650,7 @@ type Cell struct {
 	Role CellRole `protobuf:"varint,101,opt,name=role,proto3,enum=runme.parser.v1.CellRole" json:"role,omitempty"`
 	// CallID is the unique identifier of the cell call.
 	CallId string `protobuf:"bytes,102,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
-	// DocResults are doc results for a cell returned by, e.g., file search
+	// DocResults are doc results for a cell returned by, e.g., file search.
 	DocResults    []*DocResult `protobuf:"bytes,103,rep,name=doc_results,json=docResults,proto3" json:"doc_results,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1153,6 +1156,7 @@ type SerializeRequestOutputOptions struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	Summary       bool                   `protobuf:"varint,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	Profile       string                 `protobuf:"bytes,3,opt,name=profile,proto3" json:"profile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1199,6 +1203,13 @@ func (x *SerializeRequestOutputOptions) GetSummary() bool {
 		return x.Summary
 	}
 	return false
+}
+
+func (x *SerializeRequestOutputOptions) GetProfile() string {
+	if x != nil {
+		return x.Profile
+	}
+	return ""
 }
 
 type SerializeRequestOptions struct {
@@ -1432,10 +1443,11 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\x06source\x18\x01 \x01(\fR\x06source\x12D\n" +
 	"\aoptions\x18\x02 \x01(\v2*.runme.parser.v1.DeserializeRequestOptionsR\aoptions\"L\n" +
 	"\x13DeserializeResponse\x125\n" +
-	"\bnotebook\x18\x01 \x01(\v2\x19.runme.parser.v1.NotebookR\bnotebook\"S\n" +
+	"\bnotebook\x18\x01 \x01(\v2\x19.runme.parser.v1.NotebookR\bnotebook\"m\n" +
 	"\x1dSerializeRequestOutputOptions\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x18\n" +
-	"\asummary\x18\x02 \x01(\bR\asummary\"\x9c\x01\n" +
+	"\asummary\x18\x02 \x01(\bR\asummary\x12\x18\n" +
+	"\aprofile\x18\x03 \x01(\tR\aprofile\"\x9c\x01\n" +
 	"\x17SerializeRequestOptions\x12H\n" +
 	"\aoutputs\x18\x01 \x01(\v2..runme.parser.v1.SerializeRequestOutputOptionsR\aoutputs\x127\n" +
 	"\asession\x18\x02 \x01(\v2\x1d.runme.parser.v1.RunmeSessionR\asession\"\x8d\x01\n" +
@@ -1443,12 +1455,13 @@ const file_runme_parser_v1_parser_proto_rawDesc = "" +
 	"\bnotebook\x18\x01 \x01(\v2\x19.runme.parser.v1.NotebookR\bnotebook\x12B\n" +
 	"\aoptions\x18\x02 \x01(\v2(.runme.parser.v1.SerializeRequestOptionsR\aoptions\"+\n" +
 	"\x11SerializeResponse\x12\x16\n" +
-	"\x06result\x18\x01 \x01(\fR\x06result*j\n" +
+	"\x06result\x18\x01 \x01(\fR\x06result*~\n" +
 	"\bCellKind\x12\x19\n" +
 	"\x15CELL_KIND_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10CELL_KIND_MARKUP\x10\x01\x12\x12\n" +
 	"\x0eCELL_KIND_CODE\x10\x02\x12\x19\n" +
-	"\x15CELL_KIND_DOC_RESULTS\x10\x03*R\n" +
+	"\x15CELL_KIND_DOC_RESULTS\x10\x03\x12\x12\n" +
+	"\x0eCELL_KIND_TOOL\x10\x04*R\n" +
 	"\bCellRole\x12\x19\n" +
 	"\x15CELL_ROLE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eCELL_ROLE_USER\x10\x01\x12\x17\n" +

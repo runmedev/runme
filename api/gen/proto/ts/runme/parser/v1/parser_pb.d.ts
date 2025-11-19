@@ -204,7 +204,7 @@ export interface Cell {
      */
     callId: string;
     /**
-     * DocResults are doc results for a cell returned by, e.g., file search
+     * DocResults are doc results for a cell returned by, e.g., file search.
      *
      * @generated from protobuf field: repeated runme.parser.v1.DocResult doc_results = 103
      */
@@ -327,6 +327,10 @@ export interface SerializeRequestOutputOptions {
      * @generated from protobuf field: bool summary = 2
      */
     summary: boolean;
+    /**
+     * @generated from protobuf field: string profile = 3
+     */
+    profile: string;
 }
 /**
  * @generated from protobuf message runme.parser.v1.SerializeRequestOptions
@@ -380,11 +384,15 @@ export declare enum CellKind {
      */
     CODE = 2,
     /**
-     * todo(sebastian): is this needed?
+     * Deprecated use CELL_KIND_TOOL instead
      *
      * @generated from protobuf enum value: CELL_KIND_DOC_RESULTS = 3;
      */
-    DOC_RESULTS = 3
+    DOC_RESULTS = 3,
+    /**
+     * @generated from protobuf enum value: CELL_KIND_TOOL = 4;
+     */
+    TOOL = 4
 }
 /**
  * @generated from protobuf enum runme.parser.v1.CellRole

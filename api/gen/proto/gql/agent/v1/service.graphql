@@ -89,7 +89,7 @@ type Cell {
 	"""
 	callId: String
 	"""
-	 DocResults are doc results for a cell returned by, e.g., file search
+	 DocResults are doc results for a cell returned by, e.g., file search.
 
 	"""
 	docResults: [DocResult!]
@@ -156,7 +156,7 @@ input CellInput {
 	"""
 	callId: String
 	"""
-	 DocResults are doc results for a cell returned by, e.g., file search
+	 DocResults are doc results for a cell returned by, e.g., file search.
 
 	"""
 	docResults: [DocResultInput!]
@@ -166,10 +166,11 @@ enum CellKind {
 	CELL_KIND_MARKUP
 	CELL_KIND_CODE
 	"""
-	 todo(sebastian): is this needed?
+	 Deprecated use CELL_KIND_TOOL instead
 
 	"""
 	CELL_KIND_DOC_RESULTS
+	CELL_KIND_TOOL
 }
 type CellOutput {
 	items: [CellOutputItem!]

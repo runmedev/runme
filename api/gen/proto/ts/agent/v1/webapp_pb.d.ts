@@ -10,7 +10,38 @@ import type { IBinaryReader } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 /**
- * WebAppConfig is the application configuration.
+ * InitialConfigState is the initial configuration state for the application, provided to the frontend.
+ *
+ * @generated from protobuf message agent.v1.InitialConfigState
+ */
+export interface InitialConfigState {
+    /**
+     * web_app is the configuration for the web application.
+     *
+     * @generated from protobuf field: agent.v1.WebAppConfig web_app = 1
+     */
+    webApp?: WebAppConfig;
+    /**
+     * agent_endpoint is the API endpoint for the agent.
+     *
+     * @generated from protobuf field: string agent_endpoint = 2
+     */
+    agentEndpoint: string;
+    /**
+     * require_auth specifies if authentication is required.
+     *
+     * @generated from protobuf field: bool require_auth = 3
+     */
+    requireAuth: boolean;
+    /**
+     * system_shell is the default shell for system commands.
+     *
+     * @generated from protobuf field: string system_shell = 4
+     */
+    systemShell: string;
+}
+/**
+ * WebAppConfig is the web application configuration.
  *
  * @generated from protobuf message agent.v1.WebAppConfig
  */
@@ -34,6 +65,16 @@ export interface WebAppConfig {
      */
     invertedOrder?: boolean;
 }
+declare class InitialConfigState$Type extends MessageType<InitialConfigState> {
+    constructor();
+    create(value?: PartialMessage<InitialConfigState>): InitialConfigState;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InitialConfigState): InitialConfigState;
+    internalBinaryWrite(message: InitialConfigState, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message agent.v1.InitialConfigState
+ */
+export declare const InitialConfigState: InitialConfigState$Type;
 declare class WebAppConfig$Type extends MessageType<WebAppConfig> {
     constructor();
     create(value?: PartialMessage<WebAppConfig>): WebAppConfig;

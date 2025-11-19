@@ -144,6 +144,7 @@ proto/_generate:
 	buf format -w
 	buf generate
 	echo '{"type":"module","name":"@buf/runmedev_runme.bufbuild_es","dependencies":{"@buf/bufbuild_protovalidate.bufbuild_es":"2.9.0-20250912141014-52f32327d4b0.1","@buf/googleapis_googleapis.bufbuild_es":"2.9.0-20251009205305-72c8614f3bd0.1","@bufbuild/protobuf":"2.9.0"}}' > api/gen/proto/es/package.json
+	cd api/gen/proto/es && npm install
 
 .PHONY: proto/clean
 proto/clean:

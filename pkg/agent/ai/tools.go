@@ -1,6 +1,6 @@
 package ai
 
-type ShellArgs struct {
+type CodeArgs struct {
 	Code     string `json:"code"`
 	Language string `json:"language"`
 }

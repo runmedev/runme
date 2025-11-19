@@ -415,7 +415,7 @@ export declare type Cell = Message<"runme.parser.v1.Cell"> & {
   callId: string;
 
   /**
-   * DocResults are doc results for a cell returned by, e.g., file search
+   * DocResults are doc results for a cell returned by, e.g., file search.
    *
    * @generated from field: repeated runme.parser.v1.DocResult doc_results = 103;
    */
@@ -497,7 +497,7 @@ export declare type CellJson = {
   callId?: string;
 
   /**
-   * DocResults are doc results for a cell returned by, e.g., file search
+   * DocResults are doc results for a cell returned by, e.g., file search.
    *
    * @generated from field: repeated runme.parser.v1.DocResult doc_results = 103;
    */
@@ -809,6 +809,11 @@ export declare type SerializeRequestOutputOptions = Message<"runme.parser.v1.Ser
    * @generated from field: bool summary = 2;
    */
   summary: boolean;
+
+  /**
+   * @generated from field: string profile = 3;
+   */
+  profile: string;
 };
 
 /**
@@ -824,6 +829,11 @@ export declare type SerializeRequestOutputOptionsJson = {
    * @generated from field: bool summary = 2;
    */
   summary?: boolean;
+
+  /**
+   * @generated from field: string profile = 3;
+   */
+  profile?: string;
 };
 
 /**
@@ -950,17 +960,22 @@ export enum CellKind {
   CODE = 2,
 
   /**
-   * todo(sebastian): is this needed?
+   * Deprecated use CELL_KIND_TOOL instead
    *
    * @generated from enum value: CELL_KIND_DOC_RESULTS = 3;
    */
   DOC_RESULTS = 3,
+
+  /**
+   * @generated from enum value: CELL_KIND_TOOL = 4;
+   */
+  TOOL = 4,
 }
 
 /**
  * @generated from enum runme.parser.v1.CellKind
  */
-export declare type CellKindJson = "CELL_KIND_UNSPECIFIED" | "CELL_KIND_MARKUP" | "CELL_KIND_CODE" | "CELL_KIND_DOC_RESULTS";
+export declare type CellKindJson = "CELL_KIND_UNSPECIFIED" | "CELL_KIND_MARKUP" | "CELL_KIND_CODE" | "CELL_KIND_DOC_RESULTS" | "CELL_KIND_TOOL";
 
 /**
  * Describes the enum runme.parser.v1.CellKind.

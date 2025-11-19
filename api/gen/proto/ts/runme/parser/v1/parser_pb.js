@@ -35,11 +35,15 @@ export var CellKind;
      */
     CellKind[CellKind["CODE"] = 2] = "CODE";
     /**
-     * todo(sebastian): is this needed?
+     * Deprecated use CELL_KIND_TOOL instead
      *
      * @generated from protobuf enum value: CELL_KIND_DOC_RESULTS = 3;
      */
     CellKind[CellKind["DOC_RESULTS"] = 3] = "DOC_RESULTS";
+    /**
+     * @generated from protobuf enum value: CELL_KIND_TOOL = 4;
+     */
+    CellKind[CellKind["TOOL"] = 4] = "TOOL";
 })(CellKind || (CellKind = {}));
 /**
  * @generated from protobuf enum runme.parser.v1.CellRole
@@ -1129,13 +1133,15 @@ class SerializeRequestOutputOptions$Type extends MessageType {
     constructor() {
         super("runme.parser.v1.SerializeRequestOutputOptions", [
             { no: 1, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "summary", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 2, name: "summary", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value) {
         const message = globalThis.Object.create((this.messagePrototype));
         message.enabled = false;
         message.summary = false;
+        message.profile = "";
         if (value !== undefined)
             reflectionMergePartial(this, message, value);
         return message;
@@ -1150,6 +1156,9 @@ class SerializeRequestOutputOptions$Type extends MessageType {
                     break;
                 case /* bool summary */ 2:
                     message.summary = reader.bool();
+                    break;
+                case /* string profile */ 3:
+                    message.profile = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1169,6 +1178,9 @@ class SerializeRequestOutputOptions$Type extends MessageType {
         /* bool summary = 2; */
         if (message.summary !== false)
             writer.tag(2, WireType.Varint).bool(message.summary);
+        /* string profile = 3; */
+        if (message.profile !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.profile);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

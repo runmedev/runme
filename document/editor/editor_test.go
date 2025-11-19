@@ -336,6 +336,98 @@ A paragraph
 	assert.Equal(t, doc.RelativePath, rpath)
 }
 
+func TestEditor_OutputProfileAgent(t *testing.T) {
+	nb := &Notebook{
+		Cells: []*Cell{
+			{
+				Kind:  MarkupKind,
+				Role:  CellRoleUser,
+				Value: "what's running in us-west-1 ec2?",
+				Metadata: map[string]string{
+					"refId": "user_d5cc7eb1-ef80-4fe0-b2a6-6f8115667508",
+				},
+			},
+			{
+				Kind:       CodeKind,
+				Role:       CellRoleAssistant,
+				Value:      "aws ec2 describe-instances --region us-west-1 --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,Tags:Tags,InstanceType:InstanceType,PublicIpAddress:PublicIpAddress,PrivateIpAddress:PrivateIpAddress}' --output json",
+				LanguageID: "shell",
+				Metadata: map[string]string{
+					"runme.dev/id": "fc_0e6c55f00f30e6ae00691e30cb7cdc81a285972219dac4cb34",
+				},
+				Outputs: []*CellOutput{},
+			},
+			{
+				Kind:  MarkupKind,
+				Role:  CellRoleUser,
+				Value: "ditch tags",
+				Metadata: map[string]string{
+					"refId": "user_7aaaef20-0a0c-465b-ba27-2d19d02404df",
+				},
+			},
+			{
+				Kind:       CodeKind,
+				Role:       CellRoleAssistant,
+				Value:      "aws ec2 describe-instances --region us-west-1 --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,InstanceType:InstanceType,PublicIpAddress:PublicIpAddress,PrivateIpAddress:PrivateIpAddress}' --output json",
+				LanguageID: "shell",
+				Metadata: map[string]string{
+					"runme.dev/id": "fc_0e6c55f00f30e6ae00691e30d049f481a2b423e4ea43774022",
+				},
+				Outputs: []*CellOutput{
+					{
+						Items: []*CellOutputItem{
+							{
+								Data: "",
+								Type: "Buffer",
+								Mime: "application/vnd.code.notebook.stdout",
+							},
+						},
+						ProcessInfo: &CellOutputProcessInfo{
+							ExitReason: &ProcessInfoExitReason{
+								Type: "exit",
+								Code: 0,
+							},
+							Pid: 54333,
+						},
+					},
+				},
+				ExecutionSummary: &CellExecutionSummary{
+					ExecutionOrder: 1,
+					Success:        true,
+					Timing: &ExecutionSummaryTiming{
+						StartTime: 1763586257383,
+						EndTime:   1763586262148,
+					},
+				},
+			},
+			{
+				Kind:  MarkupKind,
+				Role:  CellRoleAssistant,
+				Value: "The following EC2 instance is currently running in the us-west-1 region:\n\n- InstanceId: i-046bd1982e81573e8\n- State: running\n- InstanceType: t3.micro\n- Public IP Address: 3.101.34.68\n- Private IP Address: 172.31.24.191\n\nLet me know if you need more details or actions performed on this instance!",
+				Metadata: map[string]string{
+					"runme.dev/id": "msg_0e6c55f00f30e6ae00691e30d591a881a2bf88ba29a91cd4c3",
+				},
+			},
+		},
+	}
+
+	t.Run("SerializeAgentProfile", func(t *testing.T) {
+		actual, err := Serialize(nb, nil, Options{Profile: OutputProfileAgent})
+		require.NoError(t, err)
+
+		expected := "> what's running in us-west-1 ec2?\n\n```shell\naws ec2 describe-instances --region us-west-1 --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,Tags:Tags,InstanceType:InstanceType,PublicIpAddress:PublicIpAddress,PrivateIpAddress:PrivateIpAddress}' --output json\n```\n\n> ditch tags\n\n```shell\naws ec2 describe-instances --region us-west-1 --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,InstanceType:InstanceType,PublicIpAddress:PublicIpAddress,PrivateIpAddress:PrivateIpAddress}' --output json\n\n# Ran on 2025-11-19 21:04:17Z for 4.765s exited with 0\n```\n\nThe following EC2 instance is currently running in the us-west-1 region:\n\n- InstanceId: i-046bd1982e81573e8\n- State: running\n- InstanceType: t3.micro\n- Public IP Address: 3.101.34.68\n- Private IP Address: 172.31.24.191\n\nLet me know if you need more details or actions performed on this instance!\n"
+		assert.Equal(t, expected, string(actual))
+	})
+
+	t.Run("SerializeDefaultProfile", func(t *testing.T) {
+		actual, err := Serialize(nb, nil, Options{})
+		require.NoError(t, err)
+
+		expected := "what's running in us-west-1 ec2?\n\n```shell\naws ec2 describe-instances --region us-west-1 --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,Tags:Tags,InstanceType:InstanceType,PublicIpAddress:PublicIpAddress,PrivateIpAddress:PrivateIpAddress}' --output json\n```\n\nditch tags\n\n```shell\naws ec2 describe-instances --region us-west-1 --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,InstanceType:InstanceType,PublicIpAddress:PublicIpAddress,PrivateIpAddress:PrivateIpAddress}' --output json\n\n# Ran on 2025-11-19 21:04:17Z for 4.765s exited with 0\n```\n\nThe following EC2 instance is currently running in the us-west-1 region:\n\n- InstanceId: i-046bd1982e81573e8\n- State: running\n- InstanceType: t3.micro\n- Public IP Address: 3.101.34.68\n- Private IP Address: 172.31.24.191\n\nLet me know if you need more details or actions performed on this instance!\n"
+		assert.Equal(t, expected, string(actual))
+	})
+}
+
 func TestEditor_Newlines(t *testing.T) {
 	data := []byte(`## Newline debugging
 

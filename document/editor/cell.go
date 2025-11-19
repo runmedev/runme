@@ -21,8 +21,11 @@ import (
 const (
 	InternalAttributePrefix = "runme.dev"
 	PrivateAttributePrefix  = "_"
+	OutputProfileAgent      = "agent"
+	OutputProfileDefault    = ""
 	defaultAttributeFormat  = "json"
 	labelCommentPreamble    = "### Exported in runme.dev as "
+	quoteBlockUser          = "> "
 )
 
 type CellKind int
@@ -30,6 +33,14 @@ type CellKind int
 const (
 	MarkupKind CellKind = iota + 1
 	CodeKind
+)
+
+type CellRole int
+
+const (
+	CellRoleUnspecified CellRole = iota
+	CellRoleUser
+	CellRoleAssistant
 )
 
 type TextRange struct {
@@ -41,6 +52,7 @@ type TextRange struct {
 // https://github.com/microsoft/vscode/blob/085c409898bbc89c83409f6a394e73130b932add/src/vscode-dts/vscode.d.ts#L13715
 type Cell struct {
 	Kind             CellKind              `json:"kind"`
+	Role             CellRole              `json:"role"`
 	Value            string                `json:"value"`
 	LanguageID       string                `json:"languageId"`
 	Metadata         map[string]string     `json:"metadata,omitempty"`
@@ -322,7 +334,7 @@ func removeAnsiCodes(str string) string {
 	return re.ReplaceAllString(str, "")
 }
 
-func serializeCells(cells []*Cell, labelComment bool) ([]byte, error) {
+func serializeCells(cells []*Cell, profile string, labelComment bool) ([]byte, error) {
 	var buf bytes.Buffer
 
 	for idx, cell := range cells {
@@ -334,6 +346,10 @@ func serializeCells(cells []*Cell, labelComment bool) ([]byte, error) {
 			}
 
 		case MarkupKind:
+			if profile == OutputProfileAgent && cell.Role == CellRoleUser {
+				_, _ = buf.WriteString(quoteBlockUser + cell.Value + "\n")
+				break
+			}
 			_, _ = buf.WriteString(cell.Value)
 		}
 

@@ -32,7 +32,7 @@ const (
 	DefaultInstructions = `You are an internal Cloud Assistant. Your job is to help developers deploy and operate
 their software on their Company's internal cloud. The Cloud consists of Kubernetes clusters, Azure, GitHub, etc...
 uses Datadog for monitoring. You have access to CLIs like kubectl, gh, yq, jq, git, az, bazel, curl, wget, etc...
-If you need a user to run a command to act or observe the cloud you should respond with the shell tool call.
+If you need a user to run a command to act or observe the cloud you should respond with the code tool call.
 You also have access to internal documentation which you can use to search for information about
 how to use the cloud.
 
@@ -42,29 +42,29 @@ it themselves.
 
 Follow these rules
 * Do not rely on outdated documents for determining the status of systems and services.
-* Do use the shell tool to run commands to observe the current status of the Cloud
+* Do use the code tool to run shell commands to observe the current status of the Cloud
 `
 
-	DefaultShellToolDescription = `The shell tool executes CLIs (e.g. kubectl, gh, yq, jq, git, az, bazel, curl, wget, etc...
+	DefaultCodeToolDescription = `The cool tool executes CLIs (e.g. kubectl, gh, yq, jq, git, az, bazel, curl, wget, etc...
 These CLIs can be used to act and observe on the cloud (Kubernetes, GitHub, Azure, etc...).
 The input is a short bash program that can be executed. Additional CLIs can be installed by running the appropriate
 commands.
 
-The output of the shell tool is a JSON object with the fields "stderr" and "stdout" containing the output of the
+The output of the code tool is a JSON object with the fields "stderr" and "stdout" containing the output of the
 command. If neither of these fields are set then the user hasn't executed the command yet.
 `
 
-	ShellToolName = "shell"
+	CodeToolName = "code"
 )
 
 // Agent implements the AI Service
 // https://buf.build/jlewi/foyle/file/main:foyle/v1alpha1/agent.proto#L44
 type Agent struct {
-	Client               *openai.Client
-	instructions         string
-	shellToolDescription string
-	vectorStoreIDs       []string
-	filenameToLink       func(string) string
+	Client              *openai.Client
+	instructions        string
+	codeToolDescription string
+	vectorStoreIDs      []string
+	filenameToLink      func(string) string
 
 	// responseCache is a cache to store the mapping from the previous response ID to the cell IDs for function calling
 	responseCache *lru.Cache[string, []string]
@@ -83,8 +83,8 @@ type AgentOptions struct {
 	Client       *openai.Client
 	// Instructions are the prompt to use when generating responses
 	Instructions string
-	// ShellToolDescription is the description of the shell tool.
-	ShellToolDescription string
+	// CodeToolDescription is the description of the code tool.
+	CodeToolDescription string
 
 	// FilenameToLink is an optional function that converts a filename to a link to be displayed in the UI.
 	FilenameToLink func(string) string
@@ -118,9 +118,9 @@ func NewAgent(opts AgentOptions) (*Agent, error) {
 		log.Info("Using default system prompt")
 	}
 
-	if opts.ShellToolDescription == "" {
-		opts.ShellToolDescription = DefaultShellToolDescription
-		log.Info("Using default shell tool description")
+	if opts.CodeToolDescription == "" {
+		opts.CodeToolDescription = DefaultCodeToolDescription
+		log.Info("Using default code tool description")
 	}
 
 	// Create a cache to store the mapping from the previous response ID to the cell IDs for function calling
@@ -138,21 +138,21 @@ func NewAgent(opts AgentOptions) (*Agent, error) {
 	log.Info("Creating Agent", "options", opts)
 
 	return &Agent{
-		Client:               opts.Client,
-		instructions:         opts.Instructions,
-		shellToolDescription: opts.ShellToolDescription,
-		filenameToLink:       opts.FilenameToLink,
-		vectorStoreIDs:       opts.VectorStores,
-		responseCache:        responseCache,
-		cellsCache:           cellsCache,
-		useOAuth:             opts.UseOAuth,
-		model:                opts.Model,
+		Client:              opts.Client,
+		instructions:        opts.Instructions,
+		codeToolDescription: opts.CodeToolDescription,
+		filenameToLink:      opts.FilenameToLink,
+		vectorStoreIDs:      opts.VectorStores,
+		responseCache:       responseCache,
+		cellsCache:          cellsCache,
+		useOAuth:            opts.UseOAuth,
+		model:               opts.Model,
 	}, nil
 }
 
-var shellToolJSONSchema = map[string]any{
+var codeToolJSONSchema = map[string]any{
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"title":   "Shell Function Schema",
+	"title":   "Code Function Schema",
 	"type":    "object",
 	"properties": map[string]interface{}{
 		"code": map[string]interface{}{
@@ -162,7 +162,7 @@ var shellToolJSONSchema = map[string]any{
 		"language": map[string]interface{}{
 			"type": "string",
 			"description": `The language the code is written in.
-			Use "shell" if its a shell script.`,
+			Use "shell" if its a shell script otherwise use the appropriate language identifier.`,
 		},
 	},
 	"required":             []string{"code", "language"},
@@ -199,16 +199,16 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 		}
 		tools = append(tools, tool)
 	}
-	shellTool := &responses.FunctionToolParam{
-		Name:        ShellToolName,
-		Description: openai.Opt(a.shellToolDescription),
-		Parameters:  shellToolJSONSchema,
+	codeTool := &responses.FunctionToolParam{
+		Name:        CodeToolName,
+		Description: openai.Opt(a.codeToolDescription),
+		Parameters:  codeToolJSONSchema,
 		// N.B. I'm not sure what the point of strict would be since we have a single string argument.
 		Strict: openai.Opt(false),
 	}
 
 	tool := responses.ToolUnionParam{
-		OfFunction: shellTool,
+		OfFunction: codeTool,
 	}
 	tools = append(tools, tool)
 	// TODO(jlewi): We should add websearch
@@ -265,14 +265,14 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 				return connect.NewError(connect.CodeInternal, errors.Wrap(err, "Failed to marshal output"))
 			}
 
-			shellArgs := &ShellArgs{
+			codeArgs := &CodeArgs{
 				Code:     c.Value,
 				Language: c.LanguageId,
 			}
 
-			shellArgsJSON, err := json.Marshal(shellArgs)
+			codeArgsJSON, err := json.Marshal(codeArgs)
 			if err != nil {
-				return connect.NewError(connect.CodeInternal, errors.Wrap(err, "Failed to marshal shell args"))
+				return connect.NewError(connect.CodeInternal, errors.Wrap(err, "Failed to marshal code args"))
 			}
 
 			// The CallID will be blank if it wasn't generated by the model.
@@ -288,8 +288,8 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 				OfFunctionCall: &responses.ResponseFunctionToolCallParam{
 					// TODO(jlewi): What if the model didn't tell us to call that function?
 					CallID:    c.CallId,
-					Name:      ShellToolName,
-					Arguments: string(shellArgsJSON),
+					Name:      CodeToolName,
+					Arguments: string(codeArgsJSON),
 				},
 			})
 

@@ -55,7 +55,8 @@ enum CellKind {
   CELL_KIND_UNSPECIFIED = 0;
   CELL_KIND_MARKUP = 1;
   CELL_KIND_CODE = 2;
-  CELL_KIND_DOC_RESULTS = 3; // todo(sebastian): is this needed?
+  CELL_KIND_DOC_RESULTS = 3; // Deprecated use CELL_KIND_TOOL instead
+  CELL_KIND_TOOL = 4;
 }
 
 enum CellRole {
@@ -97,7 +98,7 @@ message Cell {
   // CallID is the unique identifier of the cell call.
   string call_id = 102;
 
-  // DocResults are doc results for a cell returned by, e.g., file search
+  // DocResults are doc results for a cell returned by, e.g., file search.
   repeated DocResult doc_results = 103;
 }
 
@@ -151,6 +152,7 @@ message DeserializeResponse {
 message SerializeRequestOutputOptions {
   bool enabled = 1;
   bool summary = 2;
+  string profile = 3;
 }
 
 message SerializeRequestOptions {
