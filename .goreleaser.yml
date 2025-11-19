@@ -117,7 +117,7 @@ nfpms:
     package_name: runme
     builds:
       - cli
-    vendor: Stateful Inc.
+    vendor: Runme
     homepage: https://runme.dev
     maintainer: Sebastian Huckleberry <sebastiantiedtke@gmail.com>
     description: "Execute your runbooks, docs, and READMEs."
