@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"time"
 
 	"connectrpc.com/connect"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/openai/openai-go/packages/ssestream"
 	"github.com/openai/openai-go/responses"
@@ -35,7 +37,8 @@ type CellsBuilder struct {
 	// call_ids are provided on response.output_item.added and response.output_item.done events but not
 	// response.function_call_arguments.delta. So we cache them in order to be able to always include the CallID
 	// in cells.
-	idToCallID map[string]string
+	idToCallID   map[string]string
+	idToCallName map[string]string
 
 	// Map from cell ID to cell
 	cells map[string]*parserv1.Cell
@@ -49,6 +52,7 @@ func NewCellsBuilder(filenameToLink func(string) string, responseCache *lru.Cach
 		responseCache:  responseCache,
 		cellsCache:     cellsCache,
 		idToCallID:     make(map[string]string),
+		idToCallName:   make(map[string]string),
 	}
 }
 
@@ -138,11 +142,19 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 		Cells:      make([]*parserv1.Cell, 0, 5),
 	}
 
+	if toolCell, err := b.trackCustomToolEvent(ctx, e); err != nil {
+		log.Error(err, "Error processing tool event")
+		return connect.NewError(connect.CodeInternal, errors.Wrapf(err, "Error processing tool event"))
+	} else if toolCell != nil {
+		resp.Cells = append(resp.Cells, toolCell)
+	}
+
 	switch e.AsAny().(type) {
 	case responses.ResponseOutputItemAddedEvent:
 		item := e.AsResponseOutputItemAdded()
 		if item.Item.CallID != "" {
 			b.idToCallID[item.Item.ID] = item.Item.CallID
+			b.idToCallName[item.Item.ID] = item.Item.Name
 		}
 	case responses.ResponseContentPartDoneEvent:
 		log.Info(e.Type, "event", e)
@@ -180,12 +192,16 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 		if itemID == "" {
 			return errors.New("function call arguments delta has no item ID")
 		}
+
+		callName, callNameOK := b.idToCallName[itemID]
+		if callNameOK && callName != "" && item.Delta == "{}" {
+			break // skip editor tool calls
+		}
+
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		var cell *parserv1.Cell
-
 		callID, callIDOK := b.idToCallID[itemID]
-
 		if !callIDOK {
 			// The call ID should come from the ResponseOutputItemAddedEvent so either there was no
 			// ResponseOutputItemAddedEvent or it was missing a call_id.
@@ -220,6 +236,12 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 		if itemID == "" {
 			return errors.New("function call arguments delta has no item ID")
 		}
+
+		callName, callNameOK := b.idToCallName[itemID]
+		if callNameOK && callName != "" && item.Arguments == "{}" {
+			break // skip editor tool calls
+		}
+
 		callID, callIDok := b.idToCallID[itemID]
 
 		if !callIDok {
@@ -227,6 +249,7 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 			// ResponseOutputItemAddedEvent or it was missing a call_id.
 			return errors.New("function call arguments delta has no call ID")
 		}
+
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		var cell *parserv1.Cell
@@ -247,7 +270,7 @@ func (b *CellsBuilder) ProcessEvent(ctx context.Context, e responses.ResponseStr
 			b.cells[itemID] = cell
 		}
 
-		shellArgs := &ShellArgs{}
+		shellArgs := &CodeArgs{}
 		if err := json.Unmarshal([]byte(e.Arguments), shellArgs); err != nil {
 			log.Error(err, "Failed to unmarshal shell arguments", "delta", e.Arguments)
 			cell.Value = e.Arguments
@@ -298,6 +321,8 @@ func (b *CellsBuilder) itemDoneToCell(ctx context.Context, item responses.Respon
 		// For regular output messages we want to parse out any code cells and turn them into code cells
 		// so they get rendered as executable code. This is a bit of a hack to make them executable.
 		m := item.AsMessage()
+
+		// Collect all code cells from all messages and merge consecutive ones with the same LanguageId
 		for _, message := range m.Content {
 			if message.Text == "" {
 				continue
@@ -310,9 +335,36 @@ func (b *CellsBuilder) itemDoneToCell(ctx context.Context, item responses.Respon
 			}
 
 			for _, c := range parsedCells {
-				if c.Kind == parserv1.CellKind_CELL_KIND_CODE {
-					results = append(results, c)
+				if c.Kind != parserv1.CellKind_CELL_KIND_CODE {
+					continue
 				}
+
+				// If no LanguageId, skip because it reading back from output
+				if c.LanguageId == "" {
+					continue
+				}
+
+				// Check if we can merge with the previous cell
+				if len(results) > 0 {
+					lastCell := results[len(results)-1]
+					// Merge if last cell is code and has the same LanguageId
+					if lastCell.Kind == parserv1.CellKind_CELL_KIND_CODE &&
+						lastCell.LanguageId == c.LanguageId &&
+						lastCell.LanguageId != "" {
+						// Merge into previous cell by concatenating values with newline
+						if c.Value != "" {
+							if lastCell.Value != "" {
+								lastCell.Value += "\n\n" + c.Value
+							} else {
+								lastCell.Value = c.Value
+							}
+						}
+						continue
+					}
+				}
+
+				// Add as new cell
+				results = append(results, c)
 			}
 		}
 		return results, nil
@@ -333,12 +385,13 @@ func (b *CellsBuilder) fileSearchDoneItemToCell(ctx context.Context, item respon
 	cell, ok = b.cells[item.ID]
 	if !ok {
 		cell = &parserv1.Cell{
+			Value: "file_search",
 			RefId: item.ID,
 			Metadata: map[string]string{
 				converters.IdField:      item.ID,
 				converters.RunmeIdField: item.ID,
 			},
-			Kind:       parserv1.CellKind_CELL_KIND_DOC_RESULTS,
+			Kind:       parserv1.CellKind_CELL_KIND_TOOL,
 			Role:       parserv1.CellRole_CELL_ROLE_ASSISTANT,
 			DocResults: make([]*parserv1.DocResult, 0),
 		}
@@ -371,4 +424,104 @@ func (b *CellsBuilder) fileSearchDoneItemToCell(ctx context.Context, item respon
 	}
 
 	return cell, nil
+}
+
+func (b *CellsBuilder) trackCustomToolEvent(ctx context.Context, e responses.ResponseStreamEventUnion) (*parserv1.Cell, error) {
+	log := logs.FromContext(ctx)
+	// N.B. Only interested in tool events where the item ID is set.
+	if e.ItemID == "" {
+		return nil, nil
+	}
+
+	toolCallName, nok := b.idToCallName[e.ItemID]
+	toolID := "tool_" + e.ItemID
+	// No name means built-in tool, use the original item ID
+	if !nok {
+		toolCallName = "file_search"
+		toolID = e.ItemID
+	}
+
+	toolCell, cok := b.cells[toolID]
+
+	if !cok {
+		toolCell = &parserv1.Cell{
+			Value:  toolCallName,
+			RefId:  toolID,
+			CallId: e.ItemID,
+			Metadata: map[string]string{
+				converters.IdField:      toolID,
+				converters.RunmeIdField: toolID,
+			},
+			Kind: parserv1.CellKind_CELL_KIND_TOOL,
+			Role: parserv1.CellRole_CELL_ROLE_ASSISTANT,
+			ExecutionSummary: &parserv1.CellExecutionSummary{
+				Success: nil,
+				Timing: &parserv1.ExecutionSummaryTiming{
+					StartTime: nil,
+					EndTime:   nil,
+				},
+			},
+		}
+	}
+
+	// switch e.AsAny().(type) {
+	// case responses.ResponseFileSearchCallCompletedEvent,
+	// 	responses.ResponseFileSearchCallSearchingEvent,
+	// 	responses.ResponseFileSearchCallInProgressEvent:
+	// 	toolCell.Value += "file_search"
+	// }
+
+	log.Info("Tracking tool event", "eventType", e.Type)
+	switch e.AsAny().(type) {
+	// "Completed" events
+	case
+		// responses.ResponseTextDeltaEvent,
+		responses.ResponseFunctionCallArgumentsDoneEvent,
+		responses.ResponseMcpCallArgumentsDoneEvent,
+		responses.ResponseCodeInterpreterCallCodeDoneEvent,
+		responses.ResponseCodeInterpreterCallCompletedEvent,
+		responses.ResponseFileSearchCallCompletedEvent,
+		responses.ResponseWebSearchCallCompletedEvent,
+		responses.ResponseImageGenCallCompletedEvent,
+		responses.ResponseMcpCallCompletedEvent,
+		responses.ResponseMcpListToolsCompletedEvent,
+		responses.ResponseMcpCallFailedEvent,
+		responses.ResponseMcpListToolsFailedEvent:
+		// responses.ResponseOutputTextAnnotationAddedEvent:
+		if toolCell.ExecutionSummary == nil || toolCell.ExecutionSummary.Timing == nil {
+			return nil, errors.New("tool cell has no execution summary or timing")
+		}
+		toolCell.ExecutionSummary.Timing.EndTime = &wrappers.Int64Value{Value: time.Now().UnixMilli()}
+		toolCell.ExecutionSummary.Success = &wrappers.BoolValue{Value: true}
+	// "Progress" events
+	case
+		// responses.ResponseTextDoneEvent,
+		responses.ResponseFunctionCallArgumentsDeltaEvent,
+		responses.ResponseMcpCallArgumentsDeltaEvent,
+		responses.ResponseFileSearchCallSearchingEvent,
+		responses.ResponseWebSearchCallSearchingEvent,
+		responses.ResponseCodeInterpreterCallInterpretingEvent,
+		responses.ResponseCodeInterpreterCallCodeDeltaEvent,
+		responses.ResponseCodeInterpreterCallInProgressEvent,
+		responses.ResponseFileSearchCallInProgressEvent,
+		responses.ResponseWebSearchCallInProgressEvent,
+		responses.ResponseImageGenCallInProgressEvent,
+		responses.ResponseMcpCallInProgressEvent,
+		responses.ResponseMcpListToolsInProgressEvent,
+		responses.ResponseImageGenCallPartialImageEvent:
+		if toolCell.ExecutionSummary.Timing.StartTime == nil {
+			toolCell.ExecutionSummary.Timing.StartTime = &wrappers.Int64Value{Value: time.Now().UnixMilli()}
+		}
+	// Ignore other non-tool relevant events
+	default:
+		return nil, nil
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if !cok {
+		b.cells[toolID] = toolCell
+	}
+
+	return toolCell, nil
 }

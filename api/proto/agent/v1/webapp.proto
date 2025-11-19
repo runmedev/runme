@@ -4,7 +4,22 @@ package agent.v1;
 
 option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agentv1";
 
-// WebAppConfig is the application configuration.
+// InitialConfigState is the initial configuration state for the application, provided to the frontend.
+message InitialConfigState {
+  // web_app is the configuration for the web application.
+  WebAppConfig web_app = 1;
+
+  // agent_endpoint is the API endpoint for the agent.
+  string agent_endpoint = 2;
+
+  // require_auth specifies if authentication is required.
+  bool require_auth = 3;
+
+  // system_shell is the default shell for system commands.
+  string system_shell = 4;
+}
+
+// WebAppConfig is the web application configuration.
 message WebAppConfig {
   // runner is the address of the runner that the application should use.
   string runner = 1;

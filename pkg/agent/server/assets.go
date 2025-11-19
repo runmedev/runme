@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"embed"
-	"encoding/json"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -11,13 +10,14 @@ import (
 
 	"github.com/jlewi/monogo/helpers"
 
-	"github.com/runmedev/runme/v3/pkg/agent/logs"
-
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	"github.com/runmedev/runme/v3/pkg/agent/config"
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
 
 	"github.com/go-logr/zapr"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 //go:embed dist/index.*
@@ -67,17 +67,17 @@ func (s *Server) processIndexHTMLWithConfig(assetsFS fs.FS) ([]byte, error) {
 	}
 	content := buf.Bytes()
 
-	type initialState struct {
-		RequireAuth  bool                  `json:"requireAuth"`
-		WebAppConfig *agentv1.WebAppConfig `json:"webApp,omitempty"`
+	state := agentv1.InitialConfigState{
+		WebApp:      s.webAppConfig,
+		RequireAuth: false,
+		SystemShell: config.SystemShell(),
 	}
 
-	state := initialState{RequireAuth: false, WebAppConfig: s.webAppConfig}
 	if s.serverConfig.OIDC != nil {
 		state.RequireAuth = true
 	}
 
-	jsonState, err := json.Marshal(state)
+	jsonState, err := protojson.Marshal(&state)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal initial state")
 	}

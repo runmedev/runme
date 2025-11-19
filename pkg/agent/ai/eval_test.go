@@ -150,7 +150,7 @@ func TestAssertions(t *testing.T) {
 			},
 			cells: map[string]*parserv1.Cell{
 				"cell1": {
-					Kind: parserv1.CellKind_CELL_KIND_DOC_RESULTS,
+					Kind: parserv1.CellKind_CELL_KIND_TOOL,
 					DocResults: []*parserv1.DocResult{
 						{FileId: "file-123", FileName: "test.txt"},
 					},
@@ -183,7 +183,7 @@ func TestAssertions(t *testing.T) {
 			},
 			cells: map[string]*parserv1.Cell{
 				"cell1": {
-					Kind: parserv1.CellKind_CELL_KIND_DOC_RESULTS,
+					Kind: parserv1.CellKind_CELL_KIND_TOOL,
 					DocResults: []*parserv1.DocResult{
 						{FileId: "file-123", FileName: "test.txt"},
 					},

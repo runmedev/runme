@@ -124,7 +124,7 @@ func Test_GenerateCells(t *testing.T) {
 	// to catch various bugs with the SDK;
 	hasFSCell := false
 	for _, b := range cells {
-		if b.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
+		if b.Kind == parserv1.CellKind_CELL_KIND_TOOL || b.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
 			hasFSCell = true
 
 			if len(b.DocResults) <= 0 {
