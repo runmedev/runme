@@ -103,7 +103,7 @@ brews:
     download_strategy: CurlDownloadStrategy
     commit_author:
       name: release-bot
-      email: bot@stateful.com
+      email: bot@runme.dev
     install: |
       bin.install "runme"
       (bash_completion/"runme").write `#{bin}/runme completion bash`
@@ -119,7 +119,7 @@ nfpms:
       - cli
     vendor: Stateful Inc.
     homepage: https://runme.dev
-    maintainer: Sebastian Tiedtke <sebastian@stateful.com>
+    maintainer: Sebastian Huckleberry <sebastiantiedtke@gmail.com>
     description: "Execute your runbooks, docs, and READMEs."
     file_name_template: >-
       {{- .PackageName }}_
@@ -141,7 +141,7 @@ scoops:
       token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
     commit_author:
       name: release-bot
-      email: bot@stateful.com
+      email: bot@runme.dev
     homepage: https://runme.dev
     description: "Execute your runbooks, docs, and READMEs."
     skip_upload: auto
