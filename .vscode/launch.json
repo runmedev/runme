@@ -32,7 +32,7 @@
             ]
         },
         {
-            "name": "Debug server",
+            "name": "Debug kernel",
             "type": "go",
             "mode": "auto",
             "debugAdapter": "dlv-dap",
