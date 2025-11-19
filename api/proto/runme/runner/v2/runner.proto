@@ -191,6 +191,14 @@ message ExecuteResponse {
   //
   // This is only sent once in the first response containing stdout_data.
   string mime_type = 5;
+
+  // pwd contains the current and previous working directories as set by shell.
+  Pwd pwd = 7;
+
+  message Pwd {
+    string current = 1;
+    string previous = 2;
+  }
 }
 
 message ResolveProgramCommandList {

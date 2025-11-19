@@ -141,8 +141,20 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		finalExitCode = wrapperspb.UInt32(uint32(exitCode))
 	}
 
+	currPwd, prevPwd := "", ""
+	if v, ok := session.GetEnv("PWD"); ok {
+		currPwd = v
+	}
+	if v, ok := session.GetEnv("OLDPWD"); ok {
+		prevPwd = v
+	}
+
 	if err := srv.Send(&runnerv2.ExecuteResponse{
 		ExitCode: finalExitCode,
+		Pwd: &runnerv2.ExecuteResponse_Pwd{
+			Current:  currPwd,
+			Previous: prevPwd,
+		},
 	}); err != nil {
 		logger.Info("failed to send exit code", zap.Error(err))
 	}
