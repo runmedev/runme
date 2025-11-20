@@ -85,6 +85,11 @@ blobs:
     ids:
       - cli
     directory: "{{ .Version }}"
+  - provider: s3
+    bucket: "{{ .Env.S3_BUCKET }}"
+    ids:
+      - cli
+    directory: "{{ .Version }}"
 
 brews:
   - name: runme
