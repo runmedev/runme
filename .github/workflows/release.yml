@@ -75,10 +75,15 @@ jobs:
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           SCOOP_BUCKET_GITHUB_TOKEN: ${{ secrets.SCOOP_BUCKET_GITHUB_TOKEN }}
           GS_BUCKET: ${{ secrets.GS_BUCKET }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
 
-      - name: Copy to latest
+      - name: Copy to latest (GS)
         if: env.pre_release == 'false'
         run: gsutil -m cp "gs://${{ secrets.GS_BUCKET }}/${{ env.version }}/*" gs://${{ secrets.GS_BUCKET }}/latest
+
+      - name: Copy to latest (S3)
+        if: env.pre_release == 'false'
+        run: aws s3 sync "s3://${{ secrets.S3_BUCKET }}/${{ env.version }}/" "s3://${{ secrets.S3_BUCKET }}/latest/"
 
       - name: Bump Homebrew Formula
         uses: mislav/bump-homebrew-formula-action@v3
