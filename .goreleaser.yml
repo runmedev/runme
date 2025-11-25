@@ -101,7 +101,7 @@ brews:
       owner: stateful
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
+    url_template: "https://downloads.runme.dev/runme/{{ .Version }}/{{ .ArtifactName }}"
     dependencies: []
     skip_upload: auto
     directory: Formula
@@ -139,7 +139,7 @@ nfpms:
       - rpm
 
 scoops:
-  - url_template: "https://download.stateful.com/runme/{{ .Version }}/{{ .ArtifactName }}"
+  - url_template: "https://downloads.runme.dev/runme/{{ .Version }}/{{ .ArtifactName }}"
     repository:
       owner: stateful
       name: scoop-bucket

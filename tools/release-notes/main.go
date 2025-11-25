@@ -34,24 +34,24 @@ var tpl = template.Must(template.New("").Funcs(template.FuncMap{"split": split})
 
 ### macOS:
 
-* [runme_darwin_x86_64.tar.gz](https://download.stateful.com/runme/{{ .Version }}/runme_darwin_x86_64.tar.gz)
-* [runme_darwin_arm64.tar.gz](https://download.stateful.com/runme/{{ .Version }}/runme_darwin_arm64.tar.gz)
+* [runme_darwin_x86_64.tar.gz](https://downloads.runme.dev/runme/{{ .Version }}/runme_darwin_x86_64.tar.gz)
+* [runme_darwin_arm64.tar.gz](https://downloads.runme.dev/runme/{{ .Version }}/runme_darwin_arm64.tar.gz)
 
 ### Linux
 
-* [runme_linux_x86_64.deb](https://download.stateful.com/runme/{{ .Version }}/runme_linux_x86_64.deb)
-* [runme_linux_arm64.deb](https://download.stateful.com/runme/{{ .Version }}/runme_linux_arm64.deb)
-* [runme_linux_x86_64.rpm](https://download.stateful.com/runme/{{ .Version }}/runme_linux_x86_64.rpm)
-* [runme_linux_arm64.rpm](https://download.stateful.com/runme/{{ .Version }}/runme_linux_arm64.rpm)
-* [runme_linux_x86_64.apk](https://download.stateful.com/runme/{{ .Version }}/runme_linux_x86_64.apk)
-* [runme_linux_arm64.apk](https://download.stateful.com/runme/{{ .Version }}/runme_linux_arm64.apk)
-* [runme_linux_x86_64.tar.gz](https://download.stateful.com/runme/{{ .Version }}/runme_linux_x86_64.tar.gz)
-* [runme_linux_arm64.tar.tz](https://download.stateful.com/runme/{{ .Version }}/runme_linux_arm64.tar.gz)
+* [runme_linux_x86_64.deb](https://downloads.runme.dev/runme/{{ .Version }}/runme_linux_x86_64.deb)
+* [runme_linux_arm64.deb](https://downloads.runme.dev/runme/{{ .Version }}/runme_linux_arm64.deb)
+* [runme_linux_x86_64.rpm](https://downloads.runme.dev/runme/{{ .Version }}/runme_linux_x86_64.rpm)
+* [runme_linux_arm64.rpm](https://downloads.runme.dev/runme/{{ .Version }}/runme_linux_arm64.rpm)
+* [runme_linux_x86_64.apk](https://downloads.runme.dev/runme/{{ .Version }}/runme_linux_x86_64.apk)
+* [runme_linux_arm64.apk](https://downloads.runme.dev/runme/{{ .Version }}/runme_linux_arm64.apk)
+* [runme_linux_x86_64.tar.gz](https://downloads.runme.dev/runme/{{ .Version }}/runme_linux_x86_64.tar.gz)
+* [runme_linux_arm64.tar.tz](https://downloads.runme.dev/runme/{{ .Version }}/runme_linux_arm64.tar.gz)
 
 ### Windows
 
-* [runme_windows_x86_64.zip](https://download.stateful.com/runme/{{ .Version }}/runme_windows_x86_64.zip)
-* [runme_windows_arm64.zip](https://download.stateful.com/runme/{{ .Version }}/runme_windows_arm64.zip)
+* [runme_windows_x86_64.zip](https://downloads.runme.dev/runme/{{ .Version }}/runme_windows_x86_64.zip)
+* [runme_windows_arm64.zip](https://downloads.runme.dev/runme/{{ .Version }}/runme_windows_arm64.zip)
 
 ## Changelog
 
