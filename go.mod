@@ -1,8 +1,10 @@
 module github.com/runmedev/runme/v3
 
-go 1.25.2
+// This is the v3 module. Always use the /v3 suffix when installing:
+//   go install github.com/runmedev/runme/v3@latest
+// This ensures you get the latest v3.x.x version, not the old v1.x.x versions.
 
-// replace github.com/stateful/godotenv => ../godotenv
+go 1.25.2
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.10-20250912141014-52f32327d4b0.1
