@@ -84,7 +84,7 @@ func (a *App) SetupOTEL() error {
 	// Always set the resource
 	tpOptions = append(tpOptions, trace.WithResource(resource.NewWithAttributes(
 		semconv.SchemaURL,
-		semconv.ServiceNameKey.String("cloud-assistant"),
+		semconv.ServiceNameKey.String(a.AppName),
 	)))
 
 	// Only set up OTLP HTTP exporter if endpoint is configured.

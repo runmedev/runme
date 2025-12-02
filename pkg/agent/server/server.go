@@ -388,7 +388,7 @@ func trailersTest(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) shutdown() {
 	log := zapr.NewLogger(zap.L())
-	log.Info("Shutting down the cloud-assistant server")
+	log.Info("Shutting down the agent server")
 
 	if s.hServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
