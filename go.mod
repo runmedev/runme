@@ -27,7 +27,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/fullstorydev/grpcurl v1.9.3
 	github.com/gabriel-vasile/mimetype v1.4.11
-	github.com/go-git/go-billy/v5 v5.6.2
+	github.com/go-git/go-billy/v5 v5.7.0
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/gobwas/glob v0.2.3
