@@ -7,7 +7,7 @@ module github.com/runmedev/runme/v3
 go 1.25.2
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.10-20251209175733-2a1774d88802.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1
 	buf.build/go/protovalidate v1.1.0
 	cloud.google.com/go/secretmanager v1.16.0
 	connectrpc.com/connect v1.19.1
@@ -69,7 +69,7 @@ require (
 	golang.org/x/term v0.38.0
 	google.golang.org/api v0.257.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 	mvdan.cc/sh/v3 v3.12.0
 )
 
