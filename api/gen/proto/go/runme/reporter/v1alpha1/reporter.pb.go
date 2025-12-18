@@ -811,20 +811,23 @@ func file_runme_reporter_v1alpha1_reporter_proto_rawDescGZIP() []byte {
 	return file_runme_reporter_v1alpha1_reporter_proto_rawDescData
 }
 
-var file_runme_reporter_v1alpha1_reporter_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_runme_reporter_v1alpha1_reporter_proto_goTypes = []any{
-	(*TransformRequest)(nil),          // 0: runme.reporter.v1alpha1.TransformRequest
-	(*TransformRequestExtension)(nil), // 1: runme.reporter.v1alpha1.TransformRequestExtension
-	(*TransformResponse)(nil),         // 2: runme.reporter.v1alpha1.TransformResponse
-	(*ReporterExtension)(nil),         // 3: runme.reporter.v1alpha1.ReporterExtension
-	(*ReporterGit)(nil),               // 4: runme.reporter.v1alpha1.ReporterGit
-	(*ReporterSession)(nil),           // 5: runme.reporter.v1alpha1.ReporterSession
-	(*ReporterFile)(nil),              // 6: runme.reporter.v1alpha1.ReporterFile
-	(*ReporterDevice)(nil),            // 7: runme.reporter.v1alpha1.ReporterDevice
-	nil,                               // 8: runme.reporter.v1alpha1.TransformRequestExtension.VsMetadataEntry
-	nil,                               // 9: runme.reporter.v1alpha1.ReporterDevice.VsMetadataEntry
-	(*v1.Notebook)(nil),               // 10: runme.parser.v1.Notebook
-}
+var (
+	file_runme_reporter_v1alpha1_reporter_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+	file_runme_reporter_v1alpha1_reporter_proto_goTypes  = []any{
+		(*TransformRequest)(nil),          // 0: runme.reporter.v1alpha1.TransformRequest
+		(*TransformRequestExtension)(nil), // 1: runme.reporter.v1alpha1.TransformRequestExtension
+		(*TransformResponse)(nil),         // 2: runme.reporter.v1alpha1.TransformResponse
+		(*ReporterExtension)(nil),         // 3: runme.reporter.v1alpha1.ReporterExtension
+		(*ReporterGit)(nil),               // 4: runme.reporter.v1alpha1.ReporterGit
+		(*ReporterSession)(nil),           // 5: runme.reporter.v1alpha1.ReporterSession
+		(*ReporterFile)(nil),              // 6: runme.reporter.v1alpha1.ReporterFile
+		(*ReporterDevice)(nil),            // 7: runme.reporter.v1alpha1.ReporterDevice
+		nil,                               // 8: runme.reporter.v1alpha1.TransformRequestExtension.VsMetadataEntry
+		nil,                               // 9: runme.reporter.v1alpha1.ReporterDevice.VsMetadataEntry
+		(*v1.Notebook)(nil),               // 10: runme.parser.v1.Notebook
+	}
+)
+
 var file_runme_reporter_v1alpha1_reporter_proto_depIdxs = []int32{
 	10, // 0: runme.reporter.v1alpha1.TransformRequest.notebook:type_name -> runme.parser.v1.Notebook
 	1,  // 1: runme.reporter.v1alpha1.TransformRequest.extension:type_name -> runme.reporter.v1alpha1.TransformRequestExtension

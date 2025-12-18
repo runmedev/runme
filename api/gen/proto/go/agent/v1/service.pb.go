@@ -252,15 +252,18 @@ func file_agent_v1_service_proto_rawDescGZIP() []byte {
 	return file_agent_v1_service_proto_rawDescData
 }
 
-var file_agent_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_agent_v1_service_proto_goTypes = []any{
-	(*GenerateRequest)(nil),  // 0: agent.v1.GenerateRequest
-	(*GenerateResponse)(nil), // 1: agent.v1.GenerateResponse
-	(*LogRequest)(nil),       // 2: agent.v1.LogRequest
-	(*LogResponse)(nil),      // 3: agent.v1.LogResponse
-	(*v1.Cell)(nil),          // 4: runme.parser.v1.Cell
-	(*v1.Notebook)(nil),      // 5: runme.parser.v1.Notebook
-}
+var (
+	file_agent_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+	file_agent_v1_service_proto_goTypes  = []any{
+		(*GenerateRequest)(nil),  // 0: agent.v1.GenerateRequest
+		(*GenerateResponse)(nil), // 1: agent.v1.GenerateResponse
+		(*LogRequest)(nil),       // 2: agent.v1.LogRequest
+		(*LogResponse)(nil),      // 3: agent.v1.LogResponse
+		(*v1.Cell)(nil),          // 4: runme.parser.v1.Cell
+		(*v1.Notebook)(nil),      // 5: runme.parser.v1.Notebook
+	}
+)
+
 var file_agent_v1_service_proto_depIdxs = []int32{
 	4, // 0: agent.v1.GenerateRequest.cells:type_name -> runme.parser.v1.Cell
 	4, // 1: agent.v1.GenerateResponse.cells:type_name -> runme.parser.v1.Cell
