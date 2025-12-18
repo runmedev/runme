@@ -14,7 +14,7 @@ import (
 //go:embed testdata/assets_test/*
 var testEmbeddedAssets embed.FS
 
-func TestStaticAssetFileSystemProvider(t *testing.T) {
+func TestStaticAssetsFileSystemProvider(t *testing.T) {
 	tests := []struct {
 		name         string
 		staticAssets string
@@ -67,8 +67,8 @@ func TestStaticAssetFileSystemProvider(t *testing.T) {
 				defer tt.cleanupDir(t, dir)
 			}
 
-			provider := NewStaticAssetFileSystemProvider(tt.staticAssets)
-			fs, err := provider.GetAssetFileSystem()
+			provider := NewStaticAssetsFileSystemProvider(tt.staticAssets)
+			fs, err := provider.GetAssetsFileSystem()
 
 			if tt.wantErr {
 				if err == nil {
@@ -102,7 +102,7 @@ func TestStaticAssetFileSystemProvider(t *testing.T) {
 	}
 }
 
-func TestEmbeddedAssetFileSystemProvider(t *testing.T) {
+func TestEmbeddedAssetsFileSystemProvider(t *testing.T) {
 	tests := []struct {
 		name        string
 		embeddedFS  embed.FS
@@ -127,8 +127,8 @@ func TestEmbeddedAssetFileSystemProvider(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := NewEmbeddedAssetFileSystemProvider(tt.embeddedFS, tt.subPath)
-			fs, err := provider.GetAssetFileSystem()
+			provider := NewEmbeddedAssetsFileSystemProvider(tt.embeddedFS, tt.subPath)
+			fs, err := provider.GetAssetsFileSystem()
 
 			if tt.wantErr {
 				if err == nil {
@@ -164,17 +164,17 @@ func TestEmbeddedAssetFileSystemProvider(t *testing.T) {
 	}
 }
 
-func TestFallbackAssetFileSystemProvider(t *testing.T) {
+func TestFallbackAssetsFileSystemProvider(t *testing.T) {
 	tests := []struct {
 		name        string
-		providers   []AssetFileSystemProvider
+		providers   []AssetsFileSystemProvider
 		wantErr     bool
 		errContains string
 		expectFirst bool
 	}{
 		{
 			name: "first provider succeeds",
-			providers: []AssetFileSystemProvider{
+			providers: []AssetsFileSystemProvider{
 				&mockProvider{success: true, name: "first"},
 				&mockProvider{success: true, name: "second"},
 			},
@@ -183,7 +183,7 @@ func TestFallbackAssetFileSystemProvider(t *testing.T) {
 		},
 		{
 			name: "first fails, second succeeds",
-			providers: []AssetFileSystemProvider{
+			providers: []AssetsFileSystemProvider{
 				&mockProvider{success: false, name: "first"},
 				&mockProvider{success: true, name: "second"},
 			},
@@ -192,7 +192,7 @@ func TestFallbackAssetFileSystemProvider(t *testing.T) {
 		},
 		{
 			name: "all providers fail",
-			providers: []AssetFileSystemProvider{
+			providers: []AssetsFileSystemProvider{
 				&mockProvider{success: false, name: "first"},
 				&mockProvider{success: false, name: "second"},
 			},
@@ -201,7 +201,7 @@ func TestFallbackAssetFileSystemProvider(t *testing.T) {
 		},
 		{
 			name:        "no providers",
-			providers:   []AssetFileSystemProvider{},
+			providers:   []AssetsFileSystemProvider{},
 			wantErr:     true,
 			errContains: "no asset providers configured",
 		},
@@ -209,8 +209,8 @@ func TestFallbackAssetFileSystemProvider(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := NewFallbackAssetFileSystemProvider(tt.providers...)
-			fs, err := provider.GetAssetFileSystem()
+			provider := NewFallbackAssetsFileSystemProvider(tt.providers...)
+			fs, err := provider.GetAssetsFileSystem()
 
 			if tt.wantErr {
 				if err == nil {
@@ -244,7 +244,7 @@ func TestFallbackAssetFileSystemProvider(t *testing.T) {
 	}
 }
 
-func TestDefaultAssetFileSystemProvider(t *testing.T) {
+func TestDefaultAssetsFileSystemProvider(t *testing.T) {
 	tests := []struct {
 		name         string
 		staticAssets string
@@ -288,8 +288,8 @@ func TestDefaultAssetFileSystemProvider(t *testing.T) {
 				tt.staticAssets = dir
 			}
 
-			provider := NewDefaultAssetFileSystemProvider(tt.staticAssets)
-			fs, err := provider.GetAssetFileSystem()
+			provider := NewDefaultAssetsFileSystemProvider(tt.staticAssets)
+			fs, err := provider.GetAssetsFileSystem()
 
 			if tt.wantErr {
 				if err == nil {
@@ -323,14 +323,14 @@ func TestDefaultAssetFileSystemProvider(t *testing.T) {
 	}
 }
 
-// mockProvider is a test implementation of AssetFileSystemProvider
+// mockProvider is a test implementation of AssetsFileSystemProvider
 type mockProvider struct {
 	success bool
 	name    string
 	called  bool
 }
 
-func (m *mockProvider) GetAssetFileSystem() (fs.FS, error) {
+func (m *mockProvider) GetAssetsFileSystem() (fs.FS, error) {
 	m.called = true
 	if m.success {
 		// Return a minimal filesystem

@@ -71,9 +71,9 @@ type (
 		// RegisterHandlers is a callback that allows you to register additional handlers in the server.
 		// These could be regular HTTP handlers or proto services.
 		RegisterHandlers RegisterHandlers
-		// AssetsFSProvider is an optional asset filesystem provider. If nil, a default implementation
+		// AssetsFileSystemProvider is an optional asset filesystem provider. If nil, a default implementation
 		// will be used when the agent is enabled.
-		AssetsFSProvider AssetFileSystemProvider
+		AssetsFileSystemProvider AssetsFileSystemProvider
 	}
 )
 
@@ -144,11 +144,11 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 	var assetsFS fs.FS
 	if agent != nil {
 		log.Info("Enabling SPA serving")
-		provider := opts.AssetsFSProvider
+		provider := opts.AssetsFileSystemProvider
 		if provider == nil {
-			provider = NewDefaultAssetFileSystemProvider(opts.Server.StaticAssets)
+			provider = NewDefaultAssetsFileSystemProvider(opts.Server.StaticAssets)
 		}
-		if fs, err := provider.GetAssetFileSystem(); err == nil {
+		if fs, err := provider.GetAssetsFileSystem(); err == nil {
 			assetsFS = fs
 		} else {
 			return nil, errors.Wrapf(err, "Failed to get asset handler")

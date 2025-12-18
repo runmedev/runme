@@ -23,27 +23,27 @@ import (
 //go:embed dist/index.*
 var embeddedAssets embed.FS
 
-// AssetFileSystemProvider is an interface for providing asset filesystems.
+// AssetsFileSystemProvider is an interface for providing asset filesystems.
 // This allows the server to be decoupled from how assets are constructed.
-type AssetFileSystemProvider interface {
-	GetAssetFileSystem() (fs.FS, error)
+type AssetsFileSystemProvider interface {
+	GetAssetsFileSystem() (fs.FS, error)
 }
 
-// staticAssetFileSystemProvider provides assets from a static directory.
-type staticAssetFileSystemProvider struct {
+// staticAssetsFileSystemProvider provides assets from a static directory.
+type staticAssetsFileSystemProvider struct {
 	staticAssets string
 }
 
-// NewStaticAssetFileSystemProvider creates a provider that serves assets from a directory.
-func NewStaticAssetFileSystemProvider(staticAssets string) AssetFileSystemProvider {
-	return &staticAssetFileSystemProvider{
+// NewStaticAssetsFileSystemProvider creates a provider that serves assets from a directory.
+func NewStaticAssetsFileSystemProvider(staticAssets string) AssetsFileSystemProvider {
+	return &staticAssetsFileSystemProvider{
 		staticAssets: staticAssets,
 	}
 }
 
-// GetAssetFileSystem implements AssetFileSystemProvider by returning a filesystem
+// GetAssetsFileSystem implements AssetsFileSystemProvider by returning a filesystem
 // for the static assets directory.
-func (s *staticAssetFileSystemProvider) GetAssetFileSystem() (fs.FS, error) {
+func (s *staticAssetsFileSystemProvider) GetAssetsFileSystem() (fs.FS, error) {
 	if s.staticAssets == "" {
 		return nil, errors.New("static assets directory is not configured")
 	}
@@ -52,24 +52,24 @@ func (s *staticAssetFileSystemProvider) GetAssetFileSystem() (fs.FS, error) {
 	return os.DirFS(s.staticAssets), nil
 }
 
-// embeddedAssetFileSystemProvider provides assets from embedded files.
-type embeddedAssetFileSystemProvider struct {
+// embeddedAssetsFileSystemProvider provides assets from embedded files.
+type embeddedAssetsFileSystemProvider struct {
 	embeddedFS embed.FS
 	subPath    string
 }
 
-// NewEmbeddedAssetFileSystemProvider creates a provider that serves assets from embedded files.
+// NewEmbeddedAssetsFileSystemProvider creates a provider that serves assets from embedded files.
 // The subPath parameter specifies the subdirectory within the embedded filesystem (e.g., "dist").
-func NewEmbeddedAssetFileSystemProvider(embeddedFS embed.FS, subPath string) AssetFileSystemProvider {
-	return &embeddedAssetFileSystemProvider{
+func NewEmbeddedAssetsFileSystemProvider(embeddedFS embed.FS, subPath string) AssetsFileSystemProvider {
+	return &embeddedAssetsFileSystemProvider{
 		embeddedFS: embeddedFS,
 		subPath:    subPath,
 	}
 }
 
-// GetAssetFileSystem implements AssetFileSystemProvider by returning a filesystem
+// GetAssetsFileSystem implements AssetsFileSystemProvider by returning a filesystem
 // for the embedded assets.
-func (e *embeddedAssetFileSystemProvider) GetAssetFileSystem() (fs.FS, error) {
+func (e *embeddedAssetsFileSystemProvider) GetAssetsFileSystem() (fs.FS, error) {
 	log := zapr.NewLogger(zap.L())
 	distFS, err := fs.Sub(e.embeddedFS, e.subPath)
 	if err != nil {
@@ -84,25 +84,25 @@ func (e *embeddedAssetFileSystemProvider) GetAssetFileSystem() (fs.FS, error) {
 	return distFS, nil
 }
 
-// fallbackAssetFileSystemProvider tries multiple providers in order until one succeeds.
-type fallbackAssetFileSystemProvider struct {
-	providers []AssetFileSystemProvider
+// fallbackAssetsFileSystemProvider tries multiple providers in order until one succeeds.
+type fallbackAssetsFileSystemProvider struct {
+	providers []AssetsFileSystemProvider
 }
 
-// NewFallbackAssetFileSystemProvider creates a provider that tries multiple providers
+// NewFallbackAssetsFileSystemProvider creates a provider that tries multiple providers
 // in order until one succeeds. Returns the first error if all providers fail.
-func NewFallbackAssetFileSystemProvider(providers ...AssetFileSystemProvider) AssetFileSystemProvider {
-	return &fallbackAssetFileSystemProvider{
+func NewFallbackAssetsFileSystemProvider(providers ...AssetsFileSystemProvider) AssetsFileSystemProvider {
+	return &fallbackAssetsFileSystemProvider{
 		providers: providers,
 	}
 }
 
-// GetAssetFileSystem implements AssetFileSystemProvider by trying each provider
+// GetAssetsFileSystem implements AssetsFileSystemProvider by trying each provider
 // in order until one succeeds.
-func (f *fallbackAssetFileSystemProvider) GetAssetFileSystem() (fs.FS, error) {
+func (f *fallbackAssetsFileSystemProvider) GetAssetsFileSystem() (fs.FS, error) {
 	var lastErr error
 	for _, provider := range f.providers {
-		fs, err := provider.GetAssetFileSystem()
+		fs, err := provider.GetAssetsFileSystem()
 		if err == nil {
 			return fs, nil
 		}
@@ -114,37 +114,37 @@ func (f *fallbackAssetFileSystemProvider) GetAssetFileSystem() (fs.FS, error) {
 	return nil, errors.Wrapf(lastErr, "all asset providers failed")
 }
 
-// defaultAssetFileSystemProvider is the default implementation that tries
+// defaultAssetsFileSystemProvider is the default implementation that tries
 // static assets first, then falls back to embedded assets.
-type defaultAssetFileSystemProvider struct {
+type defaultAssetsFileSystemProvider struct {
 	staticAssets string
 }
 
-// NewDefaultAssetFileSystemProvider creates a new default asset filesystem provider
+// NewDefaultAssetsFileSystemProvider creates a new default asset filesystem provider
 // that tries static assets first, then embedded assets as a fallback.
-// This preserves the original behavior of getAssetFileSystem.
-func NewDefaultAssetFileSystemProvider(staticAssets string) AssetFileSystemProvider {
-	return &defaultAssetFileSystemProvider{
+// This preserves the original behavior of getAssetsFileSystem.
+func NewDefaultAssetsFileSystemProvider(staticAssets string) AssetsFileSystemProvider {
+	return &defaultAssetsFileSystemProvider{
 		staticAssets: staticAssets,
 	}
 }
 
-// GetAssetFileSystem implements AssetFileSystemProvider by trying static assets first,
+// GetAssetsFileSystem implements AssetsFileSystemProvider by trying static assets first,
 // then falling back to embedded assets. This preserves the original behavior.
-func (d *defaultAssetFileSystemProvider) GetAssetFileSystem() (fs.FS, error) {
-	var providers []AssetFileSystemProvider
+func (d *defaultAssetsFileSystemProvider) GetAssetsFileSystem() (fs.FS, error) {
+	var providers []AssetsFileSystemProvider
 
 	// If static assets directory is specified, try it first
 	if d.staticAssets != "" {
-		providers = append(providers, NewStaticAssetFileSystemProvider(d.staticAssets))
+		providers = append(providers, NewStaticAssetsFileSystemProvider(d.staticAssets))
 	}
 
 	// Always try embedded assets as fallback
-	providers = append(providers, NewEmbeddedAssetFileSystemProvider(embeddedAssets, "dist"))
+	providers = append(providers, NewEmbeddedAssetsFileSystemProvider(embeddedAssets, "dist"))
 
 	// Use fallback provider to try them in order
-	fallback := NewFallbackAssetFileSystemProvider(providers...)
-	fs, err := fallback.GetAssetFileSystem()
+	fallback := NewFallbackAssetsFileSystemProvider(providers...)
+	fs, err := fallback.GetAssetsFileSystem()
 	if err != nil {
 		return nil, errors.New("no assets available: neither staticAssets directory is configured nor embedded assets could be found")
 	}
