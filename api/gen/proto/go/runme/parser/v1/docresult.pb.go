@@ -117,10 +117,13 @@ func file_runme_parser_v1_docresult_proto_rawDescGZIP() []byte {
 	return file_runme_parser_v1_docresult_proto_rawDescData
 }
 
-var file_runme_parser_v1_docresult_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_runme_parser_v1_docresult_proto_goTypes = []any{
-	(*DocResult)(nil), // 0: runme.parser.v1.DocResult
-}
+var (
+	file_runme_parser_v1_docresult_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+	file_runme_parser_v1_docresult_proto_goTypes  = []any{
+		(*DocResult)(nil), // 0: runme.parser.v1.DocResult
+	}
+)
+
 var file_runme_parser_v1_docresult_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type

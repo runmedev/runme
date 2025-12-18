@@ -151,8 +151,10 @@ type ConfigProjectFiltersElemExtra map[string]interface{}
 
 type ConfigProjectFiltersElemType string
 
-const ConfigProjectFiltersElemTypeFILTERTYPEBLOCK ConfigProjectFiltersElemType = "FILTER_TYPE_BLOCK"
-const ConfigProjectFiltersElemTypeFILTERTYPEDOCUMENT ConfigProjectFiltersElemType = "FILTER_TYPE_DOCUMENT"
+const (
+	ConfigProjectFiltersElemTypeFILTERTYPEBLOCK    ConfigProjectFiltersElemType = "FILTER_TYPE_BLOCK"
+	ConfigProjectFiltersElemTypeFILTERTYPEDOCUMENT ConfigProjectFiltersElemType = "FILTER_TYPE_DOCUMENT"
+)
 
 var enumValues_ConfigProjectFiltersElemType = []interface{}{
 	"FILTER_TYPE_BLOCK",
