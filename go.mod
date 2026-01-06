@@ -13,7 +13,7 @@ require (
 	connectrpc.com/connect v1.19.1
 	connectrpc.com/cors v0.1.0
 	connectrpc.com/grpchealth v1.4.0
-	connectrpc.com/otelconnect v0.8.0
+	connectrpc.com/otelconnect v0.9.0
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbletea v1.3.10
