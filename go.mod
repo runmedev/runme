@@ -18,7 +18,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
-	github.com/cli/cli/v2 v2.83.2
+	github.com/cli/cli/v2 v2.85.0
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/containerd/console v1.0.5
 	github.com/creack/pty v1.1.24
@@ -55,7 +55,7 @@ require (
 	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915
 	github.com/vektah/gqlparser/v2 v2.5.31
 	github.com/xo/dburl v0.23.8
-	github.com/yuin/goldmark v1.7.13
+	github.com/yuin/goldmark v1.7.16
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.64.0
 	go.opentelemetry.io/otel v1.39.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.39.0
