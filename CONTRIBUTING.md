@@ -43,6 +43,7 @@ It is always best to discuss your plans beforehand, to ensure that your contribu
 - As you push your changes, update the pull request with new information and tasks as you complete them
 - Project maintainers might comment on your work as you progress
 - When you are done, remove the PR's draft status and ping the maintainers for a review
+- Non-maintainer contributions require approval from at least one [maintainer](MAINTAINERS.md)
 
 ## Prerequisites
 
