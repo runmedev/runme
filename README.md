@@ -122,6 +122,10 @@ The Runme community is growing, join us!
 - Read about real live Runme examples and use cases in [our blog](https://runme.dev/blog)
 - Subscribe for updates to [our newsletter](https://runme.dev/list)
 
+## Code of Conduct
+
+This project follows the [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md). See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for details.
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for more information or just click on:
