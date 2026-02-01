@@ -13,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpchealth"
+	"github.com/runmedev/runme/v3/pkg/agent/ai/chatkit"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
@@ -60,6 +61,7 @@ type Server struct {
 	registerHandlers RegisterHandlers
 	assetsFS         fs.FS
 	wsHandler        *stream.WebSocketHandler
+	chatKitHandler   *chatkit.ChatKitHandler
 }
 
 type (
@@ -312,6 +314,11 @@ func (s *Server) registerServices() error {
 		log.Info("Setting up AI service", "path", aiSvcPath)
 		// Protect the AI messages service
 		mux.HandleProtected(aiSvcPath, aiSvcHandler, s.checker, api.AgentUserRole)
+
+		chatkitHandler := chatkit.NewChatKitHandler(s.agent)
+		s.chatKitHandler = chatkitHandler
+
+		mux.HandleProtected("/chatkit", otelhttp.NewHandler(http.HandlerFunc(chatkitHandler.Handle), "/chatkit"), s.checker, api.AgentUserRole)
 	} else {
 		log.Info("Agent is nil; AI service is disabled")
 	}
