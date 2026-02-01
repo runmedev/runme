@@ -6,21 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cd "$SCRIPT_DIR"
 
-# Don't build inside the source tree because that interferes
-BUILDDIR=/tmp/aisre-toolsgen-build
-
-# We need to layout the files as we want to build them.
-# Use api/proto-tools as the module root to avoid double-definitions.
-rm -rf ${BUILDDIR}
-mkdir -p ${BUILDDIR}
-cp -r ../../../api/proto-tools/. ${BUILDDIR}/
-cp buf.gen.yaml ${BUILDDIR}/
+# Run buf in-place using the workspace and tools module.
 pushd ./
-cd ${BUILDDIR}/
-buf dep update
-buf generate
+cd "${SCRIPT_DIR}/../../.."
+buf generate --template "${SCRIPT_DIR}/buf.gen.yaml" --path api/proto-tools
 
-NOTEBOOKS_FILE="gen/mcp/agent/v1/agentv1mcp/notebooks.pb.mcp.go"
+NOTEBOOKS_FILE="api/gen/proto-tools/agent/v1/agentv1mcp/notebooks.pb.mcp.go"
 if [[ ! -f "${NOTEBOOKS_FILE}" ]]; then
   echo "Expected generated file ${NOTEBOOKS_FILE} not found" >&2
   exit 1
@@ -59,9 +50,6 @@ path.write_text("".join(keep))
 PY
 
 popd
-mkdir -p aisremcp
-rm -rf aisremcp/*
-cp ${BUILDDIR}/${NOTEBOOKS_FILE} ./aisremcp
 
 # Rewrite imports so generated code references our vendored fork.
 #OLD_IMPORT="github.com/mark3labs/mcp-go/mcp"
@@ -73,4 +61,4 @@ cp ${BUILDDIR}/${NOTEBOOKS_FILE} ./aisremcp
 
 # Strip unused imports
 # You can install with go install golang.org/x/tools/cmd/goimports@latest
-goimports -w ./aisremcp
+goimports -w "${NOTEBOOKS_FILE}"
