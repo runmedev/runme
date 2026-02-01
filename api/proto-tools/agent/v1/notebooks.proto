@@ -10,7 +10,7 @@ option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agen
 // This is used to generate JSON schemas that can be used to define tool calls (or potentially) MCP
 // server. Using https://github.com/redpanda-data/protoc-gen-go-mcp.
 //
-// use the script project/aisre/toolsgen/build.sh to build the go code with the JSONSchemas.
+// use the script api/proto-tools/build.sh to build the go code with the JSONSchemas.
 //
 // It looks like only comments on the method get translated into the description.
 service NotebookService {
