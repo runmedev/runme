@@ -12,9 +12,9 @@ import (
 	"github.com/openai/openai-go/v2/responses"
 	oaiconstants "github.com/openai/openai-go/v2/shared/constant"
 	"github.com/pkg/errors"
+	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
 	"go.openai.org/lib/oaigo/telemetry/oailog"
 	aisreproto "go.openai.org/oaiproto/aisre"
-	"go.openai.org/project/aisre/pkg/ai/tools"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
