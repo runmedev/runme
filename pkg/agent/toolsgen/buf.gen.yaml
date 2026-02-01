@@ -39,7 +39,7 @@ plugins:
       - go
       - run
       - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@latest
-    out: gen/mcp
+    out: api/gen/proto-tools
     opt: paths=source_relative
   # https://buf.build/bufbuild/protoschema-jsonschema?version=v0.5.2
 #  - remote: buf.build/bufbuild/protoschema-jsonschema:v0.5.2

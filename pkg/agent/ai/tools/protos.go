@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/pkg/errors"
+	agentv1mcp "go.openai.org/project/aisre/api/gen/proto-tools/agent/v1/agentv1mcp"
 	aisreproto "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	"go.openai.org/lib/oaigo/telemetry/oailog"
-	"go.openai.org/project/aisre/toolsgen/aisremcp"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -28,17 +28,17 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 	var descriptor protoreflect.MessageDescriptor
 
 	switch name {
-	case aisremcp.NotebookService_UpdateCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_UpdateCellsToolOpenAI.Name:
 		descriptor = (&aisreproto.UpdateCellsRequest{}).ProtoReflect().Descriptor()
-	case aisremcp.NotebookService_ListCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_ListCellsToolOpenAI.Name:
 		descriptor = (&aisreproto.ListCellsRequest{}).ProtoReflect().Descriptor()
-	case aisremcp.NotebookService_GetCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_GetCellsToolOpenAI.Name:
 		descriptor = (&aisreproto.GetCellsRequest{}).ProtoReflect().Descriptor()
-	case aisremcp.NotebookService_ExecuteCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_ExecuteCellsToolOpenAI.Name:
 		descriptor = (&aisreproto.NotebookServiceExecuteCellsRequest{}).ProtoReflect().Descriptor()
-	case aisremcp.NotebookService_TerminateRunToolOpenAI.Name:
+	case agentv1mcp.NotebookService_TerminateRunToolOpenAI.Name:
 		descriptor = (&aisreproto.TerminateRunRequest{}).ProtoReflect().Descriptor()
-	case aisremcp.NotebookService_SendSlackMessageToolOpenAI.Name:
+	case agentv1mcp.NotebookService_SendSlackMessageToolOpenAI.Name:
 		descriptor = (&aisreproto.SendSlackMessageRequest{}).ProtoReflect().Descriptor()
 	default:
 		return nil, errors.Errorf("unrecognized toolcall: %s", name)
@@ -60,27 +60,27 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 	var pbMessage proto.Message
 
 	switch name {
-	case aisremcp.NotebookService_UpdateCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_UpdateCellsToolOpenAI.Name:
 		callInput.Input = &aisreproto.ToolCallInput_UpdateCells{
 			UpdateCells: &aisreproto.UpdateCellsRequest{},
 		}
 		pbMessage = callInput.GetUpdateCells()
-	case aisremcp.NotebookService_ListCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_ListCellsToolOpenAI.Name:
 		callInput.Input = &aisreproto.ToolCallInput_ListCells{
 			ListCells: &aisreproto.ListCellsRequest{},
 		}
 		pbMessage = callInput.GetListCells()
-	case aisremcp.NotebookService_GetCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_GetCellsToolOpenAI.Name:
 		callInput.Input = &aisreproto.ToolCallInput_GetCells{
 			GetCells: &aisreproto.GetCellsRequest{},
 		}
 		pbMessage = callInput.GetGetCells()
-	case aisremcp.NotebookService_ExecuteCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_ExecuteCellsToolOpenAI.Name:
 		callInput.Input = &aisreproto.ToolCallInput_ExecuteCells{
 			ExecuteCells: &aisreproto.NotebookServiceExecuteCellsRequest{},
 		}
 		pbMessage = callInput.GetExecuteCells()
-	case aisremcp.NotebookService_TerminateRunToolOpenAI.Name:
+	case agentv1mcp.NotebookService_TerminateRunToolOpenAI.Name:
 		callInput.Input = &aisreproto.ToolCallInput_TerminateRun{
 			TerminateRun: &aisreproto.TerminateRunRequest{},
 		}
@@ -97,7 +97,7 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 	}
 
 	switch name {
-	case aisremcp.NotebookService_UpdateCellsToolOpenAI.Name:
+	case agentv1mcp.NotebookService_UpdateCellsToolOpenAI.Name:
 		if err := ensureValidUpdateCellsRequest(ctx, callInput.GetUpdateCells()); err != nil {
 			return callInput, err
 		}
