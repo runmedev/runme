@@ -1,0 +1,46 @@
+# N.B. buf is used only to run the protoc-gen-go-mcp
+# plugin.
+# TODO(jlewi): I'm not sure whether it makes sense to use buf or not.
+version: v2
+clean: true
+plugins:
+  # Remote plugin. You can switch to a local one by using "go".
+#  - remote: buf.build/protocolbuffers/go
+#    out: api/gen/proto/go
+#    opt: paths=source_relative
+#
+#  # Remote plugin. You can switch to a local one by using "go".
+#  - remote: buf.build/connectrpc/go
+#    out: api/gen/proto/go
+#    opt: paths=source_relative
+#
+#  # Remote plugin. You can switch to a local one by using "go-grpc".
+#  - remote: buf.build/grpc/go
+#    out: api/gen/proto/go
+#    opt: paths=source_relative
+#
+#  # Remote plugin. You can switch to a local one by using "timostamm-protobuf-ts".
+#  - remote: buf.build/community/timostamm-protobuf-ts:v2.11.1
+#    out: api/gen/proto/ts
+#    opt: output_javascript,optimize_code_size,long_type_string,add_pb_suffix,ts_nocheck,eslint_disable
+#
+#  # https://buf.build/bufbuild/es?version=v2.6.0
+#  - remote: buf.build/bufbuild/es:v2.6.0
+#    out: api/gen/proto/es
+#    opt: target=js+dts,import_extension=none,json_types=true
+#    include_imports: true
+
+  # Local plugin to generate GQL schema
+  #  - local: protoc-gen-gql
+  #    out: api/gen/proto/gql
+
+  # Try MCP generation
+  - local:
+      - go
+      - run
+      - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@latest
+    out: gen/mcp
+    opt: paths=source_relative
+  # https://buf.build/bufbuild/protoschema-jsonschema?version=v0.5.2
+#  - remote: buf.build/bufbuild/protoschema-jsonschema:v0.5.2
+#    out: api/gen/schemas

@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "aisremcp",
+    srcs = ["notebooks.pb.mcp.go"],
+    importpath = "go.openai.org/project/aisre/toolsgen/aisremcp",
+    visibility = ["//visibility:public"],
+    deps = ["//project/aisre/toolsgen/mark3labs/mcp"],
+)
