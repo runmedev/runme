@@ -10,16 +10,16 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
 	"go.openai.org/lib/oaigo/telemetry/oailog"
-	"go.openai.org/project/aisre/pkg/ai/tools"
 	"go.openai.org/project/aisre/pkg/obs"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2"
-	aisreproto "go.openai.org/oaiproto/aisre"
-	"go.openai.org/project/aisre/pkg/ai"
+	aisreproto "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	"github.com/runmedev/runme/v3/pkg/agent/ai"
 )
 
 const (
@@ -340,7 +340,7 @@ func (h *ChatKitHandler) generateAssistantResponse(ctx context.Context, threadID
 	if toolCallOutput != nil && toolCallOutput.PreviousResponseId != "" {
 		createResponse.PreviousResponseID = openai.Opt(toolCallOutput.PreviousResponseId)
 	}
-	
+
 	// Right now chatKit can only handle one tool call at a time. So disable parallel toolCalls.
 	createResponse.ParallelToolCalls = openai.Opt(false)
 
