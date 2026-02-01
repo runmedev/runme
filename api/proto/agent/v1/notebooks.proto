@@ -1,0 +1,160 @@
+syntax = "proto3";
+
+package agent.v1;
+
+import "runme/parser/v1/parser.proto";
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agentv1";
+
+// NotebookService defines methods the AI can use to interact with the notebook.
+// This is used to generate JSON schemas that can be used to define tool calls (or potentially) MCP
+// server. Using https://github.com/redpanda-data/protoc-gen-go-mcp.
+//
+// use the script project/aisre/toolsgen/build.sh to build the go code with the JSONSchemas.
+//
+// It looks like only comments on the method get translated into the description.
+service NotebookService {
+  // TODO(jlewi): We should make it UpdateCells to allow the model to update multiple cells in a
+  // single call.
+
+  // UpdateCell updates a cell in the document.
+  // Cell is the cell to create or update. To update
+  // an existing cell specify the ID of that cell in the ref_id field.
+  // To create a new cell leave ref_id blank.
+  //
+  // You can use cell.metadata["agent/summary"] to include a short summary or description of the
+  // cell. You should set the description so that its useful for deciding what cells you should read
+  // to answer the user's queries.
+  //
+  // UpdateCellResponse will include cell id and metadata of the updated cells.
+  rpc UpdateCells(UpdateCellsRequest) returns (UpdateCellsResponse) {}
+
+  // GetCells fetches the cells with the given ref_ids.
+  // Use this to read the contents of cells in the notebook.
+  rpc GetCells(GetCellsRequest) returns (GetCellsResponse) {}
+
+  // ListCells lists the cells in a notebook.
+  // Important: Only the ref_id and metadata will be populated. You should use that to decide
+  // which cells to read.
+  rpc ListCells(ListCellsRequest) returns (ListCellsResponse) {}
+
+  // ExecuteCells executes the cells with the given ids in a notebook.
+  // Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
+  // cells. The response will contain the cell including the outputs of execution.
+  rpc ExecuteCells(NotebookServiceExecuteCellsRequest) returns (NotebookServiceExecuteCellsResponse) {}
+
+  // TerminateRun terminates the run. Call this when no further processing is necessary to handle
+  // the user request.
+  rpc TerminateRun(TerminateRunRequest) returns (TerminateRunResponse) {}
+}
+
+message ListCellsRequest {}
+
+message ListCellsResponse {
+  repeated runme.parser.v1.Cell cells = 2;
+}
+
+message GetCellsRequest {
+  repeated string ref_ids = 1;
+}
+
+message GetCellsResponse {
+  repeated runme.parser.v1.Cell cells = 1;
+}
+
+message UpdateCellsRequest {
+  repeated runme.parser.v1.Cell cells = 1;
+}
+
+message UpdateCellsResponse {
+  // We want to provide the updated cells to the AI because the cells might have been modified by
+  // the agent (e.g. ref_ids) might have been generated.
+  repeated runme.parser.v1.Cell cells = 1;
+}
+
+// TODO(jlewi): These no longer need to have the prefix NotebookService; that was for a naming conflict
+// that no longer apply. So we could probably rename these to ExecuteCellsRequest and ExecuteCellsResponse to
+// be consistent.
+// We had to use the name NotebookServiceExecuteCellsRequest because we already
+// have ExecuteRequest and ExecuteResponse defined for the kernel service and the signatures aren't
+// the same as for the ToolCalls. It might be better to move the ToolCall protos into a subpackage
+// to avoid name conflicts.
+
+message NotebookServiceExecuteCellsRequest {
+  // TODO(jlewi): Right now you the AI has to specify the IDs of the cells to execute. This means it
+  // needs to use separate Update calls to set the code to execute. In the future, we may want to
+  // allow the AISRE to issue a single execute request to update and execute.
+  repeated string ref_ids = 1;
+}
+
+message NotebookServiceExecuteCellsResponse {
+  // Cells contains the cells that were executed
+  repeated runme.parser.v1.Cell cells = 1;
+}
+
+message TerminateRunRequest {}
+
+message TerminateRunResponse {}
+
+// ToolCallInput/ToolCallOutput are used by the backend to send/receive toolcalls from chatkit.
+// We bundle in the call_id and previous_response_id and send them to the client
+// so that the client can send them back.
+//
+// While "call_id" is part of ClientToolCallItem in chatkit's data model it doesn't seem to get
+// passed around on the client and back to the server so we handle it ourselves.
+message ToolCallInput {
+  string call_id = 1;
+  string previous_response_id = 2;
+
+  oneof input {
+    UpdateCellsRequest update_cells = 3;
+    ListCellsRequest list_cells = 4;
+    GetCellsRequest get_cells = 5;
+    NotebookServiceExecuteCellsRequest execute_cells = 6;
+    TerminateRunRequest terminate_run = 7;
+    SendSlackMessageRequest send_slack_message = 8;
+  }
+}
+
+message ToolCallOutput {
+  string call_id = 1;
+  string previous_response_id = 2;
+
+  oneof output {
+    UpdateCellsResponse update_cells = 3;
+    ListCellsResponse list_cells = 4;
+    GetCellsResponse get_cells = 5;
+    NotebookServiceExecuteCellsResponse execute_cells = 8;
+    TerminateRunResponse terminate_run = 9;
+    SendSlackMessageResponse send_slack_message = 10;
+  }
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_SUCCESS = 1;
+    STATUS_FAILED = 2;
+  }
+
+  Status status = 6;
+  // client_error will be an error message if the client had one.
+  string client_error = 7;
+}
+
+// ChatkitState is used by the backend to pass state back to chatkit.
+// This avoids needing to store state on the backend because we can just have the client store it.
+message ChatkitState {
+  string previous_response_id = 1;
+  string thread_id = 2;
+}
+
+message SendSlackMessageRequest {
+  string channel = 1;
+  string timestamp = 2;
+  string text = 3;
+  repeated string file_ids = 4;
+}
+
+message SendSlackMessageResponse {
+  // The error if there is one
+  string error = 1;
+}
