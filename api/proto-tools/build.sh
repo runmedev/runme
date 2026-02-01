@@ -3,13 +3,16 @@ set -ex
 
 # Resolve the directory of the script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel)"
 
 cd "$SCRIPT_DIR"
 
 # Run buf in-place using the workspace and tools module.
 pushd ./
-cd "${SCRIPT_DIR}/../../.."
-buf generate --template "${SCRIPT_DIR}/buf.gen.yaml" --path api/proto-tools
+cd "${ROOT}"
+# Remove all files to ensure pruning
+rm -rf api/gen/proto-tools/
+buf generate --template "${SCRIPT_DIR}/buf.gen.yaml" api/proto-tools
 
 NOTEBOOKS_FILE="api/gen/proto-tools/agent/v1/agentv1mcp/notebooks.pb.mcp.go"
 if [[ ! -f "${NOTEBOOKS_FILE}" ]]; then
@@ -17,6 +20,8 @@ if [[ ! -f "${NOTEBOOKS_FILE}" ]]; then
   exit 1
 fi
 
+# The generated code contains a bunch of code for generating MCP servers;
+# For now we get rid of it since the only thing we care about is the tool descriptors.
 # Keep only the tool descriptors; downstream code consumes just the var block.
 python3 - "${NOTEBOOKS_FILE}" <<'PY'
 import sys
@@ -48,16 +53,6 @@ if not trimmed:
 
 path.write_text("".join(keep))
 PY
-
-popd
-
-# Rewrite imports so generated code references our vendored fork.
-#OLD_IMPORT="github.com/mark3labs/mcp-go/mcp"
-#NEW_IMPORT="go.openai.org/project/aisre/toolsgen/mark3labs/mcp"
-#if ls aisremcp/*.go >/dev/null 2>&1; then
-#  # macOS sed requires an empty string argument for -i backups.
-#  find aisremcp -type f -name '*.go' -exec sed -i '' -e "s|${OLD_IMPORT}|${NEW_IMPORT}|g" {} +
-#fi
 
 # Strip unused imports
 # You can install with go install golang.org/x/tools/cmd/goimports@latest
