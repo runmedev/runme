@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package agent.v1;
 
+import "agent/v1/notebooks.proto";
 import "runme/parser/v1/parser.proto";
 
 option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agentv1";
@@ -13,11 +14,42 @@ service MessagesService {
 }
 
 message GenerateRequest {
+  // Context is the context from which the request is running it impacts how the request is made.
+  // TODO(jlewi): Do we need/use this?
+  enum Context {
+    CONTEXT_UNSPECIFIED = 0;
+    CONTEXT_WEBAPP = 1;
+    CONTEXT_SLACK = 2;
+    CONTEXT_ALERT_TRIGGERED = 3;
+  }
+
   repeated runme.parser.v1.Cell cells = 1;
   string previous_response_id = 2;
 
   // openai_access_token is the OpenAI access token to use when contacting the OpenAI API.
   string openai_access_token = 3;
+
+  // model to use. Leave blank to use the default model.
+  string model = 4;
+
+  // Context specifies how the client is running
+  Context context = 5;
+
+  // Kernels is a list of the names of the kernels to include
+  repeated string kernels = 6;
+
+  // Container is the id of an OpenAI container to use
+  string container = 7;
+
+  // Message is the user message
+  string message = 8;
+
+  // ToolCalOutputs is the output of the tools calls
+  // The tools manipulate the notebook.
+  repeated ToolCallOutput tool_call_outputs = 9;
+
+  // Path in the code interpreter container where a copy of the notebook was uploaded
+  string notebook_path = 10;
 }
 
 message GenerateResponse {
