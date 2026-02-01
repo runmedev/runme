@@ -2133,6 +2133,12 @@ export declare enum Edition {
      */
     EDITION_2024 = 1001,
     /**
+     * A placeholder edition for developing and testing unscheduled features.
+     *
+     * @generated from protobuf enum value: EDITION_UNSTABLE = 9999;
+     */
+    EDITION_UNSTABLE = 9999,
+    /**
      * Placeholder editions for testing feature resolution.  These should not be
      * used or relied on outside of tests.
      *

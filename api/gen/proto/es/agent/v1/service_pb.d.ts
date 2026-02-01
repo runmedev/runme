@@ -2,9 +2,10 @@
 // @generated from file agent/v1/service.proto (package agent.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 import type { Cell, CellJson, Notebook, NotebookJson } from "../../runme/parser/v1/parser_pb";
+import type { ToolCallOutput, ToolCallOutputJson } from "./notebooks_pb";
 
 /**
  * Describes the file agent/v1/service.proto.
@@ -31,6 +32,56 @@ export declare type GenerateRequest = Message<"agent.v1.GenerateRequest"> & {
    * @generated from field: string openai_access_token = 3;
    */
   openaiAccessToken: string;
+
+  /**
+   * model to use. Leave blank to use the default model.
+   *
+   * @generated from field: string model = 4;
+   */
+  model: string;
+
+  /**
+   * Context specifies how the client is running
+   *
+   * @generated from field: agent.v1.GenerateRequest.Context context = 5;
+   */
+  context: GenerateRequest_Context;
+
+  /**
+   * Kernels is a list of the names of the kernels to include
+   *
+   * @generated from field: repeated string kernels = 6;
+   */
+  kernels: string[];
+
+  /**
+   * Container is the id of an OpenAI container to use
+   *
+   * @generated from field: string container = 7;
+   */
+  container: string;
+
+  /**
+   * Message is the user message
+   *
+   * @generated from field: string message = 8;
+   */
+  message: string;
+
+  /**
+   * ToolCalOutputs is the output of the tools calls
+   * The tools manipulate the notebook.
+   *
+   * @generated from field: repeated agent.v1.ToolCallOutput tool_call_outputs = 9;
+   */
+  toolCallOutputs: ToolCallOutput[];
+
+  /**
+   * Path in the code interpreter container where a copy of the notebook was uploaded
+   *
+   * @generated from field: string notebook_path = 10;
+   */
+  notebookPath: string;
 };
 
 /**
@@ -53,6 +104,56 @@ export declare type GenerateRequestJson = {
    * @generated from field: string openai_access_token = 3;
    */
   openaiAccessToken?: string;
+
+  /**
+   * model to use. Leave blank to use the default model.
+   *
+   * @generated from field: string model = 4;
+   */
+  model?: string;
+
+  /**
+   * Context specifies how the client is running
+   *
+   * @generated from field: agent.v1.GenerateRequest.Context context = 5;
+   */
+  context?: GenerateRequest_ContextJson;
+
+  /**
+   * Kernels is a list of the names of the kernels to include
+   *
+   * @generated from field: repeated string kernels = 6;
+   */
+  kernels?: string[];
+
+  /**
+   * Container is the id of an OpenAI container to use
+   *
+   * @generated from field: string container = 7;
+   */
+  container?: string;
+
+  /**
+   * Message is the user message
+   *
+   * @generated from field: string message = 8;
+   */
+  message?: string;
+
+  /**
+   * ToolCalOutputs is the output of the tools calls
+   * The tools manipulate the notebook.
+   *
+   * @generated from field: repeated agent.v1.ToolCallOutput tool_call_outputs = 9;
+   */
+  toolCallOutputs?: ToolCallOutputJson[];
+
+  /**
+   * Path in the code interpreter container where a copy of the notebook was uploaded
+   *
+   * @generated from field: string notebook_path = 10;
+   */
+  notebookPath?: string;
 };
 
 /**
@@ -60,6 +161,47 @@ export declare type GenerateRequestJson = {
  * Use `create(GenerateRequestSchema)` to create a new message.
  */
 export declare const GenerateRequestSchema: GenMessage<GenerateRequest, {jsonType: GenerateRequestJson}>;
+
+/**
+ * Context is the context from which the request is running it impacts how the request is made.
+ * TODO(jlewi): Do we need/use this?
+ *
+ * @generated from enum agent.v1.GenerateRequest.Context
+ */
+export enum GenerateRequest_Context {
+  /**
+   * @generated from enum value: CONTEXT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: CONTEXT_WEBAPP = 1;
+   */
+  WEBAPP = 1,
+
+  /**
+   * @generated from enum value: CONTEXT_SLACK = 2;
+   */
+  SLACK = 2,
+
+  /**
+   * @generated from enum value: CONTEXT_ALERT_TRIGGERED = 3;
+   */
+  ALERT_TRIGGERED = 3,
+}
+
+/**
+ * Context is the context from which the request is running it impacts how the request is made.
+ * TODO(jlewi): Do we need/use this?
+ *
+ * @generated from enum agent.v1.GenerateRequest.Context
+ */
+export declare type GenerateRequest_ContextJson = "CONTEXT_UNSPECIFIED" | "CONTEXT_WEBAPP" | "CONTEXT_SLACK" | "CONTEXT_ALERT_TRIGGERED";
+
+/**
+ * Describes the enum agent.v1.GenerateRequest.Context.
+ */
+export declare const GenerateRequest_ContextSchema: GenEnum<GenerateRequest_Context, GenerateRequest_ContextJson>;
 
 /**
  * @generated from message agent.v1.GenerateResponse
@@ -172,3 +314,4 @@ export declare const LogService: GenService<{
     output: typeof LogResponseSchema;
   },
 }>;
+

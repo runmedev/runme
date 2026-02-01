@@ -2,14 +2,15 @@
 // @generated from file agent/v1/service.proto (package agent.v1, syntax proto3)
 /* eslint-disable */
 
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc, tsEnum } from "@bufbuild/protobuf/codegenv2";
+import { file_agent_v1_notebooks } from "./notebooks_pb";
 import { file_runme_parser_v1_parser } from "../../runme/parser/v1/parser_pb";
 
 /**
  * Describes the file agent/v1/service.proto.
  */
 export const file_agent_v1_service = /*@__PURE__*/
-  fileDesc("ChZhZ2VudC92MS9zZXJ2aWNlLnByb3RvEghhZ2VudC52MSJyCg9HZW5lcmF0ZVJlcXVlc3QSJAoFY2VsbHMYASADKAsyFS5ydW5tZS5wYXJzZXIudjEuQ2VsbBIcChRwcmV2aW91c19yZXNwb25zZV9pZBgCIAEoCRIbChNvcGVuYWlfYWNjZXNzX3Rva2VuGAMgASgJIk0KEEdlbmVyYXRlUmVzcG9uc2USJAoFY2VsbHMYASADKAsyFS5ydW5tZS5wYXJzZXIudjEuQ2VsbBITCgtyZXNwb25zZV9pZBgCIAEoCSI5CgpMb2dSZXF1ZXN0EisKCG5vdGVib29rGAEgASgLMhkucnVubWUucGFyc2VyLnYxLk5vdGVib29rIg0KC0xvZ1Jlc3BvbnNlMlgKD01lc3NhZ2VzU2VydmljZRJFCghHZW5lcmF0ZRIZLmFnZW50LnYxLkdlbmVyYXRlUmVxdWVzdBoaLmFnZW50LnYxLkdlbmVyYXRlUmVzcG9uc2UiADABMkIKCkxvZ1NlcnZpY2USNAoDTG9nEhQuYWdlbnQudjEuTG9nUmVxdWVzdBoVLmFnZW50LnYxLkxvZ1Jlc3BvbnNlIgBCQFo+Z2l0aHViLmNvbS9ydW5tZWRldi9ydW5tZS92My9hcGkvZ2VuL3Byb3RvL2dvL2FnZW50L3YxO2FnZW50djFiBnByb3RvMw", [file_runme_parser_v1_parser]);
+  fileDesc("ChZhZ2VudC92MS9zZXJ2aWNlLnByb3RvEghhZ2VudC52MSKeAwoPR2VuZXJhdGVSZXF1ZXN0EiQKBWNlbGxzGAEgAygLMhUucnVubWUucGFyc2VyLnYxLkNlbGwSHAoUcHJldmlvdXNfcmVzcG9uc2VfaWQYAiABKAkSGwoTb3BlbmFpX2FjY2Vzc190b2tlbhgDIAEoCRINCgVtb2RlbBgEIAEoCRIyCgdjb250ZXh0GAUgASgOMiEuYWdlbnQudjEuR2VuZXJhdGVSZXF1ZXN0LkNvbnRleHQSDwoHa2VybmVscxgGIAMoCRIRCgljb250YWluZXIYByABKAkSDwoHbWVzc2FnZRgIIAEoCRIzChF0b29sX2NhbGxfb3V0cHV0cxgJIAMoCzIYLmFnZW50LnYxLlRvb2xDYWxsT3V0cHV0EhUKDW5vdGVib29rX3BhdGgYCiABKAkiZgoHQ29udGV4dBIXChNDT05URVhUX1VOU1BFQ0lGSUVEEAASEgoOQ09OVEVYVF9XRUJBUFAQARIRCg1DT05URVhUX1NMQUNLEAISGwoXQ09OVEVYVF9BTEVSVF9UUklHR0VSRUQQAyJNChBHZW5lcmF0ZVJlc3BvbnNlEiQKBWNlbGxzGAEgAygLMhUucnVubWUucGFyc2VyLnYxLkNlbGwSEwoLcmVzcG9uc2VfaWQYAiABKAkiOQoKTG9nUmVxdWVzdBIrCghub3RlYm9vaxgBIAEoCzIZLnJ1bm1lLnBhcnNlci52MS5Ob3RlYm9vayINCgtMb2dSZXNwb25zZTJYCg9NZXNzYWdlc1NlcnZpY2USRQoIR2VuZXJhdGUSGS5hZ2VudC52MS5HZW5lcmF0ZVJlcXVlc3QaGi5hZ2VudC52MS5HZW5lcmF0ZVJlc3BvbnNlIgAwATJCCgpMb2dTZXJ2aWNlEjQKA0xvZxIULmFnZW50LnYxLkxvZ1JlcXVlc3QaFS5hZ2VudC52MS5Mb2dSZXNwb25zZSIAQkBaPmdpdGh1Yi5jb20vcnVubWVkZXYvcnVubWUvdjMvYXBpL2dlbi9wcm90by9nby9hZ2VudC92MTthZ2VudHYxYgZwcm90bzM", [file_agent_v1_notebooks, file_runme_parser_v1_parser]);
 
 /**
  * Describes the message agent.v1.GenerateRequest.
@@ -17,6 +18,21 @@ export const file_agent_v1_service = /*@__PURE__*/
  */
 export const GenerateRequestSchema = /*@__PURE__*/
   messageDesc(file_agent_v1_service, 0);
+
+/**
+ * Describes the enum agent.v1.GenerateRequest.Context.
+ */
+export const GenerateRequest_ContextSchema = /*@__PURE__*/
+  enumDesc(file_agent_v1_service, 0, 0);
+
+/**
+ * Context is the context from which the request is running it impacts how the request is made.
+ * TODO(jlewi): Do we need/use this?
+ *
+ * @generated from enum agent.v1.GenerateRequest.Context
+ */
+export const GenerateRequest_Context = /*@__PURE__*/
+  tsEnum(GenerateRequest_ContextSchema);
 
 /**
  * Describes the message agent.v1.GenerateResponse.
@@ -52,3 +68,4 @@ export const MessagesService = /*@__PURE__*/
  */
 export const LogService = /*@__PURE__*/
   serviceDesc(file_agent_v1_service, 1);
+

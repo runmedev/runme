@@ -14,14 +14,47 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Notebook } from "../../runme/parser/v1/parser_pb";
+import { ToolCallOutput } from "./notebooks_pb";
 import { Cell } from "../../runme/parser/v1/parser_pb";
+/**
+ * Context is the context from which the request is running it impacts how the request is made.
+ * TODO(jlewi): Do we need/use this?
+ *
+ * @generated from protobuf enum agent.v1.GenerateRequest.Context
+ */
+export var GenerateRequest_Context;
+(function (GenerateRequest_Context) {
+    /**
+     * @generated from protobuf enum value: CONTEXT_UNSPECIFIED = 0;
+     */
+    GenerateRequest_Context[GenerateRequest_Context["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: CONTEXT_WEBAPP = 1;
+     */
+    GenerateRequest_Context[GenerateRequest_Context["WEBAPP"] = 1] = "WEBAPP";
+    /**
+     * @generated from protobuf enum value: CONTEXT_SLACK = 2;
+     */
+    GenerateRequest_Context[GenerateRequest_Context["SLACK"] = 2] = "SLACK";
+    /**
+     * @generated from protobuf enum value: CONTEXT_ALERT_TRIGGERED = 3;
+     */
+    GenerateRequest_Context[GenerateRequest_Context["ALERT_TRIGGERED"] = 3] = "ALERT_TRIGGERED";
+})(GenerateRequest_Context || (GenerateRequest_Context = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class GenerateRequest$Type extends MessageType {
     constructor() {
         super("agent.v1.GenerateRequest", [
             { no: 1, name: "cells", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Cell },
             { no: 2, name: "previous_response_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "openai_access_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "openai_access_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "model", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "context", kind: "enum", T: () => ["agent.v1.GenerateRequest.Context", GenerateRequest_Context, "CONTEXT_"] },
+            { no: 6, name: "kernels", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "container", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "tool_call_outputs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolCallOutput },
+            { no: 10, name: "notebook_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value) {
@@ -29,6 +62,13 @@ class GenerateRequest$Type extends MessageType {
         message.cells = [];
         message.previousResponseId = "";
         message.openaiAccessToken = "";
+        message.model = "";
+        message.context = 0;
+        message.kernels = [];
+        message.container = "";
+        message.message = "";
+        message.toolCallOutputs = [];
+        message.notebookPath = "";
         if (value !== undefined)
             reflectionMergePartial(this, message, value);
         return message;
@@ -46,6 +86,27 @@ class GenerateRequest$Type extends MessageType {
                     break;
                 case /* string openai_access_token */ 3:
                     message.openaiAccessToken = reader.string();
+                    break;
+                case /* string model */ 4:
+                    message.model = reader.string();
+                    break;
+                case /* agent.v1.GenerateRequest.Context context */ 5:
+                    message.context = reader.int32();
+                    break;
+                case /* repeated string kernels */ 6:
+                    message.kernels.push(reader.string());
+                    break;
+                case /* string container */ 7:
+                    message.container = reader.string();
+                    break;
+                case /* string message */ 8:
+                    message.message = reader.string();
+                    break;
+                case /* repeated agent.v1.ToolCallOutput tool_call_outputs */ 9:
+                    message.toolCallOutputs.push(ToolCallOutput.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string notebook_path */ 10:
+                    message.notebookPath = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -68,6 +129,27 @@ class GenerateRequest$Type extends MessageType {
         /* string openai_access_token = 3; */
         if (message.openaiAccessToken !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.openaiAccessToken);
+        /* string model = 4; */
+        if (message.model !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.model);
+        /* agent.v1.GenerateRequest.Context context = 5; */
+        if (message.context !== 0)
+            writer.tag(5, WireType.Varint).int32(message.context);
+        /* repeated string kernels = 6; */
+        for (let i = 0; i < message.kernels.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.kernels[i]);
+        /* string container = 7; */
+        if (message.container !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.container);
+        /* string message = 8; */
+        if (message.message !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.message);
+        /* repeated agent.v1.ToolCallOutput tool_call_outputs = 9; */
+        for (let i = 0; i < message.toolCallOutputs.length; i++)
+            ToolCallOutput.internalBinaryWrite(message.toolCallOutputs[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* string notebook_path = 10; */
+        if (message.notebookPath !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.notebookPath);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
