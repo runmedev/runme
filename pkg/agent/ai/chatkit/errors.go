@@ -3,7 +3,7 @@ package chatkit
 import (
 	"fmt"
 
-	"go.openai.org/lib/go/helpers"
+	"github.com/runmedev/runme/v3/pkg/agent/debug"
 )
 
 type HTTPError struct {
@@ -17,5 +17,5 @@ func (e *HTTPError) Error() string {
 }
 
 func NewHTTPError(code int, msg string) error {
-	return &HTTPError{Code: code, Message: msg, Caller: helpers.ThisCaller()}
+	return &HTTPError{Code: code, Message: msg, Caller: debug.ThisCaller()}
 }
