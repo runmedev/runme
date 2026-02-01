@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"path/filepath"
 
+	"github.com/openai/openai-go"
 	"github.com/spf13/cobra"
 
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
@@ -32,13 +34,24 @@ func NewServeCmd(appName string) *cobra.Command {
 			}
 			agentOptions := &ai.AgentOptions{Model: "gpt-4.1"} // set default model to gpt-4.1
 
+			if app.AppConfig.CloudAssistant == nil {
+				return errors.New("cloudAssistant config is required for serve; set cloudAssistant in config.yaml")
+			}
 			if err := agentOptions.FromAssistantConfig(*app.AppConfig.CloudAssistant); err != nil {
 				return err
 			}
 
-			client, err := ai.NewClient(*app.AppConfig.OpenAI)
-			if err != nil {
-				return err
+			var client *openai.Client
+			if app.AppConfig.OpenAI == nil {
+				// OpenAI access tokens will be provided by the client per request.
+				agentOptions.UseOAuth = true
+				client = ai.NewClientWithoutKey()
+			} else {
+				var err error
+				client, err = ai.NewClient(*app.AppConfig.OpenAI)
+				if err != nil {
+					return err
+				}
 			}
 
 			agentOptions.Client = client

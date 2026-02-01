@@ -131,7 +131,8 @@ type CloudAssistantConfig struct {
 }
 
 type OpenAIConfig struct {
-	// APIKeyFile is the file containing the OpenAI API key
+	// APIKeyFile is the file containing the OpenAI API key.
+	// Optional when the client supplies an OAuth access token per request.
 	APIKeyFile string `json:"apiKeyFile,omitempty" yaml:"apiKeyFile,omitempty"`
 }
 
@@ -426,6 +427,10 @@ type OIDCConfig struct {
 	// Generic contains generic OIDC configuration
 	Generic *GenericOIDCConfig `json:"generic,omitempty" yaml:"generic,omitempty"`
 
+	// ValidateOnly skips OAuth login flow and only validates incoming bearer tokens.
+	// Defaults to true when unset.
+	ValidateOnly *bool `json:"validateOnly,omitempty" yaml:"validateOnly,omitempty"`
+
 	// ForceApproval is a flag to force the user to approve the app again
 	ForceApproval bool `json:"forceApproval" yaml:"forceApproval"`
 
@@ -434,11 +439,20 @@ type OIDCConfig struct {
 	ClientExchange bool `json:"clientExchange" yaml:"clientExchange"`
 }
 
+// GetValidateOnly returns true when ValidateOnly is unset.
+func (c *OIDCConfig) GetValidateOnly() bool {
+	if c == nil || c.ValidateOnly == nil {
+		return true
+	}
+	return *c.ValidateOnly
+}
+
 // GoogleOIDCConfig contains Google-specific OIDC configuration
 type GoogleOIDCConfig struct {
 	// ClientCredentialsFile is the path to the file containing the Google client credentials
 	ClientCredentialsFile string `json:"clientCredentialsFile" yaml:"clientCredentialsFile"`
-	// DiscoveryURL is the URL for the OpenID Connect discovery document
+	// DiscoveryURL is the URL for the OpenID Connect discovery document.
+	// If empty, defaults to Google's standard discovery URL.
 	DiscoveryURL string `json:"discoveryURL" yaml:"discoveryURL"`
 }
 

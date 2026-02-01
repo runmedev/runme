@@ -80,9 +80,14 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 		provider = NewGenericProvider(cfg.Generic)
 	}
 
-	oauth2Config, err := provider.GetOAuth2Config()
-	if err != nil {
-		return nil, err
+	validateOnly := cfg.GetValidateOnly()
+	var oauth2Config *oauth2.Config
+	if !validateOnly {
+		var err error
+		oauth2Config, err = provider.GetOAuth2Config()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	discoveryURL := provider.GetDiscoveryURL()
@@ -103,10 +108,12 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 		return nil, errors.Wrap(err, "failed to decode OpenID configuration")
 	}
 
-	// Update endpoints from discovery document
-	oauth2Config.Endpoint = oauth2.Endpoint{
-		AuthURL:  discovery.AuthURL,
-		TokenURL: discovery.TokenURL,
+	// Update endpoints from discovery document if OAuth2 config is in use.
+	if oauth2Config != nil {
+		oauth2Config.Endpoint = oauth2.Endpoint{
+			AuthURL:  discovery.AuthURL,
+			TokenURL: discovery.TokenURL,
+		}
 	}
 
 	// If the generic provider is configured with an issuer, use it
@@ -144,6 +151,11 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 // DoClientExchange true if the token exchange happens on the client
 func (o *OIDC) DoClientExchange() bool {
 	return o.config.ClientExchange
+}
+
+// ValidateOnly returns true when the OIDC config is validate-only.
+func (o *OIDC) ValidateOnly() bool {
+	return o.config.GetValidateOnly()
 }
 
 // downloadJWKS downloads the JSON Web Key Set (JWKS) from Google's OAuth2 provider.
@@ -321,7 +333,7 @@ func NewAuthMiddlewareForOIDC(oidc *OIDC) (func(http.Handler) http.Handler, erro
 			}
 
 			if token == nil {
-				log.Error(err, "Token validation failed")
+				log.Error(err, "Token validation failed", "tokenSummary", tokenSummary(token))
 				// Return HTTP 401 and let the client handle the redirect to the login page
 				http.Error(w, "Unauthorized: Invalid or expired token", http.StatusUnauthorized)
 				return
@@ -338,6 +350,10 @@ func NewAuthMiddlewareForOIDC(oidc *OIDC) (func(http.Handler) http.Handler, erro
 // loginHandler handles the OAuth2 login flow
 func (o *OIDC) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	log := logs.FromContext(r.Context())
+	if o.oauth2 == nil {
+		http.Error(w, "OIDC validateOnly is enabled; login flow is disabled", http.StatusBadRequest)
+		return
+	}
 	state, err := o.state.generateState()
 	if err != nil {
 		log.Error(err, "Failed to generate state")
@@ -356,6 +372,10 @@ func (o *OIDC) LoginHandler(w http.ResponseWriter, r *http.Request) {
 // callbackHandler handles the OAuth2 callback
 func (o *OIDC) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	log := zapr.NewLogger(zap.L())
+	if o.oauth2 == nil {
+		redirectWithError(w, r, "validate_only", "OIDC validateOnly is enabled; callback is disabled")
+		return
+	}
 
 	// Verify state
 	stateKey := r.URL.Query().Get("state")
@@ -685,7 +705,7 @@ func (a *AuthContext) AuthorizeRequest(ctx context.Context, req *streamv1.Websoc
 
 	principal, err := a.Checker.GetPrincipal(idToken)
 	if err != nil {
-		log.Error(err, "Could not extract principal from token")
+		log.Error(err, "Could not extract principal from token", "tokenSummary", tokenSummary(idToken))
 		return ErrPrincipalExtraction
 	}
 	if a.Checker != nil {
