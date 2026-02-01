@@ -116,6 +116,16 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 	return multiplex, nil
 }
 
+// Shutdown cancels all active multiplexers, which propagates context
+// cancellation to running commands.
+func (h *WebSocketHandler) Shutdown() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, m := range h.runs {
+		m.cancel()
+	}
+}
+
 // removeRun removes a run from the handler. It is called when the processor is done.
 func (h *WebSocketHandler) removeRun(ctx context.Context, runID string) {
 	log := logs.FromContextWithTrace(ctx)

@@ -12,8 +12,8 @@ import (
 type nativeCommand struct {
 	*base
 
-	disableNewProcessID bool
-	logger              *zap.Logger
+	logger           *zap.Logger
+	processLifecycle ProcessLifecycle
 
 	cmd *exec.Cmd
 }
@@ -60,10 +60,15 @@ func (c *nativeCommand) Start(ctx context.Context) (err error) {
 	c.cmd.Stdout = c.Stdout()
 	c.cmd.Stderr = c.Stderr()
 
-	if !c.disableNewProcessID {
+	switch c.processLifecycle {
+	case ProcessLifecycleIsolated:
 		// Creating a new process group is required to properly replicate a behaviour
 		// similar to CTRL-C in the terminal, which sends a SIGINT to the whole group.
 		setSysProcAttrPgid(c.cmd)
+	case ProcessLifecycleLinked:
+		// Child stays in parent's process group; OS signals propagate naturally.
+		// WaitDelay ensures Wait returns even if grandchildren hold pipes open.
+		c.cmd.WaitDelay = cmdWaitDelay
 	}
 
 	c.logger.Info("starting", zap.Any("config", redactConfig(c.ProgramConfig())))
@@ -78,7 +83,7 @@ func (c *nativeCommand) Start(ctx context.Context) (err error) {
 func (c *nativeCommand) Signal(sig os.Signal) error {
 	c.logger.Info("stopping with signal", zap.Stringer("signal", sig))
 
-	if !c.disableNewProcessID {
+	if c.processLifecycle == ProcessLifecycleIsolated {
 		c.logger.Info("signaling to the process group", zap.Stringer("signal", sig))
 		// Try to terminate the whole process group. If it fails, fall back to stdlib methods.
 		err := signalPgid(c.cmd.Process.Pid, sig)

@@ -3,6 +3,7 @@ package command
 import (
 	"io"
 	"reflect"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -16,6 +17,29 @@ import (
 var (
 	envCollectorEnableEncryption = true
 	envCollectorUseFifo          = true
+)
+
+// cmdWaitDelay is the time cmd.Wait allows for I/O pipes to drain
+// after the process exits before forcibly closing them.
+const cmdWaitDelay = 10 * time.Second
+
+// ProcessLifecycle controls child process group membership and
+// signal propagation behavior.
+type ProcessLifecycle int
+
+const (
+	// ProcessLifecycleIsolated places the child in its own process
+	// group (Setpgid). Signal isolation: children survive when the
+	// parent is killed or the context is cancelled.
+	ProcessLifecycleIsolated ProcessLifecycle = iota
+
+	// ProcessLifecycleLinked keeps the child in the parent's process
+	// group so OS signals propagate naturally. When the parent is
+	// killed, children are cleaned up through normal group signal
+	// delivery. For virtual (PTY) commands that require session
+	// isolation, cmd.Cancel signals the process group on context
+	// cancellation instead.
+	ProcessLifecycleLinked
 )
 
 type CommandOptions struct {
@@ -73,6 +97,12 @@ func WithProject(proj *project.Project) FactoryOption {
 	}
 }
 
+func WithProcessLifecycle(p ProcessLifecycle) FactoryOption {
+	return func(f *commandFactory) {
+		f.processLifecycle = p
+	}
+}
+
 func WithRuntime(r Runtime) FactoryOption {
 	return func(f *commandFactory) {
 		f.runtime = r
@@ -91,11 +121,12 @@ func NewFactory(opts ...FactoryOption) Factory {
 }
 
 type commandFactory struct {
-	debug   bool
-	docker  *dockerexec.Docker
-	logger  *zap.Logger
-	project *project.Project
-	runtime Runtime
+	debug            bool
+	docker           *dockerexec.Docker
+	logger           *zap.Logger
+	processLifecycle ProcessLifecycle
+	project          *project.Project
+	runtime          Runtime
 }
 
 // Build creates a new command based on the provided [ProgramConfig] and [CommandOptions].
@@ -149,10 +180,10 @@ func (f *commandFactory) Build(cfg *ProgramConfig, opts CommandOptions) (Command
 		base := f.buildBase(cfg, opts)
 
 		// In order to support interactive commands like runme-in-runme,
-		// a native command is needed and creation of a new process ID
-		// should be disabled.
+		// a native command is needed and the child must stay in the
+		// parent's process group.
 		internal := f.buildNative(base)
-		internal.disableNewProcessID = true
+		internal.processLifecycle = ProcessLifecycleLinked
 
 		if !opts.NoShell && isShell(cfg) {
 			collector, err := f.getEnvCollector()
@@ -255,8 +286,9 @@ func (f *commandFactory) buildDocker(base *base) *dockerCommand {
 
 func (f *commandFactory) buildNative(base *base) *nativeCommand {
 	return &nativeCommand{
-		base:   base,
-		logger: f.getLogger("NativeCommand"),
+		base:             base,
+		logger:           f.getLogger("NativeCommand"),
+		processLifecycle: f.processLifecycle,
 	}
 }
 
@@ -266,10 +298,11 @@ func (f *commandFactory) buildVirtual(base *base, opts CommandOptions) *virtualC
 		stdin = &readCloser{r: in, done: make(chan struct{})}
 	}
 	return &virtualCommand{
-		base:          base,
-		isEchoEnabled: opts.EnableEcho,
-		logger:        f.getLogger("VirtualCommand"),
-		stdin:         stdin,
+		base:             base,
+		isEchoEnabled:    opts.EnableEcho,
+		logger:           f.getLogger("VirtualCommand"),
+		processLifecycle: f.processLifecycle,
+		stdin:            stdin,
 	}
 }
 
