@@ -9,7 +9,7 @@ The approach we are using is to
    tool definitions
 
 We haven't integrated the running of protoc-gen-go-mcp into bazel yet. So for now we just use buf
-to run the generation locally;
+to run the generation locally. The tool protos live in api/proto-tools.
 
 To regenerate
 
