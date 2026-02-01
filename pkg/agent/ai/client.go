@@ -46,3 +46,15 @@ func NewClientWithKey(key string) (*openai.Client, error) {
 	)
 	return &client, nil
 }
+
+// NewClientWithoutKey returns an OpenAI client configured without an API key.
+// This is intended for OAuth flows where the caller supplies the Authorization header per-request.
+func NewClientWithoutKey() *openai.Client {
+	retryClient := retryablehttp.NewClient()
+	httpClient := retryClient.StandardClient()
+
+	client := openai.NewClient(
+		option.WithHTTPClient(httpClient),
+	)
+	return &client
+}
