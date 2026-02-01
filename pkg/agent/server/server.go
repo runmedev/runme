@@ -294,9 +294,7 @@ func (s *Server) registerServices() error {
 
 	// Register auth routes if OIDC is configured
 	if oidc != nil {
-		if oidc.ValidateOnly() {
-			log.Info("OIDC validateOnly is enabled; skipping auth routes")
-		} else if oidc.DoClientExchange() {
+		if oidc.DoClientExchange() {
 			log.Info("OIDC is configured; callback will be handled on client")
 			mux.HandleFunc(iam.OIDCPathPrefix+"/callback", s.serveIndexHTML)
 		} else {

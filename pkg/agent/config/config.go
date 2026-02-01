@@ -427,10 +427,6 @@ type OIDCConfig struct {
 	// Generic contains generic OIDC configuration
 	Generic *GenericOIDCConfig `json:"generic,omitempty" yaml:"generic,omitempty"`
 
-	// ValidateOnly skips OAuth login flow and only validates incoming bearer tokens.
-	// Defaults to true when unset.
-	ValidateOnly *bool `json:"validateOnly,omitempty" yaml:"validateOnly,omitempty"`
-
 	// ForceApproval is a flag to force the user to approve the app again
 	ForceApproval bool `json:"forceApproval" yaml:"forceApproval"`
 
@@ -440,17 +436,23 @@ type OIDCConfig struct {
 }
 
 // GetValidateOnly returns true when ValidateOnly is unset.
-func (c *OIDCConfig) GetValidateOnly() bool {
-	if c == nil || c.ValidateOnly == nil {
-		return true
-	}
-	return *c.ValidateOnly
-}
+//func (c *OIDCConfig) GetValidateOnly() bool {
+//	if c == nil || c.ValidateOnly == nil {
+//		return true
+//	}
+//	return *c.ValidateOnly
+//}
 
 // GoogleOIDCConfig contains Google-specific OIDC configuration
 type GoogleOIDCConfig struct {
 	// ClientCredentialsFile is the path to the file containing the Google client credentials
+	// You only need this if doing the OAuth Login flow on the server.
+	// If your just validating credentials you just need to provide ClientID string
+	// TODO(jlewi): This feels kludgy and confusing? Can we clean up configuration to more cleanly specify
+	// values in cases where we are just validating credentials vs minting tokens in the server?
 	ClientCredentialsFile string `json:"clientCredentialsFile" yaml:"clientCredentialsFile"`
+	ClientID              string `json:"clientID" yaml:"clientID"`
+
 	// DiscoveryURL is the URL for the OpenID Connect discovery document.
 	// If empty, defaults to Google's standard discovery URL.
 	DiscoveryURL string `json:"discoveryURL" yaml:"discoveryURL"`
