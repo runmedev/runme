@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "obs",
+    srcs = ["principal.go"],
+    importpath = "go.openai.org/project/aisre/pkg/obs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//lib/oaigo/telemetry/oailog",
+        "@com_github_golang_jwt_jwt_v5//:jwt",
+        "@com_github_runmedev_runme_v3//pkg/agent/iam",
+    ],
+)
+
+go_test(
+    name = "obs_test",
+    srcs = ["principal_test.go"],
+    embed = [":obs"],
+    deps = [
+        "@com_github_golang_jwt_jwt_v5//:jwt",
+        "@com_github_runmedev_runme_v3//pkg/agent/iam",
+    ],
+)
