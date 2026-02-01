@@ -435,14 +435,6 @@ type OIDCConfig struct {
 	ClientExchange bool `json:"clientExchange" yaml:"clientExchange"`
 }
 
-// GetValidateOnly returns true when ValidateOnly is unset.
-//func (c *OIDCConfig) GetValidateOnly() bool {
-//	if c == nil || c.ValidateOnly == nil {
-//		return true
-//	}
-//	return *c.ValidateOnly
-//}
-
 // GoogleOIDCConfig contains Google-specific OIDC configuration
 type GoogleOIDCConfig struct {
 	// ClientCredentialsFile is the path to the file containing the Google client credentials
