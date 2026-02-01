@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
+	"github.com/runmedev/runme/v3/pkg/agent/obs"
 	"go.openai.org/lib/oaigo/telemetry/oailog"
-	"go.openai.org/project/aisre/pkg/obs"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 
