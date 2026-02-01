@@ -80,14 +80,11 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 		provider = NewGenericProvider(cfg.Generic)
 	}
 
-	validateOnly := cfg.GetValidateOnly()
 	var oauth2Config *oauth2.Config
-	if !validateOnly {
-		var err error
-		oauth2Config, err = provider.GetOAuth2Config()
-		if err != nil {
-			return nil, err
-		}
+	var err error
+	oauth2Config, err = provider.GetOAuth2Config()
+	if err != nil {
+		return nil, err
 	}
 
 	discoveryURL := provider.GetDiscoveryURL()
@@ -154,9 +151,9 @@ func (o *OIDC) DoClientExchange() bool {
 }
 
 // ValidateOnly returns true when the OIDC config is validate-only.
-func (o *OIDC) ValidateOnly() bool {
-	return o.config.GetValidateOnly()
-}
+//func (o *OIDC) ValidateOnly() bool {
+//	return o.config.GetValidateOnly()
+//}
 
 // downloadJWKS downloads the JSON Web Key Set (JWKS) from Google's OAuth2 provider.
 // It fetches the public keys used to verify JWT signatures, decodes them from the
@@ -289,6 +286,11 @@ func (o *OIDC) verifyToken(idToken string) (*jwt.Token, error) {
 
 	// Verify audience matches our client ID
 	aud, err := claims.GetAudience()
+
+	if o.oauth2 == nil {
+		return nil, errors.New("Internal server error; there is no audience to validate the token with; server is misconfigured")
+	}
+
 	if err != nil || len(aud) == 0 || aud[0] != o.oauth2.ClientID {
 		return nil, fmt.Errorf("invalid token audience: got %v, expected %v", aud, o.oauth2.ClientID)
 	}
@@ -609,6 +611,19 @@ func NewGoogleProvider(cfg *config.GoogleOIDCConfig) *GoogleProvider {
 }
 
 func (p *GoogleProvider) GetOAuth2Config() (*oauth2.Config, error) {
+	hasFile := p.config.ClientCredentialsFile != ""
+	hasClientID := p.config.ClientID != ""
+	if hasFile == hasClientID {
+		return nil, errors.New("cannot use both Google.ClientCredentialsFile and Google.ClientID; only one should be set; if the server is minting tokens you must set ClientCredentialsFile")
+	}
+
+	if hasClientID {
+		// We only need a ClientID in order to validate tokens.
+		// TODO(jlewi): This feels a bit hacky/error prone to reuse the oauth2client. Maybe we should
+		// separate the logic for minting vs. validating tokens?
+		return &oauth2.Config{ClientID: p.config.ClientID}, nil
+	}
+
 	bytes, err := os.ReadFile(p.config.ClientCredentialsFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to read client credentials file")
@@ -699,8 +714,8 @@ func (a *AuthContext) AuthorizeRequest(ctx context.Context, req *streamv1.Websoc
 	// Nil token is not fatal until authz denies access
 	idToken, err := a.OIDC.verifyBearerToken(req.GetAuthorization())
 	if err != nil {
-		log.Info("Unauthenticated: ", "error", err)
-		// TODO(jlewi): Should we be returning here?
+		log.Error(err, "ID token verification failed")
+		return err
 	}
 
 	principal, err := a.Checker.GetPrincipal(idToken)
