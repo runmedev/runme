@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/pkg/errors"
-	agentv1mcp "go.openai.org/project/aisre/api/gen/proto-tools/agent/v1/agentv1mcp"
+	agentv1mcp "github.com/runmedev/runme/v3/api/gen/proto-tools/agent/v1/agentv1mcp"
 	aisreproto "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	"go.openai.org/lib/oaigo/telemetry/oailog"
 	"google.golang.org/protobuf/encoding/protojson"
