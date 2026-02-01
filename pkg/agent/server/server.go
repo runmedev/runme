@@ -59,6 +59,7 @@ type Server struct {
 	checker          iam.Checker
 	registerHandlers RegisterHandlers
 	assetsFS         fs.FS
+	wsHandler        *stream.WebSocketHandler
 }
 
 type (
@@ -324,13 +325,13 @@ func (s *Server) registerServices() error {
 	}
 
 	if s.runner != nil {
-		wsHandler := stream.NewWebSocketHandler(s.runner, &iam.AuthContext{
+		s.wsHandler = stream.NewWebSocketHandler(s.runner, &iam.AuthContext{
 			OIDC:    oidc,
 			Checker: s.checker,
 			Role:    api.RunnerUserRole,
 		})
 		// Unprotected WebSockets handler since socket protection is done on the app-level (messages)
-		mux.Handle("/ws", otelhttp.NewHandler(http.HandlerFunc(wsHandler.Handler), "/ws"))
+		mux.Handle("/ws", otelhttp.NewHandler(http.HandlerFunc(s.wsHandler.Handler), "/ws"))
 		log.Info("Setting up runner websocket handler", "path", "/ws")
 
 		runnerSvcPath, runnerSvcHandler := runnerv2connect.NewRunnerServiceHandler(s.runner, connect.WithInterceptors(interceptors...))
@@ -396,6 +397,14 @@ func (s *Server) shutdown() {
 	log := zapr.NewLogger(zap.L())
 	log.Info("Shutting down the agent server")
 
+	// Cancel active multiplexers first. WebSocket connections are hijacked
+	// and invisible to hServer.Shutdown, so we must cancel their contexts
+	// explicitly. This propagates to running commands via cmd.Cancel.
+	if s.wsHandler != nil {
+		s.wsHandler.Shutdown()
+		log.Info("Cancelled active runs")
+	}
+
 	if s.hServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -404,6 +413,7 @@ func (s *Server) shutdown() {
 		}
 		log.Info("HTTP Server shutdown complete")
 	}
+
 	log.Info("Shutdown complete")
 	s.shutdownComplete <- true
 }

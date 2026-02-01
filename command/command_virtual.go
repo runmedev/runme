@@ -17,9 +17,10 @@ import (
 type virtualCommand struct {
 	*base
 
-	isEchoEnabled bool
-	logger        *zap.Logger
-	stdin         io.ReadCloser // stdin is [CommandOptions.Stdin] wrapped in [readCloser]
+	isEchoEnabled    bool
+	logger           *zap.Logger
+	processLifecycle ProcessLifecycle
+	stdin            io.ReadCloser // stdin is [CommandOptions.Stdin] wrapped in [readCloser]
 
 	// cmd is populated when the command is started.
 	cmd *exec.Cmd
@@ -89,6 +90,13 @@ func (c *virtualCommand) Start(ctx context.Context) (err error) {
 	// 3 is because stdin, stdout, stderr + i-th element in ExtraFiles.
 	setSysProcAttrCtty(c.cmd, 3)
 	c.cmd.ExtraFiles = []*os.File{c.tty}
+
+	if c.processLifecycle == ProcessLifecycleLinked {
+		c.cmd.Cancel = func() error {
+			return signalPgid(c.cmd.Process.Pid, syscall.SIGKILL)
+		}
+		c.cmd.WaitDelay = cmdWaitDelay
+	}
 
 	c.logger.Info("starting", zap.Any("config", redactConfig(c.ProgramConfig())))
 	if err := c.cmd.Start(); err != nil {

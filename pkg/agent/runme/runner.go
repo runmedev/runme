@@ -19,7 +19,10 @@ type Runner struct {
 }
 
 func NewRunner(logger *zap.Logger) (*Runner, error) {
-	factory := command.NewFactory(command.WithLogger(logger))
+	factory := command.NewFactory(
+		command.WithLogger(logger),
+		command.WithProcessLifecycle(command.ProcessLifecycleLinked),
+	)
 	server, err := runnerv2service.NewRunnerService(factory, logger)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create Runme runner service")
