@@ -616,6 +616,12 @@ export var Edition;
      */
     Edition[Edition["EDITION_2024"] = 1001] = "EDITION_2024";
     /**
+     * A placeholder edition for developing and testing unscheduled features.
+     *
+     * @generated from protobuf enum value: EDITION_UNSTABLE = 9999;
+     */
+    Edition[Edition["EDITION_UNSTABLE"] = 9999] = "EDITION_UNSTABLE";
+    /**
      * Placeholder editions for testing feature resolution.  These should not be
      * used or relied on outside of tests.
      *

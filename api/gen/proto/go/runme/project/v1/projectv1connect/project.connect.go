@@ -5,14 +5,12 @@
 package projectv1connect
 
 import (
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/project/v1"
 	http "net/http"
 	strings "strings"
-
-	connect "connectrpc.com/connect"
-
-	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/project/v1"
 )
 
 // This is a compile-time assertion to ensure that this generated file and the connect package are
