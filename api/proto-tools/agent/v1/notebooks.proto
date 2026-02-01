@@ -46,6 +46,28 @@ service NotebookService {
   // TerminateRun terminates the run. Call this when no further processing is necessary to handle
   // the user request.
   rpc TerminateRun(TerminateRunRequest) returns (TerminateRunResponse) {}
+
+
+  // TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
+  // 
+  // SlackMessageRequest sends a slack message to the user.
+  // Channel is The channel to send the message to e.g. "C09DF7PL6K0".
+  // Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
+  // If no slack channel was included in the request, do not invoke this tool.
+  //
+  // timestamp it the (unique identifier) of the slack thread you want to post into e.g.
+  // 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
+  // "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
+  // request, you may omit this property which will start a new thread.`,
+  //
+  // text is the message that the user will see in slack.
+  //  A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
+  //  ```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
+  //  @channel in this message.",
+  //
+  // fileIDs optionally send files generated as part of the investigation to the user in slack
+  // (often images). e.g. ["call_ABC", "call_DEF"]`,
+  rpc SendSlackMessage(SendSlackMessageRequest) returns (SendSlackMessageResponse) {}
 }
 
 message ListCellsRequest {}

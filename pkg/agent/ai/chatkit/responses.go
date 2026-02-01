@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/go-logr/logr"
 	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	oaiconstants "github.com/openai/openai-go/v2/shared/constant"
 	"github.com/pkg/errors"
+	"github.com/runmedev/runme/v3/api/gen/proto-tools/agent/v1/agentv1mcp"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
-	"go.openai.org/lib/oaigo/telemetry/oailog"
-	aisreproto "go.openai.org/oaiproto/aisre"
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -85,13 +86,13 @@ type AISREChatkitEvent struct {
 func (e AISREChatkitEvent) isThreadStreamEvent() {}
 
 func (b *responseStreamBuilder) handleEvent(ctx context.Context, e responses.ResponseStreamEventUnion) error {
-	ctx = oailog.WithContextAttrs(ctx, oailog.String("threadID", b.threadID))
+	logger := logs.FromContext(ctx).WithValues("threadID", b.threadID)
 	// Only set response ID if it isn't set
 	if id := e.Response.ID; id != "" && b.responseID == "" {
 		// Sent the responseID and send an en event message
 		b.responseID = id
 
-		state := &aisreproto.ChatkitState{
+		state := &agentv1mcp.ChatkitState{
 			ThreadId:           b.threadID,
 			PreviousResponseId: b.responseID,
 		}
@@ -109,9 +110,9 @@ func (b *responseStreamBuilder) handleEvent(ctx context.Context, e responses.Res
 			return errors.Wrap(err, "failed to send chat kit state")
 		}
 	}
-	ctx = oailog.WithContextAttrs(ctx, oailog.String("responseID", b.responseID))
+	logger = logger.WithValues("responseID", b.responseID)
 
-	oailog.Info(ctx, "Handle event", oailog.Any("eventType", e.Type))
+	logger.Info("Handle event", "eventType", e.Type)
 	switch event := e.AsAny().(type) {
 	case responses.ResponseTextDeltaEvent:
 		return b.handleTextDelta(ctx, e.AsResponseOutputTextDelta())
@@ -148,10 +149,8 @@ func (b *responseStreamBuilder) handleTextDelta(ctx context.Context, delta respo
 }
 
 func (b *responseStreamBuilder) handleCompleted(ctx context.Context, e responses.ResponseStreamEventUnion) error {
-	oailog.Info(ctx, "Response completed",
-		oailog.String("threadID", b.threadID),
-		oailog.String("responseID", b.responseID),
-	)
+	logger := logs.FromContext(ctx).WithValues("threadID", b.threadID, "responseID", b.responseID)
+	logger.Info("Response completed")
 	if b.message == nil || b.messageFinished {
 		return nil
 	}
@@ -174,12 +173,13 @@ func (b *responseStreamBuilder) handleCompleted(ctx context.Context, e responses
 func (b *responseStreamBuilder) handleOutputItemAdded(ctx context.Context, event responses.ResponseOutputItemAddedEvent) error {
 	// Reset messageAdded; this is a bit of a hack.
 	b.messageAdded = false
-	oailog.Info(ctx, "Response item added",
-		oailog.String("threadID", b.threadID),
-		oailog.String("responseID", b.responseID),
-		oailog.Any("type", event.Type),
-		oailog.String("itemType", event.Item.Type),
+	logger := logs.FromContext(ctx).WithValues(
+		"threadID", b.threadID,
+		"responseID", b.responseID,
+		"type", event.Type,
+		"itemType", event.Item.Type,
 	)
+	logger.Info("Response item added")
 
 	var fSearchCall oaiconstants.FileSearchCall
 	var functionCall oaiconstants.FunctionCall
@@ -256,12 +256,13 @@ func (b *responseStreamBuilder) handleOutputItemAdded(ctx context.Context, event
 func (b *responseStreamBuilder) handleOutputItemDone(ctx context.Context, event responses.ResponseOutputItemDoneEvent) error {
 	// Reset messageAdded; this is a bit of a hack.
 	b.messageAdded = false
-	oailog.Info(ctx, "Response item done",
-		oailog.String("threadID", b.threadID),
-		oailog.String("responseID", b.responseID),
-		oailog.Any("type", event.Type),
-		oailog.String("itemType", event.Item.Type),
+	logger := logr.FromContext(ctx).WithValues(
+		"threadID", b.threadID,
+		"responseID", b.responseID,
+		"type", event.Type,
+		"itemType", event.Item.Type,
 	)
+	logger.Info("Response item done")
 
 	var messageType oaiconstants.Message
 
@@ -311,7 +312,8 @@ func (b *responseStreamBuilder) handleFunctionArgumentsDone(ctx context.Context,
 	}
 
 	if state.CallID == "" {
-		oailog.Error(ctx, "CallID not set on toolCall", oailog.String("itemID", event.ItemID))
+		logger := logr.FromContext(ctx).WithValues("itemID", event.ItemID)
+		logger.Error(nil, "CallID not set on toolCall")
 	}
 
 	// OpenAI JSON needs to be converted to proto json
@@ -361,23 +363,26 @@ func (b *responseStreamBuilder) checkCallIDsUnchanged(ctx context.Context, e res
 		itemID := output.ID
 
 		if itemID == "" {
-			oailog.Info(ctx, "ResponseCompletedEvent has output with callID but not itemID", oailog.String("callID", output.CallID))
+			logger := logr.FromContext(ctx).WithValues("callID", output.CallID)
+			logger.Info("ResponseCompletedEvent has output with callID but not itemID")
 			continue
 		}
 
 		toolCall, ok := b.toolState[itemID]
 		if !ok {
-			oailog.Info(ctx, "No toolCall for item", oailog.String("itemID", itemID), oailog.String("callID", output.CallID))
+			logger := logs.FromContext(ctx).WithValues("itemID", itemID, "callID", output.CallID)
+			logger.Info("No toolCall for item")
 			continue
 		}
 
 		if toolCall.CallID != output.CallID {
 			// Log an error because the subsequent response will fail because the callID won't be found.
-			oailog.Error(ctx, "CallID changed",
-				oailog.String("itemID", itemID),
-				oailog.String("oldCallID", toolCall.CallID),
-				oailog.String("newCallID", output.CallID),
+			logger := logs.FromContext(ctx).WithValues(
+				"itemID", itemID,
+				"oldCallID", toolCall.CallID,
+				"newCallID", output.CallID,
 			)
+			logger.Error(nil, "CallID changed")
 		}
 	}
 }

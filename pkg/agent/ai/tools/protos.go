@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	agentv1mcp "github.com/runmedev/runme/v3/api/gen/proto-tools/agent/v1/agentv1mcp"
 	aisreproto "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
-	"go.openai.org/lib/oaigo/telemetry/oailog"
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -53,7 +53,8 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 	if descriptor != nil {
 		FixOpenAI(descriptor, argsMap)
 	} else {
-		oailog.Error(ctx, "No message descriptor for tool; argument won't be converted to proto JSON", oailog.String("tool", name))
+		logger := logs.FromContext(ctx).WithValues("tool", name)
+		logger.Error(nil, "No message descriptor for tool; argument won't be converted to proto JSON")
 	}
 
 	// Now that we've fixed the json to be proto compatible we can deserialize it as a proto
@@ -112,7 +113,8 @@ func ensureValidUpdateCellsRequest(ctx context.Context, m *aisreproto.UpdateCell
 	for _, c := range m.GetCells() {
 		if c.RefId == "" {
 			c.RefId = uuid.NewString()
-			oailog.Info(ctx, "Generated cellid", oailog.String("id", c.RefId))
+			logger := logs.FromContext(ctx).WithValues("id", c.RefId)
+			logger.Info("Generated cellid")
 		}
 	}
 

@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/obs"
-	"go.openai.org/lib/oaigo/telemetry/oailog"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -45,24 +46,25 @@ func (h *ChatKitHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	span := trace.SpanFromContext(ctx)
 	traceID := span.SpanContext().TraceID().String()
-	ctx = oailog.WithContextAttrs(ctx, oailog.String("traceId", traceID))
+	logger := logs.FromContext(ctx).WithValues("traceId", traceID)
+	ctx = logr.NewContext(ctx, logger)
 	ctx = obs.NewContextWithPrincipal(ctx)
 	// Add the trace-id to the response headers so that in the chrome console we can get the trace-id.
 	// This will make it easier to debug why individual requests to the AISRE failed.
 	// TODO(jlewi): I asked chatgpt if there was a way to do this with interceptors or existing infra we could reuse
 	// but it didn't come up with anything.
 	w.Header().Add("trace-id", traceID)
-	oailog.Info(ctx, "Handling chatkit request")
+	logger.Info("Handling chatkit request")
 
 	if r.Method != http.MethodPost {
-		oailog.Info(ctx, "Method not allowed")
+		logger.Info("Method not allowed")
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		oailog.Info(ctx, "failed to read request body", oailog.Err(err))
+		logger.Error(err, "failed to read request body")
 		http.Error(w, "failed to read request body", http.StatusBadRequest)
 		return
 	}
@@ -74,34 +76,34 @@ func (h *ChatKitHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		ChatKitState json.RawMessage `json:"chatkit_state"`
 	}
 	if err := json.Unmarshal(body, &base); err != nil {
-		oailog.Info(ctx, "invalid request payload", oailog.Err(err), oailog.String("body", string(body)))
+		logger.Error(err, "invalid request payload", "body", string(body))
 		http.Error(w, "invalid request payload", http.StatusBadRequest)
 		return
 	}
 
 	if len(base.ChatKitState) == 0 {
 		err := errors.New("chatkit_state is not in the request body; did the request come from the AISRE webapp")
-		oailog.Error(ctx, "missing chatkit_state", oailog.Err(err))
+		logger.Error(err, "missing chatkit_state")
 		http.Error(w, "missing chatkit_state", http.StatusBadRequest)
 		return
 	}
 
-	oailog.Info(ctx, "ChatKitHandler.Handle",
-		oailog.String("type", base.Type),
-		oailog.String("chatkitstate", string(base.ChatKitState)),
-		oailog.String("body", string(body)),
+	logger.Info("ChatKitHandler.Handle",
+		"type", base.Type,
+		"chatkitstate", string(base.ChatKitState),
+		"body", string(body),
 	)
 
 	chatKitState := &aisreproto.ChatkitState{}
 	if err := protojson.Unmarshal(base.ChatKitState, chatKitState); err != nil {
-		oailog.Error(ctx, "failed to unmarshal chatkit_state", oailog.Err(err))
+		logger.Error(err, "failed to unmarshal chatkit_state")
 		http.Error(w, "failed to unmarshal chatkit_state", http.StatusBadRequest)
 		return
 	}
 
 	oaiAccessToken := r.Header.Get(OpenAIAccessTokenHeader)
 	if oaiAccessToken != "" {
-		oailog.Info(ctx, "Got OpenAIAccessToken")
+		logger.Info("Got OpenAIAccessToken")
 	}
 
 	// We start building a generate request is a container for the parameters that affect how the AI gets called
@@ -123,7 +125,7 @@ func (h *ChatKitHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	case threadsCreateReqType:
 		sse, err := newChatKitSSE(w)
 		if err != nil {
-			oailog.Error(ctx, "failed to create SSE", oailog.Err(err))
+			logger.Error(err, "failed to create SSE")
 			http.Error(w, "failed to create SSE", http.StatusInternalServerError)
 			return
 		}
@@ -131,7 +133,7 @@ func (h *ChatKitHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	case threadsAdduserMessageReqType:
 		sse, err := newChatKitSSE(w)
 		if err != nil {
-			oailog.Error(ctx, "failed to create SSE", oailog.Err(err))
+			logger.Error(err, "failed to create SSE")
 			http.Error(w, "failed to create SSE", http.StatusInternalServerError)
 			return
 		}
@@ -139,22 +141,18 @@ func (h *ChatKitHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	case threadsAddClientToolOutputReqType:
 		sse, err := newChatKitSSE(w)
 		if err != nil {
-			oailog.Error(ctx, "failed to create SSE", oailog.Err(err))
+			logger.Error(err, "failed to create SSE")
 			http.Error(w, "failed to create SSE", http.StatusInternalServerError)
 			return
 		}
 		handleErr = h.handleThreadsAddClientToolOutput(ctx, sse, body, req)
 	default:
-		oailog.Info(ctx, "Unsupported chatkit request type", oailog.String("type", base.Type))
+		logger.Info("Unsupported chatkit request type", "type", base.Type)
 		http.Error(w, fmt.Sprintf("unsupported chatkit request type %q", base.Type), http.StatusBadRequest)
 	}
 
 	if handleErr != nil {
-		oailog.Error(ctx, "failed to handle request",
-			oailog.Err(handleErr),
-			oailog.String("type", base.Type),
-			oailog.String("body", string(body)),
-		)
+		logger.Error(handleErr, "failed to handle request", "type", base.Type, "body", string(body))
 		hErr := &HTTPError{}
 		if errors.Is(handleErr, &HTTPError{}) && errors.As(handleErr, &hErr) {
 			http.Error(w, hErr.Message, hErr.Code)
@@ -226,16 +224,17 @@ func (h *ChatKitHandler) handleThreadsAddClientToolOutput(ctx context.Context, s
 		return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("invalid ToolOutput; result is not a ToolCallOutput; threadID: %s", req.Params.ThreadID))
 	}
 
-	ctx = oailog.WithContextAttrs(ctx,
-		oailog.String("threadID", req.Params.ThreadID),
-		oailog.String("callID", output.CallId),
-		oailog.String("previousResponseID", output.PreviousResponseId),
+	logger := logr.FromContext(ctx).WithValues(
+		"threadID", req.Params.ThreadID,
+		"callID", output.CallId,
+		"previousResponseID", output.PreviousResponseId,
 	)
-	oailog.Info(ctx, "handleThreadsAddClientToolOutput", oailog.String("threadID", req.Params.ThreadID), oailog.String("callID", output.CallId), oailog.String("previousResponseID", output.PreviousResponseId))
+	ctx = logr.NewContext(ctx, logger)
+	logger.Info("handleThreadsAddClientToolOutput")
 
 	streamErr := h.generateAssistantResponse(ctx, req.Params.ThreadID, genReq, output, sse.send)
 	if streamErr != nil {
-		oailog.Error(ctx, "assistant follow-up after tool output failed", oailog.Err(streamErr))
+		logger.Error(streamErr, "assistant follow-up after tool output failed")
 		return sse.send(ctx, ErrorEvent{
 			Type:       errorEventType,
 			Code:       "generation_failed",
@@ -248,7 +247,8 @@ func (h *ChatKitHandler) handleThreadsAddClientToolOutput(ctx context.Context, s
 }
 
 func (h *ChatKitHandler) streamConversation(ctx context.Context, sse *chatKitSSE, threadID string, input UserMessageInput, includeThreadEvent bool, req *aisreproto.GenerateRequest) {
-	ctx = oailog.WithContextAttrs(ctx, oailog.String("threadID", threadID))
+	logger := logr.FromContext(ctx).WithValues("threadID", threadID)
+	ctx = logr.NewContext(ctx, logger)
 
 	if includeThreadEvent {
 		thread := Thread{
@@ -266,7 +266,7 @@ func (h *ChatKitHandler) streamConversation(ctx context.Context, sse *chatKitSSE
 
 	userItem, text, err := newUserMessageItem(threadID, input)
 	if err != nil {
-		oailog.Error(ctx, "failed to build user message", oailog.Err(err))
+		logger.Error(err, "failed to build user message")
 		_ = sse.send(ctx, ErrorEvent{
 			Type:       errorEventType,
 			Code:       "invalid_input",
@@ -294,7 +294,8 @@ func (h *ChatKitHandler) streamConversation(ctx context.Context, sse *chatKitSSE
 
 	streamErr := h.generateAssistantResponse(ctx, threadID, req, nil, sse.send)
 	if streamErr != nil {
-		oailog.Error(ctx, "assistant generation failed", oailog.Err(streamErr))
+		logger := logr.FromContext(ctx)
+		logger.Error(streamErr, "assistant generation failed")
 		_ = sse.send(ctx, ErrorEvent{
 			Type:       errorEventType,
 			Code:       "generation_failed",
@@ -348,12 +349,13 @@ func (h *ChatKitHandler) generateAssistantResponse(ctx context.Context, threadID
 	if toolCallOutput != nil {
 		toolCallOutputCallID = toolCallOutput.CallId
 	}
-	ctx = oailog.WithContextAttrs(ctx,
-		oailog.String("threadID", threadID),
-		oailog.String("toolCallOutputCallID", toolCallOutputCallID),
-		oailog.Bool("hasOpenAIAccessToken", req.OpenaiAccessToken != ""),
+	logger := logr.FromContext(ctx).WithValues(
+		"threadID", threadID,
+		"toolCallOutputCallID", toolCallOutputCallID,
+		"hasOpenAIAccessToken", req.OpenaiAccessToken != "",
 	)
-	oailog.Info(ctx, "Creating response", oailog.Any("previousResponseId", createResponse.PreviousResponseID))
+	ctx = logr.NewContext(ctx, logger)
+	logger.Info("Creating response", "previousResponseId", createResponse.PreviousResponseID)
 	stream := h.agent.Client.Responses.NewStreaming(ctx, *createResponse, opts...)
 	if err := StreamResponseEvents(ctx, threadID, stream, emit); err != nil {
 		return err
