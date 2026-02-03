@@ -5,7 +5,7 @@
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 import type { Cell, CellJson, Notebook, NotebookJson } from "../../runme/parser/v1/parser_pb";
-import type { ToolCallOutput, ToolCallOutputJson } from "./notebooks_pb";
+import type { ToolCallOutput, ToolCallOutputJson } from "../tools/v1/notebooks_pb";
 
 /**
  * Describes the file agent/v1/service.proto.
@@ -72,7 +72,7 @@ export declare type GenerateRequest = Message<"agent.v1.GenerateRequest"> & {
    * ToolCalOutputs is the output of the tools calls
    * The tools manipulate the notebook.
    *
-   * @generated from field: repeated agent.v1.ToolCallOutput tool_call_outputs = 9;
+   * @generated from field: repeated agent.tools.v1.ToolCallOutput tool_call_outputs = 9;
    */
   toolCallOutputs: ToolCallOutput[];
 
@@ -144,7 +144,7 @@ export declare type GenerateRequestJson = {
    * ToolCalOutputs is the output of the tools calls
    * The tools manipulate the notebook.
    *
-   * @generated from field: repeated agent.v1.ToolCallOutput tool_call_outputs = 9;
+   * @generated from field: repeated agent.tools.v1.ToolCallOutput tool_call_outputs = 9;
    */
   toolCallOutputs?: ToolCallOutputJson[];
 

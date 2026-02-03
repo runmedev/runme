@@ -10,7 +10,7 @@ import type { IBinaryReader } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Notebook } from "../../runme/parser/v1/parser_pb";
-import { ToolCallOutput } from "./notebooks_pb";
+import { ToolCallOutput } from "../tools/v1/notebooks_pb";
 import { Cell } from "../../runme/parser/v1/parser_pb";
 /**
  * @generated from protobuf message agent.v1.GenerateRequest
@@ -64,7 +64,7 @@ export interface GenerateRequest {
      * ToolCalOutputs is the output of the tools calls
      * The tools manipulate the notebook.
      *
-     * @generated from protobuf field: repeated agent.v1.ToolCallOutput tool_call_outputs = 9
+     * @generated from protobuf field: repeated agent.tools.v1.ToolCallOutput tool_call_outputs = 9
      */
     toolCallOutputs: ToolCallOutput[];
     /**

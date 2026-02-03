@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/openai/openai-go/option"
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 
 	"connectrpc.com/connect"
 	"github.com/go-logr/zapr"
@@ -12,7 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
-	"github.com/runmedev/runme/v3/api/gen/proto-tools/go/agent/v1/tools/toolsv1mcp"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -289,14 +290,14 @@ func maybeAddListCells(_ context.Context, req *agentv1.GenerateRequest, resp *re
 		return nil
 	}
 
-	listCellsResult := &agentv1.ListCellsResponse{
+	listCellsResult := &toolsv1.ListCellsResponse{
 		Cells: make([]*parserv1.Cell, 0, len(req.Cells)),
 	}
 	for _, c := range req.Cells {
 		listCellsResult.Cells = append(listCellsResult.Cells, toListCell(c))
 	}
 
-	listRequest := &agentv1.ListCellsRequest{}
+	listRequest := &toolsv1.ListCellsRequest{}
 	listCallID := uuid.NewString()
 
 	listRequestJSON, err := protojson.Marshal(listRequest)

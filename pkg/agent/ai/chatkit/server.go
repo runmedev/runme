@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/obs"
@@ -94,7 +95,7 @@ func (h *ChatKitHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		"body", string(body),
 	)
 
-	chatKitState := &aisreproto.ChatkitState{}
+	chatKitState := &toolsv1.ChatkitState{}
 	if err := protojson.Unmarshal(base.ChatKitState, chatKitState); err != nil {
 		logger.Error(err, "failed to unmarshal chatkit_state")
 		http.Error(w, "failed to unmarshal chatkit_state", http.StatusBadRequest)
@@ -219,7 +220,7 @@ func (h *ChatKitHandler) handleThreadsAddClientToolOutput(ctx context.Context, s
 		return NewHTTPError(http.StatusBadRequest, "thread_id is required")
 	}
 
-	output := &aisreproto.ToolCallOutput{}
+	output := &toolsv1.ToolCallOutput{}
 	if err := protojson.Unmarshal(req.Params.Result, output); err != nil {
 		return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("invalid ToolOutput; result is not a ToolCallOutput; threadID: %s", req.Params.ThreadID))
 	}
@@ -307,7 +308,7 @@ func (h *ChatKitHandler) streamConversation(ctx context.Context, sse *chatKitSSE
 }
 
 // generateAssistantResponse creates a response.
-func (h *ChatKitHandler) generateAssistantResponse(ctx context.Context, threadID string, req *aisreproto.GenerateRequest, toolCallOutput *aisreproto.ToolCallOutput, emit EventSender) error {
+func (h *ChatKitHandler) generateAssistantResponse(ctx context.Context, threadID string, req *aisreproto.GenerateRequest, toolCallOutput *toolsv1.ToolCallOutput, emit EventSender) error {
 	if req == nil {
 		return NewHTTPError(http.StatusInternalServerError, "GenerateRequest is nil")
 	}

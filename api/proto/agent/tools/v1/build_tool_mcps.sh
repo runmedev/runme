@@ -7,14 +7,15 @@ ROOT="$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel)"
 
 cd "$SCRIPT_DIR"
 
-# Run buf in-place using the workspace and tools module.
+# Run buf in-place using the primary proto module and filter generation to tool protos.
 pushd ./
 cd "${ROOT}"
-# Remove all files to ensure pruning
-rm -rf api/gen/proto-tools/
-buf generate --template "${SCRIPT_DIR}/buf.gen.yaml" api/proto-tools
 
-NOTEBOOKS_FILE="api/gen/proto-tools/go/agent/v1/tools/toolsv1mcp/notebooks.pb.mcp.go"
+# Prune any existing generated files
+rm -rf api/gen/proto/go/agent/tools/v1/toolsv1mcp
+buf generate --template "${SCRIPT_DIR}/buf.gen.yaml" api/proto --path api/proto/agent/tools/v1
+
+NOTEBOOKS_FILE="api/gen/proto/go/agent/tools/v1/toolsv1mcp/notebooks.pb.mcp.go"
 if [[ ! -f "${NOTEBOOKS_FILE}" ]]; then
   echo "Expected generated file ${NOTEBOOKS_FILE} not found" >&2
   exit 1
