@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/go-logr/logr"
 	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	oaiconstants "github.com/openai/openai-go/v2/shared/constant"
 	"github.com/pkg/errors"
-	"github.com/runmedev/runme/v3/api/gen/proto-tools/agent/v1/agentv1mcp"
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto-tools/go/agent/v1/tools"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -92,7 +91,7 @@ func (b *responseStreamBuilder) handleEvent(ctx context.Context, e responses.Res
 		// Sent the responseID and send an en event message
 		b.responseID = id
 
-		state := &agentv1mcp.ChatkitState{
+		state := &toolsv1.ChatkitState{
 			ThreadId:           b.threadID,
 			PreviousResponseId: b.responseID,
 		}
@@ -256,7 +255,7 @@ func (b *responseStreamBuilder) handleOutputItemAdded(ctx context.Context, event
 func (b *responseStreamBuilder) handleOutputItemDone(ctx context.Context, event responses.ResponseOutputItemDoneEvent) error {
 	// Reset messageAdded; this is a bit of a hack.
 	b.messageAdded = false
-	logger := logr.FromContext(ctx).WithValues(
+	logger := logs.FromContext(ctx).WithValues(
 		"threadID", b.threadID,
 		"responseID", b.responseID,
 		"type", event.Type,
@@ -312,7 +311,7 @@ func (b *responseStreamBuilder) handleFunctionArgumentsDone(ctx context.Context,
 	}
 
 	if state.CallID == "" {
-		logger := logr.FromContext(ctx).WithValues("itemID", event.ItemID)
+		logger := logs.FromContext(ctx).WithValues("itemID", event.ItemID)
 		logger.Error(nil, "CallID not set on toolCall")
 	}
 
@@ -363,7 +362,7 @@ func (b *responseStreamBuilder) checkCallIDsUnchanged(ctx context.Context, e res
 		itemID := output.ID
 
 		if itemID == "" {
-			logger := logr.FromContext(ctx).WithValues("callID", output.CallID)
+			logger := logs.FromContext(ctx).WithValues("callID", output.CallID)
 			logger.Info("ResponseCompletedEvent has output with callID but not itemID")
 			continue
 		}

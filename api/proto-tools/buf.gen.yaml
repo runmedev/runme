@@ -1,12 +1,18 @@
-# N.B. buf is used only to run the protoc-gen-go-mcp
-# plugin.
+# Generate the protos for the MCP/tools
+# These are currently located in a separate tree with their own buf.gen.yaml because we only want to
+# run the mcp plugin on a subset of protos/packages. I'm not sure if there is a cleaner way to organize that.
+# We also don't need to run all the plugins.
 version: v2
 clean: true
 plugins:
-  # Try MCP generation
+  # Remote plugin. You can switch to a local one by using "go".
+  - remote: buf.build/protocolbuffers/go
+    out: api/gen/proto-tools/go
+    opt: paths=source_relative
+  # The MCP plugin generates TOOL/MCP definitions based on the protos.
   - local:
       - go
       - run
       - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@latest
-    out: api/gen/proto-tools
+    out: api/gen/proto-tools/go
     opt: paths=source_relative

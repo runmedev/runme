@@ -4,7 +4,7 @@ package agent.v1;
 
 import "runme/parser/v1/parser.proto";
 
-option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1;agentv1";
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/tools;toolsv1";
 
 // NotebookService defines methods the AI can use to interact with the notebook.
 // This is used to generate JSON schemas that can be used to define tool calls (or potentially) MCP
@@ -49,7 +49,7 @@ service NotebookService {
 
 
   // TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-  // 
+  //
   // SlackMessageRequest sends a slack message to the user.
   // Channel is The channel to send the message to e.g. "C09DF7PL6K0".
   // Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.

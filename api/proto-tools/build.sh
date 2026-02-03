@@ -14,7 +14,7 @@ cd "${ROOT}"
 rm -rf api/gen/proto-tools/
 buf generate --template "${SCRIPT_DIR}/buf.gen.yaml" api/proto-tools
 
-NOTEBOOKS_FILE="api/gen/proto-tools/agent/v1/agentv1mcp/notebooks.pb.mcp.go"
+NOTEBOOKS_FILE="api/gen/proto-tools/go/agent/v1/tools/toolsv1mcp/notebooks.pb.mcp.go"
 if [[ ! -f "${NOTEBOOKS_FILE}" ]]; then
   echo "Expected generated file ${NOTEBOOKS_FILE} not found" >&2
   exit 1
