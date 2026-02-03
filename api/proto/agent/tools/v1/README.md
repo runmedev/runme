@@ -9,12 +9,12 @@ The approach we are using is to
    tool definitions
 
 We haven't integrated the running of protoc-gen-go-mcp into bazel yet. So for now we just use buf
-to run the generation locally. The tool protos live in api/proto-tools.
+to run the generation locally. The tool protos live in api/proto/agent/tools/v1.
 
 To regenerate
 
 1. Download the [protoc-gen-go-mcp plugin](https://github.com/redpanda-data/protoc-gen-go-mcp)
-2. Run ./build.sh
+2. Run ./build_tool_mcps.sh
 
 ## Important note about OpenAI compatibility
 

@@ -14,7 +14,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Notebook } from "../../runme/parser/v1/parser_pb";
-import { ToolCallOutput } from "./notebooks_pb";
+import { ToolCallOutput } from "../tools/v1/notebooks_pb";
 import { Cell } from "../../runme/parser/v1/parser_pb";
 /**
  * Context is the context from which the request is running it impacts how the request is made.
@@ -102,7 +102,7 @@ class GenerateRequest$Type extends MessageType {
                 case /* string message */ 8:
                     message.message = reader.string();
                     break;
-                case /* repeated agent.v1.ToolCallOutput tool_call_outputs */ 9:
+                case /* repeated agent.tools.v1.ToolCallOutput tool_call_outputs */ 9:
                     message.toolCallOutputs.push(ToolCallOutput.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* string notebook_path */ 10:
@@ -144,7 +144,7 @@ class GenerateRequest$Type extends MessageType {
         /* string message = 8; */
         if (message.message !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.message);
-        /* repeated agent.v1.ToolCallOutput tool_call_outputs = 9; */
+        /* repeated agent.tools.v1.ToolCallOutput tool_call_outputs = 9; */
         for (let i = 0; i < message.toolCallOutputs.length; i++)
             ToolCallOutput.internalBinaryWrite(message.toolCallOutputs[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         /* string notebook_path = 10; */

@@ -1,0 +1,484 @@
+"""
+ NotebookService defines methods the AI can use to interact with the notebook.
+ This is used to generate JSON schemas that can be used to define tool calls (or potentially) MCP
+ server. Using https://github.com/redpanda-data/protoc-gen-go-mcp.
+
+ use the script api/proto/agent/tools/v1/build_tool_mcps.sh to build the go code with the JSONSchemas.
+
+ It looks like only comments on the method get translated into the description.
+
+ TODO(jlewi): We should make it UpdateCells to allow the model to update multiple cells in a
+ single call.
+
+"""
+directive @NotebookService on FIELD_DEFINITION
+"""
+ Wrapper message for `bool`.
+
+ The JSON representation for `BoolValue` is JSON `true` and `false`.
+
+ Not recommended for use in new APIs, but still useful for legacy APIs and
+ has no plan to be removed.
+
+"""
+type BoolValue {
+	"""
+	 The bool value.
+	
+	"""
+	value: Boolean
+}
+"""
+ Wrapper message for `bool`.
+
+ The JSON representation for `BoolValue` is JSON `true` and `false`.
+
+ Not recommended for use in new APIs, but still useful for legacy APIs and
+ has no plan to be removed.
+
+"""
+input BoolValueInput {
+	"""
+	 The bool value.
+	
+	"""
+	value: Boolean
+}
+scalar Bytes
+type Cell {
+	"""
+	 CellKind is the type of cell, e.g. markup or code.
+	
+	"""
+	kind: CellKind
+	"""
+	 Value is the contents of the cell.
+	
+	"""
+	value: String
+	"""
+	 LanguageID is the language of the cell.
+	
+	"""
+	languageId: String
+	"""
+	 Metadata is additional metadata about the cell in k/v format.
+	
+	"""
+	metadata: [Cell_MetadataEntry!]
+	"""
+	 TextRange is the range of the cell covering in the markdown source.
+	
+	"""
+	textRange: TextRange
+	"""
+	 Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
+	
+	"""
+	outputs: [CellOutput!]
+	"""
+	 ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
+	
+	"""
+	executionSummary: CellExecutionSummary
+	"""
+	 RefID is the agent's original unique identifier.
+	
+	"""
+	refId: String
+	"""
+	 Role is the role of the cell, e.g. user or assistant.
+	
+	"""
+	role: CellRole
+	"""
+	 CallID is the unique identifier of the cell call.
+	
+	"""
+	callId: String
+	"""
+	 DocResults are doc results for a cell returned by, e.g., file search.
+	
+	"""
+	docResults: [DocResult!]
+}
+type CellExecutionSummary {
+	executionOrder: UInt32Value
+	success: BoolValue
+	timing: ExecutionSummaryTiming
+}
+input CellExecutionSummaryInput {
+	executionOrder: UInt32ValueInput
+	success: BoolValueInput
+	timing: ExecutionSummaryTimingInput
+}
+input CellInput {
+	"""
+	 CellKind is the type of cell, e.g. markup or code.
+	
+	"""
+	kind: CellKind
+	"""
+	 Value is the contents of the cell.
+	
+	"""
+	value: String
+	"""
+	 LanguageID is the language of the cell.
+	
+	"""
+	languageId: String
+	"""
+	 Metadata is additional metadata about the cell in k/v format.
+	
+	"""
+	metadata: [Cell_MetadataEntryInput!]
+	"""
+	 TextRange is the range of the cell covering in the markdown source.
+	
+	"""
+	textRange: TextRangeInput
+	"""
+	 Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
+	
+	"""
+	outputs: [CellOutputInput!]
+	"""
+	 ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
+	
+	"""
+	executionSummary: CellExecutionSummaryInput
+	"""
+	 RefID is the agent's original unique identifier.
+	
+	"""
+	refId: String
+	"""
+	 Role is the role of the cell, e.g. user or assistant.
+	
+	"""
+	role: CellRole
+	"""
+	 CallID is the unique identifier of the cell call.
+	
+	"""
+	callId: String
+	"""
+	 DocResults are doc results for a cell returned by, e.g., file search.
+	
+	"""
+	docResults: [DocResultInput!]
+}
+enum CellKind {
+	CELL_KIND_UNSPECIFIED
+	CELL_KIND_MARKUP
+	CELL_KIND_CODE
+	"""
+	 Deprecated use CELL_KIND_TOOL instead
+	
+	"""
+	CELL_KIND_DOC_RESULTS
+	CELL_KIND_TOOL
+}
+type CellOutput {
+	items: [CellOutputItem!]
+	metadata: [CellOutput_MetadataEntry!]
+	processInfo: CellOutputProcessInfo
+}
+input CellOutputInput {
+	items: [CellOutputItemInput!]
+	metadata: [CellOutput_MetadataEntryInput!]
+	processInfo: CellOutputProcessInfoInput
+}
+type CellOutputItem {
+	data: Bytes
+	type: String
+	mime: String
+}
+input CellOutputItemInput {
+	data: Bytes
+	type: String
+	mime: String
+}
+type CellOutputProcessInfo {
+	exitReason: ProcessInfoExitReason
+	pid: Int64Value
+}
+input CellOutputProcessInfoInput {
+	exitReason: ProcessInfoExitReasonInput
+	pid: Int64ValueInput
+}
+type CellOutput_MetadataEntry {
+	key: String
+	value: String
+}
+input CellOutput_MetadataEntryInput {
+	key: String
+	value: String
+}
+enum CellRole {
+	CELL_ROLE_UNSPECIFIED
+	CELL_ROLE_USER
+	CELL_ROLE_ASSISTANT
+}
+type Cell_MetadataEntry {
+	key: String
+	value: String
+}
+input Cell_MetadataEntryInput {
+	key: String
+	value: String
+}
+type DocResult {
+	"""
+	 The unique ID of the file.
+	
+	"""
+	fileId: String
+	"""
+	 The name of the file.
+	
+	"""
+	fileName: String
+	"""
+	 The relevance score of the file.
+	
+	"""
+	score: Float
+	"""
+	 Link to display for this file
+	
+	 TOO(jlewi): Should we include the file contents?
+	
+	"""
+	link: String
+}
+input DocResultInput {
+	"""
+	 The unique ID of the file.
+	
+	"""
+	fileId: String
+	"""
+	 The name of the file.
+	
+	"""
+	fileName: String
+	"""
+	 The relevance score of the file.
+	
+	"""
+	score: Float
+	"""
+	 Link to display for this file
+	
+	 TOO(jlewi): Should we include the file contents?
+	
+	"""
+	link: String
+}
+type ExecutionSummaryTiming {
+	startTime: Int64Value
+	endTime: Int64Value
+}
+input ExecutionSummaryTimingInput {
+	startTime: Int64ValueInput
+	endTime: Int64ValueInput
+}
+input GetCellsRequestInput {
+	refIds: [String!]
+}
+type GetCellsResponse {
+	cells: [Cell!]
+}
+"""
+ Wrapper message for `int64`.
+
+ The JSON representation for `Int64Value` is JSON string.
+
+ Not recommended for use in new APIs, but still useful for legacy APIs and
+ has no plan to be removed.
+
+"""
+type Int64Value {
+	"""
+	 The int64 value.
+	
+	"""
+	value: Int
+}
+"""
+ Wrapper message for `int64`.
+
+ The JSON representation for `Int64Value` is JSON string.
+
+ Not recommended for use in new APIs, but still useful for legacy APIs and
+ has no plan to be removed.
+
+"""
+input Int64ValueInput {
+	"""
+	 The int64 value.
+	
+	"""
+	value: Int
+}
+type ListCellsResponse {
+	cells: [Cell!]
+}
+type Mutation {
+	"""
+	 UpdateCell updates a cell in the document.
+	 Cell is the cell to create or update. To update
+	 an existing cell specify the ID of that cell in the ref_id field.
+	 To create a new cell leave ref_id blank.
+	
+	 You can use cell.metadata["agent/summary"] to include a short summary or description of the
+	 cell. You should set the description so that its useful for deciding what cells you should read
+	 to answer the user's queries.
+	
+	 UpdateCellResponse will include cell id and metadata of the updated cells.
+	
+	"""
+	notebookServiceUpdateCells(in: UpdateCellsRequestInput): UpdateCellsResponse
+	"""
+	 GetCells fetches the cells with the given ref_ids.
+	 Use this to read the contents of cells in the notebook.
+	
+	"""
+	notebookServiceGetCells(in: GetCellsRequestInput): GetCellsResponse
+	"""
+	 ListCells lists the cells in a notebook.
+	 Important: Only the ref_id and metadata will be populated. You should use that to decide
+	 which cells to read.
+	
+	"""
+	notebookServiceListCells: ListCellsResponse
+	"""
+	 ExecuteCells executes the cells with the given ids in a notebook.
+	 Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
+	 cells. The response will contain the cell including the outputs of execution.
+	
+	"""
+	notebookServiceExecuteCells(in: NotebookServiceExecuteCellsRequestInput): NotebookServiceExecuteCellsResponse
+	"""
+	 TerminateRun terminates the run. Call this when no further processing is necessary to handle
+	 the user request.
+	
+	"""
+	notebookServiceTerminateRun: Boolean
+	"""
+	 TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
+	
+	 SlackMessageRequest sends a slack message to the user.
+	 Channel is The channel to send the message to e.g. "C09DF7PL6K0".
+	 Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
+	 If no slack channel was included in the request, do not invoke this tool.
+	
+	 timestamp it the (unique identifier) of the slack thread you want to post into e.g.
+	 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
+	 "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
+	 request, you may omit this property which will start a new thread.`,
+	
+	 text is the message that the user will see in slack.
+	  A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
+	  ```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
+	  @channel in this message.",
+	
+	 fileIDs optionally send files generated as part of the investigation to the user in slack
+	 (often images). e.g. ["call_ABC", "call_DEF"]`,
+	
+	"""
+	notebookServiceSendSlackMessage(in: SendSlackMessageRequestInput): SendSlackMessageResponse
+}
+input NotebookServiceExecuteCellsRequestInput {
+	"""
+	 TODO(jlewi): Right now you the AI has to specify the IDs of the cells to execute. This means it
+	 needs to use separate Update calls to set the code to execute. In the future, we may want to
+	 allow the AISRE to issue a single execute request to update and execute.
+	
+	"""
+	refIds: [String!]
+}
+type NotebookServiceExecuteCellsResponse {
+	"""
+	 Cells contains the cells that were executed
+	
+	"""
+	cells: [Cell!]
+}
+type ProcessInfoExitReason {
+	type: String
+	code: UInt32Value
+}
+input ProcessInfoExitReasonInput {
+	type: String
+	code: UInt32ValueInput
+}
+type Query {
+	dummy: Boolean
+}
+input SendSlackMessageRequestInput {
+	channel: String
+	timestamp: String
+	text: String
+	fileIds: [String!]
+}
+type SendSlackMessageResponse {
+	"""
+	 The error if there is one
+	
+	"""
+	error: String
+}
+type TextRange {
+	start: Int
+	end: Int
+}
+input TextRangeInput {
+	start: Int
+	end: Int
+}
+"""
+ Wrapper message for `uint32`.
+
+ The JSON representation for `UInt32Value` is JSON number.
+
+ Not recommended for use in new APIs, but still useful for legacy APIs and
+ has no plan to be removed.
+
+"""
+type UInt32Value {
+	"""
+	 The uint32 value.
+	
+	"""
+	value: Int
+}
+"""
+ Wrapper message for `uint32`.
+
+ The JSON representation for `UInt32Value` is JSON number.
+
+ Not recommended for use in new APIs, but still useful for legacy APIs and
+ has no plan to be removed.
+
+"""
+input UInt32ValueInput {
+	"""
+	 The uint32 value.
+	
+	"""
+	value: Int
+}
+input UpdateCellsRequestInput {
+	cells: [CellInput!]
+}
+type UpdateCellsResponse {
+	"""
+	 We want to provide the updated cells to the AI because the cells might have been modified by
+	 the agent (e.g. ref_ids) might have been generated.
+	
+	"""
+	cells: [Cell!]
+}

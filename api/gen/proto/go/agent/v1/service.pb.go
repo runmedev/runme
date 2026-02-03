@@ -7,6 +7,7 @@
 package agentv1
 
 import (
+	v11 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -94,7 +95,7 @@ type GenerateRequest struct {
 	Message string `protobuf:"bytes,8,opt,name=message,proto3" json:"message,omitempty"`
 	// ToolCalOutputs is the output of the tools calls
 	// The tools manipulate the notebook.
-	ToolCallOutputs []*ToolCallOutput `protobuf:"bytes,9,rep,name=tool_call_outputs,json=toolCallOutputs,proto3" json:"tool_call_outputs,omitempty"`
+	ToolCallOutputs []*v11.ToolCallOutput `protobuf:"bytes,9,rep,name=tool_call_outputs,json=toolCallOutputs,proto3" json:"tool_call_outputs,omitempty"`
 	// Path in the code interpreter container where a copy of the notebook was uploaded
 	NotebookPath  string `protobuf:"bytes,10,opt,name=notebook_path,json=notebookPath,proto3" json:"notebook_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -187,7 +188,7 @@ func (x *GenerateRequest) GetMessage() string {
 	return ""
 }
 
-func (x *GenerateRequest) GetToolCallOutputs() []*ToolCallOutput {
+func (x *GenerateRequest) GetToolCallOutputs() []*v11.ToolCallOutput {
 	if x != nil {
 		return x.ToolCallOutputs
 	}
@@ -337,7 +338,7 @@ var File_agent_v1_service_proto protoreflect.FileDescriptor
 
 const file_agent_v1_service_proto_rawDesc = "" +
 	"\n" +
-	"\x16agent/v1/service.proto\x12\bagent.v1\x1a\x18agent/v1/notebooks.proto\x1a\x1crunme/parser/v1/parser.proto\"\x98\x04\n" +
+	"\x16agent/v1/service.proto\x12\bagent.v1\x1a\x1eagent/tools/v1/notebooks.proto\x1a\x1crunme/parser/v1/parser.proto\"\x9e\x04\n" +
 	"\x0fGenerateRequest\x12+\n" +
 	"\x05cells\x18\x01 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\x120\n" +
 	"\x14previous_response_id\x18\x02 \x01(\tR\x12previousResponseId\x12.\n" +
@@ -346,8 +347,8 @@ const file_agent_v1_service_proto_rawDesc = "" +
 	"\acontext\x18\x05 \x01(\x0e2!.agent.v1.GenerateRequest.ContextR\acontext\x12\x18\n" +
 	"\akernels\x18\x06 \x03(\tR\akernels\x12\x1c\n" +
 	"\tcontainer\x18\a \x01(\tR\tcontainer\x12\x18\n" +
-	"\amessage\x18\b \x01(\tR\amessage\x12D\n" +
-	"\x11tool_call_outputs\x18\t \x03(\v2\x18.agent.v1.ToolCallOutputR\x0ftoolCallOutputs\x12#\n" +
+	"\amessage\x18\b \x01(\tR\amessage\x12J\n" +
+	"\x11tool_call_outputs\x18\t \x03(\v2\x1e.agent.tools.v1.ToolCallOutputR\x0ftoolCallOutputs\x12#\n" +
 	"\rnotebook_path\x18\n" +
 	" \x01(\tR\fnotebookPath\"f\n" +
 	"\aContext\x12\x17\n" +
@@ -390,13 +391,13 @@ var file_agent_v1_service_proto_goTypes = []any{
 	(*LogRequest)(nil),           // 3: agent.v1.LogRequest
 	(*LogResponse)(nil),          // 4: agent.v1.LogResponse
 	(*v1.Cell)(nil),              // 5: runme.parser.v1.Cell
-	(*ToolCallOutput)(nil),       // 6: agent.v1.ToolCallOutput
+	(*v11.ToolCallOutput)(nil),   // 6: agent.tools.v1.ToolCallOutput
 	(*v1.Notebook)(nil),          // 7: runme.parser.v1.Notebook
 }
 var file_agent_v1_service_proto_depIdxs = []int32{
 	5, // 0: agent.v1.GenerateRequest.cells:type_name -> runme.parser.v1.Cell
 	0, // 1: agent.v1.GenerateRequest.context:type_name -> agent.v1.GenerateRequest.Context
-	6, // 2: agent.v1.GenerateRequest.tool_call_outputs:type_name -> agent.v1.ToolCallOutput
+	6, // 2: agent.v1.GenerateRequest.tool_call_outputs:type_name -> agent.tools.v1.ToolCallOutput
 	5, // 3: agent.v1.GenerateResponse.cells:type_name -> runme.parser.v1.Cell
 	7, // 4: agent.v1.LogRequest.notebook:type_name -> runme.parser.v1.Notebook
 	1, // 5: agent.v1.MessagesService.Generate:input_type -> agent.v1.GenerateRequest
@@ -415,7 +416,6 @@ func file_agent_v1_service_proto_init() {
 	if File_agent_v1_service_proto != nil {
 		return
 	}
-	file_agent_v1_notebooks_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

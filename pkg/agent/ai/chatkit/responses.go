@@ -12,7 +12,7 @@ import (
 	"github.com/openai/openai-go/responses"
 	oaiconstants "github.com/openai/openai-go/shared/constant"
 	"github.com/pkg/errors"
-	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto-tools/go/agent/v1/tools"
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"google.golang.org/protobuf/encoding/protojson"

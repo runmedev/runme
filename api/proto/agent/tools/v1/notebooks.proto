@@ -1,16 +1,16 @@
 syntax = "proto3";
 
-package agent.v1;
+package agent.tools.v1;
 
 import "runme/parser/v1/parser.proto";
 
-option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/tools;toolsv1";
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1;toolsv1";
 
 // NotebookService defines methods the AI can use to interact with the notebook.
 // This is used to generate JSON schemas that can be used to define tool calls (or potentially) MCP
 // server. Using https://github.com/redpanda-data/protoc-gen-go-mcp.
 //
-// use the script api/proto-tools/build.sh to build the go code with the JSONSchemas.
+// use the script api/proto/agent/tools/v1/build_tool_mcps.sh to build the go code with the JSONSchemas.
 //
 // It looks like only comments on the method get translated into the description.
 service NotebookService {
@@ -46,7 +46,6 @@ service NotebookService {
   // TerminateRun terminates the run. Call this when no further processing is necessary to handle
   // the user request.
   rpc TerminateRun(TerminateRunRequest) returns (TerminateRunResponse) {}
-
 
   // TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
   //

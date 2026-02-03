@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/openai/openai-go/responses"
 	"github.com/pkg/errors"
-	"github.com/runmedev/runme/v3/api/gen/proto-tools/go/agent/v1/tools/toolsv1mcp"
-	aisreproto "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -18,8 +18,8 @@ import (
 )
 
 // ArgsToToolCallInput converts the string representation of the toolcall arguments returned by OpenAI into a proto
-func ArgsToToolCallInput(ctx context.Context, name string, callID string, args string) (*aisreproto.ToolCallInput, error) {
-	callInput := &aisreproto.ToolCallInput{
+func ArgsToToolCallInput(ctx context.Context, name string, callID string, args string) (*toolsv1.ToolCallInput, error) {
+	callInput := &toolsv1.ToolCallInput{
 		CallId: callID,
 	}
 
@@ -29,17 +29,17 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 
 	switch name {
 	case toolsv1mcp.NotebookService_UpdateCellsToolOpenAI.Name:
-		descriptor = (&aisreproto.UpdateCellsRequest{}).ProtoReflect().Descriptor()
+		descriptor = (&toolsv1.UpdateCellsRequest{}).ProtoReflect().Descriptor()
 	case toolsv1mcp.NotebookService_ListCellsToolOpenAI.Name:
-		descriptor = (&aisreproto.ListCellsRequest{}).ProtoReflect().Descriptor()
+		descriptor = (&toolsv1.ListCellsRequest{}).ProtoReflect().Descriptor()
 	case toolsv1mcp.NotebookService_GetCellsToolOpenAI.Name:
-		descriptor = (&aisreproto.GetCellsRequest{}).ProtoReflect().Descriptor()
+		descriptor = (&toolsv1.GetCellsRequest{}).ProtoReflect().Descriptor()
 	case toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI.Name:
-		descriptor = (&aisreproto.NotebookServiceExecuteCellsRequest{}).ProtoReflect().Descriptor()
+		descriptor = (&toolsv1.NotebookServiceExecuteCellsRequest{}).ProtoReflect().Descriptor()
 	case toolsv1mcp.NotebookService_TerminateRunToolOpenAI.Name:
-		descriptor = (&aisreproto.TerminateRunRequest{}).ProtoReflect().Descriptor()
+		descriptor = (&toolsv1.TerminateRunRequest{}).ProtoReflect().Descriptor()
 	case toolsv1mcp.NotebookService_SendSlackMessageToolOpenAI.Name:
-		descriptor = (&aisreproto.SendSlackMessageRequest{}).ProtoReflect().Descriptor()
+		descriptor = (&toolsv1.SendSlackMessageRequest{}).ProtoReflect().Descriptor()
 	default:
 		return nil, errors.Errorf("unrecognized toolcall: %s", name)
 	}
@@ -62,28 +62,28 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 
 	switch name {
 	case toolsv1mcp.NotebookService_UpdateCellsToolOpenAI.Name:
-		callInput.Input = &aisreproto.ToolCallInput_UpdateCells{
-			UpdateCells: &aisreproto.UpdateCellsRequest{},
+		callInput.Input = &toolsv1.ToolCallInput_UpdateCells{
+			UpdateCells: &toolsv1.UpdateCellsRequest{},
 		}
 		pbMessage = callInput.GetUpdateCells()
 	case toolsv1mcp.NotebookService_ListCellsToolOpenAI.Name:
-		callInput.Input = &aisreproto.ToolCallInput_ListCells{
-			ListCells: &aisreproto.ListCellsRequest{},
+		callInput.Input = &toolsv1.ToolCallInput_ListCells{
+			ListCells: &toolsv1.ListCellsRequest{},
 		}
 		pbMessage = callInput.GetListCells()
 	case toolsv1mcp.NotebookService_GetCellsToolOpenAI.Name:
-		callInput.Input = &aisreproto.ToolCallInput_GetCells{
-			GetCells: &aisreproto.GetCellsRequest{},
+		callInput.Input = &toolsv1.ToolCallInput_GetCells{
+			GetCells: &toolsv1.GetCellsRequest{},
 		}
 		pbMessage = callInput.GetGetCells()
 	case toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI.Name:
-		callInput.Input = &aisreproto.ToolCallInput_ExecuteCells{
-			ExecuteCells: &aisreproto.NotebookServiceExecuteCellsRequest{},
+		callInput.Input = &toolsv1.ToolCallInput_ExecuteCells{
+			ExecuteCells: &toolsv1.NotebookServiceExecuteCellsRequest{},
 		}
 		pbMessage = callInput.GetExecuteCells()
 	case toolsv1mcp.NotebookService_TerminateRunToolOpenAI.Name:
-		callInput.Input = &aisreproto.ToolCallInput_TerminateRun{
-			TerminateRun: &aisreproto.TerminateRunRequest{},
+		callInput.Input = &toolsv1.ToolCallInput_TerminateRun{
+			TerminateRun: &toolsv1.TerminateRunRequest{},
 		}
 		pbMessage = callInput.GetExecuteCells()
 	default:
@@ -108,7 +108,7 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 }
 
 // ensureValidUpdateCellsRequest applies some validation to the UpdateCellsRequest
-func ensureValidUpdateCellsRequest(ctx context.Context, m *aisreproto.UpdateCellsRequest) error {
+func ensureValidUpdateCellsRequest(ctx context.Context, m *toolsv1.UpdateCellsRequest) error {
 	// Add cell ids for any new cells
 	for _, c := range m.GetCells() {
 		if c.RefId == "" {
@@ -160,7 +160,7 @@ func ProtoToMap(m proto.Message) (map[string]any, error) {
 }
 
 // AddToolCallOutputToResponse takes toolCallOutput sent by chatkit and adds it to the response.
-func AddToolCallOutputToResponse(_ context.Context, toolCallOutput *aisreproto.ToolCallOutput, resp *responses.ResponseNewParams) error {
+func AddToolCallOutputToResponse(_ context.Context, toolCallOutput *toolsv1.ToolCallOutput, resp *responses.ResponseNewParams) error {
 	if toolCallOutput == nil {
 		return nil
 	}
@@ -172,13 +172,13 @@ func AddToolCallOutputToResponse(_ context.Context, toolCallOutput *aisreproto.T
 	var m proto.Message
 
 	switch toolCallOutput.Output.(type) {
-	case *aisreproto.ToolCallOutput_UpdateCells:
+	case *toolsv1.ToolCallOutput_UpdateCells:
 		m = toolCallOutput.GetUpdateCells()
-	case *aisreproto.ToolCallOutput_ListCells:
+	case *toolsv1.ToolCallOutput_ListCells:
 		m = toolCallOutput.GetListCells()
-	case *aisreproto.ToolCallOutput_GetCells:
+	case *toolsv1.ToolCallOutput_GetCells:
 		m = toolCallOutput.GetGetCells()
-	case *aisreproto.ToolCallOutput_ExecuteCells:
+	case *toolsv1.ToolCallOutput_ExecuteCells:
 		m = toolCallOutput.GetExecuteCells()
 	default:
 		return errors.WithStack(fmt.Errorf("unexpected type %T", toolCallOutput.Output))
