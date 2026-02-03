@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/openai/openai-go/v2/packages/ssestream"
-	"github.com/openai/openai-go/v2/responses"
-	oaiconstants "github.com/openai/openai-go/v2/shared/constant"
+	"github.com/openai/openai-go/packages/ssestream"
+	"github.com/openai/openai-go/responses"
+	oaiconstants "github.com/openai/openai-go/shared/constant"
 	"github.com/pkg/errors"
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto-tools/go/agent/v1/tools"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
@@ -182,7 +182,6 @@ func (b *responseStreamBuilder) handleOutputItemAdded(ctx context.Context, event
 
 	var fSearchCall oaiconstants.FileSearchCall
 	var functionCall oaiconstants.FunctionCall
-	var customToolCall oaiconstants.CustomToolCall
 	var messageType oaiconstants.Message
 	progressEvent := NewProgressUpdateEvent()
 	progressEvent.Icon = "sparkle"
@@ -224,7 +223,7 @@ func (b *responseStreamBuilder) handleOutputItemAdded(ctx context.Context, event
 		if err := b.sender(ctx, update); err != nil {
 			return err
 		}
-	case string(functionCall.Default()), string(customToolCall.Default()):
+	case string(functionCall.Default()), "custom_tool_call":
 		progressEvent.Text = "generating toolcall " + event.Item.Name
 
 		state := &ClientToolCallItem{

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/openai/openai-go/v2/responses"
+	"github.com/openai/openai-go/responses"
 	"github.com/pkg/errors"
 	"github.com/runmedev/runme/v3/api/gen/proto-tools/go/agent/v1/tools/toolsv1mcp"
 	aisreproto "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"

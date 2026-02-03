@@ -10,9 +10,12 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"github.com/google/uuid"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
+	"github.com/runmedev/runme/v3/api/gen/proto-tools/go/agent/v1/tools/toolsv1mcp"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
@@ -65,6 +68,9 @@ type Agent struct {
 	codeToolDescription string
 	vectorStoreIDs      []string
 	filenameToLink      func(string) string
+	// Extra OpenAI API headers for requests that use OAuth access tokens.
+	oauthOpenAIOrganization string
+	oauthOpenAIProject      string
 
 	// responseCache is a cache to store the mapping from the previous response ID to the cell IDs for function calling
 	responseCache *lru.Cache[string, []string]
@@ -75,6 +81,9 @@ type Agent struct {
 	useOAuth bool // Use OAuth for authorization; if true then the token must be provided in the GenerateRequest
 
 	model string
+
+	// Tools that should be added based on request context.
+	toolsForContext map[agentv1.GenerateRequest_Context][]responses.ToolUnionParam
 }
 
 // AgentOptions are options for creating a new Agent
@@ -88,6 +97,10 @@ type AgentOptions struct {
 
 	// FilenameToLink is an optional function that converts a filename to a link to be displayed in the UI.
 	FilenameToLink func(string) string
+
+	// Extra OpenAI API headers for requests that use OAuth access tokens.
+	OAuthOpenAIOrganization string
+	OAuthOpenAIProject      string
 
 	// UseOAuth indicates whether to use OAuth for authentication
 	// If true then the token must be provided in the GenerateRequest
@@ -135,18 +148,34 @@ func NewAgent(opts AgentOptions) (*Agent, error) {
 		return nil, errors.Wrap(err, "Failed to create cells cache")
 	}
 
+	toolsForContext := make(map[agentv1.GenerateRequest_Context][]responses.ToolUnionParam)
+	nbTools, err := getNotebookTools()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build notebook tools")
+	}
+	toolsForContext[agentv1.GenerateRequest_CONTEXT_WEBAPP] = nbTools
+
+	runTools, err := getAsynchronousTools()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build asynchronous tools")
+	}
+	toolsForContext[agentv1.GenerateRequest_CONTEXT_SLACK] = runTools
+
 	log.Info("Creating Agent", "options", opts)
 
 	return &Agent{
-		Client:              opts.Client,
-		instructions:        opts.Instructions,
-		codeToolDescription: opts.CodeToolDescription,
-		filenameToLink:      opts.FilenameToLink,
-		vectorStoreIDs:      opts.VectorStores,
-		responseCache:       responseCache,
-		cellsCache:          cellsCache,
-		useOAuth:            opts.UseOAuth,
-		model:               opts.Model,
+		Client:                  opts.Client,
+		instructions:            opts.Instructions,
+		codeToolDescription:     opts.CodeToolDescription,
+		filenameToLink:          opts.FilenameToLink,
+		vectorStoreIDs:          opts.VectorStores,
+		oauthOpenAIOrganization: opts.OAuthOpenAIOrganization,
+		oauthOpenAIProject:      opts.OAuthOpenAIProject,
+		responseCache:           responseCache,
+		cellsCache:              cellsCache,
+		useOAuth:                opts.UseOAuth,
+		model:                   opts.Model,
+		toolsForContext:         toolsForContext,
 	}, nil
 }
 
@@ -337,6 +366,222 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 	builder := NewCellsBuilder(a.filenameToLink, a.responseCache, a.cellsCache)
 
 	return builder.HandleEvents(ctx, eStream, sender)
+}
+
+func (a *Agent) BuildResponseParams(ctx context.Context, req *agentv1.GenerateRequest) (*responses.ResponseNewParams, []option.RequestOption, error) {
+	log := logs.FromContext(ctx)
+	isOAuthRequest := req.GetOpenaiAccessToken() != ""
+
+	tools := make([]responses.ToolUnionParam, 0, 1)
+
+	if len(a.vectorStoreIDs) > 0 && isOAuthRequest {
+		fileSearchTool := &responses.FileSearchToolParam{
+			MaxNumResults:  openai.Opt(int64(5)),
+			VectorStoreIDs: a.vectorStoreIDs,
+		}
+
+		tool := responses.ToolUnionParam{
+			OfFileSearch: fileSearchTool,
+		}
+		tools = append(tools, tool)
+	}
+
+	if additional, ok := a.toolsForContext[req.Context]; ok {
+		tools = append(tools, additional...)
+	}
+
+	if req.GetContainer() != "" {
+		log.Info("configuring code interpreter", "containerID", req.GetContainer())
+		codeTool := responses.ToolUnionParam{
+			OfCodeInterpreter: &responses.ToolCodeInterpreterParam{
+				Container: responses.ToolCodeInterpreterContainerUnionParam{
+					OfString: openai.Opt(req.GetContainer()),
+				},
+			},
+		}
+		tools = append(tools, codeTool)
+	}
+
+	toolChoice := responses.ResponseNewParamsToolChoiceUnion{
+		OfToolChoiceMode: openai.Opt(responses.ToolChoiceOptionsAuto),
+	}
+
+	instructions := a.instructions
+
+	model := openai.ChatModelGPT4oMini
+	if req.GetModel() != "" {
+		model = openai.ChatModel(req.GetModel())
+	}
+
+	createResponse := &responses.ResponseNewParams{
+		Input: responses.ResponseNewParamsInputUnion{
+			OfInputItemList: make([]responses.ResponseInputItemUnionParam, 0, 10),
+		},
+		Instructions:      openai.Opt(instructions),
+		Model:             model,
+		Tools:             tools,
+		ParallelToolCalls: openai.Bool(true),
+		ToolChoice:        toolChoice,
+		Include:           []responses.ResponseIncludable{responses.ResponseIncludableFileSearchCallResults, responses.ResponseIncludableCodeInterpreterCallOutputs},
+	}
+
+	// There is a message provide it.
+	if req.GetMessage() != "" {
+		createResponse.Input.OfInputItemList = append(createResponse.Input.OfInputItemList, responses.ResponseInputItemUnionParam{
+			// N.B. What's the difference between EasyInputMessage and InputItemMessage
+			OfMessage: &responses.EasyInputMessageParam{
+				Role: responses.EasyInputMessageRoleUser,
+				Content: responses.EasyInputMessageContentUnionParam{
+					OfString: openai.Opt(req.GetMessage()),
+				},
+			},
+		})
+	}
+
+	if err := maybeAddListCells(ctx, req, createResponse); err != nil {
+		return createResponse, nil, err
+	}
+
+	// https://openai.slack.com/archives/C08E32TKF47/p1760471534458089?thread_ts=1760388696.092879&cid=C08E32TKF47
+	// Right now chatKit can only handle one tool call at a time. So disable parallel toolCalls.
+	if req.GetContext() == agentv1.GenerateRequest_CONTEXT_WEBAPP {
+		createResponse.ParallelToolCalls = openai.Opt(false)
+	}
+
+	if req.PreviousResponseId != "" {
+		createResponse.PreviousResponseID = openai.Opt(req.PreviousResponseId)
+	}
+
+	opts := make([]option.RequestOption, 0, 1)
+	if isOAuthRequest {
+		opts = append(opts, option.WithHeader("Authorization", "Bearer "+req.GetOpenaiAccessToken()))
+		if a.oauthOpenAIOrganization == "" {
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("OAuth not supported: Server did not configure an API Organization"))
+		}
+		if a.oauthOpenAIProject == "" {
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("OAuth not supported: Server did not configure an API Project"))
+		}
+		opts = append(opts, option.WithHeader("OpenAI-Organization", a.oauthOpenAIOrganization))
+		opts = append(opts, option.WithHeader("OpenAI-Project", a.oauthOpenAIProject))
+	}
+
+	return createResponse, opts, nil
+}
+
+// getNotebookTools returns a list of tools that allow the AI to work with notebooks.
+func getNotebookTools() ([]responses.ToolUnionParam, error) {
+	defs := []mcp.Tool{
+		toolsv1mcp.NotebookService_GetCellsToolOpenAI,
+		toolsv1mcp.NotebookService_ListCellsToolOpenAI,
+		toolsv1mcp.NotebookService_UpdateCellsToolOpenAI,
+	}
+
+	tools := make([]responses.ToolUnionParam, 0, len(defs))
+	for _, t := range defs {
+		tool, err := mcpToolToOpenAITool(t)
+		if err != nil {
+			return nil, err
+		}
+		tools = append(tools, tool)
+	}
+	return tools, nil
+}
+
+// getAsynchronousTools gets tools used for asynchronous contexts.
+func getAsynchronousTools() ([]responses.ToolUnionParam, error) {
+	nbTools, err := getNotebookTools()
+	if err != nil {
+		return nil, err
+	}
+	tools := make([]responses.ToolUnionParam, 0, len(nbTools)+3)
+	tools = append(tools, nbTools...)
+
+	defs := []mcp.Tool{
+		toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI,
+		toolsv1mcp.NotebookService_TerminateRunToolOpenAI,
+		toolsv1mcp.NotebookService_SendSlackMessageToolOpenAI,
+	}
+	for _, t := range defs {
+		tool, err := mcpToolToOpenAITool(t)
+		if err != nil {
+			return nil, err
+		}
+		tools = append(tools, tool)
+	}
+	return tools, nil
+}
+
+// mcpToolToOpenAITool converts a generated MCP tool into an OpenAI function tool definition.
+func mcpToolToOpenAITool(tool mcp.Tool) (responses.ToolUnionParam, error) {
+	result := responses.ToolUnionParam{}
+	if len(tool.RawInputSchema) == 0 {
+		return result, errors.New("input schema is empty")
+	}
+
+	parameters := make(map[string]any)
+	if err := json.Unmarshal(tool.RawInputSchema, &parameters); err != nil {
+		return result, errors.Wrapf(err, "failed to convert tool: %s", tool.GetName())
+	}
+
+	result.OfFunction = &responses.FunctionToolParam{
+		Name:        tool.GetName(),
+		Description: openai.Opt(tool.Description),
+		Parameters:  parameters,
+		Strict:      openai.Opt(true),
+	}
+	return result, nil
+}
+
+// maybeAddListCells adds a synthetic list-cells tool call/output so the model gets notebook context.
+func maybeAddListCells(_ context.Context, req *agentv1.GenerateRequest, resp *responses.ResponseNewParams) error {
+	if len(req.GetCells()) == 0 {
+		return nil
+	}
+
+	listCellsResult := &agentv1.ListCellsResponse{
+		Cells: make([]*parserv1.Cell, 0, len(req.Cells)),
+	}
+	for _, c := range req.Cells {
+		listCellsResult.Cells = append(listCellsResult.Cells, toListCell(c))
+	}
+
+	listRequest := &agentv1.ListCellsRequest{}
+	listCallID := uuid.NewString()
+
+	listRequestJSON, err := protojson.Marshal(listRequest)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal list cells request")
+	}
+
+	resp.Input.OfInputItemList = append(resp.Input.OfInputItemList, responses.ResponseInputItemUnionParam{
+		OfFunctionCall: &responses.ResponseFunctionToolCallParam{
+			CallID:    listCallID,
+			Name:      toolsv1mcp.NotebookService_ListCellsToolOpenAI.GetName(),
+			Arguments: string(listRequestJSON),
+		},
+	})
+
+	listResultJSON, err := protojson.Marshal(listCellsResult)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal list cells response")
+	}
+
+	resp.Input.OfInputItemList = append(resp.Input.OfInputItemList, responses.ResponseInputItemUnionParam{
+		OfFunctionCallOutput: &responses.ResponseInputItemFunctionCallOutputParam{
+			CallID: listCallID,
+			Output: string(listResultJSON),
+		},
+	})
+
+	return nil
+}
+
+// toListCell returns the minimal fields needed for list-cells context.
+func toListCell(c *parserv1.Cell) *parserv1.Cell {
+	return &parserv1.Cell{
+		RefId:    c.GetRefId(),
+		Metadata: c.GetMetadata(),
+	}
 }
 
 // This is necessary because OpenAI returns an error if any of the function calls in the previous response
