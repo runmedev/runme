@@ -224,7 +224,7 @@ func (h *ChatKitHandler) handleThreadsAddClientToolOutput(ctx context.Context, s
 		return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("invalid ToolOutput; result is not a ToolCallOutput; threadID: %s", req.Params.ThreadID))
 	}
 
-	logger := logr.FromContext(ctx).WithValues(
+	logger := logs.FromContext(ctx).WithValues(
 		"threadID", req.Params.ThreadID,
 		"callID", output.CallId,
 		"previousResponseID", output.PreviousResponseId,
@@ -247,7 +247,7 @@ func (h *ChatKitHandler) handleThreadsAddClientToolOutput(ctx context.Context, s
 }
 
 func (h *ChatKitHandler) streamConversation(ctx context.Context, sse *chatKitSSE, threadID string, input UserMessageInput, includeThreadEvent bool, req *aisreproto.GenerateRequest) {
-	logger := logr.FromContext(ctx).WithValues("threadID", threadID)
+	logger := logs.FromContext(ctx).WithValues("threadID", threadID)
 	ctx = logr.NewContext(ctx, logger)
 
 	if includeThreadEvent {
@@ -294,7 +294,7 @@ func (h *ChatKitHandler) streamConversation(ctx context.Context, sse *chatKitSSE
 
 	streamErr := h.generateAssistantResponse(ctx, threadID, req, nil, sse.send)
 	if streamErr != nil {
-		logger := logr.FromContext(ctx)
+		logger := logs.FromContext(ctx)
 		logger.Error(streamErr, "assistant generation failed")
 		_ = sse.send(ctx, ErrorEvent{
 			Type:       errorEventType,
@@ -349,7 +349,7 @@ func (h *ChatKitHandler) generateAssistantResponse(ctx context.Context, threadID
 	if toolCallOutput != nil {
 		toolCallOutputCallID = toolCallOutput.CallId
 	}
-	logger := logr.FromContext(ctx).WithValues(
+	logger := logs.FromContext(ctx).WithValues(
 		"threadID", threadID,
 		"toolCallOutputCallID", toolCallOutputCallID,
 		"hasOpenAIAccessToken", req.OpenaiAccessToken != "",
