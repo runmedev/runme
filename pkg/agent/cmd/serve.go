@@ -32,7 +32,7 @@ func NewServeCmd(appName string) *cobra.Command {
 			if err := app.SetupOTEL(); err != nil {
 				return err
 			}
-			agentOptions := &ai.AgentOptions{Model: "gpt-4.1"} // set default model to gpt-4.1
+			agentOptions := &ai.AgentOptions{}
 
 			if app.AppConfig.CloudAssistant == nil {
 				return errors.New("cloudAssistant config is required for serve; set cloudAssistant in config.yaml")
@@ -44,7 +44,6 @@ func NewServeCmd(appName string) *cobra.Command {
 			var client *openai.Client
 			if app.AppConfig.OpenAI == nil {
 				// OpenAI access tokens will be provided by the client per request.
-				agentOptions.UseOAuth = true
 				client = ai.NewClientWithoutKey()
 			} else {
 				var err error
