@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openai/openai-go/v2/responses"
+	"github.com/openai/openai-go/responses"
 )
 
 // maybeConvertAnnotation converts a responses.ResponseOutputTextAnnotationUnion into a Chatkit

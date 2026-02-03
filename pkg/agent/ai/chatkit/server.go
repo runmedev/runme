@@ -18,7 +18,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/google/uuid"
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go"
 	aisreproto "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 )
