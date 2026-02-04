@@ -124,6 +124,11 @@ func (a *Agent) BuildResponseParams(ctx context.Context, req *agentv1.GenerateRe
 	log := logs.FromContext(ctx)
 	isOAuthRequest := req.GetOpenaiAccessToken() != ""
 
+	if !a.useOAuthForOpenAI() {
+		isOAuthRequest = false
+		log.Info("Not using OAuth For OpenAI")
+	}
+
 	tools := make([]responses.ToolUnionParam, 0, 1)
 
 	if len(a.vectorStoreIDs) > 0 && isOAuthRequest {
@@ -218,6 +223,14 @@ func (a *Agent) BuildResponseParams(ctx context.Context, req *agentv1.GenerateRe
 	}
 
 	return createResponse, opts, nil
+}
+
+func (a *Agent) useOAuthForOpenAI() bool {
+	// TODO(jlewi) this is a hack to determine whether oauth should be used because right not the frontend will
+	// always send the access token which may not be a valid access token. We will likely re-think auth in light of
+	// switching to the codex harness and/or making things configurable in the webapp; e.g. letting the user set
+	// the API key in the web app.
+	return a.oauthOpenAIOrganization != "" && a.oauthOpenAIProject != ""
 }
 
 // getNotebookTools returns a list of tools that allow the AI to work with notebooks.
