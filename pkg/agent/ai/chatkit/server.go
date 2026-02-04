@@ -325,9 +325,14 @@ func (h *ChatKitHandler) generateAssistantResponse(ctx context.Context, threadID
 		return err
 	}
 
+	log := logs.FromContext(ctx)
 	if toolCallOutput != nil {
 		if req.PreviousResponseId != "" && toolCallOutput.PreviousResponseId != req.PreviousResponseId {
 			return errors.Errorf("req previous response id %s != toolcall previous response id %s", req.PreviousResponseId, toolCallOutput.PreviousResponseId)
+		}
+
+		if toolCallOutput.ClientError != "" {
+			log.Error(errors.New("ToolCallFailed"), "ToolCallFailed", "toolCallOutput", toolCallOutput)
 		}
 
 		if err := tools.AddToolCallOutputToResponse(ctx, toolCallOutput, createResponse); err != nil {
