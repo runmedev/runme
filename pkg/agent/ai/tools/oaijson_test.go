@@ -19,7 +19,7 @@ func Test_FixOpenAI(t *testing.T) {
 
 	req := &aisreproto.UpdateCellsRequest{}
 	descriptor := req.ProtoReflect().Descriptor()
-	//runtime.FixOpenAI(descriptor, args)
+	// runtime.FixOpenAI(descriptor, args)
 	FixOpenAI(descriptor, args)
 
 	fixedJson, err := json.Marshal(args)

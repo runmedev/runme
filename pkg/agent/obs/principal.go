@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
 )
 

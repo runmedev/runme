@@ -252,7 +252,6 @@ type ThreadItemUpdated struct {
 }
 
 func (e ThreadItemUpdated) isThreadStreamEvent() {
-
 }
 
 type ThreadItemUpdate interface {

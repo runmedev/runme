@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/openai/openai-go/option"
+
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 
 	"connectrpc.com/connect"
@@ -13,9 +14,10 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
 
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 
