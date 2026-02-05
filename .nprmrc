@@ -1,2 +1,0 @@
-# Resolve buf registry
-@buf:registry=https://buf.build/gen/npm/v1
