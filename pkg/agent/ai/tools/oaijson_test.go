@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	aisreproto "go.openai.org/oaiproto/aisre"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 )
 
 func Test_FixOpenAI(t *testing.T) {
@@ -17,7 +18,7 @@ func Test_FixOpenAI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := &aisreproto.UpdateCellsRequest{}
+	req := &toolsv1.UpdateCellsRequest{}
 	descriptor := req.ProtoReflect().Descriptor()
 	// runtime.FixOpenAI(descriptor, args)
 	FixOpenAI(descriptor, args)

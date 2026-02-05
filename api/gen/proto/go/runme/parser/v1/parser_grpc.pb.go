@@ -79,6 +79,7 @@ type UnimplementedParserServiceServer struct{}
 func (UnimplementedParserServiceServer) Deserialize(context.Context, *DeserializeRequest) (*DeserializeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Deserialize not implemented")
 }
+
 func (UnimplementedParserServiceServer) Serialize(context.Context, *SerializeRequest) (*SerializeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Serialize not implemented")
 }

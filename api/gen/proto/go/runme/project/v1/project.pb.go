@@ -917,24 +917,27 @@ func file_runme_project_v1_project_proto_rawDescGZIP() []byte {
 	return file_runme_project_v1_project_proto_rawDescData
 }
 
-var file_runme_project_v1_project_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_runme_project_v1_project_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_runme_project_v1_project_proto_goTypes = []any{
-	(LoadEventType)(0),                  // 0: runme.project.v1.LoadEventType
-	(*DirectoryProjectOptions)(nil),     // 1: runme.project.v1.DirectoryProjectOptions
-	(*FileProjectOptions)(nil),          // 2: runme.project.v1.FileProjectOptions
-	(*LoadRequest)(nil),                 // 3: runme.project.v1.LoadRequest
-	(*LoadEventStartedWalk)(nil),        // 4: runme.project.v1.LoadEventStartedWalk
-	(*LoadEventFoundDir)(nil),           // 5: runme.project.v1.LoadEventFoundDir
-	(*LoadEventFoundFile)(nil),          // 6: runme.project.v1.LoadEventFoundFile
-	(*LoadEventFinishedWalk)(nil),       // 7: runme.project.v1.LoadEventFinishedWalk
-	(*LoadEventStartedParsingDoc)(nil),  // 8: runme.project.v1.LoadEventStartedParsingDoc
-	(*LoadEventFinishedParsingDoc)(nil), // 9: runme.project.v1.LoadEventFinishedParsingDoc
-	(*LoadEventFoundTask)(nil),          // 10: runme.project.v1.LoadEventFoundTask
-	(*LoadEventError)(nil),              // 11: runme.project.v1.LoadEventError
-	(*LoadResponse)(nil),                // 12: runme.project.v1.LoadResponse
-	(v1.RunmeIdentity)(0),               // 13: runme.parser.v1.RunmeIdentity
-}
+var (
+	file_runme_project_v1_project_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_runme_project_v1_project_proto_msgTypes  = make([]protoimpl.MessageInfo, 12)
+	file_runme_project_v1_project_proto_goTypes   = []any{
+		(LoadEventType)(0),                  // 0: runme.project.v1.LoadEventType
+		(*DirectoryProjectOptions)(nil),     // 1: runme.project.v1.DirectoryProjectOptions
+		(*FileProjectOptions)(nil),          // 2: runme.project.v1.FileProjectOptions
+		(*LoadRequest)(nil),                 // 3: runme.project.v1.LoadRequest
+		(*LoadEventStartedWalk)(nil),        // 4: runme.project.v1.LoadEventStartedWalk
+		(*LoadEventFoundDir)(nil),           // 5: runme.project.v1.LoadEventFoundDir
+		(*LoadEventFoundFile)(nil),          // 6: runme.project.v1.LoadEventFoundFile
+		(*LoadEventFinishedWalk)(nil),       // 7: runme.project.v1.LoadEventFinishedWalk
+		(*LoadEventStartedParsingDoc)(nil),  // 8: runme.project.v1.LoadEventStartedParsingDoc
+		(*LoadEventFinishedParsingDoc)(nil), // 9: runme.project.v1.LoadEventFinishedParsingDoc
+		(*LoadEventFoundTask)(nil),          // 10: runme.project.v1.LoadEventFoundTask
+		(*LoadEventError)(nil),              // 11: runme.project.v1.LoadEventError
+		(*LoadResponse)(nil),                // 12: runme.project.v1.LoadResponse
+		(v1.RunmeIdentity)(0),               // 13: runme.parser.v1.RunmeIdentity
+	}
+)
+
 var file_runme_project_v1_project_proto_depIdxs = []int32{
 	1,  // 0: runme.project.v1.LoadRequest.directory:type_name -> runme.project.v1.DirectoryProjectOptions
 	2,  // 1: runme.project.v1.LoadRequest.file:type_name -> runme.project.v1.FileProjectOptions
