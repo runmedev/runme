@@ -178,21 +178,27 @@ type UnimplementedRunnerServiceServer struct{}
 func (UnimplementedRunnerServiceServer) CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateSession not implemented")
 }
+
 func (UnimplementedRunnerServiceServer) GetSession(context.Context, *GetSessionRequest) (*GetSessionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetSession not implemented")
 }
+
 func (UnimplementedRunnerServiceServer) ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListSessions not implemented")
 }
+
 func (UnimplementedRunnerServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteSession not implemented")
 }
+
 func (UnimplementedRunnerServiceServer) MonitorEnvStore(*MonitorEnvStoreRequest, grpc.ServerStreamingServer[MonitorEnvStoreResponse]) error {
 	return status.Error(codes.Unimplemented, "method MonitorEnvStore not implemented")
 }
+
 func (UnimplementedRunnerServiceServer) Execute(grpc.BidiStreamingServer[ExecuteRequest, ExecuteResponse]) error {
 	return status.Error(codes.Unimplemented, "method Execute not implemented")
 }
+
 func (UnimplementedRunnerServiceServer) ResolveProgram(context.Context, *ResolveProgramRequest) (*ResolveProgramResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveProgram not implemented")
 }

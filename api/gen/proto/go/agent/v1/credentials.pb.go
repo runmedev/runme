@@ -141,11 +141,14 @@ func file_agent_v1_credentials_proto_rawDescGZIP() []byte {
 	return file_agent_v1_credentials_proto_rawDescData
 }
 
-var file_agent_v1_credentials_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_agent_v1_credentials_proto_goTypes = []any{
-	(*OAuthToken)(nil),            // 0: agent.v1.OAuthToken
-	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
-}
+var (
+	file_agent_v1_credentials_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+	file_agent_v1_credentials_proto_goTypes  = []any{
+		(*OAuthToken)(nil),            // 0: agent.v1.OAuthToken
+		(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
+	}
+)
+
 var file_agent_v1_credentials_proto_depIdxs = []int32{
 	1, // 0: agent.v1.OAuthToken.expiry:type_name -> google.protobuf.Timestamp
 	1, // [1:1] is the sub-list for method output_type

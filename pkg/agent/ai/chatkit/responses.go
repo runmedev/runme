@@ -3,7 +3,6 @@ package chatkit
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -65,7 +64,6 @@ type responseStreamBuilder struct {
 	responseID string
 
 	message         *AssistantMessageItem
-	messageBuffer   strings.Builder
 	messageAdded    bool
 	messageFinished bool
 

@@ -1090,27 +1090,30 @@ func file_agent_tools_v1_notebooks_proto_rawDescGZIP() []byte {
 	return file_agent_tools_v1_notebooks_proto_rawDescData
 }
 
-var file_agent_tools_v1_notebooks_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_tools_v1_notebooks_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
-var file_agent_tools_v1_notebooks_proto_goTypes = []any{
-	(ToolCallOutput_Status)(0),                  // 0: agent.tools.v1.ToolCallOutput.Status
-	(*ListCellsRequest)(nil),                    // 1: agent.tools.v1.ListCellsRequest
-	(*ListCellsResponse)(nil),                   // 2: agent.tools.v1.ListCellsResponse
-	(*GetCellsRequest)(nil),                     // 3: agent.tools.v1.GetCellsRequest
-	(*GetCellsResponse)(nil),                    // 4: agent.tools.v1.GetCellsResponse
-	(*UpdateCellsRequest)(nil),                  // 5: agent.tools.v1.UpdateCellsRequest
-	(*UpdateCellsResponse)(nil),                 // 6: agent.tools.v1.UpdateCellsResponse
-	(*NotebookServiceExecuteCellsRequest)(nil),  // 7: agent.tools.v1.NotebookServiceExecuteCellsRequest
-	(*NotebookServiceExecuteCellsResponse)(nil), // 8: agent.tools.v1.NotebookServiceExecuteCellsResponse
-	(*TerminateRunRequest)(nil),                 // 9: agent.tools.v1.TerminateRunRequest
-	(*TerminateRunResponse)(nil),                // 10: agent.tools.v1.TerminateRunResponse
-	(*ToolCallInput)(nil),                       // 11: agent.tools.v1.ToolCallInput
-	(*ToolCallOutput)(nil),                      // 12: agent.tools.v1.ToolCallOutput
-	(*ChatkitState)(nil),                        // 13: agent.tools.v1.ChatkitState
-	(*SendSlackMessageRequest)(nil),             // 14: agent.tools.v1.SendSlackMessageRequest
-	(*SendSlackMessageResponse)(nil),            // 15: agent.tools.v1.SendSlackMessageResponse
-	(*v1.Cell)(nil),                             // 16: runme.parser.v1.Cell
-}
+var (
+	file_agent_tools_v1_notebooks_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_agent_tools_v1_notebooks_proto_msgTypes  = make([]protoimpl.MessageInfo, 15)
+	file_agent_tools_v1_notebooks_proto_goTypes   = []any{
+		(ToolCallOutput_Status)(0),                  // 0: agent.tools.v1.ToolCallOutput.Status
+		(*ListCellsRequest)(nil),                    // 1: agent.tools.v1.ListCellsRequest
+		(*ListCellsResponse)(nil),                   // 2: agent.tools.v1.ListCellsResponse
+		(*GetCellsRequest)(nil),                     // 3: agent.tools.v1.GetCellsRequest
+		(*GetCellsResponse)(nil),                    // 4: agent.tools.v1.GetCellsResponse
+		(*UpdateCellsRequest)(nil),                  // 5: agent.tools.v1.UpdateCellsRequest
+		(*UpdateCellsResponse)(nil),                 // 6: agent.tools.v1.UpdateCellsResponse
+		(*NotebookServiceExecuteCellsRequest)(nil),  // 7: agent.tools.v1.NotebookServiceExecuteCellsRequest
+		(*NotebookServiceExecuteCellsResponse)(nil), // 8: agent.tools.v1.NotebookServiceExecuteCellsResponse
+		(*TerminateRunRequest)(nil),                 // 9: agent.tools.v1.TerminateRunRequest
+		(*TerminateRunResponse)(nil),                // 10: agent.tools.v1.TerminateRunResponse
+		(*ToolCallInput)(nil),                       // 11: agent.tools.v1.ToolCallInput
+		(*ToolCallOutput)(nil),                      // 12: agent.tools.v1.ToolCallOutput
+		(*ChatkitState)(nil),                        // 13: agent.tools.v1.ChatkitState
+		(*SendSlackMessageRequest)(nil),             // 14: agent.tools.v1.SendSlackMessageRequest
+		(*SendSlackMessageResponse)(nil),            // 15: agent.tools.v1.SendSlackMessageResponse
+		(*v1.Cell)(nil),                             // 16: runme.parser.v1.Cell
+	}
+)
+
 var file_agent_tools_v1_notebooks_proto_depIdxs = []int32{
 	16, // 0: agent.tools.v1.ListCellsResponse.cells:type_name -> runme.parser.v1.Cell
 	16, // 1: agent.tools.v1.GetCellsResponse.cells:type_name -> runme.parser.v1.Cell

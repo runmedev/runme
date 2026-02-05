@@ -227,18 +227,23 @@ type UnimplementedNotebookServiceServer struct{}
 func (UnimplementedNotebookServiceServer) UpdateCells(context.Context, *UpdateCellsRequest) (*UpdateCellsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateCells not implemented")
 }
+
 func (UnimplementedNotebookServiceServer) GetCells(context.Context, *GetCellsRequest) (*GetCellsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCells not implemented")
 }
+
 func (UnimplementedNotebookServiceServer) ListCells(context.Context, *ListCellsRequest) (*ListCellsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCells not implemented")
 }
+
 func (UnimplementedNotebookServiceServer) ExecuteCells(context.Context, *NotebookServiceExecuteCellsRequest) (*NotebookServiceExecuteCellsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExecuteCells not implemented")
 }
+
 func (UnimplementedNotebookServiceServer) TerminateRun(context.Context, *TerminateRunRequest) (*TerminateRunResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TerminateRun not implemented")
 }
+
 func (UnimplementedNotebookServiceServer) SendSlackMessage(context.Context, *SendSlackMessageRequest) (*SendSlackMessageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendSlackMessage not implemented")
 }
