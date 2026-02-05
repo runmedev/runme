@@ -66,5 +66,3 @@ api/gen/proto/es/package*.json
 # TODO(jlewi): Do we want to ignore this
 .npmrc
 
-# TODO(jlewi): This was for jlewi when hacking with codex; we could get rid of this.
-aisretmp
