@@ -710,9 +710,12 @@ func (a *AuthContext) AuthorizeRequest(ctx context.Context, req *streamv1.Websoc
 	idToken, err := a.OIDC.verifyBearerToken(req.GetAuthorization())
 	if err != nil {
 		log.Error(err, "ID token verification failed")
-		// TODO(jlewi): Should we be returning here? Returning here currently breaks
+		// TODO(jlewi): I think we want to return an error if the idToken is invalid rather than keep going.
+		// I think the remaining code assumes a valid token and might even seg fault if we don't have an idtoken.
+		// However, returning here currently breaks
 		// websocket stream tests in pkg/agent/runme/stream/handler_test.go because
 		// those tests intentionally omit Authorization while using AllowAllChecker.
+		// So we need to update the tests to be able to return here.
 	}
 
 	principal, err := a.Checker.GetPrincipal(idToken)
