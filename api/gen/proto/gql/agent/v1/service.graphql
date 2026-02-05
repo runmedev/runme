@@ -17,7 +17,7 @@ directive @ToolCallOutputOutput on INPUT_FIELD_DEFINITION
 type BoolValue {
 	"""
 	 The bool value.
-	
+
 	"""
 	value: Boolean
 }
@@ -33,7 +33,7 @@ type BoolValue {
 input BoolValueInput {
 	"""
 	 The bool value.
-	
+
 	"""
 	value: Boolean
 }
@@ -41,57 +41,57 @@ scalar Bytes
 type Cell {
 	"""
 	 CellKind is the type of cell, e.g. markup or code.
-	
+
 	"""
 	kind: CellKind
 	"""
 	 Value is the contents of the cell.
-	
+
 	"""
 	value: String
 	"""
 	 LanguageID is the language of the cell.
-	
+
 	"""
 	languageId: String
 	"""
 	 Metadata is additional metadata about the cell in k/v format.
-	
+
 	"""
 	metadata: [Cell_MetadataEntry!]
 	"""
 	 TextRange is the range of the cell covering in the markdown source.
-	
+
 	"""
 	textRange: TextRange
 	"""
 	 Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
-	
+
 	"""
 	outputs: [CellOutput!]
 	"""
 	 ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
-	
+
 	"""
 	executionSummary: CellExecutionSummary
 	"""
 	 RefID is the agent's original unique identifier.
-	
+
 	"""
 	refId: String
 	"""
 	 Role is the role of the cell, e.g. user or assistant.
-	
+
 	"""
 	role: CellRole
 	"""
 	 CallID is the unique identifier of the cell call.
-	
+
 	"""
 	callId: String
 	"""
 	 DocResults are doc results for a cell returned by, e.g., file search.
-	
+
 	"""
 	docResults: [DocResult!]
 }
@@ -108,57 +108,57 @@ input CellExecutionSummaryInput {
 input CellInput {
 	"""
 	 CellKind is the type of cell, e.g. markup or code.
-	
+
 	"""
 	kind: CellKind
 	"""
 	 Value is the contents of the cell.
-	
+
 	"""
 	value: String
 	"""
 	 LanguageID is the language of the cell.
-	
+
 	"""
 	languageId: String
 	"""
 	 Metadata is additional metadata about the cell in k/v format.
-	
+
 	"""
 	metadata: [Cell_MetadataEntryInput!]
 	"""
 	 TextRange is the range of the cell covering in the markdown source.
-	
+
 	"""
 	textRange: TextRangeInput
 	"""
 	 Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
-	
+
 	"""
 	outputs: [CellOutputInput!]
 	"""
 	 ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
-	
+
 	"""
 	executionSummary: CellExecutionSummaryInput
 	"""
 	 RefID is the agent's original unique identifier.
-	
+
 	"""
 	refId: String
 	"""
 	 Role is the role of the cell, e.g. user or assistant.
-	
+
 	"""
 	role: CellRole
 	"""
 	 CallID is the unique identifier of the cell call.
-	
+
 	"""
 	callId: String
 	"""
 	 DocResults are doc results for a cell returned by, e.g., file search.
-	
+
 	"""
 	docResults: [DocResultInput!]
 }
@@ -168,7 +168,7 @@ enum CellKind {
 	CELL_KIND_CODE
 	"""
 	 Deprecated use CELL_KIND_TOOL instead
-	
+
 	"""
 	CELL_KIND_DOC_RESULTS
 	CELL_KIND_TOOL
@@ -225,48 +225,48 @@ input Cell_MetadataEntryInput {
 type DocResult {
 	"""
 	 The unique ID of the file.
-	
+
 	"""
 	fileId: String
 	"""
 	 The name of the file.
-	
+
 	"""
 	fileName: String
 	"""
 	 The relevance score of the file.
-	
+
 	"""
 	score: Float
 	"""
 	 Link to display for this file
-	
+
 	 TOO(jlewi): Should we include the file contents?
-	
+
 	"""
 	link: String
 }
 input DocResultInput {
 	"""
 	 The unique ID of the file.
-	
+
 	"""
 	fileId: String
 	"""
 	 The name of the file.
-	
+
 	"""
 	fileName: String
 	"""
 	 The relevance score of the file.
-	
+
 	"""
 	score: Float
 	"""
 	 Link to display for this file
-	
+
 	 TOO(jlewi): Should we include the file contents?
-	
+
 	"""
 	link: String
 }
@@ -285,7 +285,7 @@ input FrontmatterInput {
 	runme: FrontmatterRunmeInput
 	"""
 	 Deprecated category in favor of Tag
-	
+
 	"""
 	category: String
 	terminalRows: String
@@ -301,43 +301,43 @@ input GenerateRequestInput {
 	previousResponseId: String
 	"""
 	 openai_access_token is the OpenAI access token to use when contacting the OpenAI API.
-	
+
 	"""
 	openaiAccessToken: String
 	"""
 	 model to use. Leave blank to use the default model.
-	
+
 	"""
 	model: String
 	"""
 	 Context specifies how the client is running
-	
+
 	"""
 	context: GenerateRequest_Context
 	"""
 	 Kernels is a list of the names of the kernels to include
-	
+
 	"""
 	kernels: [String!]
 	"""
 	 Container is the id of an OpenAI container to use
-	
+
 	"""
 	container: String
 	"""
 	 Message is the user message
-	
+
 	"""
 	message: String
 	"""
 	 ToolCalOutputs is the output of the tools calls
 	 The tools manipulate the notebook.
-	
+
 	"""
 	toolCallOutputs: [ToolCallOutputInput!]
 	"""
 	 Path in the code interpreter container where a copy of the notebook was uploaded
-	
+
 	"""
 	notebookPath: String
 }
@@ -371,7 +371,7 @@ input GetCellsResponseInput {
 type Int64Value {
 	"""
 	 The int64 value.
-	
+
 	"""
 	value: Int
 }
@@ -387,7 +387,7 @@ type Int64Value {
 input Int64ValueInput {
 	"""
 	 The int64 value.
-	
+
 	"""
 	value: Int
 }
@@ -408,7 +408,7 @@ input NotebookInput {
 input NotebookServiceExecuteCellsResponseInput {
 	"""
 	 Cells contains the cells that were executed
-	
+
 	"""
 	cells: [CellInput!]
 }
@@ -437,14 +437,14 @@ input RunmeSessionInput {
 input SendSlackMessageResponseInput {
 	"""
 	 The error if there is one
-	
+
 	"""
 	error: String
 }
 type Subscription {
 	"""
 	 Generate generates cells. Responses are streamed.
-	
+
 	"""
 	messagesServiceGenerate(in: GenerateRequestInput): GenerateResponse
 }
@@ -467,7 +467,7 @@ input ToolCallOutputInput {
 	status: ToolCallOutput_Status
 	"""
 	 client_error will be an error message if the client had one.
-	
+
 	"""
 	clientError: String
 }
@@ -488,7 +488,7 @@ enum ToolCallOutput_Status {
 type UInt32Value {
 	"""
 	 The uint32 value.
-	
+
 	"""
 	value: Int
 }
@@ -504,7 +504,7 @@ type UInt32Value {
 input UInt32ValueInput {
 	"""
 	 The uint32 value.
-	
+
 	"""
 	value: Int
 }
@@ -512,7 +512,7 @@ input UpdateCellsResponseInput {
 	"""
 	 We want to provide the updated cells to the AI because the cells might have been modified by
 	 the agent (e.g. ref_ids) might have been generated.
-	
+
 	"""
 	cells: [CellInput!]
 }

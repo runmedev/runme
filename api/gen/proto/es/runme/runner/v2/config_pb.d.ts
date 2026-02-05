@@ -342,4 +342,3 @@ export declare type CommandModeJson = "COMMAND_MODE_UNSPECIFIED" | "COMMAND_MODE
  * Describes the enum runme.runner.v2.CommandMode.
  */
 export declare const CommandModeSchema: GenEnum<CommandMode, CommandModeJson>;
-

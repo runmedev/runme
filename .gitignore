@@ -65,4 +65,3 @@ api/gen/proto/es/package*.json
 
 # TODO(jlewi): Do we want to ignore this
 .npmrc
-

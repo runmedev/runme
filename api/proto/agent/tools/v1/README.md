@@ -2,7 +2,7 @@
 
 We want a principled way to generate the JSON schemas use with OpenAI function calling.
 
-The approach we are using is to 
+The approach we are using is to
 
 1. Define service in RPCs corresponding to our toolcalls
 2. Use the proto plugin https://github.com/redpanda-data/protoc-gen-go-mcp to generate MCP and JSONSchemas for the
