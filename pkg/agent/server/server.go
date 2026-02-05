@@ -13,10 +13,11 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpchealth"
-	"github.com/runmedev/runme/v3/pkg/agent/ai"
-	"github.com/runmedev/runme/v3/pkg/agent/ai/chatkit"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+
+	"github.com/runmedev/runme/v3/pkg/agent/ai"
+	"github.com/runmedev/runme/v3/pkg/agent/ai/chatkit"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 

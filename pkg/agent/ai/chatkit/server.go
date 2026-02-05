@@ -11,15 +11,17 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/obs"
-	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/google/uuid"
 	"github.com/openai/openai-go"
+
 	aisreproto "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 )
@@ -29,9 +31,7 @@ const (
 	aisreChatKitState = "aisre.chatkit.state"
 )
 
-var (
-	errChatKitNoUserText = errors.New("no user text provided")
-)
+var errChatKitNoUserText = errors.New("no user text provided")
 
 type ChatKitHandler struct {
 	agent *ai.Agent
@@ -213,7 +213,6 @@ func (h *ChatKitHandler) handleThreadsAddClientToolOutput(ctx context.Context, s
 	req := &ThreadsAddClientToolOutputReq{}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return NewHTTPError(http.StatusBadRequest, "invalid request payload")
-
 	}
 
 	if req.Params.ThreadID == "" {
@@ -320,7 +319,6 @@ func (h *ChatKitHandler) generateAssistantResponse(ctx context.Context, threadID
 	}
 
 	createResponse, opts, err := h.agent.BuildResponseParams(ctx, req)
-
 	if err != nil {
 		return err
 	}

@@ -5,12 +5,14 @@
 package runnerv2connect
 
 import (
-	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	http "net/http"
 	strings "strings"
+
+	connect "connectrpc.com/connect"
+
+	v2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 )
 
 // This is a compile-time assertion to ensure that this generated file and the connect package are

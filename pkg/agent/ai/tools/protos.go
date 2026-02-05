@@ -9,12 +9,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/openai/openai-go/responses"
 	"github.com/pkg/errors"
-	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
-	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
 )
 
 // ArgsToToolCallInput converts the string representation of the toolcall arguments returned by OpenAI into a proto
@@ -185,7 +186,6 @@ func AddToolCallOutputToResponse(_ context.Context, toolCallOutput *toolsv1.Tool
 	}
 
 	b, err := protojson.Marshal(m)
-
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal tool call output")
 	}

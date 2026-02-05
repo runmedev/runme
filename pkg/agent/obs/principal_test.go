@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
+
 	iam "github.com/runmedev/runme/v3/pkg/agent/iam"
 )
 

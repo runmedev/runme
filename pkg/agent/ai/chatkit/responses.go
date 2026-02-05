@@ -3,7 +3,6 @@ package chatkit
 import (
 	"context"
 	"encoding/json"
-
 	"strings"
 	"time"
 
@@ -12,10 +11,11 @@ import (
 	"github.com/openai/openai-go/responses"
 	oaiconstants "github.com/openai/openai-go/shared/constant"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/tools"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type EventSender func(context.Context, ThreadStreamEvent) error
@@ -316,7 +316,6 @@ func (b *responseStreamBuilder) handleFunctionArgumentsDone(ctx context.Context,
 
 	// OpenAI JSON needs to be converted to proto json
 	callInput, err := tools.ArgsToToolCallInput(ctx, state.Name, state.CallID, event.Arguments)
-
 	if err != nil {
 		return err
 	}
