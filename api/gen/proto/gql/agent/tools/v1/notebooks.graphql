@@ -24,7 +24,7 @@ directive @NotebookService on FIELD_DEFINITION
 type BoolValue {
 	"""
 	 The bool value.
-	
+
 	"""
 	value: Boolean
 }
@@ -40,7 +40,7 @@ type BoolValue {
 input BoolValueInput {
 	"""
 	 The bool value.
-	
+
 	"""
 	value: Boolean
 }
@@ -48,57 +48,57 @@ scalar Bytes
 type Cell {
 	"""
 	 CellKind is the type of cell, e.g. markup or code.
-	
+
 	"""
 	kind: CellKind
 	"""
 	 Value is the contents of the cell.
-	
+
 	"""
 	value: String
 	"""
 	 LanguageID is the language of the cell.
-	
+
 	"""
 	languageId: String
 	"""
 	 Metadata is additional metadata about the cell in k/v format.
-	
+
 	"""
 	metadata: [Cell_MetadataEntry!]
 	"""
 	 TextRange is the range of the cell covering in the markdown source.
-	
+
 	"""
 	textRange: TextRange
 	"""
 	 Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
-	
+
 	"""
 	outputs: [CellOutput!]
 	"""
 	 ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
-	
+
 	"""
 	executionSummary: CellExecutionSummary
 	"""
 	 RefID is the agent's original unique identifier.
-	
+
 	"""
 	refId: String
 	"""
 	 Role is the role of the cell, e.g. user or assistant.
-	
+
 	"""
 	role: CellRole
 	"""
 	 CallID is the unique identifier of the cell call.
-	
+
 	"""
 	callId: String
 	"""
 	 DocResults are doc results for a cell returned by, e.g., file search.
-	
+
 	"""
 	docResults: [DocResult!]
 }
@@ -115,57 +115,57 @@ input CellExecutionSummaryInput {
 input CellInput {
 	"""
 	 CellKind is the type of cell, e.g. markup or code.
-	
+
 	"""
 	kind: CellKind
 	"""
 	 Value is the contents of the cell.
-	
+
 	"""
 	value: String
 	"""
 	 LanguageID is the language of the cell.
-	
+
 	"""
 	languageId: String
 	"""
 	 Metadata is additional metadata about the cell in k/v format.
-	
+
 	"""
 	metadata: [Cell_MetadataEntryInput!]
 	"""
 	 TextRange is the range of the cell covering in the markdown source.
-	
+
 	"""
 	textRange: TextRangeInput
 	"""
 	 Outputs are the outputs of the cell, e.g. stdout, stderr, or other media types.
-	
+
 	"""
 	outputs: [CellOutputInput!]
 	"""
 	 ExecutionSummary is the summary of the cell execution, e.g. success/failure and execution time.
-	
+
 	"""
 	executionSummary: CellExecutionSummaryInput
 	"""
 	 RefID is the agent's original unique identifier.
-	
+
 	"""
 	refId: String
 	"""
 	 Role is the role of the cell, e.g. user or assistant.
-	
+
 	"""
 	role: CellRole
 	"""
 	 CallID is the unique identifier of the cell call.
-	
+
 	"""
 	callId: String
 	"""
 	 DocResults are doc results for a cell returned by, e.g., file search.
-	
+
 	"""
 	docResults: [DocResultInput!]
 }
@@ -175,7 +175,7 @@ enum CellKind {
 	CELL_KIND_CODE
 	"""
 	 Deprecated use CELL_KIND_TOOL instead
-	
+
 	"""
 	CELL_KIND_DOC_RESULTS
 	CELL_KIND_TOOL
@@ -232,48 +232,48 @@ input Cell_MetadataEntryInput {
 type DocResult {
 	"""
 	 The unique ID of the file.
-	
+
 	"""
 	fileId: String
 	"""
 	 The name of the file.
-	
+
 	"""
 	fileName: String
 	"""
 	 The relevance score of the file.
-	
+
 	"""
 	score: Float
 	"""
 	 Link to display for this file
-	
+
 	 TOO(jlewi): Should we include the file contents?
-	
+
 	"""
 	link: String
 }
 input DocResultInput {
 	"""
 	 The unique ID of the file.
-	
+
 	"""
 	fileId: String
 	"""
 	 The name of the file.
-	
+
 	"""
 	fileName: String
 	"""
 	 The relevance score of the file.
-	
+
 	"""
 	score: Float
 	"""
 	 Link to display for this file
-	
+
 	 TOO(jlewi): Should we include the file contents?
-	
+
 	"""
 	link: String
 }
@@ -303,7 +303,7 @@ type GetCellsResponse {
 type Int64Value {
 	"""
 	 The int64 value.
-	
+
 	"""
 	value: Int
 }
@@ -319,7 +319,7 @@ type Int64Value {
 input Int64ValueInput {
 	"""
 	 The int64 value.
-	
+
 	"""
 	value: Int
 }
@@ -332,62 +332,62 @@ type Mutation {
 	 Cell is the cell to create or update. To update
 	 an existing cell specify the ID of that cell in the ref_id field.
 	 To create a new cell leave ref_id blank.
-	
+
 	 You can use cell.metadata["agent/summary"] to include a short summary or description of the
 	 cell. You should set the description so that its useful for deciding what cells you should read
 	 to answer the user's queries.
-	
+
 	 UpdateCellResponse will include cell id and metadata of the updated cells.
-	
+
 	"""
 	notebookServiceUpdateCells(in: UpdateCellsRequestInput): UpdateCellsResponse
 	"""
 	 GetCells fetches the cells with the given ref_ids.
 	 Use this to read the contents of cells in the notebook.
-	
+
 	"""
 	notebookServiceGetCells(in: GetCellsRequestInput): GetCellsResponse
 	"""
 	 ListCells lists the cells in a notebook.
 	 Important: Only the ref_id and metadata will be populated. You should use that to decide
 	 which cells to read.
-	
+
 	"""
 	notebookServiceListCells: ListCellsResponse
 	"""
 	 ExecuteCells executes the cells with the given ids in a notebook.
 	 Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
 	 cells. The response will contain the cell including the outputs of execution.
-	
+
 	"""
 	notebookServiceExecuteCells(in: NotebookServiceExecuteCellsRequestInput): NotebookServiceExecuteCellsResponse
 	"""
 	 TerminateRun terminates the run. Call this when no further processing is necessary to handle
 	 the user request.
-	
+
 	"""
 	notebookServiceTerminateRun: Boolean
 	"""
 	 TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-	
+
 	 SlackMessageRequest sends a slack message to the user.
 	 Channel is The channel to send the message to e.g. "C09DF7PL6K0".
 	 Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
 	 If no slack channel was included in the request, do not invoke this tool.
-	
+
 	 timestamp it the (unique identifier) of the slack thread you want to post into e.g.
 	 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
 	 "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
 	 request, you may omit this property which will start a new thread.`,
-	
+
 	 text is the message that the user will see in slack.
 	  A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
 	  ```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
 	  @channel in this message.",
-	
+
 	 fileIDs optionally send files generated as part of the investigation to the user in slack
 	 (often images). e.g. ["call_ABC", "call_DEF"]`,
-	
+
 	"""
 	notebookServiceSendSlackMessage(in: SendSlackMessageRequestInput): SendSlackMessageResponse
 }
@@ -396,14 +396,14 @@ input NotebookServiceExecuteCellsRequestInput {
 	 TODO(jlewi): Right now you the AI has to specify the IDs of the cells to execute. This means it
 	 needs to use separate Update calls to set the code to execute. In the future, we may want to
 	 allow the AISRE to issue a single execute request to update and execute.
-	
+
 	"""
 	refIds: [String!]
 }
 type NotebookServiceExecuteCellsResponse {
 	"""
 	 Cells contains the cells that were executed
-	
+
 	"""
 	cells: [Cell!]
 }
@@ -427,7 +427,7 @@ input SendSlackMessageRequestInput {
 type SendSlackMessageResponse {
 	"""
 	 The error if there is one
-	
+
 	"""
 	error: String
 }
@@ -451,7 +451,7 @@ input TextRangeInput {
 type UInt32Value {
 	"""
 	 The uint32 value.
-	
+
 	"""
 	value: Int
 }
@@ -467,7 +467,7 @@ type UInt32Value {
 input UInt32ValueInput {
 	"""
 	 The uint32 value.
-	
+
 	"""
 	value: Int
 }
@@ -478,7 +478,7 @@ type UpdateCellsResponse {
 	"""
 	 We want to provide the updated cells to the AI because the cells might have been modified by
 	 the agent (e.g. ref_ids) might have been generated.
-	
+
 	"""
 	cells: [Cell!]
 }
