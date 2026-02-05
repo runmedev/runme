@@ -199,7 +199,6 @@ func (a *Agent) BuildResponseParams(ctx context.Context, req *agentv1.GenerateRe
 		return createResponse, nil, err
 	}
 
-	// https://openai.slack.com/archives/C08E32TKF47/p1760471534458089?thread_ts=1760388696.092879&cid=C08E32TKF47
 	// Right now chatKit can only handle one tool call at a time. So disable parallel toolCalls.
 	if req.GetContext() == agentv1.GenerateRequest_CONTEXT_WEBAPP {
 		createResponse.ParallelToolCalls = openai.Opt(false)

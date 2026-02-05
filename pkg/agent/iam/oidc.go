@@ -150,11 +150,6 @@ func (o *OIDC) DoClientExchange() bool {
 	return o.config.ClientExchange
 }
 
-// ValidateOnly returns true when the OIDC config is validate-only.
-//func (o *OIDC) ValidateOnly() bool {
-//	return o.config.GetValidateOnly()
-//}
-
 // downloadJWKS downloads the JSON Web Key Set (JWKS) from Google's OAuth2 provider.
 // It fetches the public keys used to verify JWT signatures, decodes them from the
 // JWK format, and stores them in the OIDC instance's publicKeys map indexed by key ID.
