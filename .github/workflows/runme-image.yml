@@ -56,6 +56,7 @@ jobs:
           KO_DOCKER_REPO: ghcr.io/runmedev/runme
         run: |
           ko build ./ \
+            --bare \
             --platform=linux/amd64,linux/arm64 \
             --tags "${{ steps.tags.outputs.tags }}" \
             --sbom=none
@@ -63,4 +64,4 @@ jobs:
       - name: Build image (PR)
         if: github.event_name == 'pull_request'
         run: |
-          ko build ./ --local --sbom=none
+          ko build ./ --bare --local --sbom=none
