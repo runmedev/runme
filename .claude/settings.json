@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(runme run build)",
+      "Bash(runme run setup)",
+      "Bash(runme run lint)",
+      "Bash(runme run test)",
+      "Bash(runme run test-docker)"
+    ]
+  }
+}

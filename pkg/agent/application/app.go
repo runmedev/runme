@@ -109,10 +109,10 @@ func (a *App) SetupOTEL() error {
 		}
 	}
 
-	// Set otelhttp.DefaultClient to use a transport that will report metrics.
+	// Set http.DefaultClient to use a transport that will report metrics.
 	// For other http.Clients, wrap the Transport with otelhttp.NewTransport
 	// to enable OpenTelemetry instrumentation.
-	otelhttp.DefaultClient = &http.Client{
+	http.DefaultClient = &http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
