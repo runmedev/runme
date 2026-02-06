@@ -12,7 +12,6 @@ exec runme run sh-test
 stdout 'Hello, runme, from shell!'
 ! stderr .
 
-env PATH=/opt/homebrew/bin:$PATH
 exec runme run js-test
 stdout 'Hello, runme, from javascript!'
 ! stderr .
