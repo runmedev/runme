@@ -1,0 +1,65 @@
+name: Runme Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ">=1.25"
+
+      - name: Set up ko
+        uses: ko-build/setup-ko@v0.6
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: tags
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tags="${GITHUB_REF_NAME}"
+          else
+            tags="sha-${GITHUB_SHA::7}"
+            if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              tags="${tags},latest"
+            fi
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish image
+        if: github.event_name != 'pull_request'
+        env:
+          KO_DOCKER_REPO: ghcr.io/runmedev/runme
+        run: |
+          ko build ./ \
+            --platform=linux/amd64,linux/arm64 \
+            --tags "${{ steps.tags.outputs.tags }}" \
+            --sbom=none
+
+      - name: Build image (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          ko build ./ --local --sbom=none
