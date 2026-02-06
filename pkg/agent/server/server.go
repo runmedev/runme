@@ -25,6 +25,7 @@ import (
 	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
 
 	"github.com/runmedev/runme/v3/pkg/agent/api"
+	"github.com/runmedev/runme/v3/pkg/agent/contents"
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
 	"github.com/runmedev/runme/v3/pkg/agent/runme"
 	"github.com/runmedev/runme/v3/pkg/agent/runme/stream"
@@ -39,6 +40,7 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 
+	"github.com/runmedev/runme/v3/api/gen/proto/go/runme/contents/v1/contentsv1connect"
 	"github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1/parserv1connect"
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	"github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2/runnerv2connect"
@@ -58,6 +60,7 @@ type Server struct {
 	shutdownComplete chan bool
 	runner           *runme.Runner
 	parser           *runme.Parser
+	contentsHandler  *contents.Handler
 	agent            agentv1connect.MessagesServiceHandler
 	checker          iam.Checker
 	registerHandlers RegisterHandlers
@@ -124,6 +127,19 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 		parser = runme.NewParser(zap.L())
 	}
 
+	var contentsHandler *contents.Handler
+
+	if opts.Server.ContentsService {
+		var err error
+		contentsHandler, err = contents.NewHandler(opts.Server.ContentsRootDir)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to create contents handler")
+		}
+		log.Info("Contents service enabled", "rootDir", contentsHandler.RootDir())
+	} else {
+		log.Info("Contents service is disabled")
+	}
+
 	if opts.Server.OIDC == nil && opts.IAMPolicy != nil {
 		return nil, errors.New("IAM policy is set but OIDC is not configured")
 	}
@@ -166,6 +182,7 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 		webAppConfig:     opts.WebApp,
 		runner:           runner,
 		parser:           parser,
+		contentsHandler:  contentsHandler,
 		agent:            agent,
 		checker:          checker,
 		registerHandlers: opts.RegisterHandlers,
@@ -334,6 +351,14 @@ func (s *Server) registerServices() error {
 		mux.HandleProtected(parserSvcPath, parserSvcHandler, s.checker, api.ParserUserRole)
 	} else {
 		log.Info("Parser is nil; parser service is disabled")
+	}
+
+	if s.contentsHandler != nil {
+		contentsSvcPath, contentsSvcHandler := contentsv1connect.NewContentsServiceHandler(s.contentsHandler, connect.WithInterceptors(interceptors...))
+		log.Info("Setting up contents service", "path", contentsSvcPath, "rootDir", s.contentsHandler.RootDir())
+		mux.HandleProtected(contentsSvcPath, contentsSvcHandler, s.checker, api.ContentsUserRole)
+	} else {
+		log.Info("Contents handler is nil; contents service is disabled")
 	}
 
 	if s.runner != nil {

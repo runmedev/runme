@@ -407,6 +407,14 @@ type AssistantServerConfig struct {
 	// ParserService starts the Runme parser service if true otherwise it doesn't start the parser service.
 	ParserService bool `json:"parserService" yaml:"parserService"`
 
+	// ContentsService starts the filesystem contents service if true.
+	ContentsService bool `json:"contentsService" yaml:"contentsService"`
+
+	// ContentsRootDir is the root directory for the contents service.
+	// All paths are sandboxed under this directory. If empty, defaults to the
+	// current working directory when the server starts.
+	ContentsRootDir string `json:"contentsRootDir" yaml:"contentsRootDir"`
+
 	// OIDC configuration
 	OIDC *OIDCConfig `json:"oidc,omitempty" yaml:"oidc,omitempty"`
 

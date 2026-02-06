@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package runme.contents.v1;
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/runme/contents/v1;contentsv1";
+
+// FileType distinguishes files from directories.
+enum FileType {
+  FILE_TYPE_UNSPECIFIED = 0;
+  FILE_TYPE_FILE = 1;
+  FILE_TYPE_DIRECTORY = 2;
+}
+
+// WriteMode controls how Write handles existing files.
+enum WriteMode {
+  WRITE_MODE_UNSPECIFIED = 0;
+  WRITE_MODE_OVERWRITE_ALWAYS = 1;
+  WRITE_MODE_FAIL_IF_EXISTS = 2;
+  WRITE_MODE_CREATE_OR_TRUNCATE = 3;
+}
+
+// FileInfo describes a filesystem entry.
+message FileInfo {
+  // Path is the full path to the file or directory.
+  string path = 1;
+
+  // Name is the base name of the file or directory.
+  string name = 2;
+
+  // Type indicates whether this entry is a file or directory.
+  FileType type = 3;
+
+  // SizeBytes is the size of the file in bytes.
+  int64 size_bytes = 4;
+
+  // LastModifiedUnixMs is the last modification time in milliseconds since epoch.
+  int64 last_modified_unix_ms = 5;
+
+  // Sha256Hex is the hex-encoded SHA-256 hash of the file contents.
+  // Empty if hashing was not requested.
+  string sha256_hex = 6;
+}
+
+message ListRequest {
+  // Path is the directory to list.
+  string path = 1;
+
+  // IncludeHashes requests SHA-256 hashes for each returned item.
+  bool include_hashes = 2;
+}
+
+message ListResponse {
+  repeated FileInfo items = 1;
+}
+
+message ReadRequest {
+  // Path is the file to read.
+  string path = 1;
+
+  // IncludeHash requests a SHA-256 hash of the file contents.
+  bool include_hash = 2;
+}
+
+message ReadResponse {
+  // Content is the raw file contents.
+  bytes content = 1;
+
+  // Info is metadata about the file that was read.
+  FileInfo info = 2;
+}
+
+message StatRequest {
+  // Path is the file or directory to stat.
+  string path = 1;
+
+  // IncludeHash requests a SHA-256 hash of the file contents.
+  bool include_hash = 2;
+}
+
+message StatResponse {
+  FileInfo info = 1;
+}
+
+message WriteRequest {
+  // Path is the file to write.
+  string path = 1;
+
+  // Content is the raw bytes to write.
+  bytes content = 2;
+
+  // ExpectedVersion is a SHA-256 hash for conditional writes.
+  // When set, the write only succeeds if the current file hash matches.
+  optional string expected_version = 3;
+
+  // Mode controls behaviour when the target file already exists.
+  WriteMode mode = 4;
+}
+
+message WriteResponse {
+  // Info is metadata about the file after the write.
+  FileInfo info = 1;
+}
+
+message RenameRequest {
+  // OldPath is the current location of the file or directory.
+  string old_path = 1;
+
+  // NewPath is the desired location.
+  string new_path = 2;
+
+  // ExpectedVersion is a SHA-256 hash for conditional renames.
+  // When set, the rename only succeeds if the current file hash matches.
+  optional string expected_version = 3;
+}
+
+message RenameResponse {
+  // Info is metadata about the entry at its new location.
+  FileInfo info = 1;
+}
+
+message MkdirRequest {
+  // Path is the directory to create (including parents).
+  string path = 1;
+}
+
+message MkdirResponse {
+  // Info is metadata about the created directory.
+  FileInfo info = 1;
+}
+
+// ContentsService provides local filesystem access.
+service ContentsService {
+  // List returns the entries in a directory.
+  rpc List(ListRequest) returns (ListResponse) {}
+
+  // Read returns the contents of a file.
+  rpc Read(ReadRequest) returns (ReadResponse) {}
+
+  // Stat returns metadata about a file or directory without reading its contents.
+  rpc Stat(StatRequest) returns (StatResponse) {}
+
+  // Write writes content to a file. Returns ConnectRPC Aborted status code
+  // when expected_version is set and does not match the current file hash.
+  rpc Write(WriteRequest) returns (WriteResponse) {}
+
+  // Rename moves a file or directory from one path to another. Returns
+  // ConnectRPC Aborted status code when expected_version is set and does not
+  // match the current file hash.
+  rpc Rename(RenameRequest) returns (RenameResponse) {}
+
+  // Mkdir creates a directory (and any necessary parents).
+  rpc Mkdir(MkdirRequest) returns (MkdirResponse) {}
+}
