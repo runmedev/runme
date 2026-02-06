@@ -131,7 +131,8 @@ type CloudAssistantConfig struct {
 }
 
 type OpenAIConfig struct {
-	// APIKeyFile is the file containing the OpenAI API key
+	// APIKeyFile is the file containing the OpenAI API key.
+	// Optional when the client supplies an OAuth access token per request.
 	APIKeyFile string `json:"apiKeyFile,omitempty" yaml:"apiKeyFile,omitempty"`
 }
 
@@ -437,8 +438,15 @@ type OIDCConfig struct {
 // GoogleOIDCConfig contains Google-specific OIDC configuration
 type GoogleOIDCConfig struct {
 	// ClientCredentialsFile is the path to the file containing the Google client credentials
+	// You only need this if doing the OAuth Login flow on the server.
+	// If your just validating credentials you just need to provide ClientID string
+	// TODO(jlewi): This feels kludgy and confusing? Can we clean up configuration to more cleanly specify
+	// values in cases where we are just validating credentials vs minting tokens in the server?
 	ClientCredentialsFile string `json:"clientCredentialsFile" yaml:"clientCredentialsFile"`
-	// DiscoveryURL is the URL for the OpenID Connect discovery document
+	ClientID              string `json:"clientID" yaml:"clientID"`
+
+	// DiscoveryURL is the URL for the OpenID Connect discovery document.
+	// If empty, defaults to Google's standard discovery URL.
 	DiscoveryURL string `json:"discoveryURL" yaml:"discoveryURL"`
 }
 

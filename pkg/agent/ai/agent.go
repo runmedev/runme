@@ -6,23 +6,25 @@ import (
 
 	"github.com/openai/openai-go/option"
 
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
+
 	"connectrpc.com/connect"
-	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"github.com/google/uuid"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
 
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel/trace"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 )
@@ -44,37 +46,20 @@ Follow these rules
 * Do not rely on outdated documents for determining the status of systems and services.
 * Do use the code tool to run shell commands to observe the current status of the Cloud
 `
-
-	DefaultCodeToolDescription = `The cool tool executes CLIs (e.g. kubectl, gh, yq, jq, git, az, bazel, curl, wget, etc...
-These CLIs can be used to act and observe on the cloud (Kubernetes, GitHub, Azure, etc...).
-The input is a short bash program that can be executed. Additional CLIs can be installed by running the appropriate
-commands.
-
-The output of the code tool is a JSON object with the fields "stderr" and "stdout" containing the output of the
-command. If neither of these fields are set then the user hasn't executed the command yet.
-`
-
-	CodeToolName = "code"
 )
 
 // Agent implements the AI Service
 // https://buf.build/jlewi/foyle/file/main:foyle/v1alpha1/agent.proto#L44
 type Agent struct {
-	Client              *openai.Client
-	instructions        string
-	codeToolDescription string
-	vectorStoreIDs      []string
-	filenameToLink      func(string) string
+	Client         *openai.Client
+	instructions   string
+	vectorStoreIDs []string
+	// Extra OpenAI API headers for requests that use OAuth access tokens.
+	oauthOpenAIOrganization string
+	oauthOpenAIProject      string
 
-	// responseCache is a cache to store the mapping from the previous response ID to the cell IDs for function calling
-	responseCache *lru.Cache[string, []string]
-
-	// cellsCache is a cache to store the mapping from cellID to cell
-	cellsCache *lru.Cache[string, *parserv1.Cell]
-
-	useOAuth bool // Use OAuth for authorization; if true then the token must be provided in the GenerateRequest
-
-	model string
+	// Tools that should be added based on request context.
+	toolsForContext map[agentv1.GenerateRequest_Context][]responses.ToolUnionParam
 }
 
 // AgentOptions are options for creating a new Agent
@@ -83,26 +68,15 @@ type AgentOptions struct {
 	Client       *openai.Client
 	// Instructions are the prompt to use when generating responses
 	Instructions string
-	// CodeToolDescription is the description of the code tool.
-	CodeToolDescription string
 
-	// FilenameToLink is an optional function that converts a filename to a link to be displayed in the UI.
-	FilenameToLink func(string) string
-
-	// UseOAuth indicates whether to use OAuth for authentication
-	// If true then the token must be provided in the GenerateRequest
-	UseOAuth bool
-
-	// Model is the model to use for the agent.
-	Model string
+	// Extra OpenAI API headers for requests that use OAuth access tokens.
+	OAuthOpenAIOrganization string
+	OAuthOpenAIProject      string
 }
 
 // FromAssistantConfig overrides the AgentOptions based on the values from the AssistantConfig
 func (o *AgentOptions) FromAssistantConfig(cfg config.CloudAssistantConfig) error {
 	o.VectorStores = cfg.VectorStores
-	if cfg.Model != "" {
-		o.Model = cfg.Model
-	}
 	// TODO(jlewi): We should allow the user to specify the instructions in the config as a path to a file containing
 	// the instructions.
 	return nil
@@ -118,77 +92,48 @@ func NewAgent(opts AgentOptions) (*Agent, error) {
 		log.Info("Using default system prompt")
 	}
 
-	if opts.CodeToolDescription == "" {
-		opts.CodeToolDescription = DefaultCodeToolDescription
-		log.Info("Using default code tool description")
+	toolsForContext := make(map[agentv1.GenerateRequest_Context][]responses.ToolUnionParam)
+	nbTools, err := getNotebookTools()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build notebook tools")
 	}
+	toolsForContext[agentv1.GenerateRequest_CONTEXT_WEBAPP] = nbTools
 
-	// Create a cache to store the mapping from the previous response ID to the cell IDs for function calling
-	// Should we use an expirable cache?
-	responseCache, err := lru.New[string, []string](10000)
+	runTools, err := getAsynchronousTools()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create response cache")
+		return nil, errors.Wrap(err, "failed to build asynchronous tools")
 	}
-	// Create a cache to store the mapping from cellID to cell
-	cellsCache, err := lru.New[string, *parserv1.Cell](10000)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create cells cache")
-	}
+	toolsForContext[agentv1.GenerateRequest_CONTEXT_SLACK] = runTools
 
 	log.Info("Creating Agent", "options", opts)
 
 	return &Agent{
-		Client:              opts.Client,
-		instructions:        opts.Instructions,
-		codeToolDescription: opts.CodeToolDescription,
-		filenameToLink:      opts.FilenameToLink,
-		vectorStoreIDs:      opts.VectorStores,
-		responseCache:       responseCache,
-		cellsCache:          cellsCache,
-		useOAuth:            opts.UseOAuth,
-		model:               opts.Model,
+		Client:                  opts.Client,
+		instructions:            opts.Instructions,
+		vectorStoreIDs:          opts.VectorStores,
+		oauthOpenAIOrganization: opts.OAuthOpenAIOrganization,
+		oauthOpenAIProject:      opts.OAuthOpenAIProject,
+		toolsForContext:         toolsForContext,
 	}, nil
 }
 
-var codeToolJSONSchema = map[string]any{
-	"$schema": "http://json-schema.org/draft-07/schema#",
-	"title":   "Code Function Schema",
-	"type":    "object",
-	"properties": map[string]interface{}{
-		"code": map[string]interface{}{
-			"type":        "string",
-			"description": "A short bash program to be executed by bash",
-		},
-		"language": map[string]interface{}{
-			"type": "string",
-			"description": `The language the code is written in.
-			Use "shell" if its a shell script otherwise use the appropriate language identifier.`,
-		},
-	},
-	"required":             []string{"code", "language"},
-	"additionalProperties": false,
-}
-
-// Use agentv1.GenerateRequest and agentv1.GenerateResponse, but operate on Cells field.
 func (a *Agent) Generate(ctx context.Context, req *connect.Request[agentv1.GenerateRequest], resp *connect.ServerStream[agentv1.GenerateResponse]) error {
-	return a.ProcessWithOpenAI(ctx, req.Msg, resp.Send)
+	// Generate is no longer supported directly; web clients should use the ChatKit path.
+	return errors.New("Generate is no longer supported the WebApp should be using chatkit")
 }
 
-func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequest, sender CellSender) error {
-	span := trace.SpanFromContext(ctx)
+func (a *Agent) BuildResponseParams(ctx context.Context, req *agentv1.GenerateRequest) (*responses.ResponseNewParams, []option.RequestOption, error) {
 	log := logs.FromContext(ctx)
-	traceId := span.SpanContext().TraceID()
-	log = log.WithValues("traceId", traceId)
-	ctx = logr.NewContext(ctx, log)
-	log.Info("Agent.Generate")
+	isOAuthRequest := req.GetOpenaiAccessToken() != ""
 
-	if (len(req.Cells)) < 1 {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("Cells must be non-empty"))
+	if !a.useOAuthForOpenAI() {
+		isOAuthRequest = false
+		log.Info("Not using OAuth For OpenAI")
 	}
 
 	tools := make([]responses.ToolUnionParam, 0, 1)
 
-	if len(a.vectorStoreIDs) > 0 {
+	if len(a.vectorStoreIDs) > 0 && isOAuthRequest {
 		fileSearchTool := &responses.FileSearchToolParam{
 			MaxNumResults:  openai.Opt(int64(5)),
 			VectorStoreIDs: a.vectorStoreIDs,
@@ -199,123 +144,66 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 		}
 		tools = append(tools, tool)
 	}
-	codeTool := &responses.FunctionToolParam{
-		Name:        CodeToolName,
-		Description: openai.Opt(a.codeToolDescription),
-		Parameters:  codeToolJSONSchema,
-		// N.B. I'm not sure what the point of strict would be since we have a single string argument.
-		Strict: openai.Opt(false),
+
+	if additional, ok := a.toolsForContext[req.Context]; ok {
+		tools = append(tools, additional...)
 	}
 
-	tool := responses.ToolUnionParam{
-		OfFunction: codeTool,
-	}
-	tools = append(tools, tool)
-	// TODO(jlewi): We should add websearch
-
-	// If PreviousResponseId is not set then we need to check that the first cell is user input.
-	if req.PreviousResponseId == "" {
-		if req.Cells[0].Role != parserv1.CellRole_CELL_ROLE_USER {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("First cell must be user input"))
+	if req.GetContainer() != "" {
+		log.Info("configuring code interpreter", "containerID", req.GetContainer())
+		codeTool := responses.ToolUnionParam{
+			OfCodeInterpreter: &responses.ToolCodeInterpreterParam{
+				Container: responses.ToolCodeInterpreterContainerUnionParam{
+					OfString: openai.Opt(req.GetContainer()),
+				},
+			},
 		}
+		tools = append(tools, codeTool)
 	}
 
 	toolChoice := responses.ResponseNewParamsToolChoiceUnion{
 		OfToolChoiceMode: openai.Opt(responses.ToolChoiceOptionsAuto),
 	}
 
-	input := responses.ResponseNewParamsInputUnion{
-		// N.B. Input is a list of list. Is that a bug in the SDK
-		// ResponseInputParam is a type alias for a list. I find that very confusing.
-		OfInputItemList: make([]responses.ResponseInputItemUnionParam, 0, len(req.Cells)),
+	instructions := a.instructions
+
+	model := openai.ChatModelGPT4oMini
+	if req.GetModel() != "" {
+		model = openai.ChatModel(req.GetModel())
 	}
 
-	if err := fillInToolcalls(ctx, a.responseCache, a.cellsCache, req); err != nil {
-		return connect.NewError(connect.CodeInternal, errors.Wrap(err, "Failed to fill in tool calls"))
-	}
-
-	for _, c := range req.Cells {
-		switch c.Kind {
-		case parserv1.CellKind_CELL_KIND_MARKUP:
-			input.OfInputItemList = append(input.OfInputItemList, responses.ResponseInputItemUnionParam{
-				// N.B. What's the difference between EasyInputMessage and InputItemMessage
-				OfMessage: &responses.EasyInputMessageParam{
-					Role: responses.EasyInputMessageRoleUser,
-					Content: responses.EasyInputMessageContentUnionParam{
-						OfString: openai.Opt(c.Value),
-					},
-				},
-			})
-		case parserv1.CellKind_CELL_KIND_CODE:
-			dict := map[string]string{}
-
-			for _, o := range c.Outputs {
-				for _, item := range o.Items {
-					// Use item.Type or item.Mime as key, string(item.Data) as value
-					key := item.Type
-					if key == "" {
-						key = item.Mime
-					}
-					dict[key] += string(item.Data)
-				}
-			}
-
-			output, err := json.Marshal(dict)
-			if err != nil {
-				return connect.NewError(connect.CodeInternal, errors.Wrap(err, "Failed to marshal output"))
-			}
-
-			codeArgs := &CodeArgs{
-				Code:     c.Value,
-				Language: c.LanguageId,
-			}
-
-			codeArgsJSON, err := json.Marshal(codeArgs)
-			if err != nil {
-				return connect.NewError(connect.CodeInternal, errors.Wrap(err, "Failed to marshal code args"))
-			}
-
-			// The CallID will be blank if it wasn't generated by the model.
-			// This can happen if
-			// 1. The AI returned code cells in markdown which we parsed out into code cells
-			// 2. User manually added the cell
-			if c.CallId == "" {
-				c.CallId = uuid.NewString()
-			}
-
-			// Add the function call to the input
-			input.OfInputItemList = append(input.OfInputItemList, responses.ResponseInputItemUnionParam{
-				OfFunctionCall: &responses.ResponseFunctionToolCallParam{
-					// TODO(jlewi): What if the model didn't tell us to call that function?
-					CallID:    c.CallId,
-					Name:      CodeToolName,
-					Arguments: string(codeArgsJSON),
-				},
-			})
-
-			input.OfInputItemList = append(input.OfInputItemList, responses.ResponseInputItemUnionParam{
-				OfFunctionCallOutput: &responses.ResponseInputItemFunctionCallOutputParam{
-					// TODO(jlewi): What if the model didn't tell us to call that function?
-					CallID: c.CallId,
-					Output: string(output),
-				},
-			})
-		default:
-			err := errors.Errorf("Unsupported cell kind %s", c.Kind)
-			log.Error(err, "Unsupported cell kind", "cell", c)
-			return connect.NewError(connect.CodeInvalidArgument, err)
-		}
-	}
-
-	createResponse := responses.ResponseNewParams{
-		Input:             input,
-		Instructions:      openai.Opt(a.instructions),
-		Model:             openai.ChatModel(a.model),
+	createResponse := &responses.ResponseNewParams{
+		Input: responses.ResponseNewParamsInputUnion{
+			OfInputItemList: make([]responses.ResponseInputItemUnionParam, 0, 10),
+		},
+		Instructions:      openai.Opt(instructions),
+		Model:             model,
 		Tools:             tools,
 		ParallelToolCalls: openai.Bool(true),
 		ToolChoice:        toolChoice,
-		// We want it to return the file search results
-		Include: []responses.ResponseIncludable{responses.ResponseIncludableFileSearchCallResults},
+		Include:           []responses.ResponseIncludable{responses.ResponseIncludableFileSearchCallResults, responses.ResponseIncludableCodeInterpreterCallOutputs},
+	}
+
+	// There is a message provide it.
+	if req.GetMessage() != "" {
+		createResponse.Input.OfInputItemList = append(createResponse.Input.OfInputItemList, responses.ResponseInputItemUnionParam{
+			// N.B. What's the difference between EasyInputMessage and InputItemMessage
+			OfMessage: &responses.EasyInputMessageParam{
+				Role: responses.EasyInputMessageRoleUser,
+				Content: responses.EasyInputMessageContentUnionParam{
+					OfString: openai.Opt(req.GetMessage()),
+				},
+			},
+		})
+	}
+
+	if err := maybeAddListCells(ctx, req, createResponse); err != nil {
+		return createResponse, nil, err
+	}
+
+	// Right now chatKit can only handle one tool call at a time. So disable parallel toolCalls.
+	if req.GetContext() == agentv1.GenerateRequest_CONTEXT_WEBAPP {
+		createResponse.ParallelToolCalls = openai.Opt(false)
 	}
 
 	if req.PreviousResponseId != "" {
@@ -323,55 +211,141 @@ func (a *Agent) ProcessWithOpenAI(ctx context.Context, req *agentv1.GenerateRequ
 	}
 
 	opts := make([]option.RequestOption, 0, 1)
-
-	if a.useOAuth {
-		if req.GetOpenaiAccessToken() == "" {
-			log.Info("OpenAI access token is required when using OAuth")
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("OpenAI access token is required when using OAuth"))
-		}
+	if isOAuthRequest {
 		opts = append(opts, option.WithHeader("Authorization", "Bearer "+req.GetOpenaiAccessToken()))
+		if a.oauthOpenAIOrganization == "" {
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("OAuth not supported: Server did not configure an API Organization"))
+		}
+		if a.oauthOpenAIProject == "" {
+			return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("OAuth not supported: Server did not configure an API Project"))
+		}
+		opts = append(opts, option.WithHeader("OpenAI-Organization", a.oauthOpenAIOrganization))
+		opts = append(opts, option.WithHeader("OpenAI-Project", a.oauthOpenAIProject))
 	}
 
-	log.Info("ResponseRequest", "request", createResponse)
-	eStream := a.Client.Responses.NewStreaming(ctx, createResponse, opts...)
-	builder := NewCellsBuilder(a.filenameToLink, a.responseCache, a.cellsCache)
-
-	return builder.HandleEvents(ctx, eStream, sender)
+	return createResponse, opts, nil
 }
 
-// This is necessary because OpenAI returns an error if any of the function calls in the previous response
-// are missing output
-func fillInToolcalls(ctx context.Context, responseCache *lru.Cache[string, []string], cellsCache *lru.Cache[string, *parserv1.Cell], req *agentv1.GenerateRequest) error {
-	if req.PreviousResponseId == "" {
-		return nil
+func (a *Agent) useOAuthForOpenAI() bool {
+	// TODO(jlewi) this is a hack to determine whether oauth should be used because right not the frontend will
+	// always send the access token which may not be a valid access token. We will likely re-think auth in light of
+	// switching to the codex harness and/or making things configurable in the webapp; e.g. letting the user set
+	// the API key in the web app.
+	return a.oauthOpenAIOrganization != "" && a.oauthOpenAIProject != ""
+}
+
+// getNotebookTools returns a list of tools that allow the AI to work with notebooks.
+func getNotebookTools() ([]responses.ToolUnionParam, error) {
+	defs := []mcp.Tool{
+		toolsv1mcp.NotebookService_GetCellsToolOpenAI,
+		toolsv1mcp.NotebookService_ListCellsToolOpenAI,
+		toolsv1mcp.NotebookService_UpdateCellsToolOpenAI,
 	}
 
-	// Check if the previous response ID is in the cache
-	prevCalls, ok := responseCache.Get(req.PreviousResponseId)
-
-	// No responses for the previous response ID
-	if !ok {
-		return nil
-	}
-
-	missingPrevCells := make(map[string]bool)
-	for _, callID := range prevCalls {
-		missingPrevCells[callID] = true
-	}
-
-	for _, c := range req.Cells {
-		delete(missingPrevCells, c.RefId)
-	}
-
-	// If there are any missing function calls then add them
-	for callID := range missingPrevCells {
-		b, ok := cellsCache.Get(callID)
-		if !ok {
-			return errors.Errorf("Missing cell for cell ID; %v", callID)
+	tools := make([]responses.ToolUnionParam, 0, len(defs))
+	for _, t := range defs {
+		tool, err := mcpToolToOpenAITool(t)
+		if err != nil {
+			return nil, err
 		}
-		cellCopy := proto.Clone(b).(*parserv1.Cell)
-		req.Cells = append(req.Cells, cellCopy)
+		tools = append(tools, tool)
 	}
+	return tools, nil
+}
+
+// getAsynchronousTools gets tools used for asynchronous contexts.
+func getAsynchronousTools() ([]responses.ToolUnionParam, error) {
+	nbTools, err := getNotebookTools()
+	if err != nil {
+		return nil, err
+	}
+	tools := make([]responses.ToolUnionParam, 0, len(nbTools)+3)
+	tools = append(tools, nbTools...)
+
+	defs := []mcp.Tool{
+		toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI,
+		toolsv1mcp.NotebookService_TerminateRunToolOpenAI,
+		toolsv1mcp.NotebookService_SendSlackMessageToolOpenAI,
+	}
+	for _, t := range defs {
+		tool, err := mcpToolToOpenAITool(t)
+		if err != nil {
+			return nil, err
+		}
+		tools = append(tools, tool)
+	}
+	return tools, nil
+}
+
+// mcpToolToOpenAITool converts a generated MCP tool into an OpenAI function tool definition.
+func mcpToolToOpenAITool(tool mcp.Tool) (responses.ToolUnionParam, error) {
+	result := responses.ToolUnionParam{}
+	if len(tool.RawInputSchema) == 0 {
+		return result, errors.New("input schema is empty")
+	}
+
+	parameters := make(map[string]any)
+	if err := json.Unmarshal(tool.RawInputSchema, &parameters); err != nil {
+		return result, errors.Wrapf(err, "failed to convert tool: %s", tool.GetName())
+	}
+
+	result.OfFunction = &responses.FunctionToolParam{
+		Name:        tool.GetName(),
+		Description: openai.Opt(tool.Description),
+		Parameters:  parameters,
+		Strict:      openai.Opt(true),
+	}
+	return result, nil
+}
+
+// maybeAddListCells adds a synthetic list-cells tool call/output so the model gets notebook context.
+func maybeAddListCells(_ context.Context, req *agentv1.GenerateRequest, resp *responses.ResponseNewParams) error {
+	if len(req.GetCells()) == 0 {
+		return nil
+	}
+
+	listCellsResult := &toolsv1.ListCellsResponse{
+		Cells: make([]*parserv1.Cell, 0, len(req.Cells)),
+	}
+	for _, c := range req.Cells {
+		listCellsResult.Cells = append(listCellsResult.Cells, toListCell(c))
+	}
+
+	listRequest := &toolsv1.ListCellsRequest{}
+	listCallID := uuid.NewString()
+
+	listRequestJSON, err := protojson.Marshal(listRequest)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal list cells request")
+	}
+
+	resp.Input.OfInputItemList = append(resp.Input.OfInputItemList, responses.ResponseInputItemUnionParam{
+		OfFunctionCall: &responses.ResponseFunctionToolCallParam{
+			CallID:    listCallID,
+			Name:      toolsv1mcp.NotebookService_ListCellsToolOpenAI.GetName(),
+			Arguments: string(listRequestJSON),
+		},
+	})
+
+	listResultJSON, err := protojson.Marshal(listCellsResult)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal list cells response")
+	}
+
+	resp.Input.OfInputItemList = append(resp.Input.OfInputItemList, responses.ResponseInputItemUnionParam{
+		OfFunctionCallOutput: &responses.ResponseInputItemFunctionCallOutputParam{
+			CallID: listCallID,
+			Output: string(listResultJSON),
+		},
+	})
 
 	return nil
+}
+
+// toListCell returns the minimal fields needed for list-cells context.
+func toListCell(c *parserv1.Cell) *parserv1.Cell {
+	return &parserv1.Cell{
+		RefId:    c.GetRefId(),
+		Metadata: c.GetMetadata(),
+	}
 }

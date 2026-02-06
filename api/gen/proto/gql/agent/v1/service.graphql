@@ -4,6 +4,7 @@ directive @LogService on FIELD_DEFINITION
 
 """
 directive @MessagesService on FIELD_DEFINITION
+directive @ToolCallOutputOutput on INPUT_FIELD_DEFINITION
 """
  Wrapper message for `bool`.
 
@@ -303,10 +304,60 @@ input GenerateRequestInput {
 
 	"""
 	openaiAccessToken: String
+	"""
+	 model to use. Leave blank to use the default model.
+
+	"""
+	model: String
+	"""
+	 Context specifies how the client is running
+
+	"""
+	context: GenerateRequest_Context
+	"""
+	 Kernels is a list of the names of the kernels to include
+
+	"""
+	kernels: [String!]
+	"""
+	 Container is the id of an OpenAI container to use
+
+	"""
+	container: String
+	"""
+	 Message is the user message
+
+	"""
+	message: String
+	"""
+	 ToolCalOutputs is the output of the tools calls
+	 The tools manipulate the notebook.
+
+	"""
+	toolCallOutputs: [ToolCallOutputInput!]
+	"""
+	 Path in the code interpreter container where a copy of the notebook was uploaded
+
+	"""
+	notebookPath: String
+}
+"""
+ Context is the context from which the request is running it impacts how the request is made.
+ TODO(jlewi): Do we need/use this?
+
+"""
+enum GenerateRequest_Context {
+	CONTEXT_UNSPECIFIED
+	CONTEXT_WEBAPP
+	CONTEXT_SLACK
+	CONTEXT_ALERT_TRIGGERED
 }
 type GenerateResponse {
 	cells: [Cell!]
 	responseId: String
+}
+input GetCellsResponseInput {
+	cells: [CellInput!]
 }
 """
  Wrapper message for `int64`.
@@ -340,6 +391,9 @@ input Int64ValueInput {
 	"""
 	value: Int
 }
+input ListCellsResponseInput {
+	cells: [CellInput!]
+}
 input LogRequestInput {
 	notebook: NotebookInput
 }
@@ -350,6 +404,13 @@ input NotebookInput {
 	cells: [CellInput!]
 	metadata: [Notebook_MetadataEntryInput!]
 	frontmatter: FrontmatterInput
+}
+input NotebookServiceExecuteCellsResponseInput {
+	"""
+	 Cells contains the cells that were executed
+
+	"""
+	cells: [CellInput!]
 }
 input Notebook_MetadataEntryInput {
 	key: String
@@ -373,6 +434,13 @@ input RunmeSessionInput {
 	id: String
 	document: RunmeSessionDocumentInput
 }
+input SendSlackMessageResponseInput {
+	"""
+	 The error if there is one
+
+	"""
+	error: String
+}
 type Subscription {
 	"""
 	 Generate generates cells. Responses are streamed.
@@ -387,6 +455,26 @@ type TextRange {
 input TextRangeInput {
 	start: Int
 	end: Int
+}
+input ToolCallOutputInput {
+	callId: String
+	previousResponseId: String
+	updateCells: UpdateCellsResponseInput @ToolCallOutputOutput
+	listCells: ListCellsResponseInput @ToolCallOutputOutput
+	getCells: GetCellsResponseInput @ToolCallOutputOutput
+	executeCells: NotebookServiceExecuteCellsResponseInput @ToolCallOutputOutput
+	sendSlackMessage: SendSlackMessageResponseInput @ToolCallOutputOutput
+	status: ToolCallOutput_Status
+	"""
+	 client_error will be an error message if the client had one.
+
+	"""
+	clientError: String
+}
+enum ToolCallOutput_Status {
+	STATUS_UNSPECIFIED
+	STATUS_SUCCESS
+	STATUS_FAILED
 }
 """
  Wrapper message for `uint32`.
@@ -419,4 +507,12 @@ input UInt32ValueInput {
 
 	"""
 	value: Int
+}
+input UpdateCellsResponseInput {
+	"""
+	 We want to provide the updated cells to the AI because the cells might have been modified by
+	 the agent (e.g. ref_ids) might have been generated.
+
+	"""
+	cells: [CellInput!]
 }

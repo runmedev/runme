@@ -62,3 +62,6 @@ internal/project/testdata/git-project/**/.gitignore
 experimental/runme.*.yaml
 
 api/gen/proto/es/package*.json
+
+# TODO(jlewi): Do we want to ignore this
+.npmrc

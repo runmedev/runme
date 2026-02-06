@@ -1,0 +1,13 @@
+# Generate the protos for MCP/tools.
+# Generation is scoped by `api/proto/agent/tools/v1/build_tool_mcps.sh` using
+# `--path api/proto/agent/tools/v1`.
+# So use the script to do the generation
+version: v2
+plugins:
+  # The MCP plugin generates TOOL/MCP definitions based on the protos.
+  - local:
+      - go
+      - run
+      - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@latest
+    out: api/gen/proto/go
+    opt: paths=source_relative

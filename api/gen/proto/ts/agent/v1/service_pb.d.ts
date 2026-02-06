@@ -10,6 +10,7 @@ import type { IBinaryReader } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Notebook } from "../../runme/parser/v1/parser_pb";
+import { ToolCallOutput } from "../tools/v1/notebooks_pb";
 import { Cell } from "../../runme/parser/v1/parser_pb";
 /**
  * @generated from protobuf message agent.v1.GenerateRequest
@@ -29,6 +30,73 @@ export interface GenerateRequest {
      * @generated from protobuf field: string openai_access_token = 3
      */
     openaiAccessToken: string;
+    /**
+     * model to use. Leave blank to use the default model.
+     *
+     * @generated from protobuf field: string model = 4
+     */
+    model: string;
+    /**
+     * Context specifies how the client is running
+     *
+     * @generated from protobuf field: agent.v1.GenerateRequest.Context context = 5
+     */
+    context: GenerateRequest_Context;
+    /**
+     * Kernels is a list of the names of the kernels to include
+     *
+     * @generated from protobuf field: repeated string kernels = 6
+     */
+    kernels: string[];
+    /**
+     * Container is the id of an OpenAI container to use
+     *
+     * @generated from protobuf field: string container = 7
+     */
+    container: string;
+    /**
+     * Message is the user message
+     *
+     * @generated from protobuf field: string message = 8
+     */
+    message: string;
+    /**
+     * ToolCalOutputs is the output of the tools calls
+     * The tools manipulate the notebook.
+     *
+     * @generated from protobuf field: repeated agent.tools.v1.ToolCallOutput tool_call_outputs = 9
+     */
+    toolCallOutputs: ToolCallOutput[];
+    /**
+     * Path in the code interpreter container where a copy of the notebook was uploaded
+     *
+     * @generated from protobuf field: string notebook_path = 10
+     */
+    notebookPath: string;
+}
+/**
+ * Context is the context from which the request is running it impacts how the request is made.
+ * TODO(jlewi): Do we need/use this?
+ *
+ * @generated from protobuf enum agent.v1.GenerateRequest.Context
+ */
+export declare enum GenerateRequest_Context {
+    /**
+     * @generated from protobuf enum value: CONTEXT_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: CONTEXT_WEBAPP = 1;
+     */
+    WEBAPP = 1,
+    /**
+     * @generated from protobuf enum value: CONTEXT_SLACK = 2;
+     */
+    SLACK = 2,
+    /**
+     * @generated from protobuf enum value: CONTEXT_ALERT_TRIGGERED = 3;
+     */
+    ALERT_TRIGGERED = 3
 }
 /**
  * @generated from protobuf message agent.v1.GenerateResponse

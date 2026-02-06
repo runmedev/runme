@@ -80,7 +80,9 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 		provider = NewGenericProvider(cfg.Generic)
 	}
 
-	oauth2Config, err := provider.GetOAuth2Config()
+	var oauth2Config *oauth2.Config
+	var err error
+	oauth2Config, err = provider.GetOAuth2Config()
 	if err != nil {
 		return nil, err
 	}
@@ -103,10 +105,12 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 		return nil, errors.Wrap(err, "failed to decode OpenID configuration")
 	}
 
-	// Update endpoints from discovery document
-	oauth2Config.Endpoint = oauth2.Endpoint{
-		AuthURL:  discovery.AuthURL,
-		TokenURL: discovery.TokenURL,
+	// Update endpoints from discovery document if OAuth2 config is in use.
+	if oauth2Config != nil {
+		oauth2Config.Endpoint = oauth2.Endpoint{
+			AuthURL:  discovery.AuthURL,
+			TokenURL: discovery.TokenURL,
+		}
 	}
 
 	// If the generic provider is configured with an issuer, use it
@@ -277,6 +281,11 @@ func (o *OIDC) verifyToken(idToken string) (*jwt.Token, error) {
 
 	// Verify audience matches our client ID
 	aud, err := claims.GetAudience()
+
+	if o.oauth2 == nil {
+		return nil, errors.New("Internal server error; there is no audience to validate the token with; server is misconfigured")
+	}
+
 	if err != nil || len(aud) == 0 || aud[0] != o.oauth2.ClientID {
 		return nil, fmt.Errorf("invalid token audience: got %v, expected %v", aud, o.oauth2.ClientID)
 	}
@@ -321,7 +330,7 @@ func NewAuthMiddlewareForOIDC(oidc *OIDC) (func(http.Handler) http.Handler, erro
 			}
 
 			if token == nil {
-				log.Error(err, "Token validation failed")
+				log.Error(err, "Token validation failed", "tokenSummary", tokenSummary(token))
 				// Return HTTP 401 and let the client handle the redirect to the login page
 				http.Error(w, "Unauthorized: Invalid or expired token", http.StatusUnauthorized)
 				return
@@ -338,6 +347,10 @@ func NewAuthMiddlewareForOIDC(oidc *OIDC) (func(http.Handler) http.Handler, erro
 // loginHandler handles the OAuth2 login flow
 func (o *OIDC) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	log := logs.FromContext(r.Context())
+	if o.oauth2 == nil {
+		http.Error(w, "OIDC validateOnly is enabled; login flow is disabled", http.StatusBadRequest)
+		return
+	}
 	state, err := o.state.generateState()
 	if err != nil {
 		log.Error(err, "Failed to generate state")
@@ -356,6 +369,10 @@ func (o *OIDC) LoginHandler(w http.ResponseWriter, r *http.Request) {
 // callbackHandler handles the OAuth2 callback
 func (o *OIDC) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	log := zapr.NewLogger(zap.L())
+	if o.oauth2 == nil {
+		redirectWithError(w, r, "validate_only", "OIDC validateOnly is enabled; callback is disabled")
+		return
+	}
 
 	// Verify state
 	stateKey := r.URL.Query().Get("state")
@@ -589,6 +606,19 @@ func NewGoogleProvider(cfg *config.GoogleOIDCConfig) *GoogleProvider {
 }
 
 func (p *GoogleProvider) GetOAuth2Config() (*oauth2.Config, error) {
+	hasFile := p.config.ClientCredentialsFile != ""
+	hasClientID := p.config.ClientID != ""
+	if hasFile == hasClientID {
+		return nil, errors.New("cannot use both Google.ClientCredentialsFile and Google.ClientID; only one should be set; if the server is minting tokens you must set ClientCredentialsFile")
+	}
+
+	if hasClientID {
+		// We only need a ClientID in order to validate tokens.
+		// TODO(jlewi): This feels a bit hacky/error prone to reuse the oauth2client. Maybe we should
+		// separate the logic for minting vs. validating tokens?
+		return &oauth2.Config{ClientID: p.config.ClientID}, nil
+	}
+
 	bytes, err := os.ReadFile(p.config.ClientCredentialsFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to read client credentials file")
@@ -679,13 +709,18 @@ func (a *AuthContext) AuthorizeRequest(ctx context.Context, req *streamv1.Websoc
 	// Nil token is not fatal until authz denies access
 	idToken, err := a.OIDC.verifyBearerToken(req.GetAuthorization())
 	if err != nil {
-		log.Info("Unauthenticated: ", "error", err)
-		// TODO(jlewi): Should we be returning here?
+		log.Error(err, "ID token verification failed")
+		// TODO(jlewi): I think we want to return an error if the idToken is invalid rather than keep going.
+		// I think the remaining code assumes a valid token and might even seg fault if we don't have an idtoken.
+		// However, returning here currently breaks
+		// websocket stream tests in pkg/agent/runme/stream/handler_test.go because
+		// those tests intentionally omit Authorization while using AllowAllChecker.
+		// So we need to update the tests to be able to return here.
 	}
 
 	principal, err := a.Checker.GetPrincipal(idToken)
 	if err != nil {
-		log.Error(err, "Could not extract principal from token")
+		log.Error(err, "Could not extract principal from token", "tokenSummary", tokenSummary(idToken))
 		return ErrPrincipalExtraction
 	}
 	if a.Checker != nil {
