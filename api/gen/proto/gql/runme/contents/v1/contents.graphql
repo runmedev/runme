@@ -1,0 +1,223 @@
+"""
+ ContentsService provides local filesystem access.
+
+"""
+directive @ContentsService on FIELD_DEFINITION
+scalar Bytes
+"""
+ FileInfo describes a filesystem entry.
+
+"""
+type FileInfo {
+	"""
+	 Path is the full path to the file or directory.
+	
+	"""
+	path: String
+	"""
+	 Name is the base name of the file or directory.
+	
+	"""
+	name: String
+	"""
+	 Type indicates whether this entry is a file or directory.
+	
+	"""
+	type: FileType
+	"""
+	 SizeBytes is the size of the file in bytes.
+	
+	"""
+	sizeBytes: Int
+	"""
+	 LastModifiedUnixMs is the last modification time in milliseconds since epoch.
+	
+	"""
+	lastModifiedUnixMs: Int
+	"""
+	 Sha256Hex is the hex-encoded SHA-256 hash of the file contents.
+	 Empty if hashing was not requested.
+	
+	"""
+	sha256Hex: String
+}
+"""
+ FileType distinguishes files from directories.
+
+"""
+enum FileType {
+	FILE_TYPE_UNSPECIFIED
+	FILE_TYPE_FILE
+	FILE_TYPE_DIRECTORY
+}
+input ListRequestInput {
+	"""
+	 Path is the directory to list.
+	
+	"""
+	path: String
+	"""
+	 IncludeHashes requests SHA-256 hashes for each returned item.
+	
+	"""
+	includeHashes: Boolean
+}
+type ListResponse {
+	items: [FileInfo!]
+}
+input MkdirRequestInput {
+	"""
+	 Path is the directory to create (including parents).
+	
+	"""
+	path: String
+}
+type MkdirResponse {
+	"""
+	 Info is metadata about the created directory.
+	
+	"""
+	info: FileInfo
+}
+type Mutation {
+	"""
+	 List returns the entries in a directory.
+	
+	"""
+	contentsServiceList(in: ListRequestInput): ListResponse
+	"""
+	 Read returns the contents of a file.
+	
+	"""
+	contentsServiceRead(in: ReadRequestInput): ReadResponse
+	"""
+	 Stat returns metadata about a file or directory without reading its contents.
+	
+	"""
+	contentsServiceStat(in: StatRequestInput): StatResponse
+	"""
+	 Write writes content to a file. Returns ConnectRPC Aborted status code
+	 when expected_version is set and does not match the current file hash.
+	
+	"""
+	contentsServiceWrite(in: WriteRequestInput): WriteResponse
+	"""
+	 Rename moves a file or directory from one path to another. Returns
+	 ConnectRPC Aborted status code when expected_version is set and does not
+	 match the current file hash.
+	
+	"""
+	contentsServiceRename(in: RenameRequestInput): RenameResponse
+	"""
+	 Mkdir creates a directory (and any necessary parents).
+	
+	"""
+	contentsServiceMkdir(in: MkdirRequestInput): MkdirResponse
+}
+type Query {
+	dummy: Boolean
+}
+input ReadRequestInput {
+	"""
+	 Path is the file to read.
+	
+	"""
+	path: String
+	"""
+	 IncludeHash requests a SHA-256 hash of the file contents.
+	
+	"""
+	includeHash: Boolean
+}
+type ReadResponse {
+	"""
+	 Content is the raw file contents.
+	
+	"""
+	content: Bytes
+	"""
+	 Info is metadata about the file that was read.
+	
+	"""
+	info: FileInfo
+}
+input RenameRequestInput {
+	"""
+	 OldPath is the current location of the file or directory.
+	
+	"""
+	oldPath: String
+	"""
+	 NewPath is the desired location.
+	
+	"""
+	newPath: String
+	"""
+	 ExpectedVersion is a SHA-256 hash for conditional renames.
+	 When set, the rename only succeeds if the current file hash matches.
+	
+	"""
+	expectedVersion: String
+}
+type RenameResponse {
+	"""
+	 Info is metadata about the entry at its new location.
+	
+	"""
+	info: FileInfo
+}
+input StatRequestInput {
+	"""
+	 Path is the file or directory to stat.
+	
+	"""
+	path: String
+	"""
+	 IncludeHash requests a SHA-256 hash of the file contents.
+	
+	"""
+	includeHash: Boolean
+}
+type StatResponse {
+	info: FileInfo
+}
+"""
+ WriteMode controls how Write handles existing files.
+
+"""
+enum WriteMode {
+	WRITE_MODE_UNSPECIFIED
+	WRITE_MODE_OVERWRITE_ALWAYS
+	WRITE_MODE_FAIL_IF_EXISTS
+	WRITE_MODE_CREATE_OR_TRUNCATE
+}
+input WriteRequestInput {
+	"""
+	 Path is the file to write.
+	
+	"""
+	path: String
+	"""
+	 Content is the raw bytes to write.
+	
+	"""
+	content: Bytes
+	"""
+	 ExpectedVersion is a SHA-256 hash for conditional writes.
+	 When set, the write only succeeds if the current file hash matches.
+	
+	"""
+	expectedVersion: String
+	"""
+	 Mode controls behaviour when the target file already exists.
+	
+	"""
+	mode: WriteMode
+}
+type WriteResponse {
+	"""
+	 Info is metadata about the file after the write.
+	
+	"""
+	info: FileInfo
+}

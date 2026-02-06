@@ -10,6 +10,10 @@ const (
 	// ParserUserRole is the role for the parser user.
 	// Parser service is used for serialization.
 	ParserUserRole = "role/parser.user"
+
+	// ContentsUserRole is the role for the contents user.
+	// Contents service provides local filesystem access.
+	ContentsUserRole = "role/contents.user"
 )
 
 type MemberKind string
