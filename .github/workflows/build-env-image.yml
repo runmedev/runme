@@ -1,4 +1,4 @@
-name: Container
+name: Build Env Image
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
       - main
     paths:
       - 'docker/**'
-      - '.github/workflows/container.yml'
+      - '.github/workflows/build-env-image.yml'
   pull_request:
     paths:
       - 'docker/**'
-      - '.github/workflows/container.yml'
+      - '.github/workflows/build-env-image.yml'
 
 jobs:
   build:
