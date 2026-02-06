@@ -36,9 +36,6 @@ gha-creds-*.json
 wasm_exec.js
 **/node_modules
 
-# Dist directory
-dist/
-
 # Editor
 .idea
 
