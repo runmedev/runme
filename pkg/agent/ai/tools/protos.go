@@ -86,7 +86,12 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 		callInput.Input = &toolsv1.ToolCallInput_TerminateRun{
 			TerminateRun: &toolsv1.TerminateRunRequest{},
 		}
-		pbMessage = callInput.GetExecuteCells()
+		pbMessage = callInput.GetTerminateRun()
+	case toolsv1mcp.NotebookService_SendSlackMessageToolOpenAI.Name:
+		callInput.Input = &toolsv1.ToolCallInput_SendSlackMessage{
+			SendSlackMessage: &toolsv1.SendSlackMessageRequest{},
+		}
+		pbMessage = callInput.GetSendSlackMessage()
 	default:
 		return callInput, errors.Errorf("Unknown message type: %s", name)
 	}
