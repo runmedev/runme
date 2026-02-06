@@ -30,7 +30,7 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && \
     . "$HOME/.cargo/env" && cargo install rust-script
 
 # Install node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs
 
 # Install deno
