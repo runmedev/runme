@@ -1,4 +1,5 @@
 {
+    "go.formatTool": "default",
     "go.testTimeout": "30s",
     "go.buildFlags": [
         "-ldflags=-X=github.com/runmedev/runme/v3/internal/version.BuildVersion=99.9.9",
@@ -26,5 +27,6 @@
     "go.testEnvVars": {
         // "RUN_MANUAL_TESTS": "true", // Uncomment this to run manual tests.
         "GITHUB_REPOSITORY_OWNER": "runmedev"
-    }
+    },
+    "go.diagnostic.vulncheck": "Imports"
 }
