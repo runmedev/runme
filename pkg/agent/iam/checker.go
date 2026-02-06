@@ -96,7 +96,7 @@ func (c *PolicyChecker) GetPrincipal(idToken *jwt.Token) (string, error) {
 // IsValidPolicy checks if the IAM policy is valid. If its not it returns a string with a human readable
 // message about the violations
 func IsValidPolicy(policy api.IAMPolicy) (bool, string) {
-	allowedRoles := map[string]bool{api.RunnerUserRole: true, api.AgentUserRole: true, api.ParserUserRole: true}
+	allowedRoles := map[string]bool{api.RunnerUserRole: true, api.AgentUserRole: true, api.ParserUserRole: true, api.ContentsUserRole: true}
 	roleNames := make([]string, 0, len(policy.Bindings))
 	for name := range allowedRoles {
 		roleNames = append(roleNames, name)
