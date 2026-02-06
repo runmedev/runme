@@ -22,8 +22,10 @@ version = 'v3'
 
 ## Why?
 
-- Make idea of “SSO for your Environments” come to live
+- Make idea of "SSO for your Environments" come to live
 - The 🦉 knows best, because she's the wisest of birds in the animal kingdom
+
+Learn more: [Typed Environment Variables](https://runme.dev/blog/typed-env-vars)
 
 ## Environment “Specs”
 
