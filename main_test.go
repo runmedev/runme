@@ -18,10 +18,21 @@ import (
 	"github.com/runmedev/runme/v3/internal/testutils"
 )
 
+// realHome captures the real HOME before testscript overrides it.
+// This is needed for tools like asdf that use shims requiring $HOME.
+var realHome = os.Getenv("HOME")
+
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"runme": root,
 	}))
+}
+
+// setupWithRealHome provides a Setup function that preserves the real HOME.
+// This is needed for tools like asdf/nvm that use shims requiring $HOME.
+func setupWithRealHome(env *testscript.Env) error {
+	env.Setenv("HOME", realHome)
+	return nil
 }
 
 // TestRunme tests runme end-to-end using testscript.
@@ -32,6 +43,7 @@ func TestRunme(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/script",
 		ContinueOnError: true,
+		Setup:           setupWithRealHome,
 	})
 }
 
