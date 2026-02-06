@@ -26,6 +26,20 @@ runme run server-dev    # Run server in dev mode on 127.0.0.1:9999
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for additional make targets and detailed development instructions.
 
+## Git Commit Requirements
+
+**IMPORTANT**: This project requires all contributors to sign off on the Developer Certificate of Origin (DCO) as required by CNCF/LF.
+
+You MUST use the `-s` flag with every git commit:
+
+```bash
+git commit -s -m "Your commit message"
+```
+
+This adds a "Signed-off-by" line to your commit message, certifying that you have the right to submit the code under the project's license.
+
+**Never commit without the `-s` flag.** Commits without DCO signoff cannot be merged.
+
 ## Architecture
 
 **Core Flow**: Markdown parsing → Code block extraction → Command execution → Output streaming
