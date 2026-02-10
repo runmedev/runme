@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/go-logr/zapr"
 	"github.com/pkg/errors"
@@ -35,18 +36,33 @@ func NewDownloadAssetsCmd(appName string) *cobra.Command {
 				}
 
 				cfg := app.AppConfig.GetConfig()
-				if cfg.AssistantServer == nil || cfg.AssistantServer.StaticAssets == "" {
-					return errors.New("assistantServer.staticAssets must be set in config to download assets")
+				if cfg.AssistantServer == nil {
+					return errors.New("assistantServer config must be set to download assets")
+				}
+
+				assetsDir := cfg.AssistantServer.StaticAssets
+				if assetsDir == "" {
+					homeDir, err := os.UserHomeDir()
+					if err != nil {
+						return errors.Wrap(err, "failed to resolve home directory for assets")
+					}
+					assetsDir = filepath.Join(homeDir, "."+appName, "assets")
+				} else if !filepath.IsAbs(assetsDir) {
+					homeDir, err := os.UserHomeDir()
+					if err != nil {
+						return errors.Wrap(err, "failed to resolve home directory for assets")
+					}
+					assetsDir = filepath.Join(homeDir, assetsDir)
 				}
 
 				log := zapr.NewLogger(zap.L())
-				log.Info("Downloading assets image", "image", imageRef, "dir", cfg.AssistantServer.StaticAssets)
+				log.Info("Downloading assets image", "image", imageRef, "dir", assetsDir)
 
-				if err := assets.DownloadFromImage(cmd.Context(), imageRef, cfg.AssistantServer.StaticAssets); err != nil {
+				if err := assets.DownloadFromImage(cmd.Context(), imageRef, assetsDir); err != nil {
 					return err
 				}
 
-				log.Info("Assets download complete", "dir", cfg.AssistantServer.StaticAssets)
+				log.Info("Assets download complete", "dir", assetsDir)
 				return nil
 			}()
 			if err != nil {
