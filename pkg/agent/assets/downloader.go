@@ -58,10 +58,26 @@ func DownloadFromImage(ctx context.Context, imageRef, outputDir string) error {
 	}
 
 	assetsDir := filepath.Join(tempDir, extractedAssetsDir)
+	if err := removeIndexFiles(outputDir); err != nil {
+		return err
+	}
 	if err := copyDirContents(assetsDir, outputDir); err != nil {
 		return errors.Wrapf(err, "failed to copy assets from %s to %s", assetsDir, outputDir)
 	}
 
+	return nil
+}
+
+func removeIndexFiles(outputDir string) error {
+	matches, err := filepath.Glob(filepath.Join(outputDir, "index.*"))
+	if err != nil {
+		return errors.Wrapf(err, "failed to glob index files in %s", outputDir)
+	}
+	for _, match := range matches {
+		if err := os.RemoveAll(match); err != nil {
+			return errors.Wrapf(err, "failed to remove %s", match)
+		}
+	}
 	return nil
 }
 
