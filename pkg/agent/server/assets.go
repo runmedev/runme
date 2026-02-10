@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-//go:embed dist/index.*
+//go:embed dist/*
 var embeddedAssets embed.FS
 
 // AssetsFileSystemProvider is an interface for providing asset filesystems.

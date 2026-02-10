@@ -20,6 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up ORAS
+        uses: oras-project/setup-oras@v1
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -35,6 +38,24 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Download static app assets.
+      # This relies on assets.go embedding the contents of dist/* into the go binary
+      # The advantage of embedding directly in the go binary is that we can then make the binary serve the static
+      # assets without needing to manage the assets separately. This could be useful if we want to use the
+      # web app as an "admin" panel for bootstrapping the UI.
+      # For a docker container it might make sense to package the assets on the filesystem but then we'd have two
+      # different mechanisms for the docker image vs. standalone binary.
+      # Right now the static assets are only around 3.4Mb
+      - name: Pull app assets (OCI)
+        run: |
+          rm -rf pkg/agent/server/dist
+          mkdir -p pkg/agent/server/dist
+          oras pull ghcr.io/runmedev/app-assets:latest --output pkg/agent/server/dist
+          tar -xzf pkg/agent/server/dist/app-assets.tgz -C pkg/agent/server/dist
+          cp -R pkg/agent/server/dist/assets/* pkg/agent/server/dist/
+          rm -rf pkg/agent/server/dist/assets
+          rm pkg/agent/server/dist/app-assets.tgz
 
       - name: Compute image tags
         id: tags
