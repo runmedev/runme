@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
 
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 
@@ -16,7 +17,9 @@ import (
 // NewClient helper function to create a new OpenAI client from  a config
 func NewClient(cfg config.OpenAIConfig) (*openai.Client, error) {
 	if cfg.APIKeyFile == "" {
-		return nil, errors.New("OpenAI API key is empty")
+		log := logs.NewLogger()
+		log.Info("OpenAI client configured without APIKeyFile")
+		return NewClientWithoutKey(), nil
 	}
 
 	b, err := os.ReadFile(cfg.APIKeyFile)
