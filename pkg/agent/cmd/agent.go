@@ -31,6 +31,7 @@ func NewAgentCmd(appName string) *cobra.Command {
 	agentCmd.AddCommand(NewServeCmd(appName))
 	agentCmd.AddCommand(NewEnvCmd())
 	agentCmd.AddCommand(NewEvalCmd(appName))
+	agentCmd.AddCommand(NewDownloadAssetsCmd(appName))
 
 	serveCmd := NewServeCmd(appName)
 	// Make serveCmd the default command.
