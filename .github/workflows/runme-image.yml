@@ -21,9 +21,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up ORAS
-        uses: oras-project/setup-oras@v1
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -50,13 +47,9 @@ jobs:
       # Right now the static assets are only around 3.4Mb
       - name: Pull app assets (OCI)
         run: |
+          go run ./cmd/runme agent download-assets --assets-dir "$HOME/.runme-agent/assets"
           rm -rf pkg/agent/server/dist
-          mkdir -p pkg/agent/server/dist
-          oras pull ghcr.io/runmedev/app-assets:latest --output pkg/agent/server/dist
-          tar -xzf pkg/agent/server/dist/app-assets.tgz -C pkg/agent/server/dist
-          cp -R pkg/agent/server/dist/assets/* pkg/agent/server/dist/
-          rm -rf pkg/agent/server/dist/assets
-          rm pkg/agent/server/dist/app-assets.tgz
+          mv "$HOME/.runme-agent/assets" pkg/agent/server/dist
 
       - name: Compute image tags
         id: tags
