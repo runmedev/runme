@@ -47,9 +47,8 @@ jobs:
       # Right now the static assets are only around 3.4Mb
       - name: Pull app assets (OCI)
         run: |
-          go run ./cmd/runme agent download-assets --assets-dir "$HOME/.runme-agent/assets"
-          rm -rf pkg/agent/server/dist
-          mv "$HOME/.runme-agent/assets" pkg/agent/server/dist
+          rm -rf ./kodata
+          go run . agent download-assets --assets-dir ./kodata
 
       - name: Compute image tags
         id: tags
