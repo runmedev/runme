@@ -72,7 +72,7 @@ func NewDownloadAssetsCmd(appName string) *cobra.Command {
 				return nil
 			}()
 			if err != nil {
-				fmt.Printf("Failed to download assets;\n %+v\n", err)
+				fmt.Printf("Failed to download assets;\n%+v\n", err)
 				os.Exit(1)
 			}
 		},

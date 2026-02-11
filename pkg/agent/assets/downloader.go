@@ -142,7 +142,7 @@ func extractTarGz(archivePath, destDir string) error {
 
 		targetPath := filepath.Join(destDir, header.Name)
 		cleanTarget := filepath.Clean(targetPath)
-		if !strings.HasPrefix(cleanTarget+string(os.PathSeparator), destDirClean) {
+		if !strings.HasPrefix(cleanTarget, destDirClean) {
 			return errors.Errorf("invalid tar entry path: %s", header.Name)
 		}
 

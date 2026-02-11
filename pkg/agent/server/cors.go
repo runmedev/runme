@@ -60,7 +60,10 @@ func wrapWithCORS(handler http.Handler, origins []string, allowCredentials bool)
 	}
 	log.Info("Adding CORS support", "AllowedOrigins", corsOptions.AllowedOrigins, "AllowCredentials", corsOptions.AllowCredentials, "AllowedMethods", corsOptions.AllowedMethods, "AllowedHeaders", corsOptions.AllowedHeaders, "ExposedHeaders", corsOptions.ExposedHeaders)
 
-	if origins[0] == "*" {
+	for _, origin := range origins {
+		if origin != "*" {
+			continue
+		}
 		log.Info("Allowing all origins; enabling SetOriginHeader middleware")
 		// We need to set the origin header to the request's origin
 		// To do that we need to set the passthrough option to true so that the handler will invoke our middleware

@@ -20,6 +20,11 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+// TODO(jlewi): I think we should get rid of embedded assets. Now that we publish and download assets
+// via OCI not sure its worth it to have another code path. The problem with embedded assets is that its
+// difficult to layer on additional static assets like configs. If we pull them from the filesystem then
+// users can just add their own assets to subdirectories.
+
 //go:embed dist/*
 var embeddedAssets embed.FS
 
@@ -239,7 +244,7 @@ func (s *Server) singlePageAppHandler() (http.Handler, error) {
 	}
 	if removedWildcard {
 		log := logs.NewLogger()
-		log.Info("Ignoring wildcard origin for static assets; allow list required")
+		log.Info("Ignoring wildcard origin for static assets", "origins", origins)
 	}
 	return wrapWithCORS(baseHandler, origins, false), nil
 }

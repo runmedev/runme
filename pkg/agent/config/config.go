@@ -401,7 +401,7 @@ type AssistantServerConfig struct {
 	HttpMaxWriteTimeout time.Duration `json:"httpMaxWriteTimeout" yaml:"httpMaxWriteTimeout"`
 
 	// CorsOrigins is a list of allowed origins for CORS requests. For static assets,
-	// CORS is the only protection, so origins must be explicitly allow listed; "*" will be removed
+	// CORS is the only protection, so origins must be explicitly allowlisted; "*" will be removed
 	// for the static assets.
 	CorsOrigins []string `json:"corsOrigins" yaml:"corsOrigins"`
 
