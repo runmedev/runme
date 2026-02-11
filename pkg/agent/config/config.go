@@ -134,6 +134,14 @@ type OpenAIConfig struct {
 	// APIKeyFile is the file containing the OpenAI API key.
 	// Optional when the client supplies an OAuth access token per request.
 	APIKeyFile string `json:"apiKeyFile,omitempty" yaml:"apiKeyFile,omitempty"`
+
+	// Organization is the OpenAI organization to use
+	// Only needs to be set if using OAuth and not using an APIKey.
+	Organization string `json:"organization,omitempty" yaml:"organization,omitempty"`
+
+	// Project is the OpenAI project to use
+	// Only needs to be set if using OAuth and not using an APIKey.
+	Project string `json:"project,omitempty" yaml:"project,omitempty"`
 }
 
 type Logging struct {
@@ -392,7 +400,9 @@ type AssistantServerConfig struct {
 	// HttpMaxWriteTimeout is the max write duration.
 	HttpMaxWriteTimeout time.Duration `json:"httpMaxWriteTimeout" yaml:"httpMaxWriteTimeout"`
 
-	// CorsOrigins is a list of allowed origins for CORS requests
+	// CorsOrigins is a list of allowed origins for CORS requests. For static assets,
+	// CORS is the only protection, so origins must be explicitly allow listed; "*" will be removed
+	// for the static assets.
 	CorsOrigins []string `json:"corsOrigins" yaml:"corsOrigins"`
 
 	// StaticAssets is the path to the static assets to serve

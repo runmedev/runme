@@ -204,7 +204,7 @@ func (s *Server) singlePageAppHandler() (http.Handler, error) {
 	}
 	fileServer := http.FileServer(http.FS(s.assetsFS))
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	baseHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := "/"
 		if len(r.URL.Path) > 1 {
 			path = r.URL.Path[1:]
@@ -224,7 +224,24 @@ func (s *Server) singlePageAppHandler() (http.Handler, error) {
 		}
 
 		fileServer.ServeHTTP(w, r)
-	}), nil
+	})
+
+	// Allow the SPA to fetch assets/configs from a dev server origin.
+	// We don't allow credentials for static assets and we do not allow wildcard origins.
+	origins := make([]string, 0, len(s.serverConfig.CorsOrigins))
+	removedWildcard := false
+	for _, origin := range s.serverConfig.CorsOrigins {
+		if origin == "*" {
+			removedWildcard = true
+			continue
+		}
+		origins = append(origins, origin)
+	}
+	if removedWildcard {
+		log := logs.NewLogger()
+		log.Info("Ignoring wildcard origin for static assets; allow list required")
+	}
+	return wrapWithCORS(baseHandler, origins, false), nil
 }
 
 // serveIndexHTML is the handler that serves the main SPA page.

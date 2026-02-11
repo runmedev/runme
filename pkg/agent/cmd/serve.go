@@ -55,6 +55,11 @@ func NewServeCmd(appName string) *cobra.Command {
 
 			agentOptions.Client = client
 
+			if app.AppConfig.OpenAI != nil {
+				agentOptions.OAuthOpenAIOrganization = app.AppConfig.OpenAI.Organization
+				agentOptions.OAuthOpenAIProject = app.AppConfig.OpenAI.Project
+			}
+
 			agent, err := ai.NewAgent(*agentOptions)
 			if err != nil {
 				return err
