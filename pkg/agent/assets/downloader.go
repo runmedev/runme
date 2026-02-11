@@ -20,7 +20,6 @@ import (
 
 const (
 	defaultArchiveName = "app-assets.tgz"
-	extractedAssetsDir = "assets"
 )
 
 // DownloadFromImage pulls assets from an OCI image and unpacks them into outputDir.
@@ -53,16 +52,11 @@ func DownloadFromImage(ctx context.Context, imageRef, outputDir string) error {
 		return errors.Wrapf(err, "expected assets archive not found: %s", archivePath)
 	}
 
-	if err := extractTarGz(archivePath, tempDir); err != nil {
-		return errors.Wrapf(err, "failed to extract assets archive %s", archivePath)
-	}
-
-	assetsDir := filepath.Join(tempDir, extractedAssetsDir)
 	if err := removeIndexFiles(outputDir); err != nil {
 		return err
 	}
-	if err := copyDirContents(assetsDir, outputDir); err != nil {
-		return errors.Wrapf(err, "failed to copy assets from %s to %s", assetsDir, outputDir)
+	if err := extractTarGz(archivePath, outputDir); err != nil {
+		return errors.Wrapf(err, "failed to extract assets archive %s", archivePath)
 	}
 
 	return nil
@@ -175,87 +169,6 @@ func extractTarGz(archivePath, destDir string) error {
 		default:
 			return errors.Errorf("unsupported tar entry type %v for %s", header.Typeflag, header.Name)
 		}
-	}
-
-	return nil
-}
-
-func copyDirContents(srcDir, destDir string) error {
-	entries, err := os.ReadDir(srcDir)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read assets directory %s", srcDir)
-	}
-
-	for _, entry := range entries {
-		srcPath := filepath.Join(srcDir, entry.Name())
-		destPath := filepath.Join(destDir, entry.Name())
-
-		if entry.IsDir() {
-			if err := copyDir(srcPath, destPath); err != nil {
-				return err
-			}
-			continue
-		}
-
-		if err := copyFile(srcPath, destPath); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func copyDir(srcDir, destDir string) error {
-	entries, err := os.ReadDir(srcDir)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read directory %s", srcDir)
-	}
-
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		return errors.Wrapf(err, "failed to create directory %s", destDir)
-	}
-
-	for _, entry := range entries {
-		srcPath := filepath.Join(srcDir, entry.Name())
-		destPath := filepath.Join(destDir, entry.Name())
-		if entry.IsDir() {
-			if err := copyDir(srcPath, destPath); err != nil {
-				return err
-			}
-			continue
-		}
-		if err := copyFile(srcPath, destPath); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func copyFile(srcPath, destPath string) error {
-	srcFile, err := os.Open(srcPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to open file %s", srcPath)
-	}
-	defer srcFile.Close()
-
-	info, err := srcFile.Stat()
-	if err != nil {
-		return errors.Wrapf(err, "failed to stat file %s", srcPath)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
-		return errors.Wrapf(err, "failed to create directory for %s", destPath)
-	}
-
-	destFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
-	if err != nil {
-		return errors.Wrapf(err, "failed to create file %s", destPath)
-	}
-	defer destFile.Close()
-
-	if _, err := io.Copy(destFile, srcFile); err != nil {
-		return errors.Wrapf(err, "failed to copy %s to %s", srcPath, destPath)
 	}
 
 	return nil
