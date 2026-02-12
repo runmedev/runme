@@ -4,11 +4,12 @@ import (
 	"errors"
 	"path/filepath"
 
-	"github.com/openai/openai-go"
 	"github.com/spf13/cobra"
 
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
+	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/server"
 	"github.com/runmedev/runme/v3/pkg/agent/tlsbuilder"
 )
@@ -32,37 +33,38 @@ func NewServeCmd(appName string) *cobra.Command {
 			if err := app.SetupOTEL(); err != nil {
 				return err
 			}
-			agentOptions := &ai.AgentOptions{}
-
-			if app.AppConfig.CloudAssistant == nil {
-				return errors.New("cloudAssistant config is required for serve; set cloudAssistant in config.yaml")
-			}
-			if err := agentOptions.FromAssistantConfig(*app.AppConfig.CloudAssistant); err != nil {
-				return err
+			if app.AppConfig.AssistantServer == nil {
+				app.AppConfig.AssistantServer = &config.AssistantServerConfig{}
 			}
 
-			var client *openai.Client
-			if app.AppConfig.OpenAI == nil {
-				// OpenAI access tokens will be provided by the client per request.
-				client = ai.NewClientWithoutKey()
-			} else {
+			var agent agentv1connect.MessagesServiceHandler
+			if app.AppConfig.AssistantServer.GetAgentService() {
+				agentOptions := &ai.AgentOptions{}
+				if app.AppConfig.CloudAssistant == nil {
+					return errors.New("cloudAssistant config is required when assistantServer.agentService is enabled")
+				}
+				if err := agentOptions.FromAssistantConfig(*app.AppConfig.CloudAssistant); err != nil {
+					return err
+				}
+
+				if app.AppConfig.OpenAI == nil {
+					// OpenAI access tokens will be provided by the client per request.
+					agentOptions.Client = ai.NewClientWithoutKey()
+				} else {
+					client, err := ai.NewClient(*app.AppConfig.OpenAI)
+					if err != nil {
+						return err
+					}
+					agentOptions.Client = client
+					agentOptions.OAuthOpenAIOrganization = app.AppConfig.OpenAI.Organization
+					agentOptions.OAuthOpenAIProject = app.AppConfig.OpenAI.Project
+				}
+
 				var err error
-				client, err = ai.NewClient(*app.AppConfig.OpenAI)
+				agent, err = ai.NewAgent(*agentOptions)
 				if err != nil {
 					return err
 				}
-			}
-
-			agentOptions.Client = client
-
-			if app.AppConfig.OpenAI != nil {
-				agentOptions.OAuthOpenAIOrganization = app.AppConfig.OpenAI.Organization
-				agentOptions.OAuthOpenAIProject = app.AppConfig.OpenAI.Project
-			}
-
-			agent, err := ai.NewAgent(*agentOptions)
-			if err != nil {
-				return err
 			}
 
 			// Setup the defaults for the TLSConfig

@@ -67,4 +67,4 @@ api/gen/proto/es/package*.json
 .npmrc
 
 # These files keep getting produced by codex running the tests
-./runner/.runme-script-*
+runner/.runme-script-*
