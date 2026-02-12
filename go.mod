@@ -63,7 +63,7 @@ require (
 	go.uber.org/dig v1.19.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/net v0.49.0
-	golang.org/x/oauth2 v0.34.0
+	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sys v0.40.0
 	golang.org/x/term v0.39.0
 	google.golang.org/api v0.265.0
