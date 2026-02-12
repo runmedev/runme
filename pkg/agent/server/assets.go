@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"embed"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -19,14 +18,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 )
-
-// TODO(jlewi): I think we should get rid of embedded assets. Now that we publish and download assets
-// via OCI not sure its worth it to have another code path. The problem with embedded assets is that its
-// difficult to layer on additional static assets like configs. If we pull them from the filesystem then
-// users can just add their own assets to subdirectories.
-
-//go:embed dist/*
-var embeddedAssets embed.FS
 
 // AssetsFileSystemProvider is an interface for providing asset filesystems.
 // This allows the server to be decoupled from how assets are constructed.
@@ -55,38 +46,6 @@ func (s *staticAssetsFileSystemProvider) GetAssetsFileSystem() (fs.FS, error) {
 	log := zapr.NewLogger(zap.L())
 	log.Info("Serving static assets", "dir", s.staticAssets)
 	return os.DirFS(s.staticAssets), nil
-}
-
-// embeddedAssetsFileSystemProvider provides assets from embedded files.
-type embeddedAssetsFileSystemProvider struct {
-	embeddedFS embed.FS
-	subPath    string
-}
-
-// NewEmbeddedAssetsFileSystemProvider creates a provider that serves assets from embedded files.
-// The subPath parameter specifies the subdirectory within the embedded filesystem (e.g., "dist").
-func NewEmbeddedAssetsFileSystemProvider(embeddedFS embed.FS, subPath string) AssetsFileSystemProvider {
-	return &embeddedAssetsFileSystemProvider{
-		embeddedFS: embeddedFS,
-		subPath:    subPath,
-	}
-}
-
-// GetAssetsFileSystem implements AssetsFileSystemProvider by returning a filesystem
-// for the embedded assets.
-func (e *embeddedAssetsFileSystemProvider) GetAssetsFileSystem() (fs.FS, error) {
-	log := zapr.NewLogger(zap.L())
-	distFS, err := fs.Sub(e.embeddedFS, e.subPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create sub filesystem for embedded assets")
-	}
-	// Verify that index.html exists
-	_, err = distFS.Open("index.html")
-	if err != nil {
-		return nil, errors.Wrapf(err, "embedded assets not available: index.html not found")
-	}
-	log.Info("Serving embedded assets")
-	return distFS, nil
 }
 
 // fallbackAssetsFileSystemProvider tries multiple providers in order until one succeeds.
@@ -119,39 +78,25 @@ func (f *fallbackAssetsFileSystemProvider) GetAssetsFileSystem() (fs.FS, error) 
 	return nil, errors.Wrapf(lastErr, "all asset providers failed")
 }
 
-// defaultAssetsFileSystemProvider is the default implementation that tries
-// static assets first, then falls back to embedded assets.
+// defaultAssetsFileSystemProvider is the default implementation that serves
+// assets from the static assets directory.
 type defaultAssetsFileSystemProvider struct {
 	staticAssets string
 }
 
 // NewDefaultAssetsFileSystemProvider creates a new default asset filesystem provider
-// that tries static assets first, then embedded assets as a fallback.
-// This preserves the original behavior of getAssetsFileSystem.
+// that serves assets from the static assets directory.
 func NewDefaultAssetsFileSystemProvider(staticAssets string) AssetsFileSystemProvider {
 	return &defaultAssetsFileSystemProvider{
 		staticAssets: staticAssets,
 	}
 }
 
-// GetAssetsFileSystem implements AssetsFileSystemProvider by trying static assets first,
-// then falling back to embedded assets. This preserves the original behavior.
+// GetAssetsFileSystem implements AssetsFileSystemProvider by serving static assets.
 func (d *defaultAssetsFileSystemProvider) GetAssetsFileSystem() (fs.FS, error) {
-	var providers []AssetsFileSystemProvider
-
-	// If static assets directory is specified, try it first
-	if d.staticAssets != "" {
-		providers = append(providers, NewStaticAssetsFileSystemProvider(d.staticAssets))
-	}
-
-	// Always try embedded assets as fallback
-	providers = append(providers, NewEmbeddedAssetsFileSystemProvider(embeddedAssets, "dist"))
-
-	// Use fallback provider to try them in order
-	fallback := NewFallbackAssetsFileSystemProvider(providers...)
-	fs, err := fallback.GetAssetsFileSystem()
+	fs, err := NewStaticAssetsFileSystemProvider(d.staticAssets).GetAssetsFileSystem()
 	if err != nil {
-		return nil, errors.New("no assets available: neither staticAssets directory is configured nor embedded assets could be found")
+		return nil, errors.New("no assets available: staticAssets directory is not configured")
 	}
 	return fs, nil
 }
@@ -200,7 +145,7 @@ func (s *Server) processIndexHTMLWithConfig(assetsFS fs.FS) ([]byte, error) {
 	return content, nil
 }
 
-// singlePageAppHandler serves a single-page app from static or embedded assets,
+// singlePageAppHandler serves a single-page app from static assets,
 // falling back to index for client-side routing when files don't exist.
 func (s *Server) singlePageAppHandler() (http.Handler, error) {
 	if s.assetsFS == nil {
