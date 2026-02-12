@@ -30,6 +30,7 @@ func NewAgentCmd(appName string) *cobra.Command {
 	agentCmd.AddCommand(NewRunCmd(appName))
 	agentCmd.AddCommand(NewServeCmd(appName))
 	agentCmd.AddCommand(NewEnvCmd())
+	agentCmd.AddCommand(NewAddIAMPolicyBindingCmd(appName))
 	agentCmd.AddCommand(NewEvalCmd(appName))
 	agentCmd.AddCommand(NewDownloadAssetsCmd(appName))
 
