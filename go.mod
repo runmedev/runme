@@ -70,6 +70,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20
 	google.golang.org/protobuf v1.36.11
 	mvdan.cc/sh/v3 v3.12.0
+	oras.land/oras-go/v2 v2.5.0
 )
 
 require (

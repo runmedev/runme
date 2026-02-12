@@ -66,6 +66,7 @@ type Agent struct {
 type AgentOptions struct {
 	VectorStores []string
 	Client       *openai.Client
+
 	// Instructions are the prompt to use when generating responses
 	Instructions string
 
@@ -105,7 +106,7 @@ func NewAgent(opts AgentOptions) (*Agent, error) {
 	}
 	toolsForContext[agentv1.GenerateRequest_CONTEXT_SLACK] = runTools
 
-	log.Info("Creating Agent", "options", opts)
+	log.Info("Creating Agent", "vectorStores", opts.VectorStores, "instructions", opts.Instructions, "oauthOpenAIOrganization", opts.OAuthOpenAIOrganization, "oauthOpenAIProject", opts.OAuthOpenAIProject)
 
 	return &Agent{
 		Client:                  opts.Client,

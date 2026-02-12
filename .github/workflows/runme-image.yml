@@ -7,6 +7,7 @@ on:
     tags:
       - 'v*'
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -35,6 +36,19 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Download static app assets.
+      # This relies on assets.go embedding the contents of dist/* into the go binary
+      # The advantage of embedding directly in the go binary is that we can then make the binary serve the static
+      # assets without needing to manage the assets separately. This could be useful if we want to use the
+      # web app as an "admin" panel for bootstrapping the UI.
+      # For a docker container it might make sense to package the assets on the filesystem but then we'd have two
+      # different mechanisms for the docker image vs. standalone binary.
+      # Right now the static assets are only around 3.4Mb
+      - name: Pull app assets (OCI)
+        run: |
+          rm -rf ./kodata
+          go run . agent download-assets --assets-dir ./kodata
 
       - name: Compute image tags
         id: tags
