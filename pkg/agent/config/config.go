@@ -420,6 +420,9 @@ type AssistantServerConfig struct {
 	// StaticAssets is the path to the static assets to serve
 	StaticAssets string `json:"staticAssets" yaml:"staticAssets"`
 
+	// AgentService starts the agent messages service if true. Defaults to true.
+	AgentService *bool `json:"agentService,omitempty" yaml:"agentService,omitempty"`
+
 	// RunnerService starts the Runme runner service if true otherwise it doesn't start the runner service.
 	RunnerService bool `json:"runnerService" yaml:"runnerService"`
 
@@ -527,6 +530,13 @@ func (c *AssistantServerConfig) GetPort() int {
 		return 8080
 	}
 	return c.Port
+}
+
+func (c *AssistantServerConfig) GetAgentService() bool {
+	if c.AgentService == nil {
+		return true
+	}
+	return *c.AgentService
 }
 
 func (c *AssistantServerConfig) GetHttpMaxReadTimeout() time.Duration {
