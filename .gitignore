@@ -65,3 +65,6 @@ api/gen/proto/es/package*.json
 
 # TODO(jlewi): Do we want to ignore this
 .npmrc
+
+# These files keep getting produced by codex running the tests
+./runner/.runme-script-*
