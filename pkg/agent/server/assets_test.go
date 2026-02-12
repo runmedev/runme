@@ -1,7 +1,6 @@
 package server
 
 import (
-	"embed"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -10,9 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 )
-
-//go:embed testdata/assets_test/*
-var testEmbeddedAssets embed.FS
 
 func TestStaticAssetsFileSystemProvider(t *testing.T) {
 	tests := []struct {
@@ -95,68 +91,6 @@ func TestStaticAssetsFileSystemProvider(t *testing.T) {
 			if dir != "" {
 				file, err := fs.Open("index.html")
 				if err == nil && file != nil {
-					file.Close()
-				}
-			}
-		})
-	}
-}
-
-func TestEmbeddedAssetsFileSystemProvider(t *testing.T) {
-	tests := []struct {
-		name        string
-		embeddedFS  embed.FS
-		subPath     string
-		wantErr     bool
-		errContains string
-	}{
-		{
-			name:       "valid embedded FS with valid subpath",
-			embeddedFS: testEmbeddedAssets,
-			subPath:    "testdata/assets_test",
-			wantErr:    false,
-		},
-		{
-			name:        "invalid subpath",
-			embeddedFS:  testEmbeddedAssets,
-			subPath:     "nonexistent",
-			wantErr:     true,
-			errContains: "index.html not found",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			provider := NewEmbeddedAssetsFileSystemProvider(tt.embeddedFS, tt.subPath)
-			fs, err := provider.GetAssetsFileSystem()
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got none")
-					return
-				}
-				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
-					t.Errorf("Expected error to contain %q, got %q", tt.errContains, err.Error())
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if fs == nil {
-				t.Errorf("Expected filesystem but got nil")
-				return
-			}
-
-			// Try to read index.html if it should exist
-			if tt.name == "valid embedded FS with valid subpath" {
-				file, err := fs.Open("index.html")
-				if err != nil {
-					t.Errorf("Failed to open index.html: %v", err)
-				} else {
 					file.Close()
 				}
 			}
@@ -266,14 +200,15 @@ func TestDefaultAssetsFileSystemProvider(t *testing.T) {
 			},
 		},
 		{
-			name:         "without static assets, should fallback to embedded",
+			name:         "without static assets, should fail",
 			staticAssets: "",
-			wantErr:      false, // Should succeed if embedded assets exist
+			wantErr:      true,
+			errContains:  "no assets available: staticAssets directory is not configured",
 		},
 		{
-			name:         "with non-existent static assets, should fallback to embedded",
+			name:         "with non-existent static assets",
 			staticAssets: "",
-			wantErr:      false, // Should succeed if embedded assets exist
+			wantErr:      false, // os.DirFS doesn't validate path existence until read-time
 			setupDir: func(t *testing.T) string {
 				return filepath.Join(t.TempDir(), "nonexistent")
 			},
@@ -302,16 +237,8 @@ func TestDefaultAssetsFileSystemProvider(t *testing.T) {
 				return
 			}
 
-			// Note: This test may fail if embedded assets don't exist in the test environment
-			// That's okay - it means the test is working correctly
 			if err != nil {
-				// If we have a static assets dir, it should have been tried first
-				if dir != "" {
-					// The error might be from embedded assets fallback failing
-					if !strings.Contains(err.Error(), "no assets available") {
-						t.Logf("Got error (may be expected if embedded assets missing): %v", err)
-					}
-				}
+				t.Errorf("Unexpected error: %v", err)
 				return
 			}
 
