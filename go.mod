@@ -187,6 +187,7 @@ require (
 	gvisor.dev/gvisor v0.0.0-20250318191406-9e676ea1de20 // indirect
 	honnef.co/go/tools v0.6.0 // indirect
 	mvdan.cc/gofumpt v0.7.0 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
 )
 
 require (
