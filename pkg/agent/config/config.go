@@ -198,6 +198,18 @@ func (ac *AppConfig) ConfigDirName() string {
 
 // GetConfigFile returns the configuration file
 func (ac *AppConfig) GetConfigFile() string {
+	if ac.Config == nil {
+		ac.Config = &Config{}
+	}
+	if ac.configFile == "" {
+		if ac.V != nil {
+			if used := ac.V.ConfigFileUsed(); used != "" {
+				ac.configFile = used
+			} else if explicit := ac.V.GetString(ConfigFlagName); explicit != "" {
+				ac.configFile = explicit
+			}
+		}
+	}
 	if ac.configFile == "" {
 		ac.configFile = ac.DefaultConfigFile()
 	}
