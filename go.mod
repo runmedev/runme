@@ -71,6 +71,7 @@ require (
 	google.golang.org/protobuf v1.36.11
 	mvdan.cc/sh/v3 v3.12.0
 	oras.land/oras-go/v2 v2.5.0
+	sigs.k8s.io/kustomize/kyaml v0.20.1
 )
 
 require (
@@ -204,7 +205,6 @@ require (
 	honnef.co/go/tools v0.6.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7 // indirect
 	mvdan.cc/gofumpt v0.7.0 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
 )
 
 require (
