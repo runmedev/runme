@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/server"
-	"github.com/runmedev/runme/v3/pkg/agent/tlsbuilder"
 )
 
 func NewServeCmd(appName string) *cobra.Command {
@@ -67,16 +65,8 @@ func NewServeCmd(appName string) *cobra.Command {
 				}
 			}
 
-			// Setup the defaults for the TLSConfig
-			if app.AppConfig.AssistantServer.TLSConfig != nil && app.AppConfig.AssistantServer.TLSConfig.Generate {
-				// Set the default values for the TLSConfig
-				if app.AppConfig.AssistantServer.TLSConfig.KeyFile == "" {
-					app.AppConfig.AssistantServer.TLSConfig.KeyFile = filepath.Join(app.AppConfig.GetConfigDir(), tlsbuilder.KeyPEMFile)
-				}
-
-				if app.AppConfig.AssistantServer.TLSConfig.CertFile == "" {
-					app.AppConfig.AssistantServer.TLSConfig.CertFile = filepath.Join(app.AppConfig.GetConfigDir(), tlsbuilder.CertPEMFile)
-				}
+			if err := ensureTLSCertificate(app); err != nil {
+				return err
 			}
 
 			serverOptions := &server.Options{
