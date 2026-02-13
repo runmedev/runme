@@ -23,8 +23,8 @@ type Options struct {
 }
 
 func New(opts *Options) (*Docker, error) {
-	// Typically, the version is dicted by the Docker API version in the CI (GitHub Actions).
-	c, err := client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.43"))
+	// Negotiate API version with the daemon to avoid hard-coded mismatches across environments.
+	c, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
 	}
