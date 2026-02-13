@@ -28,6 +28,7 @@ func NewAgentCmd(appName string) *cobra.Command {
 	agentCmd.AddCommand(NewVersionCmd(appName, os.Stdout))
 	agentCmd.AddCommand(NewConfigCmd(appName))
 	agentCmd.AddCommand(NewServeCmd(appName))
+	agentCmd.AddCommand(NewCertificateCheckCmd(appName))
 	agentCmd.AddCommand(NewEnvCmd())
 	agentCmd.AddCommand(NewAddIAMPolicyBindingCmd(appName))
 	agentCmd.AddCommand(NewEvalCmd(appName))
