@@ -85,9 +85,12 @@ type (
 // NewServer creates a new server
 func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Server, error) {
 	log := zapr.NewLogger(zap.L())
+	if opts.Server == nil {
+		opts.Server = &config.AssistantServerConfig{}
+	}
 	if agent == nil {
-		if !opts.Server.RunnerService {
-			return nil, errors.New("Agent and Runner service are both disabled")
+		if !opts.Server.RunnerService && !opts.Server.ParserService {
+			return nil, errors.New("agent, runner, and parser services are all disabled")
 		}
 		log.Info("Agent is nil; continuing without AI service")
 	}
@@ -325,7 +328,7 @@ func (s *Server) registerServices() error {
 			log.Info("Agent does not support chatkit handler", "type", fmt.Sprintf("%T", s.agent))
 		}
 	} else {
-		log.Info("Agent is nil; AI service is disabled")
+		log.Info("AI service is disabled", "agentNil", s.agent == nil)
 	}
 
 	if s.parser != nil {
@@ -375,7 +378,7 @@ func (s *Server) registerServices() error {
 		}
 		mux.Handle("/", singlePageApp)
 	} else {
-		log.Info("Single page app is disabled")
+		log.Info("Single page app is disabled", "agentNil", s.agent == nil)
 	}
 	s.engine = mux
 

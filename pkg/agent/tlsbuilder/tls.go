@@ -142,8 +142,8 @@ func generateCertificate(certFile, keyFile string) (*tls.Config, error) {
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			CommonName:   "Cloud Assistant",
-			Organization: []string{"Acme Inc."},
+			CommonName:   "Runme",
+			Organization: []string{"Runme"},
 			Country:      []string{"US"},
 			Province:     []string{"California"},
 			Locality:     []string{"San Francisco"},

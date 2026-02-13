@@ -28,6 +28,7 @@ assistantServer:
   httpMaxReadTimeout: 0s
   httpMaxWriteTimeout: 0s
   staticAssets: /workspaces/runme-web/packages/react-components/dist/app # bundled version of https://github.com/runmedev/web
+  agentService: true
   runnerService: true
   corsOrigins:
     - "http://localhost:5173"

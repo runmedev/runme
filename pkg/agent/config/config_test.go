@@ -76,6 +76,25 @@ func Test_ConfigAutomaticEnvVars(t *testing.T) {
 	}
 }
 
+func Test_AssistantServerConfig_GetAgentService(t *testing.T) {
+	cfg := &AssistantServerConfig{}
+	if !cfg.GetAgentService() {
+		t.Fatalf("expected default agent service to be enabled")
+	}
+
+	disabled := false
+	cfg.AgentService = &disabled
+	if cfg.GetAgentService() {
+		t.Fatalf("expected agent service to be disabled when explicitly set false")
+	}
+
+	enabled := true
+	cfg.AgentService = &enabled
+	if !cfg.GetAgentService() {
+		t.Fatalf("expected agent service to be enabled when explicitly set true")
+	}
+}
+
 // setEnvVars sets the provided environment variables and returns a function to restore the previous state.
 func setEnvVars(env map[string]string) func() {
 	if env == nil {
