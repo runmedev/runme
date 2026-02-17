@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -260,6 +261,78 @@ func TestOIDC_DownloadJWKS(t *testing.T) {
 	}
 }
 
+func TestOIDC_DownloadJWKS_EC(t *testing.T) {
+	// Create a test server to mock the JWKS endpoint with EC keys
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Create test EC coordinates (valid P-256 point)
+		// Using a known valid point on the P-256 curve
+		xBytes := []byte{
+			0x6B, 0x17, 0xD1, 0xF2, 0xE1, 0x2C, 0x42, 0x47,
+			0xF8, 0xBC, 0xE6, 0xE5, 0x63, 0xA4, 0x40, 0xF2,
+			0x77, 0x03, 0x7D, 0x81, 0x2D, 0xEB, 0x33, 0xA0,
+			0xF4, 0xA1, 0x39, 0x45, 0xD8, 0x98, 0xC2, 0x96,
+		}
+		yBytes := []byte{
+			0x4F, 0xE3, 0x42, 0xE2, 0xFE, 0x1A, 0x7F, 0x9B,
+			0x8E, 0xE7, 0xEB, 0x4A, 0x7C, 0x0F, 0x9E, 0x16,
+			0x2B, 0xCE, 0x33, 0x57, 0x6B, 0x31, 0x5E, 0xCE,
+			0xCB, 0xB6, 0x40, 0x68, 0x37, 0xBF, 0x51, 0xF5,
+		}
+
+		// Create a test JWKS response with both RSA and EC keys
+		jwks := &jwks{
+			Keys: []jwksKey{
+				{
+					Kty: "EC",
+					Alg: "ES256",
+					Use: "sig",
+					Kid: "test-key-ec",
+					Crv: "P-256",
+					X:   base64.RawURLEncoding.EncodeToString(xBytes),
+					Y:   base64.RawURLEncoding.EncodeToString(yBytes),
+				},
+			},
+		}
+
+		if err := json.NewEncoder(w).Encode(jwks); err != nil {
+			http.Error(w, "failed to encode response", http.StatusInternalServerError)
+			return
+		}
+	}))
+	defer ts.Close()
+
+	// Create a test OIDC instance
+	cfg := &config.OIDCConfig{
+		Google: &config.GoogleOIDCConfig{
+			ClientCredentialsFile: "testdata/google-client-dummy.json",
+			DiscoveryURL:          "https://accounts.google.com/.well-known/openid-configuration",
+		},
+	}
+	oidc, err := NewOIDC(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create OIDC instance: %v", err)
+	}
+
+	// Override the discovery document with our test server URL
+	oidc.discovery.JWKSURI = ts.URL
+
+	// Download the JWKS
+	err = oidc.downloadJWKS()
+	if err != nil {
+		t.Fatalf("Failed to download JWKS: %v", err)
+	}
+
+	// Verify the EC public key was stored
+	if oidc.publicKeys["test-key-ec"] == nil {
+		t.Error("EC public key was not stored")
+	}
+
+	// Verify it's actually an ECDSA key
+	if _, ok := oidc.publicKeys["test-key-ec"].(*ecdsa.PublicKey); !ok {
+		t.Error("Stored key is not an ECDSA public key")
+	}
+}
+
 func TestOIDC_VerifyToken(t *testing.T) {
 	idp, err := NewTestIDP("testdata/google-client-dummy.json")
 	if err != nil {
@@ -310,6 +383,49 @@ func TestOIDC_VerifyToken(t *testing.T) {
 	}
 	if valid != nil {
 		t.Error("Expired token was accepted")
+	}
+}
+
+func TestOIDC_VerifyToken_ES256(t *testing.T) {
+	idp, err := NewTestIDP("testdata/google-client-dummy.json")
+	if err != nil {
+		t.Fatalf("Failed to create test IDP: %v", err)
+	}
+
+	// Create a valid ES256 token
+	claims := jwt.MapClaims{
+		"iss": "https://accounts.google.com",
+		"aud": "dummy-client-id",
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"hd":  "example.com",
+	}
+
+	signedToken, err := idp.GenerateTokenWithMethod(claims, jwt.SigningMethodES256)
+	if err != nil {
+		t.Fatalf("Failed to sign ES256 token: %v", err)
+	}
+
+	// Verify the ES256 token
+	valid, err := idp.OIDC.verifyToken(signedToken)
+	if err != nil {
+		t.Errorf("Unexpected error verifying valid ES256 token: %v", err)
+	}
+	if valid == nil {
+		t.Error("Valid ES256 token was not accepted")
+	}
+
+	// Test that both RS256 and ES256 work in the same instance
+	rsToken, err := idp.GenerateToken(claims)
+	if err != nil {
+		t.Fatalf("Failed to sign RS256 token: %v", err)
+	}
+
+	valid, err = idp.OIDC.verifyToken(rsToken)
+	if err != nil {
+		t.Errorf("Unexpected error verifying RS256 token: %v", err)
+	}
+	if valid == nil {
+		t.Error("Valid RS256 token was not accepted")
 	}
 }
 

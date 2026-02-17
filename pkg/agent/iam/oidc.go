@@ -2,6 +2,9 @@ package iam
 
 import (
 	"context"
+	"crypto/ecdh"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -48,7 +51,7 @@ const (
 type OIDC struct {
 	config     *config.OIDCConfig
 	oauth2     *oauth2.Config
-	publicKeys map[string]*rsa.PublicKey
+	publicKeys map[string]any
 	discovery  *openIDDiscovery
 	// stateManager manages the state for OAuth2 PKCE.
 	// This assumes there is a single instants of the server so that the redirect from the OAuth2 provider
@@ -122,7 +125,7 @@ func NewOIDC(cfg *config.OIDCConfig) (*OIDC, error) {
 	oidc := &OIDC{
 		config:     cfg,
 		oauth2:     oauth2Config,
-		publicKeys: make(map[string]*rsa.PublicKey),
+		publicKeys: make(map[string]any),
 		discovery:  &discovery,
 		state:      newStateManager(10 * time.Minute),
 		provider:   provider,
@@ -173,40 +176,100 @@ func (o *OIDC) downloadJWKS() error {
 		return errors.Wrapf(err, "Failed to parse JWKS response")
 	}
 
-	// Convert each key to RSA public key and store in the map
+	// Convert each key to the appropriate public key type and store in the map
 	for _, key := range jwks.Keys {
-		// Convert the modulus and exponent from base64url to *rsa.PublicKey
-		n, err := base64.RawURLEncoding.DecodeString(key.N)
-		if err != nil {
-			return errors.Wrap(err, "failed to decode modulus")
-		}
-
-		e, err := base64.RawURLEncoding.DecodeString(key.E)
-		if err != nil {
-			return errors.Wrap(err, "failed to decode exponent")
-		}
-
-		// Convert the modulus to a big integer
-		modulus := new(big.Int).SetBytes(n)
-
-		// Convert the exponent to an integer
-		var exponent int
-		if len(e) < 4 {
-			for i := range e {
-				exponent = exponent<<8 + int(e[i])
+		switch key.Kty {
+		case "RSA":
+			// Convert the modulus and exponent from base64url to *rsa.PublicKey
+			n, err := base64.RawURLEncoding.DecodeString(key.N)
+			if err != nil {
+				return errors.Wrap(err, "failed to decode modulus")
 			}
-		} else {
-			return errors.New("exponent too large")
-		}
 
-		// Create the RSA public key
-		publicKey := &rsa.PublicKey{
-			N: modulus,
-			E: exponent,
-		}
+			e, err := base64.RawURLEncoding.DecodeString(key.E)
+			if err != nil {
+				return errors.Wrap(err, "failed to decode exponent")
+			}
 
-		// Store the public key in the map using the kid as the key
-		o.publicKeys[key.Kid] = publicKey
+			// Convert the modulus to a big integer
+			modulus := new(big.Int).SetBytes(n)
+
+			// Convert the exponent to an integer
+			var exponent int
+			if len(e) < 4 {
+				for i := range e {
+					exponent = exponent<<8 + int(e[i])
+				}
+			} else {
+				return errors.New("exponent too large")
+			}
+
+			// Create the RSA public key
+			publicKey := &rsa.PublicKey{
+				N: modulus,
+				E: exponent,
+			}
+
+			// Store the public key in the map using the kid as the key
+			o.publicKeys[key.Kid] = publicKey
+
+		case "EC":
+			// Decode the x and y coordinates from base64url
+			xBytes, err := base64.RawURLEncoding.DecodeString(key.X)
+			if err != nil {
+				return errors.Wrap(err, "failed to decode x coordinate")
+			}
+
+			yBytes, err := base64.RawURLEncoding.DecodeString(key.Y)
+			if err != nil {
+				return errors.Wrap(err, "failed to decode y coordinate")
+			}
+
+			// Determine the curve from the crv field
+			var curve elliptic.Curve
+			var ecdhCurve ecdh.Curve
+			switch key.Crv {
+			case "P-256":
+				curve = elliptic.P256()
+				ecdhCurve = ecdh.P256()
+			case "P-384":
+				curve = elliptic.P384()
+				ecdhCurve = ecdh.P384()
+			case "P-521":
+				curve = elliptic.P521()
+				ecdhCurve = ecdh.P521()
+			default:
+				return errors.Errorf("unsupported elliptic curve: %s", key.Crv)
+			}
+
+			// Validate that the point lies on the specified curve using crypto/ecdh.
+			// The uncompressed point format is 0x04 || X || Y.
+			uncompressed := make([]byte, 1+len(xBytes)+len(yBytes))
+			uncompressed[0] = 0x04
+			copy(uncompressed[1:], xBytes)
+			copy(uncompressed[1+len(xBytes):], yBytes)
+			if _, err := ecdhCurve.NewPublicKey(uncompressed); err != nil {
+				return errors.Errorf("EC key %s: point is not on curve %s", key.Kid, key.Crv)
+			}
+
+			// Convert coordinates to big integers
+			x := new(big.Int).SetBytes(xBytes)
+			y := new(big.Int).SetBytes(yBytes)
+
+			// Create the ECDSA public key
+			publicKey := &ecdsa.PublicKey{
+				Curve: curve,
+				X:     x,
+				Y:     y,
+			}
+
+			// Store the public key in the map using the kid as the key
+			o.publicKeys[key.Kid] = publicKey
+
+		default:
+			// Skip unsupported key types
+			zap.L().Warn("skipping unsupported key type", zap.String("kty", key.Kty), zap.String("kid", key.Kid))
+		}
 	}
 
 	return nil
@@ -234,8 +297,13 @@ func (o *OIDC) verifyToken(idToken string) (*jwt.Token, error) {
 
 	// Verify the token signature using JWKS
 	token, err := jwt.Parse(idToken, func(token *jwt.Token) (any, error) {
-		// Verify the signing method is what we expect
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+		// Verify the signing method is either RSA or ECDSA
+		switch token.Method.(type) {
+		case *jwt.SigningMethodRSA:
+			// Valid RSA signing method
+		case *jwt.SigningMethodECDSA:
+			// Valid ECDSA signing method
+		default:
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
@@ -566,8 +634,13 @@ type jwksKey struct {
 	Alg string `json:"alg"`
 	Use string `json:"use"`
 	Kid string `json:"kid"`
-	N   string `json:"n"`
-	E   string `json:"e"`
+	// RSA key fields
+	N string `json:"n"`
+	E string `json:"e"`
+	// EC key fields
+	Crv string `json:"crv"`
+	X   string `json:"x"`
+	Y   string `json:"y"`
 }
 
 // jwks represents the JSON Web Key Set
@@ -736,9 +809,10 @@ func (a *AuthContext) AuthorizeRequest(ctx context.Context, req *streamv1.Websoc
 // It can produce OIDC signed OIDC tokens that we can use to verify auth is working.
 
 type TestIDP struct {
-	privateKey *rsa.PrivateKey
-	OIDC       *OIDC
-	OIDCCfg    *config.OIDCConfig
+	privateKey   *rsa.PrivateKey
+	ecPrivateKey *ecdsa.PrivateKey
+	OIDC         *OIDC
+	OIDCCfg      *config.OIDCConfig
 }
 
 func NewTestIDP(clientCredentialsFile string) (*TestIDP, error) {
@@ -746,6 +820,12 @@ func NewTestIDP(clientCredentialsFile string) (*TestIDP, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to generate RSA key")
+	}
+
+	// Create a test ECDSA key
+	ecPrivateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to generate ECDSA key")
 	}
 
 	// Create a test OIDC instance
@@ -760,20 +840,39 @@ func NewTestIDP(clientCredentialsFile string) (*TestIDP, error) {
 		return nil, errors.Wrapf(err, "Failed to create OIDC instance")
 	}
 
-	// Store the public key
+	// Store the public keys
 	oidc.publicKeys["test-key"] = &privateKey.PublicKey
+	oidc.publicKeys["test-key-ec"] = &ecPrivateKey.PublicKey
 
 	return &TestIDP{
-		privateKey: privateKey,
-		OIDC:       oidc,
-		OIDCCfg:    cfg,
+		privateKey:   privateKey,
+		ecPrivateKey: ecPrivateKey,
+		OIDC:         oidc,
+		OIDCCfg:      cfg,
 	}, nil
 }
 
 func (idp *TestIDP) GenerateToken(claims jwt.Claims) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	token.Header["kid"] = "test-key"
-	signedToken, err := token.SignedString(idp.privateKey)
+	return idp.GenerateTokenWithMethod(claims, jwt.SigningMethodRS256)
+}
+
+func (idp *TestIDP) GenerateTokenWithMethod(claims jwt.Claims, method jwt.SigningMethod) (string, error) {
+	token := jwt.NewWithClaims(method, claims)
+
+	var signedToken string
+	var err error
+
+	switch method {
+	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
+		token.Header["kid"] = "test-key"
+		signedToken, err = token.SignedString(idp.privateKey)
+	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
+		token.Header["kid"] = "test-key-ec"
+		signedToken, err = token.SignedString(idp.ecPrivateKey)
+	default:
+		return "", errors.Errorf("Unsupported signing method: %v", method)
+	}
+
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to sign token")
 	}
