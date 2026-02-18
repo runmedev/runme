@@ -62,10 +62,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.40.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/net v0.49.0
+	golang.org/x/net v0.50.0
 	golang.org/x/oauth2 v0.34.0
-	golang.org/x/sys v0.40.0
-	golang.org/x/term v0.39.0
+	golang.org/x/sys v0.41.0
+	golang.org/x/term v0.40.0
 	google.golang.org/api v0.265.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20
 	google.golang.org/protobuf v1.36.11
@@ -236,8 +236,8 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.47.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1
