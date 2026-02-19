@@ -18,6 +18,7 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/chatkit"
+	"github.com/runmedev/runme/v3/pkg/agent/codex"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -50,20 +51,25 @@ import (
 
 // Server is the main server for the cloud assistant
 type Server struct {
-	telemetry        *config.TelemetryConfig
-	serverConfig     *config.AssistantServerConfig
-	webAppConfig     *agentv1.WebAppConfig
-	hServer          *http.Server
-	engine           http.Handler
-	shutdownComplete chan bool
-	runner           *runme.Runner
-	parser           *runme.Parser
-	agent            agentv1connect.MessagesServiceHandler
-	checker          iam.Checker
-	registerHandlers RegisterHandlers
-	assetsFS         fs.FS
-	wsHandler        *stream.WebSocketHandler
-	chatKitHandler   *chatkit.ChatKitHandler
+	telemetry         *config.TelemetryConfig
+	serverConfig      *config.AssistantServerConfig
+	webAppConfig      *agentv1.WebAppConfig
+	hServer           *http.Server
+	engine            http.Handler
+	shutdownComplete  chan bool
+	runner            *runme.Runner
+	parser            *runme.Parser
+	agent             agentv1connect.MessagesServiceHandler
+	checker           iam.Checker
+	registerHandlers  RegisterHandlers
+	assetsFS          fs.FS
+	wsHandler         *stream.WebSocketHandler
+	chatKitHandler    *chatkit.ChatKitHandler
+	codexChatKit      *codex.ChatKitAdapter
+	codexBridge       *codex.ToolBridge
+	codexTokenManager *codex.SessionTokenManager
+	codexMCPHandler   http.Handler
+	codexProcess      *codex.ProcessManager
 }
 
 type (
@@ -324,6 +330,30 @@ func (s *Server) registerServices() error {
 			chatkitHandler := chatkit.NewChatKitHandler(concreteAgent)
 			s.chatKitHandler = chatkitHandler
 			mux.HandleProtected("/chatkit", otelhttp.NewHandler(http.HandlerFunc(chatkitHandler.Handle), "/chatkit"), s.checker, api.AgentUserRole)
+
+			codexBridge := codex.NewToolBridge()
+			codexTokenManager := codex.NewSessionTokenManager(0)
+			codexMCPHandler, err := codex.NewStreamableMCPHandler(codexBridge, codexTokenManager)
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize codex notebook MCP handler")
+			}
+			codexProcess := codex.NewProcessManager("", nil, nil)
+			codexChatKit := codex.NewChatKitAdapter(codex.ChatKitAdapterOptions{
+				Fallback:       http.HandlerFunc(chatkitHandler.Handle),
+				ProcessManager: codexProcess,
+				TokenManager:   codexTokenManager,
+			})
+
+			s.codexBridge = codexBridge
+			s.codexTokenManager = codexTokenManager
+			s.codexMCPHandler = codexMCPHandler
+			s.codexProcess = codexProcess
+			s.codexChatKit = codexChatKit
+
+			mux.HandleProtected("/chatkit-codex", otelhttp.NewHandler(http.HandlerFunc(codexChatKit.Handle), "/chatkit-codex"), s.checker, api.AgentUserRole)
+			mux.HandleProtected("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"), s.checker, api.AgentUserRole)
+			// This endpoint is intended for local codex app-server access and is protected by per-session bearer tokens.
+			mux.Handle("/mcp/notebooks", otelhttp.NewHandler(codexMCPHandler, "/mcp/notebooks"))
 		} else {
 			log.Info("Agent does not support chatkit handler", "type", fmt.Sprintf("%T", s.agent))
 		}
@@ -418,6 +448,17 @@ func (s *Server) shutdown() {
 	if s.wsHandler != nil {
 		s.wsHandler.Shutdown()
 		log.Info("Cancelled active runs")
+	}
+	if s.codexBridge != nil {
+		s.codexBridge.Shutdown()
+		log.Info("Cancelled codex bridge")
+	}
+	if s.codexProcess != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := s.codexProcess.Stop(ctx); err != nil {
+			log.Error(err, "Error stopping codex process")
+		}
 	}
 
 	if s.hServer != nil {
