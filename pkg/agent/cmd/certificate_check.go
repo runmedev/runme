@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"path/filepath"
-
 	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -19,13 +17,6 @@ func ensureTLSCertificate(app *application.App) error {
 	tlsConfig := app.AppConfig.AssistantServer.TLSConfig
 	if tlsConfig == nil || !tlsConfig.Generate {
 		return nil
-	}
-
-	if tlsConfig.KeyFile == "" {
-		tlsConfig.KeyFile = filepath.Join(app.AppConfig.GetConfigDir(), tlsbuilder.KeyPEMFile)
-	}
-	if tlsConfig.CertFile == "" {
-		tlsConfig.CertFile = filepath.Join(app.AppConfig.GetConfigDir(), tlsbuilder.CertPEMFile)
 	}
 
 	_, err := tlsbuilder.LoadOrGenerateConfig(tlsConfig.CertFile, tlsConfig.KeyFile, zap.L())
