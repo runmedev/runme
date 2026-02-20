@@ -25,6 +25,11 @@ import (
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 )
 
+const (
+	defaultCertFile = "cert.pem"
+	defaultKeyFile  = "key.pem"
+)
+
 type App struct {
 	AppName        string
 	AppConfig      *config.AppConfig
@@ -49,6 +54,17 @@ func (a *App) LoadConfig(cmd *cobra.Command) error {
 		return err
 	}
 	cfg := ac.GetConfig()
+	if cfg.AssistantServer != nil && cfg.AssistantServer.TLSConfig != nil {
+		tls := cfg.AssistantServer.TLSConfig
+		if tls.Generate {
+			if tls.CertFile == "" {
+				tls.CertFile = filepath.Join(ac.GetConfigDir(), defaultCertFile)
+			}
+			if tls.KeyFile == "" {
+				tls.KeyFile = filepath.Join(ac.GetConfigDir(), defaultKeyFile)
+			}
+		}
+	}
 	if problems := cfg.IsValid(); len(problems) > 0 {
 		_, _ = fmt.Fprintf(os.Stdout, "Invalid configuration; %s\n", strings.Join(problems, "\n"))
 		return fmt.Errorf("invalid configuration; fix the problems and then try again")
