@@ -7,6 +7,9 @@ import (
 	"strings"
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
+
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
+	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
 
 type contextKey int
@@ -52,11 +55,19 @@ func NewStreamableMCPHandler(bridge *ToolBridge, tokens *SessionTokenManager) (*
 }
 
 func (h *StreamableMCPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logger := logs.FromContextWithTrace(r.Context()).WithValues("component", "codex-mcp-handler")
+	if principal := obs.GetPrincipal(r.Context()); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
+
 	sid, err := h.authenticate(r)
 	if err != nil {
+		logger.Error(err, "mcp request authentication failed")
 		http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
 		return
 	}
+	logger = logger.WithValues("sessionID", sid)
+	logger.Info("authenticated codex mcp request")
 	ctx := context.WithValue(r.Context(), sessionIDContextKey, sid)
 	ctx = context.WithValue(ctx, approvedRefIDsContextKey, parseApprovedRefIDs(r.Header.Get(executeApprovalHeader)))
 	h.inner.ServeHTTP(w, r.WithContext(ctx))

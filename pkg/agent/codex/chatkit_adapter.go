@@ -8,7 +8,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/google/uuid"
+
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
+	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
 
 const (
@@ -41,23 +45,38 @@ func NewChatKitAdapter(opts ChatKitAdapterOptions) *ChatKitAdapter {
 }
 
 func (h *ChatKitAdapter) Handle(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := logs.FromContextWithTrace(ctx).WithValues("component", "codex-chatkit-adapter")
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
+	ctx = logr.NewContext(ctx, logger)
+	r = r.WithContext(ctx)
+
 	if r.Method != http.MethodPost {
+		logger.Info("method not allowed", "method", r.Method)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	if h.processManager != nil {
 		if err := h.processManager.EnsureStarted(r.Context()); err != nil {
+			logger.Error(err, "failed to start codex app-server")
 			http.Error(w, "failed to start codex app-server: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 	}
 
 	sessionID := extractSessionIDAndRestoreBody(r)
+	logger = logger.WithValues("sessionID", sessionID)
+	ctx = logr.NewContext(ctx, logger)
+	r = r.WithContext(ctx)
+
 	token := ""
 	if h.tokenManager != nil {
 		var err error
 		token, err = h.tokenManager.Issue(sessionID)
 		if err != nil {
+			logger.Error(err, "failed to issue codex session token")
 			http.Error(w, "failed to issue codex session token: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -70,15 +89,18 @@ func (h *ChatKitAdapter) Handle(w http.ResponseWriter, r *http.Request) {
 			BearerToken:  token,
 		}
 		if err := h.processManager.ConfigureSession(r.Context(), cfg); err != nil {
+			logger.Error(err, "failed to configure codex session")
 			http.Error(w, "failed to configure codex session: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 	}
 
 	if h.fallback == nil {
+		logger.Info("missing fallback handler")
 		http.Error(w, "codex adapter has no backing handler", http.StatusInternalServerError)
 		return
 	}
+	logger.Info("dispatching chatkit request via fallback handler")
 	h.fallback.ServeHTTP(w, r)
 }
 

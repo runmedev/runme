@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,34 +14,23 @@ import (
 	"github.com/gorilla/websocket"
 
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+
+	codexv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/codex/v1"
 
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
+	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
 
 const (
 	errCodeCodexWSAlreadyConnected = "codex_ws_already_connected"
-	requestTypeToolCall            = "notebook_tool_call_request"
-	responseTypeToolResult         = "notebook_tool_call_response"
 )
 
 var (
 	ErrBridgeUnavailable = errors.New("codex bridge websocket is not connected")
 	ErrBridgeClosed      = errors.New("codex bridge websocket closed")
 )
-
-type NotebookToolCallRequest struct {
-	Type         string          `json:"type"`
-	BridgeCallID string          `json:"bridge_call_id"`
-	Input        json.RawMessage `json:"input"`
-}
-
-type NotebookToolCallResponse struct {
-	Type         string          `json:"type"`
-	BridgeCallID string          `json:"bridge_call_id"`
-	Output       json.RawMessage `json:"output,omitempty"`
-	Error        string          `json:"error,omitempty"`
-}
 
 type pendingBridgeCall struct {
 	result chan bridgeCallResult
@@ -79,6 +69,9 @@ func NewToolBridge() *ToolBridge {
 func (b *ToolBridge) HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logs.FromContextWithTrace(ctx)
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
 	forceReplace := r.URL.Query().Get("force_replace") == "true"
 
 	b.mu.Lock()
@@ -135,6 +128,14 @@ func (b *ToolBridge) Call(ctx context.Context, input *toolsv1.ToolCallInput) (*t
 	if input.CallId == "" {
 		input.CallId = bridgeCallID
 	}
+	logger := logs.FromContextWithTrace(ctx).WithValues(
+		"bridgeCallID", bridgeCallID,
+		"tool", toolNameFromInput(input),
+		"sessionID", SessionIDFromContext(ctx),
+	)
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
 
 	pending := pendingBridgeCall{
 		result: make(chan bridgeCallResult, 1),
@@ -145,26 +146,32 @@ func (b *ToolBridge) Call(ctx context.Context, input *toolsv1.ToolCallInput) (*t
 		return nil, err
 	}
 
-	inputJSON, err := protojson.Marshal(input)
-	if err != nil {
-		return nil, err
+	req := &codexv1.WebsocketResponse{
+		Payload: &codexv1.WebsocketResponse_NotebookToolCallRequest{
+			NotebookToolCallRequest: &codexv1.NotebookToolCallRequest{
+				BridgeCallId: bridgeCallID,
+				Input:        input,
+			},
+		},
 	}
-
-	req := NotebookToolCallRequest{
-		Type:         requestTypeToolCall,
-		BridgeCallID: bridgeCallID,
-		Input:        inputJSON,
-	}
-	if err := b.writeJSON(conn, req); err != nil {
+	if err := b.writeProtoJSON(conn, req); err != nil {
 		b.unregisterPending(bridgeCallID)
+		logger.Error(err, "failed to write bridge tool call request")
 		return nil, err
 	}
+	logger.Info("dispatched bridge tool call")
 
 	select {
 	case <-ctx.Done():
 		b.unregisterPending(bridgeCallID)
+		logger.Error(ctx.Err(), "bridge tool call canceled")
 		return nil, ctx.Err()
 	case result := <-pending.result:
+		if result.err != nil {
+			logger.Error(result.err, "bridge tool call failed")
+		} else {
+			logger.Info("bridge tool call completed", "status", result.output.GetStatus().String())
+		}
 		return result.output, result.err
 	}
 }
@@ -185,62 +192,87 @@ func (b *ToolBridge) unregisterPending(bridgeCallID string) {
 	delete(b.pending, bridgeCallID)
 }
 
-func (b *ToolBridge) writeJSON(conn *websocket.Conn, payload any) error {
+func (b *ToolBridge) writeProtoJSON(conn *websocket.Conn, payload proto.Message) error {
+	data, err := protojson.Marshal(payload)
+	if err != nil {
+		return err
+	}
 	b.writeMu.Lock()
 	defer b.writeMu.Unlock()
-	return conn.WriteJSON(payload)
+	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
 func (b *ToolBridge) readLoop(ctx context.Context, conn *websocket.Conn, connSeq uint64) {
 	logger := logs.FromContext(ctx)
 	for {
-		var response NotebookToolCallResponse
-		if err := conn.ReadJSON(&response); err != nil {
-			logger.Info("codex bridge websocket disconnected", "connectionSeq", connSeq, "error", err.Error())
+		req, err := readWebsocketRequest(conn)
+		if err != nil {
+			reason := disconnectReason(err)
+			logger.Info("codex bridge websocket disconnected", "connectionSeq", connSeq, "error", err.Error(), "reason", reason)
 			b.handleDisconnect(conn, err)
 			return
 		}
+		response := req.GetNotebookToolCallResponse()
+		if response == nil {
+			continue
+		}
 
-		if response.BridgeCallID == "" {
+		if response.GetBridgeCallId() == "" {
 			logger.Info("ignoring codex bridge response without bridge_call_id")
 			continue
 		}
-		if response.Type != "" && response.Type != responseTypeToolResult {
-			logger.Info("ignoring codex bridge response with unsupported type", "type", response.Type, "bridgeCallID", response.BridgeCallID)
-			continue
-		}
+		logger.Info("received codex bridge response", "bridgeCallID", response.GetBridgeCallId())
 		b.resolvePending(response)
 	}
 }
 
-func (b *ToolBridge) resolvePending(response NotebookToolCallResponse) {
+func readWebsocketRequest(conn *websocket.Conn) (*codexv1.WebsocketRequest, error) {
+	messageType, data, err := conn.ReadMessage()
+	if err != nil {
+		return nil, err
+	}
+	msg := &codexv1.WebsocketRequest{}
+	switch messageType {
+	case websocket.TextMessage:
+		if err := protojson.Unmarshal(data, msg); err != nil {
+			return nil, err
+		}
+	case websocket.BinaryMessage:
+		if err := proto.Unmarshal(data, msg); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.New("unsupported websocket message type")
+	}
+	return msg, nil
+}
+
+func (b *ToolBridge) resolvePending(response *codexv1.NotebookToolCallResponse) {
 	b.mu.Lock()
-	pending, ok := b.pending[response.BridgeCallID]
+	pending, ok := b.pending[response.GetBridgeCallId()]
 	if ok {
-		delete(b.pending, response.BridgeCallID)
+		delete(b.pending, response.GetBridgeCallId())
 	}
 	b.mu.Unlock()
 	if !ok {
 		return
 	}
 
-	if response.Error != "" {
-		pending.result <- bridgeCallResult{err: errors.New(response.Error)}
+	if response.GetError() != "" {
+		pending.result <- bridgeCallResult{err: errors.New(response.GetError())}
 		return
 	}
-	if len(response.Output) == 0 {
+	output := response.GetOutput()
+	if output == nil {
 		pending.result <- bridgeCallResult{err: errors.New("bridge response did not include output")}
-		return
-	}
-	output := &toolsv1.ToolCallOutput{}
-	if err := protojson.Unmarshal(response.Output, output); err != nil {
-		pending.result <- bridgeCallResult{err: err}
 		return
 	}
 	pending.result <- bridgeCallResult{output: output}
 }
 
 func (b *ToolBridge) handleDisconnect(conn *websocket.Conn, connErr error) {
+	observeBridgeDisconnect(disconnectReason(connErr))
+
 	b.mu.Lock()
 	if b.conn != conn {
 		b.mu.Unlock()
@@ -265,6 +297,8 @@ func (b *ToolBridge) handleDisconnect(conn *websocket.Conn, connErr error) {
 
 // Shutdown closes the active websocket connection and fails all pending tool calls.
 func (b *ToolBridge) Shutdown() {
+	observeBridgeDisconnect(disconnectReasonShutdown)
+
 	b.mu.Lock()
 	conn := b.conn
 	b.conn = nil
@@ -278,5 +312,40 @@ func (b *ToolBridge) Shutdown() {
 	}
 	for _, p := range pending {
 		p.result <- bridgeCallResult{err: ErrBridgeClosed}
+	}
+}
+
+func toolNameFromInput(input *toolsv1.ToolCallInput) string {
+	if input == nil {
+		return ""
+	}
+	switch {
+	case input.GetListCells() != nil:
+		return "ListCells"
+	case input.GetGetCells() != nil:
+		return "GetCells"
+	case input.GetUpdateCells() != nil:
+		return "UpdateCells"
+	case input.GetExecuteCells() != nil:
+		return "ExecuteCells"
+	default:
+		return "Unknown"
+	}
+}
+
+func disconnectReason(err error) string {
+	if err == nil {
+		return disconnectReasonShutdown
+	}
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "replaced by force_replace"):
+		return disconnectReasonReplaced
+	case strings.Contains(msg, "server shutdown"):
+		return disconnectReasonShutdown
+	case websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway):
+		return disconnectReasonClient
+	default:
+		return disconnectReasonReadError
 	}
 }

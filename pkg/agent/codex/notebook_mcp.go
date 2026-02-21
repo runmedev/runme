@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -16,6 +17,8 @@ import (
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
+	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
 
 const (
@@ -97,32 +100,39 @@ func (b *NotebookMCPBridge) NewServer() *mcpserver.MCPServer {
 }
 
 func (b *NotebookMCPBridge) handleListCells(ctx context.Context, _ mcp.CallToolRequest, _ listCellsArgs) (*mcp.CallToolResult, error) {
+	logger := loggerForToolCall(ctx, "ListCells")
 	input := &toolsv1.ToolCallInput{
 		Input: &toolsv1.ToolCallInput_ListCells{
 			ListCells: &toolsv1.ListCellsRequest{},
 		},
 	}
-	output, err := b.callBridge(ctx, input)
+	output, err := b.callBridgeForTool(ctx, "ListCells", input)
 	if err != nil {
+		logger.Error(err, "failed to dispatch tool call")
 		return mcp.NewToolResultErrorFromErr("failed to dispatch ListCells over codex bridge", err), nil
 	}
+	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
 	return toolOutputToResult(output.GetListCells(), output)
 }
 
 func (b *NotebookMCPBridge) handleGetCells(ctx context.Context, _ mcp.CallToolRequest, args getCellsArgs) (*mcp.CallToolResult, error) {
+	logger := loggerForToolCall(ctx, "GetCells")
 	input := &toolsv1.ToolCallInput{
 		Input: &toolsv1.ToolCallInput_GetCells{
 			GetCells: &toolsv1.GetCellsRequest{RefIds: args.RefIDs},
 		},
 	}
-	output, err := b.callBridge(ctx, input)
+	output, err := b.callBridgeForTool(ctx, "GetCells", input)
 	if err != nil {
+		logger.Error(err, "failed to dispatch tool call")
 		return mcp.NewToolResultErrorFromErr("failed to dispatch GetCells over codex bridge", err), nil
 	}
+	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
 	return toolOutputToResult(output.GetGetCells(), output)
 }
 
 func (b *NotebookMCPBridge) handleUpdateCells(ctx context.Context, _ mcp.CallToolRequest, args updateCellsArgs) (*mcp.CallToolResult, error) {
+	logger := loggerForToolCall(ctx, "UpdateCells")
 	input := &toolsv1.ToolCallInput{
 		Input: &toolsv1.ToolCallInput_UpdateCells{
 			UpdateCells: &toolsv1.UpdateCellsRequest{
@@ -130,15 +140,20 @@ func (b *NotebookMCPBridge) handleUpdateCells(ctx context.Context, _ mcp.CallToo
 			},
 		},
 	}
-	output, err := b.callBridge(ctx, input)
+	output, err := b.callBridgeForTool(ctx, "UpdateCells", input)
 	if err != nil {
+		logger.Error(err, "failed to dispatch tool call")
 		return mcp.NewToolResultErrorFromErr("failed to dispatch UpdateCells over codex bridge", err), nil
 	}
+	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
 	return toolOutputToResult(output.GetUpdateCells(), output)
 }
 
 func (b *NotebookMCPBridge) handleExecuteCells(ctx context.Context, _ mcp.CallToolRequest, args executeCellsArgs) (*mcp.CallToolResult, error) {
+	logger := loggerForToolCall(ctx, "ExecuteCells")
 	if err := b.approver.AllowExecute(ctx, args.RefIDs); err != nil {
+		logger.Error(err, "tool call denied by execute approval gate")
+		observeMCPToolCall("ExecuteCells", 0, toolOutcomeToolErr)
 		return mcp.NewToolResultErrorFromErr("ExecuteCells requires explicit user approval", err), nil
 	}
 	input := &toolsv1.ToolCallInput{
@@ -148,10 +163,12 @@ func (b *NotebookMCPBridge) handleExecuteCells(ctx context.Context, _ mcp.CallTo
 			},
 		},
 	}
-	output, err := b.callBridge(ctx, input)
+	output, err := b.callBridgeForTool(ctx, "ExecuteCells", input)
 	if err != nil {
+		logger.Error(err, "failed to dispatch tool call")
 		return mcp.NewToolResultErrorFromErr("failed to dispatch ExecuteCells over codex bridge", err), nil
 	}
+	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
 	return toolOutputToResult(output.GetExecuteCells(), output)
 }
 
@@ -165,6 +182,24 @@ func (b *NotebookMCPBridge) callBridge(ctx context.Context, input *toolsv1.ToolC
 		}
 	}
 	return b.bridge.Call(callCtx, input)
+}
+
+func (b *NotebookMCPBridge) callBridgeForTool(ctx context.Context, tool string, input *toolsv1.ToolCallInput) (*toolsv1.ToolCallOutput, error) {
+	started := time.Now()
+	output, err := b.callBridge(ctx, input)
+	observeMCPToolCall(tool, time.Since(started), toolCallOutcome(output, err))
+	return output, err
+}
+
+func loggerForToolCall(ctx context.Context, tool string) logr.Logger {
+	logger := logs.FromContextWithTrace(ctx).WithValues("tool", tool)
+	if sid := SessionIDFromContext(ctx); sid != "" {
+		logger = logger.WithValues("sessionID", sid)
+	}
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
+	return logger
 }
 
 type denyExecuteApprover struct{}
