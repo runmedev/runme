@@ -11,10 +11,15 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
+	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
 
-const defaultShutdownTimeout = 3 * time.Second
-const defaultInitializeTimeout = 5 * time.Second
+const (
+	defaultShutdownTimeout   = 3 * time.Second
+	defaultInitializeTimeout = 5 * time.Second
+)
 
 const (
 	defaultInitializeMethod    = "initialize"
@@ -64,6 +69,12 @@ func NewProcessManager(command string, args []string, env []string) *ProcessMana
 }
 
 func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
+	start := time.Now()
+	logger := logs.FromContextWithTrace(ctx).WithValues("component", "codex-process-manager")
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
+
 	p.mu.Lock()
 	if p.cmd != nil && p.cmd.Process != nil && p.cmd.ProcessState == nil {
 		p.mu.Unlock()
@@ -78,21 +89,33 @@ func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		p.mu.Unlock()
-		return fmt.Errorf("create stdin pipe: %w", err)
+		startErr := fmt.Errorf("create stdin pipe: %w", err)
+		observeAppServerStartup(time.Since(start), startErr)
+		logger.Error(startErr, "failed to create stdin pipe")
+		return startErr
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		p.mu.Unlock()
-		return fmt.Errorf("create stdout pipe: %w", err)
+		startErr := fmt.Errorf("create stdout pipe: %w", err)
+		observeAppServerStartup(time.Since(start), startErr)
+		logger.Error(startErr, "failed to create stdout pipe")
+		return startErr
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		p.mu.Unlock()
-		return fmt.Errorf("create stderr pipe: %w", err)
+		startErr := fmt.Errorf("create stderr pipe: %w", err)
+		observeAppServerStartup(time.Since(start), startErr)
+		logger.Error(startErr, "failed to create stderr pipe")
+		return startErr
 	}
 	if err := cmd.Start(); err != nil {
 		p.mu.Unlock()
-		return fmt.Errorf("start codex app-server: %w", err)
+		startErr := fmt.Errorf("start codex app-server: %w", err)
+		observeAppServerStartup(time.Since(start), startErr)
+		logger.Error(startErr, "failed to start codex app-server process")
+		return startErr
 	}
 
 	p.cmd = cmd
@@ -113,8 +136,13 @@ func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
 	}
 	if err := client.Call(healthCtx, initializeMethod, initializeParams, nil); err != nil {
 		_ = p.Stop(context.Background())
-		return fmt.Errorf("initialize codex app-server: %w", err)
+		startErr := fmt.Errorf("initialize codex app-server: %w", err)
+		observeAppServerStartup(time.Since(start), startErr)
+		logger.Error(startErr, "codex app-server initialize call failed")
+		return startErr
 	}
+	observeAppServerStartup(time.Since(start), nil)
+	logger.Info("codex app-server started", "startupLatencyMs", time.Since(start).Milliseconds())
 	return nil
 }
 
@@ -128,6 +156,14 @@ func (p *ProcessManager) StdIO() (io.WriteCloser, io.ReadCloser, io.ReadCloser, 
 }
 
 func (p *ProcessManager) ConfigureSession(ctx context.Context, cfg SessionConfig) error {
+	logger := logs.FromContextWithTrace(ctx).WithValues(
+		"component", "codex-process-manager",
+		"sessionID", cfg.SessionID,
+	)
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
+
 	if cfg.SessionID == "" {
 		return errors.New("session id must not be empty")
 	}
@@ -147,7 +183,12 @@ func (p *ProcessManager) ConfigureSession(ctx context.Context, cfg SessionConfig
 	}
 
 	params := buildSessionConfigParams(cfg)
-	return client.Notify(ctx, method, params)
+	if err := client.Notify(ctx, method, params); err != nil {
+		logger.Error(err, "failed to send codex session configuration")
+		return err
+	}
+	logger.Info("configured codex session")
+	return nil
 }
 
 func buildSessionConfigParams(cfg SessionConfig) map[string]any {
