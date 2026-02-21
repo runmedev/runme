@@ -197,6 +197,15 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 
 // Run starts the http server
 // Cells until its shutdown.
+// BuildHandler registers services and returns the HTTP handler.
+// This can be used to serve requests in-process (e.g. for relay tunneling).
+func (s *Server) BuildHandler() (http.Handler, error) {
+	if err := s.registerServices(); err != nil {
+		return nil, err
+	}
+	return s.engine, nil
+}
+
 func (s *Server) Run() error {
 	s.shutdownComplete = make(chan bool, 1)
 	trapInterrupt(s)
