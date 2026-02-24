@@ -242,7 +242,7 @@ func Test_runnerService(t *testing.T) {
 		result := <-execResult
 
 		assert.NoError(t, result.Err)
-		assert.Equal(t, "1\r\n2\r\n", string(result.Stdout))
+		assert.Equal(t, "1\r\n2\r\n", stripKnownBashStartupNoise(string(result.Stdout)))
 		assert.EqualValues(t, 0, result.ExitCode)
 	})
 
@@ -805,7 +805,7 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 		assert.EqualValues(t, 0, result.ExitCode)
-		assert.EqualValues(t, "24\r\n80\r\n", string(result.Stdout))
+		assert.EqualValues(t, "24\r\n80\r\n", stripKnownBashStartupNoise(string(result.Stdout)))
 	})
 
 	t.Run("ExecuteWinsizeSet", func(t *testing.T) {
@@ -834,7 +834,7 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 		assert.EqualValues(t, 0, result.ExitCode)
-		assert.EqualValues(t, "64\r\n200\r\n", string(result.Stdout))
+		assert.EqualValues(t, "64\r\n200\r\n", stripKnownBashStartupNoise(string(result.Stdout)))
 	})
 
 	t.Run("ExecuteWinsizeChange", func(t *testing.T) {
@@ -871,7 +871,7 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 		assert.EqualValues(t, 0, result.ExitCode)
-		assert.EqualValues(t, "\r\n56\r\n150\r\n", string(result.Stdout))
+		assert.EqualValues(t, "\r\n56\r\n150\r\n", stripKnownBashStartupNoise(string(result.Stdout)))
 	})
 
 	t.Run("ExecuteSessionsMostRecent", func(t *testing.T) {
@@ -1031,7 +1031,7 @@ func Test_runnerService(t *testing.T) {
 			go getExecuteResult(stream, execResult)
 			result := <-execResult
 
-			assert.Equal(t, "null byte test: \000", string(result.Stdout))
+			assert.Equal(t, "null byte test: \000", stripKnownBashStartupNoise(string(result.Stdout)))
 		}
 
 		{
@@ -1054,7 +1054,7 @@ func Test_runnerService(t *testing.T) {
 			go getExecuteResult(stream, execResult)
 			result := <-execResult
 
-			assert.Equal(t, "null byte test: ", string(result.Stdout))
+			assert.Equal(t, "null byte test: ", stripKnownBashStartupNoise(string(result.Stdout)))
 		}
 	})
 

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -114,6 +115,7 @@ func Test_command(t *testing.T) {
 
 	t.Run("Clojure", func(t *testing.T) {
 		t.Parallel()
+		requireWorkingBabashka(t)
 
 		stdout := new(bytes.Buffer)
 		stderr := new(bytes.Buffer)
@@ -201,6 +203,7 @@ func Test_command(t *testing.T) {
 
 	t.Run("DenoWithArgs", func(t *testing.T) {
 		t.Parallel()
+		requireExecutable(t, "deno")
 
 		stdout := new(bytes.Buffer)
 		stderr := new(bytes.Buffer)
@@ -230,6 +233,7 @@ func Test_command(t *testing.T) {
 
 	t.Run("RustScript", func(t *testing.T) {
 		t.Parallel()
+		requireExecutable(t, "rust-script")
 
 		logger := testCreateLogger(t)
 
@@ -338,7 +342,7 @@ func Test_command(t *testing.T) {
 		require.NoError(t, cmd.Wait())
 		data, err := io.ReadAll(stdout)
 		assert.NoError(t, err)
-		assert.Equal(t, "1\r\n2\r\n", string(data))
+		assert.Equal(t, "1\r\n2\r\n", stripKnownBashStartupNoise(string(data)))
 		data, err = io.ReadAll(stderr)
 		assert.NoError(t, err)
 		assert.Equal(t, "", string(data))
@@ -445,7 +449,7 @@ func Test_command(t *testing.T) {
 		assert.NoError(t, cmd.Wait())
 		data, err := io.ReadAll(stdout)
 		assert.NoError(t, err)
-		assert.Contains(t, string(data), "hello\r\nHELLO\r\nworld\r\nWORLD\r\n")
+		assert.Contains(t, stripKnownBashStartupNoise(string(data)), "hello\r\nHELLO\r\nworld\r\nWORLD\r\n")
 		data, err = io.ReadAll(stderr)
 		assert.NoError(t, err)
 		assert.Equal(t, "", string(data))
@@ -622,7 +626,7 @@ func Test_command(t *testing.T) {
 
 		data, err := io.ReadAll(stdout)
 		assert.NoError(t, err)
-		assert.Equal(t, "200\r\n100\r\n", string(data))
+		assert.Equal(t, "200\r\n100\r\n", stripKnownBashStartupNoise(string(data)))
 	})
 }
 
@@ -700,6 +704,11 @@ func Test_Command_DetectProgramPath(t *testing.T) {
 
 			require.NoError(t, err)
 
+			if tc.LanguageID == "typescript" && tc.ProgramName == "" {
+				assertTypeScriptProgramPath(t, cmd.ProgramPath, cmd.Args)
+				return
+			}
+
 			// Check that the program path contains the expected pattern
 			assert.Contains(t, cmd.ProgramPath, tc.ExpectedProgramPathPattern,
 				"ProgramPath should contain expected pattern")
@@ -708,5 +717,22 @@ func Test_Command_DetectProgramPath(t *testing.T) {
 			assert.Equal(t, tc.ExpectedArgs, cmd.Args,
 				"Args should match expected value")
 		})
+	}
+}
+
+func assertTypeScriptProgramPath(t *testing.T, programPath string, args []string) {
+	t.Helper()
+
+	switch {
+	case strings.Contains(programPath, "ts-node"):
+		assert.Nil(t, args)
+	case strings.Contains(programPath, "deno"):
+		assert.Equal(t, []string{"run"}, args)
+	case strings.Contains(programPath, "bun"):
+		assert.Equal(t, []string{"run"}, args)
+	case strings.Contains(programPath, "cat"):
+		assert.Nil(t, args)
+	default:
+		t.Fatalf("unexpected TypeScript program resolution: programPath=%q args=%#v", programPath, args)
 	}
 }
