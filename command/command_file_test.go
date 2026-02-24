@@ -4,6 +4,7 @@ package command
 
 import (
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -65,6 +66,7 @@ func TestFileCommand(t *testing.T) {
 	// TypeScript runner requires the file extension to be .ts.
 	t.Run("TypeScript", func(t *testing.T) {
 		t.Parallel()
+		requireAnyExecutable(t, "ts-node", "deno", "bun")
 
 		cfg := &ProgramConfig{
 			LanguageId: "ts",
@@ -83,6 +85,7 @@ print("important message")
 
 	t.Run("TypeScriptWithDeno", func(t *testing.T) {
 		t.Parallel()
+		requireExecutable(t, "deno")
 
 		cfg := &ProgramConfig{
 			LanguageId:  "ts",
@@ -102,6 +105,7 @@ print("important message")
 
 	t.Run("RustScript", func(t *testing.T) {
 		t.Parallel()
+		requireExecutable(t, "rust-script")
 
 		// Rust is like Python. Envs are user-local and need to be sourced.
 		cargoEnvCfg := &ProgramConfig{
@@ -126,4 +130,21 @@ print("important message")
 
 		testExecuteCommandWithSession(t, cfg, sess, nil, "Running rust code\n", "")
 	})
+}
+
+func requireExecutable(t *testing.T, name string) {
+	t.Helper()
+	if _, err := exec.LookPath(name); err != nil {
+		t.Skipf("skipping test: %q is not available in PATH", name)
+	}
+}
+
+func requireAnyExecutable(t *testing.T, names ...string) {
+	t.Helper()
+	for _, name := range names {
+		if _, err := exec.LookPath(name); err == nil {
+			return
+		}
+	}
+	t.Skipf("skipping test: none of %v are available in PATH", names)
 }

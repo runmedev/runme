@@ -4,6 +4,7 @@ package command
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,6 +54,11 @@ func Test_InternalCommand_DetectProgramPath(t *testing.T) {
 			// Check for no error
 			require.NoError(t, err)
 
+			if tc.LanguageID == "typescript" && tc.ProgramName == "" {
+				assertTypeScriptInterpreter(t, programPath, args)
+				return
+			}
+
 			// Check that the program path contains the expected pattern
 			assert.Contains(t, programPath, tc.ExpectedProgramPathPattern,
 				"ProgramName should contain expected pattern")
@@ -61,5 +67,22 @@ func Test_InternalCommand_DetectProgramPath(t *testing.T) {
 			assert.Equal(t, tc.ExpectedArgs, args,
 				"Arguments should match expected value")
 		})
+	}
+}
+
+func assertTypeScriptInterpreter(t *testing.T, programPath string, args []string) {
+	t.Helper()
+
+	switch {
+	case strings.Contains(programPath, "ts-node"):
+		assert.Nil(t, args)
+	case strings.Contains(programPath, "deno"):
+		assert.Equal(t, []string{"run"}, args)
+	case strings.Contains(programPath, "bun"):
+		assert.Equal(t, []string{"run"}, args)
+	case strings.Contains(programPath, "cat"):
+		assert.Nil(t, args)
+	default:
+		t.Fatalf("unexpected TypeScript interpreter resolution: programPath=%q args=%#v", programPath, args)
 	}
 }
