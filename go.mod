@@ -4,7 +4,7 @@ module github.com/runmedev/runme/v3
 //   go install github.com/runmedev/runme/v3@latest
 // This ensures you get the latest v3.x.x version, not the old v1.x.x versions.
 
-go 1.25.2
+go 1.25.7
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
@@ -18,7 +18,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
-	github.com/cli/cli/v2 v2.86.0
+	github.com/cli/cli/v2 v2.87.3
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/containerd/console v1.0.5
 	github.com/creack/pty v1.1.24
