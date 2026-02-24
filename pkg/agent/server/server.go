@@ -68,6 +68,7 @@ type Server struct {
 	codexChatKit      *codex.ChatKitAdapter
 	codexBridge       *codex.ToolBridge
 	codexTokenManager *codex.SessionTokenManager
+	codexApprovals    *codex.ExecuteApprovalManager
 	codexMCPHandler   http.Handler
 	codexProcess      *codex.ProcessManager
 }
@@ -333,10 +334,12 @@ func (s *Server) registerServices() error {
 
 			codexBridge := codex.NewToolBridge()
 			codexTokenManager := codex.NewSessionTokenManager(0)
-			codexMCPHandler, err := codex.NewStreamableMCPHandler(codexBridge, codexTokenManager)
+			codexApprovals := codex.NewExecuteApprovalManager(0)
+			codexMCPHandler, err := codex.NewStreamableMCPHandler(codexBridge, codexTokenManager, codexApprovals)
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize codex notebook MCP handler")
 			}
+			codexApprovalHandler := codex.NewExecuteApprovalHTTPHandler(codexApprovals)
 			codexProcess := codex.NewProcessManager("", nil, nil)
 			codexChatKit := codex.NewChatKitAdapter(codex.ChatKitAdapterOptions{
 				Fallback:       http.HandlerFunc(chatkitHandler.Handle),
@@ -346,12 +349,14 @@ func (s *Server) registerServices() error {
 
 			s.codexBridge = codexBridge
 			s.codexTokenManager = codexTokenManager
+			s.codexApprovals = codexApprovals
 			s.codexMCPHandler = codexMCPHandler
 			s.codexProcess = codexProcess
 			s.codexChatKit = codexChatKit
 
 			mux.HandleProtected("/chatkit-codex", otelhttp.NewHandler(http.HandlerFunc(codexChatKit.Handle), "/chatkit-codex"), s.checker, api.AgentUserRole)
 			mux.HandleProtected("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"), s.checker, api.AgentUserRole)
+			mux.HandleProtected("/codex/execute-approvals", otelhttp.NewHandler(codexApprovalHandler, "/codex/execute-approvals"), s.checker, api.AgentUserRole)
 			// This endpoint is intended for local codex app-server access and is protected by per-session bearer tokens.
 			mux.Handle("/mcp/notebooks", otelhttp.NewHandler(codexMCPHandler, "/mcp/notebooks"))
 		} else {

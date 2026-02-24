@@ -11,7 +11,8 @@ import (
 func TestStreamableMCPHandler_RequiresBearerToken(t *testing.T) {
 	bridge := NewToolBridge()
 	tokens := NewSessionTokenManager(0)
-	handler, err := NewStreamableMCPHandler(bridge, tokens)
+	approvals := NewExecuteApprovalManager(0)
+	handler, err := NewStreamableMCPHandler(bridge, tokens, approvals)
 	if err != nil {
 		t.Fatalf("NewStreamableMCPHandler returned error: %v", err)
 	}
@@ -30,7 +31,8 @@ func TestStreamableMCPHandler_RequiresBearerToken(t *testing.T) {
 func TestStreamableMCPHandler_AllowsAuthorizedInitialize(t *testing.T) {
 	bridge := NewToolBridge()
 	tokens := NewSessionTokenManager(0)
-	handler, err := NewStreamableMCPHandler(bridge, tokens)
+	approvals := NewExecuteApprovalManager(0)
+	handler, err := NewStreamableMCPHandler(bridge, tokens, approvals)
 	if err != nil {
 		t.Fatalf("NewStreamableMCPHandler returned error: %v", err)
 	}
@@ -80,5 +82,13 @@ func TestParseApprovedRefIDs(t *testing.T) {
 				t.Fatalf("parseApprovedRefIDs(%q) = %#v, want %#v", tt.in, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestNewStreamableMCPHandler_RequiresApprovalManager(t *testing.T) {
+	bridge := NewToolBridge()
+	tokens := NewSessionTokenManager(0)
+	if _, err := NewStreamableMCPHandler(bridge, tokens, nil); err == nil {
+		t.Fatalf("NewStreamableMCPHandler should require an approval manager")
 	}
 }

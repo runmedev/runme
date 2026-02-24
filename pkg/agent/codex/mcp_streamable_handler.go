@@ -33,24 +33,29 @@ func approvedRefIDsFromContext(ctx context.Context) []string {
 }
 
 type StreamableMCPHandler struct {
-	inner  http.Handler
-	tokens *SessionTokenManager
+	inner     http.Handler
+	tokens    *SessionTokenManager
+	approvals *ExecuteApprovalManager
 }
 
-func NewStreamableMCPHandler(bridge *ToolBridge, tokens *SessionTokenManager) (*StreamableMCPHandler, error) {
+func NewStreamableMCPHandler(bridge *ToolBridge, tokens *SessionTokenManager, approvals *ExecuteApprovalManager) (*StreamableMCPHandler, error) {
 	if bridge == nil {
 		return nil, errors.New("bridge is nil")
 	}
 	if tokens == nil {
 		return nil, errors.New("token manager is nil")
 	}
+	if approvals == nil {
+		return nil, errors.New("execute approval manager is nil")
+	}
 	nbBridge := NewNotebookMCPBridge(bridge)
-	nbBridge.SetExecuteApprover(contextExecuteApprover{})
+	nbBridge.SetExecuteApprover(executeApprovalApprover{manager: approvals})
 	mcpServer := nbBridge.NewServer()
 	streamable := mcpserver.NewStreamableHTTPServer(mcpServer)
 	return &StreamableMCPHandler{
-		inner:  streamable,
-		tokens: tokens,
+		inner:     streamable,
+		tokens:    tokens,
+		approvals: approvals,
 	}, nil
 }
 

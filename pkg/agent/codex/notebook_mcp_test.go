@@ -96,3 +96,57 @@ func TestNotebookMCPBridge_AppliesDefaultCallTimeout(t *testing.T) {
 		t.Fatalf("bridge context should have a deadline")
 	}
 }
+
+func TestNotebookMCPBridge_ExecuteCellsUsesApprovalManager(t *testing.T) {
+	bridge := &fakeBridge{
+		nextOutput: &toolsv1.ToolCallOutput{
+			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
+			Output: &toolsv1.ToolCallOutput_ExecuteCells{
+				ExecuteCells: &toolsv1.NotebookServiceExecuteCellsResponse{},
+			},
+		},
+	}
+	approvalManager := NewExecuteApprovalManager(10 * time.Minute)
+	nb := NewNotebookMCPBridge(bridge)
+	nb.SetExecuteApprover(executeApprovalApprover{manager: approvalManager})
+	ctx := context.WithValue(context.Background(), sessionIDContextKey, "session-1")
+
+	result, err := nb.handleExecuteCells(ctx, mcp.CallToolRequest{}, executeCellsArgs{RefIDs: []string{"cell-1"}})
+	if err != nil {
+		t.Fatalf("handleExecuteCells returned error: %v", err)
+	}
+	if result == nil || !result.IsError {
+		t.Fatalf("expected ExecuteCells to be rejected before approval")
+	}
+	if bridge.callCount != 0 {
+		t.Fatalf("bridge call count = %d, want 0", bridge.callCount)
+	}
+	if pending := approvalManager.ListPending("session-1"); len(pending) != 1 {
+		t.Fatalf("pending approvals = %d, want 1", len(pending))
+	}
+
+	if err := approvalManager.Approve("session-1", []string{"cell-1"}); err != nil {
+		t.Fatalf("Approve returned error: %v", err)
+	}
+	result, err = nb.handleExecuteCells(ctx, mcp.CallToolRequest{}, executeCellsArgs{RefIDs: []string{"cell-1"}})
+	if err != nil {
+		t.Fatalf("handleExecuteCells returned error: %v", err)
+	}
+	if result == nil || result.IsError {
+		t.Fatalf("expected ExecuteCells to succeed after approval")
+	}
+	if bridge.callCount != 1 {
+		t.Fatalf("bridge call count = %d, want 1", bridge.callCount)
+	}
+
+	result, err = nb.handleExecuteCells(ctx, mcp.CallToolRequest{}, executeCellsArgs{RefIDs: []string{"cell-1"}})
+	if err != nil {
+		t.Fatalf("handleExecuteCells returned error: %v", err)
+	}
+	if result == nil || !result.IsError {
+		t.Fatalf("expected one-time approval to be consumed")
+	}
+	if bridge.callCount != 1 {
+		t.Fatalf("bridge call count = %d, want 1 after consumed approval", bridge.callCount)
+	}
+}

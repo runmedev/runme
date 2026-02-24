@@ -8,10 +8,15 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/runmedev/runme/v3/pkg/agent/ai/chatkit"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
@@ -24,6 +29,8 @@ const (
 const (
 	defaultInitializeMethod    = "initialize"
 	defaultSessionConfigMethod = "session/configure"
+	defaultTurnStartMethod     = "turn/start"
+	defaultThreadInterrupt     = "thread/interrupt"
 )
 
 type SessionConfig struct {
@@ -48,6 +55,8 @@ type ProcessManager struct {
 	initializeMethod    string
 	initializeParams    any
 	sessionConfigMethod string
+	turnStartMethod     string
+	threadInterrupt     string
 }
 
 func NewProcessManager(command string, args []string, env []string) *ProcessManager {
@@ -65,6 +74,8 @@ func NewProcessManager(command string, args []string, env []string) *ProcessMana
 		initializeMethod:    defaultInitializeMethod,
 		initializeParams:    map[string]any{},
 		sessionConfigMethod: defaultSessionConfigMethod,
+		turnStartMethod:     defaultTurnStartMethod,
+		threadInterrupt:     defaultThreadInterrupt,
 	}
 }
 
@@ -191,6 +202,55 @@ func (p *ProcessManager) ConfigureSession(ctx context.Context, cfg SessionConfig
 	return nil
 }
 
+func (p *ProcessManager) RunTurn(ctx context.Context, req TurnRequest) (*TurnResponse, error) {
+	logger := logs.FromContextWithTrace(ctx).WithValues(
+		"component", "codex-process-manager",
+		"sessionID", req.SessionID,
+		"threadID", req.ThreadID,
+	)
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
+
+	p.mu.Lock()
+	client := p.client
+	method := p.turnStartMethod
+	p.mu.Unlock()
+	if client == nil {
+		return nil, errors.New("codex process is not running")
+	}
+
+	resp := &TurnResponse{}
+	if err := client.Call(ctx, method, buildTurnParams(req), resp); err != nil {
+		logger.Error(err, "failed to execute codex turn")
+		return nil, err
+	}
+	logger.Info("codex turn completed", "eventCount", len(resp.Events), "previousResponseID", resp.PreviousResponseID)
+	return resp, nil
+}
+
+func (p *ProcessManager) Interrupt(ctx context.Context, sessionID, threadID string) error {
+	if threadID == "" {
+		return errors.New("thread id must not be empty")
+	}
+
+	p.mu.Lock()
+	client := p.client
+	method := p.threadInterrupt
+	p.mu.Unlock()
+	if client == nil {
+		return errors.New("codex process is not running")
+	}
+
+	params := map[string]any{
+		"session_id": sessionID,
+		"sessionId":  sessionID,
+		"thread_id":  threadID,
+		"threadId":   threadID,
+	}
+	return client.Notify(ctx, method, params)
+}
+
 func buildSessionConfigParams(cfg SessionConfig) map[string]any {
 	mcpServer := map[string]any{
 		"transport": map[string]any{
@@ -212,6 +272,51 @@ func buildSessionConfigParams(cfg SessionConfig) map[string]any {
 		"mcp_servers":     mcpServers,
 		"mcpServers":      mcpServers,
 	}
+}
+
+func buildTurnParams(req TurnRequest) map[string]any {
+	params := map[string]any{
+		"session_id": req.SessionID,
+		"sessionId":  req.SessionID,
+		"thread_id":  req.ThreadID,
+		"threadId":   req.ThreadID,
+	}
+	if req.PreviousResponseID != "" {
+		params["previous_response_id"] = req.PreviousResponseID
+		params["previousResponseId"] = req.PreviousResponseID
+	}
+	if req.Input != nil {
+		params["input"] = req.Input
+		params["message"] = flattenUserMessage(*req.Input)
+	}
+	if req.ToolOutput != nil {
+		params["tool_output"] = protoJSONValue(req.ToolOutput)
+		params["toolOutput"] = params["tool_output"]
+	}
+	return params
+}
+
+func protoJSONValue(message interface{ ProtoReflect() protoreflect.Message }) any {
+	data, err := protojson.Marshal(message)
+	if err != nil {
+		return map[string]any{"marshal_error": err.Error()}
+	}
+	var out any
+	if err := json.Unmarshal(data, &out); err != nil {
+		return map[string]any{"unmarshal_error": err.Error()}
+	}
+	return out
+}
+
+func flattenUserMessage(input chatkit.UserMessageInput) string {
+	parts := make([]string, 0, len(input.Content))
+	for _, item := range input.Content {
+		if item.Text == "" {
+			continue
+		}
+		parts = append(parts, item.Text)
+	}
+	return strings.TrimSpace(strings.Join(parts, "\n\n"))
 }
 
 func (p *ProcessManager) Stop(ctx context.Context) error {
