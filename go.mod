@@ -52,7 +52,7 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/spf13/viper v1.21.0
 	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915
-	github.com/vektah/gqlparser/v2 v2.5.31
+	github.com/vektah/gqlparser/v2 v2.5.32
 	github.com/xo/dburl v0.24.2
 	github.com/yuin/goldmark v1.7.16
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0
