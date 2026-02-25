@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -35,6 +36,8 @@ const (
 	defaultInitializeClientName      = "runme"
 	defaultInitializeClientVersion   = "dev"
 )
+
+const defaultThreadDeveloperInstructions = "You are working inside a Runme notebook. When asked to inspect or modify the notebook, use the runme-notebooks MCP tools (ListCells, GetCells, UpdateCells) instead of only describing the change. Use ListCells first to inspect the current notebook before editing cells."
 
 type SessionConfig struct {
 	SessionID    string
@@ -233,6 +236,7 @@ func (p *ProcessManager) RunTurn(ctx context.Context, req TurnRequest) (*TurnRes
 	client := p.client
 	threadStartMethod := p.threadStartMethod
 	turnStartMethod := p.turnStartMethod
+	sessionCfg, hasSessionCfg := p.sessionConfigs[req.SessionID]
 	p.mu.Unlock()
 	if client == nil {
 		return nil, errors.New("codex process is not running")
@@ -241,7 +245,7 @@ func (p *ProcessManager) RunTurn(ctx context.Context, req TurnRequest) (*TurnRes
 	threadID := req.ThreadID
 	if threadID == "" {
 		startResp := &threadStartResponse{}
-		if err := client.Call(ctx, threadStartMethod, buildThreadStartParams(SessionConfig{}, false), startResp); err != nil {
+		if err := client.Call(ctx, threadStartMethod, buildThreadStartParams(sessionCfg, hasSessionCfg), startResp); err != nil {
 			logger.Error(err, "failed to start codex thread")
 			return nil, err
 		}
@@ -330,7 +334,7 @@ func buildSessionConfigParams(cfg SessionConfig) map[string]any {
 
 func buildMCPServersConfig(cfg SessionConfig) map[string]any {
 	mcpServer := map[string]any{
-		"url": cfg.MCPServerURL,
+		"url": sessionScopedMCPServerURL(cfg),
 	}
 	mcpServers := map[string]any{
 		"runme-notebooks": mcpServer,
@@ -338,9 +342,26 @@ func buildMCPServersConfig(cfg SessionConfig) map[string]any {
 	return mcpServers
 }
 
+func sessionScopedMCPServerURL(cfg SessionConfig) string {
+	baseURL := strings.TrimSpace(cfg.MCPServerURL)
+	if baseURL == "" || strings.TrimSpace(cfg.BearerToken) == "" {
+		return baseURL
+	}
+
+	parsed, err := url.Parse(baseURL)
+	if err != nil {
+		return baseURL
+	}
+	query := parsed.Query()
+	query.Set(sessionTokenQueryParam, cfg.BearerToken)
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
+}
+
 func buildThreadStartParams(cfg SessionConfig, includeConfig bool) map[string]any {
 	params := map[string]any{
-		"approvalPolicy": "never",
+		"approvalPolicy":        "never",
+		"developerInstructions": defaultThreadDeveloperInstructions,
 	}
 	if includeConfig {
 		params["config"] = buildSessionConfigParams(cfg)

@@ -26,6 +26,7 @@ func SessionIDFromContext(ctx context.Context) string {
 }
 
 const executeApprovalHeader = "X-Runme-Codex-Execute-Approved"
+const sessionTokenQueryParam = "session_token"
 
 func approvedRefIDsFromContext(ctx context.Context) []string {
 	ids, _ := ctx.Value(approvedRefIDsContextKey).([]string)
@@ -79,19 +80,32 @@ func (h *StreamableMCPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *StreamableMCPHandler) authenticate(r *http.Request) (string, error) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", errors.New("missing Authorization header")
-	}
-	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-		return "", errors.New("authorization must use bearer token")
-	}
-	token := strings.TrimSpace(parts[1])
-	if token == "" {
-		return "", errors.New("bearer token is empty")
+	token, err := extractBearerToken(r)
+	if err != nil {
+		return "", err
 	}
 	return h.tokens.Validate(token)
+}
+
+func extractBearerToken(r *http.Request) (string, error) {
+	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+	if authHeader != "" {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+			return "", errors.New("authorization must use bearer token")
+		}
+		token := strings.TrimSpace(parts[1])
+		if token == "" {
+			return "", errors.New("bearer token is empty")
+		}
+		return token, nil
+	}
+
+	token := strings.TrimSpace(r.URL.Query().Get(sessionTokenQueryParam))
+	if token != "" {
+		return token, nil
+	}
+	return "", errors.New("missing bearer token")
 }
 
 func parseApprovedRefIDs(raw string) []string {

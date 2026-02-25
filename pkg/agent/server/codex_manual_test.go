@@ -15,22 +15,31 @@ import (
 	"net/http/httptest"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 	"testing/fstest"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
+	codexv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/codex/v1"
+	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
+	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/api"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 )
 
 // Test_Manual_CodexChatKitSmoke exists to speed up manual backend iteration for codex integration.
-// It starts a fake OIDC issuer and a real Runme server in-process, then sends a /chatkit-codex
-// request ("Write hello world in python") and fails with full response diagnostics if the turn path breaks.
+// It starts a fake OIDC issuer and a real Runme server in-process, opens a real /codex/ws bridge
+// connection that serves notebook tool calls in memory, then sends a /chatkit-codex request that
+// must use notebook MCP tools to add a cell. It fails with full response diagnostics if either the
+// codex turn path or notebook tool bridge path breaks.
 func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	SkipIfMissing(t, "RUN_MANUAL_TESTS")
 	runmeLogs := installManualTestLogger(t)
@@ -42,7 +51,7 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	const (
 		clientID = "manual-codex-client"
 		email    = "codex-manual@example.com"
-		prompt   = "Write hello world in python"
+		prompt   = "Use the runme-notebooks tools to inspect the current notebook and add a new markdown cell with the exact text 'Hello from Codex notebook tool call'. Do not execute any cells."
 	)
 
 	fakeOIDC := newManualFakeOIDC(t, clientID, email)
@@ -140,6 +149,19 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 		t.Fatalf("server did not become ready: %v", err)
 	}
 
+	notebookBridge := newManualNotebookBridge()
+	wsURL := "ws" + strings.TrimPrefix(baseURL, "http") + "/codex/ws"
+	wsHeader := http.Header{}
+	wsHeader.Set("Authorization", "Bearer "+idToken)
+	wsConn, _, err := websocket.DefaultDialer.Dial(wsURL, wsHeader)
+	if err != nil {
+		t.Fatalf("failed to connect codex websocket bridge: %v", err)
+	}
+	defer wsConn.Close()
+
+	wsErrCh := make(chan error, 1)
+	go notebookBridge.serve(wsConn, wsErrCh)
+
 	body, err := json.Marshal(map[string]any{
 		"type": "threads.create",
 		"chatkit_state": map[string]any{
@@ -183,6 +205,12 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	}
 	respText := string(respBody)
 
+	select {
+	case err := <-wsErrCh:
+		t.Fatalf("codex websocket bridge failed: %v\nrunme logs:\n%s", err, runmeLogs.String())
+	default:
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("chatkit-codex status %d; body: %s\nrunme logs:\n%s", resp.StatusCode, respText, runmeLogs.String())
 	}
@@ -196,6 +224,17 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	}
 	if !strings.Contains(respText, `"type":"thread.item.added"`) {
 		t.Fatalf("chatkit-codex response missing assistant item event; body: %s\nrunme logs:\n%s", respText, runmeLogs.String())
+	}
+
+	listCalls, getCalls, updateCalls := notebookBridge.callCounts()
+	if listCalls+getCalls == 0 {
+		t.Fatalf("expected codex to inspect notebook before editing; counts list=%d get=%d update=%d\nbody: %s\nrunme logs:\n%s", listCalls, getCalls, updateCalls, respText, runmeLogs.String())
+	}
+	if updateCalls == 0 {
+		t.Fatalf("expected codex to invoke UpdateCells; counts list=%d get=%d update=%d\nbody: %s\nrunme logs:\n%s", listCalls, getCalls, updateCalls, respText, runmeLogs.String())
+	}
+	if !notebookBridge.containsCellValue("Hello from Codex notebook tool call") {
+		t.Fatalf("expected notebook bridge state to contain inserted cell; cells=%#v\nbody: %s\nrunme logs:\n%s", notebookBridge.snapshotCells(), respText, runmeLogs.String())
 	}
 }
 
@@ -262,7 +301,13 @@ func newManualFakeOIDC(t *testing.T, clientID, email string) *manualFakeOIDC {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	fake.server = httptest.NewServer(mux)
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to start fake OIDC listener: %v", err)
+	}
+	fake.server = httptest.NewUnstartedServer(mux)
+	fake.server.Listener = listener
+	fake.server.Start()
 	fake.issuerURL = fake.server.URL
 	t.Cleanup(fake.server.Close)
 	return fake
@@ -343,4 +388,243 @@ func installManualTestLogger(t *testing.T) *bytes.Buffer {
 		}
 	})
 	return logBuf
+}
+
+type manualNotebookBridge struct {
+	mu          sync.Mutex
+	cells       []*parserv1.Cell
+	listCalls   int
+	getCalls    int
+	updateCalls int
+	nextID      int
+}
+
+func newManualNotebookBridge() *manualNotebookBridge {
+	return &manualNotebookBridge{
+		cells: []*parserv1.Cell{
+			{
+				RefId: "intro-cell",
+				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
+				Value: "Notebook setup notes",
+			},
+			{
+				RefId:      "seed-code",
+				Kind:       parserv1.CellKind_CELL_KIND_CODE,
+				LanguageId: "python",
+				Value:      "print('seed cell')",
+			},
+		},
+		nextID: 1,
+	}
+}
+
+func (b *manualNotebookBridge) serve(conn *websocket.Conn, errCh chan<- error) {
+	for {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+				return
+			}
+			select {
+			case errCh <- err:
+			default:
+			}
+			return
+		}
+
+		req := &codexv1.WebsocketResponse{}
+		if err := protojson.Unmarshal(message, req); err != nil {
+			select {
+			case errCh <- fmt.Errorf("unmarshal websocket request: %w", err):
+			default:
+			}
+			return
+		}
+
+		toolReq := req.GetNotebookToolCallRequest()
+		if toolReq == nil {
+			continue
+		}
+
+		resp, err := b.handleToolCall(toolReq)
+		if err != nil {
+			select {
+			case errCh <- err:
+			default:
+			}
+			return
+		}
+
+		payload, err := protojson.Marshal(resp)
+		if err != nil {
+			select {
+			case errCh <- fmt.Errorf("marshal websocket response: %w", err):
+			default:
+			}
+			return
+		}
+		if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+			select {
+			case errCh <- fmt.Errorf("write websocket response: %w", err):
+			default:
+			}
+			return
+		}
+	}
+}
+
+func (b *manualNotebookBridge) handleToolCall(req *codexv1.NotebookToolCallRequest) (*codexv1.WebsocketRequest, error) {
+	if req.GetBridgeCallId() == "" {
+		return nil, fmt.Errorf("bridge request missing bridge_call_id")
+	}
+	input := req.GetInput()
+	if input == nil {
+		return nil, fmt.Errorf("bridge request missing input")
+	}
+
+	output, err := b.toolOutputForInput(req.GetBridgeCallId(), input)
+	if err != nil {
+		return nil, err
+	}
+	return &codexv1.WebsocketRequest{
+		Payload: &codexv1.WebsocketRequest_NotebookToolCallResponse{
+			NotebookToolCallResponse: &codexv1.NotebookToolCallResponse{
+				BridgeCallId: req.GetBridgeCallId(),
+				Output:       output,
+			},
+		},
+	}, nil
+}
+
+func (b *manualNotebookBridge) toolOutputForInput(callID string, input *toolsv1.ToolCallInput) (*toolsv1.ToolCallOutput, error) {
+	switch {
+	case input.GetListCells() != nil:
+		b.mu.Lock()
+		b.listCalls++
+		cells := cloneManualCells(b.cells)
+		b.mu.Unlock()
+		return &toolsv1.ToolCallOutput{
+			CallId: callID,
+			Output: &toolsv1.ToolCallOutput_ListCells{
+				ListCells: &toolsv1.ListCellsResponse{Cells: cells},
+			},
+			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
+		}, nil
+	case input.GetGetCells() != nil:
+		b.mu.Lock()
+		b.getCalls++
+		cells := b.getCellsLocked(input.GetGetCells().GetRefIds())
+		b.mu.Unlock()
+		return &toolsv1.ToolCallOutput{
+			CallId: callID,
+			Output: &toolsv1.ToolCallOutput_GetCells{
+				GetCells: &toolsv1.GetCellsResponse{Cells: cells},
+			},
+			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
+		}, nil
+	case input.GetUpdateCells() != nil:
+		b.mu.Lock()
+		b.updateCalls++
+		updated := b.applyUpdateLocked(input.GetUpdateCells().GetCells())
+		b.mu.Unlock()
+		return &toolsv1.ToolCallOutput{
+			CallId: callID,
+			Output: &toolsv1.ToolCallOutput_UpdateCells{
+				UpdateCells: &toolsv1.UpdateCellsResponse{Cells: updated},
+			},
+			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
+		}, nil
+	case input.GetExecuteCells() != nil:
+		return &toolsv1.ToolCallOutput{
+			CallId: callID,
+			Output: &toolsv1.ToolCallOutput_ExecuteCells{
+				ExecuteCells: &toolsv1.NotebookServiceExecuteCellsResponse{},
+			},
+			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported tool call payload %T", input.GetInput())
+	}
+}
+
+func (b *manualNotebookBridge) getCellsLocked(refIDs []string) []*parserv1.Cell {
+	if len(refIDs) == 0 {
+		return cloneManualCells(b.cells)
+	}
+
+	cells := make([]*parserv1.Cell, 0, len(refIDs))
+	for _, refID := range refIDs {
+		for _, cell := range b.cells {
+			if cell.GetRefId() != refID {
+				continue
+			}
+			cells = append(cells, cloneManualCell(cell))
+			break
+		}
+	}
+	return cells
+}
+
+func (b *manualNotebookBridge) applyUpdateLocked(incoming []*parserv1.Cell) []*parserv1.Cell {
+	updated := make([]*parserv1.Cell, 0, len(incoming))
+	for _, cell := range incoming {
+		next := cloneManualCell(cell)
+		if strings.TrimSpace(next.GetRefId()) == "" {
+			next.RefId = fmt.Sprintf("manual-cell-%d", b.nextID)
+			b.nextID++
+		}
+		replaced := false
+		for i, existing := range b.cells {
+			if existing.GetRefId() != next.GetRefId() {
+				continue
+			}
+			b.cells[i] = next
+			replaced = true
+			break
+		}
+		if !replaced {
+			b.cells = append(b.cells, next)
+		}
+		updated = append(updated, cloneManualCell(next))
+	}
+	return updated
+}
+
+func (b *manualNotebookBridge) callCounts() (listCalls, getCalls, updateCalls int) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.listCalls, b.getCalls, b.updateCalls
+}
+
+func (b *manualNotebookBridge) containsCellValue(value string) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	for _, cell := range b.cells {
+		if strings.Contains(cell.GetValue(), value) {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *manualNotebookBridge) snapshotCells() []*parserv1.Cell {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return cloneManualCells(b.cells)
+}
+
+func cloneManualCells(cells []*parserv1.Cell) []*parserv1.Cell {
+	out := make([]*parserv1.Cell, 0, len(cells))
+	for _, cell := range cells {
+		out = append(out, cloneManualCell(cell))
+	}
+	return out
+}
+
+func cloneManualCell(cell *parserv1.Cell) *parserv1.Cell {
+	if cell == nil {
+		return nil
+	}
+	clone, _ := proto.Clone(cell).(*parserv1.Cell)
+	return clone
 }

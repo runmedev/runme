@@ -3,6 +3,7 @@ package codex
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -106,8 +107,19 @@ func TestProcessManager_MarshalSessionConfigIncludesApprovalPolicyAndMCPURL(t *t
 	if !ok {
 		t.Fatalf("mcp_servers.runme-notebooks type = %T, want map[string]any", mcpServers["runme-notebooks"])
 	}
-	if server["url"] != "http://localhost/mcp/notebooks" {
-		t.Fatalf("mcp_servers.runme-notebooks.url = %v, want http://localhost/mcp/notebooks", server["url"])
+	urlValue, ok := server["url"].(string)
+	if !ok {
+		t.Fatalf("mcp_servers.runme-notebooks.url type = %T, want string", server["url"])
+	}
+	parsedURL, err := url.Parse(urlValue)
+	if err != nil {
+		t.Fatalf("Parse url: %v", err)
+	}
+	if parsedURL.Scheme != "http" || parsedURL.Host != "localhost" || parsedURL.Path != "/mcp/notebooks" {
+		t.Fatalf("mcp_servers.runme-notebooks.url = %q, want http://localhost/mcp/notebooks with optional query", urlValue)
+	}
+	if got := parsedURL.Query().Get(sessionTokenQueryParam); got != "token-1" {
+		t.Fatalf("mcp_servers.runme-notebooks.url missing session token query: got %q", got)
 	}
 }
 
@@ -163,6 +175,28 @@ func TestBuildThreadStartParamsIncludesConfig(t *testing.T) {
 	}
 	if config["approval_policy"] != "never" {
 		t.Fatalf("config.approval_policy = %v, want never", config["approval_policy"])
+	}
+	if params["developerInstructions"] != defaultThreadDeveloperInstructions {
+		t.Fatalf("developerInstructions = %v, want %q", params["developerInstructions"], defaultThreadDeveloperInstructions)
+	}
+	mcpServers, ok := config["mcp_servers"].(map[string]any)
+	if !ok {
+		t.Fatalf("config.mcp_servers type = %T, want map[string]any", config["mcp_servers"])
+	}
+	server, ok := mcpServers["runme-notebooks"].(map[string]any)
+	if !ok {
+		t.Fatalf("config.mcp_servers.runme-notebooks type = %T, want map[string]any", mcpServers["runme-notebooks"])
+	}
+	urlValue, ok := server["url"].(string)
+	if !ok {
+		t.Fatalf("config.mcp_servers.runme-notebooks.url type = %T, want string", server["url"])
+	}
+	parsedURL, err := url.Parse(urlValue)
+	if err != nil {
+		t.Fatalf("Parse url: %v", err)
+	}
+	if got := parsedURL.Query().Get(sessionTokenQueryParam); got != "token-1" {
+		t.Fatalf("config.mcp_servers.runme-notebooks.url missing session token query: got %q", got)
 	}
 }
 
@@ -228,6 +262,55 @@ func TestProcessManager_RunTurnStartsThreadWhenMissing(t *testing.T) {
 	methods := waitForCapturedMethods(t, captureFile, 2*time.Second)
 	if !containsMethod(methods, defaultThreadStartMethod) {
 		t.Fatalf("captured methods %v do not include %q", methods, defaultThreadStartMethod)
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		requests, err := readCapturedRequests(captureFile)
+		if err == nil {
+			for _, captured := range requests {
+				method, _ := captured["method"].(string)
+				if method != defaultThreadStartMethod {
+					continue
+				}
+
+				params, ok := captured["params"].(map[string]any)
+				if !ok {
+					t.Fatalf("thread/start params type = %T, want map[string]any", captured["params"])
+				}
+				if params["developerInstructions"] != defaultThreadDeveloperInstructions {
+					t.Fatalf("thread/start developerInstructions = %v, want %q", params["developerInstructions"], defaultThreadDeveloperInstructions)
+				}
+				config, ok := params["config"].(map[string]any)
+				if !ok {
+					t.Fatalf("thread/start config type = %T, want map[string]any", params["config"])
+				}
+				mcpServers, ok := config["mcp_servers"].(map[string]any)
+				if !ok {
+					t.Fatalf("thread/start mcp_servers type = %T, want map[string]any", config["mcp_servers"])
+				}
+				server, ok := mcpServers["runme-notebooks"].(map[string]any)
+				if !ok {
+					t.Fatalf("thread/start mcp_servers.runme-notebooks type = %T, want map[string]any", mcpServers["runme-notebooks"])
+				}
+				urlValue, ok := server["url"].(string)
+				if !ok {
+					t.Fatalf("thread/start mcp_servers.runme-notebooks.url type = %T, want string", server["url"])
+				}
+				parsedURL, err := url.Parse(urlValue)
+				if err != nil {
+					t.Fatalf("thread/start mcp url parse failed: %v", err)
+				}
+				if got := parsedURL.Query().Get(sessionTokenQueryParam); got != "token-1" {
+					t.Fatalf("thread/start mcp url missing session token query: got %q", got)
+				}
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for captured thread/start request details")
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 
