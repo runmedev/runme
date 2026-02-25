@@ -68,3 +68,6 @@ api/gen/proto/es/package*.json
 
 # These files keep getting produced by codex running the tests
 runner/.runme-script-*
+
+# Local build caches created during sandboxed test runs
+.cache/

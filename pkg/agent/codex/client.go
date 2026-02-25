@@ -17,11 +17,18 @@ type jsonRPCRequest struct {
 	Params  any    `json:"params,omitempty"`
 }
 
-type jsonRPCResponse struct {
+type jsonRPCMessage struct {
 	JSONRPC string          `json:"jsonrpc"`
-	ID      int64           `json:"id"`
+	ID      *int64          `json:"id,omitempty"`
+	Method  string          `json:"method,omitempty"`
+	Params  json.RawMessage `json:"params,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
 	Error   *jsonRPCError   `json:"error,omitempty"`
+}
+
+type jsonRPCNotification struct {
+	Method string
+	Params json.RawMessage
 }
 
 type jsonRPCError struct {
@@ -68,6 +75,17 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 }
 
 func (c *Client) Call(ctx context.Context, method string, params any, result any) error {
+	return c.CallUntil(ctx, method, params, result, nil, nil)
+}
+
+func (c *Client) CallUntil(
+	ctx context.Context,
+	method string,
+	params any,
+	result any,
+	onNotification func(jsonRPCNotification) error,
+	isDone func() bool,
+) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -85,27 +103,54 @@ func (c *Client) Call(ctx context.Context, method string, params any, result any
 		return err
 	}
 
+	responseSeen := false
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		resp := &jsonRPCResponse{}
-		if err := c.dec.Decode(resp); err != nil {
+		msg := &jsonRPCMessage{}
+		if err := c.dec.Decode(msg); err != nil {
 			return err
 		}
-		// Ignore unrelated messages while waiting for our response.
-		if resp.ID != reqID {
+
+		if msg.Method != "" && msg.ID == nil {
+			if onNotification != nil {
+				if err := onNotification(jsonRPCNotification{
+					Method: msg.Method,
+					Params: msg.Params,
+				}); err != nil {
+					return err
+				}
+			}
+			if responseSeen && (isDone == nil || isDone()) {
+				return nil
+			}
 			continue
 		}
-		if resp.Error != nil {
-			return resp.Error
+
+		// Ignore unrelated messages while waiting for our response.
+		if msg.ID == nil || *msg.ID != reqID {
+			continue
+		}
+		if msg.Error != nil {
+			return msg.Error
 		}
 		if result == nil {
-			return nil
+			responseSeen = true
+			if isDone == nil || isDone() {
+				return nil
+			}
+			continue
 		}
-		if len(resp.Result) == 0 {
+		if len(msg.Result) == 0 {
 			return errors.New("jsonrpc response missing result")
 		}
-		return json.Unmarshal(resp.Result, result)
+		if err := json.Unmarshal(msg.Result, result); err != nil {
+			return err
+		}
+		responseSeen = true
+		if isDone == nil || isDone() {
+			return nil
+		}
 	}
 }

@@ -104,6 +104,9 @@ func TestChatKitAdapter_ThreadsCreateStreamsCodexTurn(t *testing.T) {
 	if fakePM.lastTurnRequest.Input == nil {
 		t.Fatalf("expected input to be passed to RunTurn")
 	}
+	if fakePM.lastTurnRequest.ThreadID != "" {
+		t.Fatalf("threads.create should not set ThreadID; got %q", fakePM.lastTurnRequest.ThreadID)
+	}
 	events := decodeSSEPayloads(t, rr.Body.String())
 	if len(events) != 6 {
 		t.Fatalf("event count = %d, want 6; body=%s", len(events), rr.Body.String())

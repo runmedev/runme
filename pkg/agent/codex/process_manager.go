@@ -27,9 +27,10 @@ const (
 
 const (
 	defaultInitializeMethod          = "initialize"
-	defaultSessionConfigMethod       = "session/configure"
+	defaultThreadStartMethod         = "thread/start"
+	defaultThreadReadMethod          = "thread/read"
 	defaultTurnStartMethod           = "turn/start"
-	defaultThreadInterrupt           = "thread/interrupt"
+	defaultTurnInterrupt             = "turn/interrupt"
 	defaultInitializeProtocolVersion = "2025-03-26"
 	defaultInitializeClientName      = "runme"
 	defaultInitializeClientVersion   = "dev"
@@ -53,12 +54,15 @@ type ProcessManager struct {
 	stdout io.ReadCloser
 	stderr io.ReadCloser
 
-	client              *Client
-	initializeMethod    string
-	initializeParams    any
-	sessionConfigMethod string
-	turnStartMethod     string
-	threadInterrupt     string
+	client            *Client
+	initializeMethod  string
+	initializeParams  any
+	threadStartMethod string
+	threadReadMethod  string
+	turnStartMethod   string
+	turnInterrupt     string
+	sessionConfigs    map[string]SessionConfig
+	lastTurnIDs       map[string]string
 }
 
 func NewProcessManager(command string, args []string, env []string) *ProcessManager {
@@ -73,11 +77,14 @@ func NewProcessManager(command string, args []string, env []string) *ProcessMana
 		args:    append([]string(nil), args...),
 		env:     append([]string(nil), env...),
 
-		initializeMethod:    defaultInitializeMethod,
-		initializeParams:    defaultInitializeParams(),
-		sessionConfigMethod: defaultSessionConfigMethod,
-		turnStartMethod:     defaultTurnStartMethod,
-		threadInterrupt:     defaultThreadInterrupt,
+		initializeMethod:  defaultInitializeMethod,
+		initializeParams:  defaultInitializeParams(),
+		threadStartMethod: defaultThreadStartMethod,
+		threadReadMethod:  defaultThreadReadMethod,
+		turnStartMethod:   defaultTurnStartMethod,
+		turnInterrupt:     defaultTurnInterrupt,
+		sessionConfigs:    make(map[string]SessionConfig, 4),
+		lastTurnIDs:       make(map[string]string, 16),
 	}
 }
 
@@ -200,17 +207,14 @@ func (p *ProcessManager) ConfigureSession(ctx context.Context, cfg SessionConfig
 
 	p.mu.Lock()
 	client := p.client
-	method := p.sessionConfigMethod
+	if client != nil {
+		p.sessionConfigs[cfg.SessionID] = cfg
+	}
 	p.mu.Unlock()
 	if client == nil {
 		return errors.New("codex process is not running")
 	}
 
-	params := buildSessionConfigParams(cfg)
-	if err := client.Notify(ctx, method, params); err != nil {
-		logger.Error(err, "failed to send codex session configuration")
-		return err
-	}
 	logger.Info("configured codex session")
 	return nil
 }
@@ -227,87 +231,128 @@ func (p *ProcessManager) RunTurn(ctx context.Context, req TurnRequest) (*TurnRes
 
 	p.mu.Lock()
 	client := p.client
-	method := p.turnStartMethod
+	threadStartMethod := p.threadStartMethod
+	turnStartMethod := p.turnStartMethod
 	p.mu.Unlock()
 	if client == nil {
 		return nil, errors.New("codex process is not running")
 	}
 
-	resp := &TurnResponse{}
-	if err := client.Call(ctx, method, buildTurnParams(req), resp); err != nil {
+	threadID := req.ThreadID
+	if threadID == "" {
+		startResp := &threadStartResponse{}
+		if err := client.Call(ctx, threadStartMethod, buildThreadStartParams(SessionConfig{}, false), startResp); err != nil {
+			logger.Error(err, "failed to start codex thread")
+			return nil, err
+		}
+		threadID = strings.TrimSpace(startResp.Thread.ID)
+		if threadID == "" {
+			return nil, errors.New("thread/start response missing thread id")
+		}
+	}
+
+	notifications := make([]jsonRPCNotification, 0, 16)
+	startTurnResp := &turnStartResponse{}
+	if err := client.CallUntil(
+		ctx,
+		turnStartMethod,
+		buildTurnParams(req, threadID),
+		startTurnResp,
+		func(note jsonRPCNotification) error {
+			notifications = append(notifications, note)
+			return nil
+		},
+		func() bool {
+			return turnNotificationsComplete(notifications, startTurnResp.Turn.ID)
+		},
+	); err != nil {
 		logger.Error(err, "failed to execute codex turn")
 		return nil, err
 	}
+
+	turnID := strings.TrimSpace(startTurnResp.Turn.ID)
+	if turnID != "" {
+		p.mu.Lock()
+		p.lastTurnIDs[threadID] = turnID
+		p.mu.Unlock()
+	}
+
+	resp := &TurnResponse{
+		ThreadID:           threadID,
+		PreviousResponseID: turnID,
+	}
+	completion := turnCompletionFromNotifications(notifications, turnID)
+	if completion.Status == "failed" {
+		msg := strings.TrimSpace(completion.Error.Message)
+		if msg == "" {
+			msg = "codex turn failed"
+		}
+		return nil, errors.New(msg)
+	}
+	resp.Events = extractTurnEventsFromNotifications(notifications, turnID)
 	logger.Info("codex turn completed", "eventCount", len(resp.Events), "previousResponseID", resp.PreviousResponseID)
 	return resp, nil
 }
 
 func (p *ProcessManager) Interrupt(ctx context.Context, sessionID, threadID string) error {
+	_ = sessionID
 	if threadID == "" {
 		return errors.New("thread id must not be empty")
 	}
 
 	p.mu.Lock()
 	client := p.client
-	method := p.threadInterrupt
+	method := p.turnInterrupt
+	turnID := p.lastTurnIDs[threadID]
 	p.mu.Unlock()
 	if client == nil {
 		return errors.New("codex process is not running")
 	}
+	if turnID == "" {
+		return errors.New("turn id must not be empty")
+	}
 
 	params := map[string]any{
-		"session_id": sessionID,
-		"sessionId":  sessionID,
-		"thread_id":  threadID,
-		"threadId":   threadID,
+		"threadId": threadID,
+		"turnId":   turnID,
 	}
-	return client.Notify(ctx, method, params)
+	return client.Call(ctx, method, params, nil)
 }
 
 func buildSessionConfigParams(cfg SessionConfig) map[string]any {
+	return map[string]any{
+		"approval_policy": "never",
+		"approvalPolicy":  "never",
+		"mcp_servers":     buildMCPServersConfig(cfg),
+		"mcpServers":      buildMCPServersConfig(cfg),
+	}
+}
+
+func buildMCPServersConfig(cfg SessionConfig) map[string]any {
 	mcpServer := map[string]any{
-		"transport": map[string]any{
-			"type": "streamable_http",
-			"url":  cfg.MCPServerURL,
-		},
-		"headers": map[string]any{
-			"Authorization": "Bearer " + cfg.BearerToken,
-		},
+		"url": cfg.MCPServerURL,
 	}
 	mcpServers := map[string]any{
 		"runme-notebooks": mcpServer,
 	}
-	return map[string]any{
-		"session_id":      cfg.SessionID,
-		"sessionId":       cfg.SessionID,
-		"approval_policy": "never",
-		"approvalPolicy":  "never",
-		"mcp_servers":     mcpServers,
-		"mcpServers":      mcpServers,
-	}
+	return mcpServers
 }
 
-func buildTurnParams(req TurnRequest) map[string]any {
+func buildThreadStartParams(cfg SessionConfig, includeConfig bool) map[string]any {
 	params := map[string]any{
-		"session_id": req.SessionID,
-		"sessionId":  req.SessionID,
-		"thread_id":  req.ThreadID,
-		"threadId":   req.ThreadID,
+		"approvalPolicy": "never",
 	}
-	if req.PreviousResponseID != "" {
-		params["previous_response_id"] = req.PreviousResponseID
-		params["previousResponseId"] = req.PreviousResponseID
+	if includeConfig {
+		params["config"] = buildSessionConfigParams(cfg)
 	}
+	return params
+}
 
+func buildTurnParams(req TurnRequest, threadID string) map[string]any {
 	input := buildTurnInput(req)
-	if len(input) > 0 {
-		params["input"] = input
-		params["message"] = flattenTurnInput(input)
-	}
-	if req.ToolOutput != nil {
-		toolOutput := protoJSONValue(req.ToolOutput)
-		params["tool_output"] = toolOutput
-		params["toolOutput"] = toolOutput
+	params := map[string]any{
+		"threadId": threadID,
+		"input":    input,
 	}
 	return params
 }
@@ -342,6 +387,221 @@ func buildTurnInput(req TurnRequest) []map[string]any {
 	return out
 }
 
+type threadStartResponse struct {
+	Thread struct {
+		ID string `json:"id"`
+	} `json:"thread"`
+}
+
+type turnStartResponse struct {
+	Turn struct {
+		ID string `json:"id"`
+	} `json:"turn"`
+}
+
+type threadReadResponse struct {
+	Thread struct {
+		Turns []codexTurn `json:"turns"`
+	} `json:"thread"`
+}
+
+type codexTurn struct {
+	ID     string          `json:"id"`
+	Status string          `json:"status"`
+	Items  []codexTurnItem `json:"items"`
+	Error  codexTurnError  `json:"error"`
+}
+
+type codexTurnError struct {
+	Message string `json:"message"`
+}
+
+type codexTurnItem struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type itemCompletedNotification struct {
+	ThreadID string        `json:"threadId"`
+	TurnID   string        `json:"turnId"`
+	Item     codexTurnItem `json:"item"`
+}
+
+type agentMessageDeltaNotification struct {
+	Delta    string `json:"delta"`
+	ItemID   string `json:"itemId"`
+	ThreadID string `json:"threadId"`
+	TurnID   string `json:"turnId"`
+}
+
+type turnCompletedNotification struct {
+	ThreadID string    `json:"threadId"`
+	Turn     codexTurn `json:"turn"`
+}
+
+func selectTurn(turns []codexTurn, turnID string) (codexTurn, bool) {
+	if len(turns) == 0 {
+		return codexTurn{}, false
+	}
+	if turnID != "" {
+		for _, turn := range turns {
+			if turn.ID == turnID {
+				return turn, true
+			}
+		}
+	}
+	return turns[len(turns)-1], true
+}
+
+func extractTurnEvents(items []codexTurnItem) []TurnEvent {
+	events := make([]TurnEvent, 0, len(items))
+	for _, item := range items {
+		if item.Type != "agentMessage" {
+			continue
+		}
+		text := strings.TrimSpace(item.Text)
+		if text == "" {
+			continue
+		}
+		events = append(events, TurnEvent{
+			Type:   "assistant_message",
+			ItemID: item.ID,
+			Text:   text,
+		})
+	}
+	return events
+}
+
+func turnNotificationsComplete(notifications []jsonRPCNotification, turnID string) bool {
+	if strings.TrimSpace(turnID) == "" {
+		return false
+	}
+	completion := turnCompletionFromNotifications(notifications, turnID)
+	return completion.ID != ""
+}
+
+func turnCompletionFromNotifications(notifications []jsonRPCNotification, turnID string) codexTurn {
+	for _, note := range notifications {
+		if note.Method != "turn/completed" {
+			continue
+		}
+		payload := &turnCompletedNotification{}
+		if err := json.Unmarshal(note.Params, payload); err != nil {
+			continue
+		}
+		if payload.Turn.ID == turnID {
+			return payload.Turn
+		}
+	}
+	return codexTurn{}
+}
+
+func extractTurnEventsFromNotifications(notifications []jsonRPCNotification, turnID string) []TurnEvent {
+	itemEvents := make([]TurnEvent, 0, 4)
+	deltaByItem := make(map[string]string, 4)
+
+	for _, note := range notifications {
+		switch note.Method {
+		case "item/agentMessage/delta":
+			payload := &agentMessageDeltaNotification{}
+			if err := json.Unmarshal(note.Params, payload); err != nil {
+				continue
+			}
+			if payload.TurnID != turnID || payload.ItemID == "" {
+				continue
+			}
+			deltaByItem[payload.ItemID] += payload.Delta
+		case "item/completed":
+			payload := &itemCompletedNotification{}
+			if err := json.Unmarshal(note.Params, payload); err != nil {
+				continue
+			}
+			if payload.TurnID != turnID {
+				continue
+			}
+			if payload.Item.Type != "agentMessage" {
+				continue
+			}
+			text := strings.TrimSpace(payload.Item.Text)
+			if text == "" {
+				text = strings.TrimSpace(deltaByItem[payload.Item.ID])
+			}
+			if text == "" {
+				continue
+			}
+			itemEvents = append(itemEvents, TurnEvent{
+				Type:   "assistant_message",
+				ItemID: payload.Item.ID,
+				Text:   text,
+			})
+			delete(deltaByItem, payload.Item.ID)
+		}
+	}
+
+	for itemID, text := range deltaByItem {
+		text = strings.TrimSpace(text)
+		if text == "" {
+			continue
+		}
+		itemEvents = append(itemEvents, TurnEvent{
+			Type:   "assistant_message",
+			ItemID: itemID,
+			Text:   text,
+		})
+	}
+
+	return itemEvents
+}
+
+func waitForTurn(ctx context.Context, client *Client, threadReadMethod, threadID, turnID string) (codexTurn, error) {
+	deadline := time.Now().Add(8 * time.Second)
+	if d, ok := ctx.Deadline(); ok && d.Before(deadline) {
+		deadline = d
+	}
+
+	var lastErr error
+	for {
+		readResp := &threadReadResponse{}
+		err := client.Call(ctx, threadReadMethod, map[string]any{
+			"threadId":     threadID,
+			"includeTurns": true,
+		}, readResp)
+		if err == nil {
+			if selectedTurn, ok := selectTurn(readResp.Thread.Turns, turnID); ok {
+				return selectedTurn, nil
+			}
+			lastErr = errors.New("thread/read response missing turn")
+		} else {
+			lastErr = err
+			if !retryableThreadReadErr(err) {
+				return codexTurn{}, err
+			}
+		}
+
+		if time.Now().After(deadline) {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			return codexTurn{}, ctx.Err()
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
+
+	if lastErr == nil {
+		lastErr = errors.New("timed out waiting for turn")
+	}
+	return codexTurn{}, lastErr
+}
+
+func retryableThreadReadErr(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "not materialized yet") ||
+		strings.Contains(msg, "includeturns is unavailable before first user message")
+}
+
 func protoJSONValue(message interface{ ProtoReflect() protoreflect.Message }) any {
 	data, err := protojson.Marshal(message)
 	if err != nil {
@@ -352,18 +612,6 @@ func protoJSONValue(message interface{ ProtoReflect() protoreflect.Message }) an
 		return map[string]any{"unmarshal_error": err.Error()}
 	}
 	return out
-}
-
-func flattenTurnInput(input []map[string]any) string {
-	parts := make([]string, 0, len(input))
-	for _, item := range input {
-		text, _ := item["text"].(string)
-		if strings.TrimSpace(text) == "" {
-			continue
-		}
-		parts = append(parts, text)
-	}
-	return strings.TrimSpace(strings.Join(parts, "\n\n"))
 }
 
 func (p *ProcessManager) Stop(ctx context.Context) error {

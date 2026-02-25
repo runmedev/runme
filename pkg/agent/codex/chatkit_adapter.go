@@ -180,7 +180,6 @@ func (h *ChatKitAdapter) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 		h.handleTurnRequest(w, r, TurnRequest{
 			SessionID: sessionID,
-			ThreadID:  sessionID,
 			Input:     &req.Params.Input,
 		}, true)
 	case reqTypeThreadsAddUserMessage:

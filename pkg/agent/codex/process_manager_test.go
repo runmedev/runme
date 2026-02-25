@@ -80,7 +80,7 @@ func TestProcessManager_RunTurnRequiresRunningProcess(t *testing.T) {
 	}
 }
 
-func TestProcessManager_MarshalSessionConfigIncludesApprovalPolicyAndAuthHeader(t *testing.T) {
+func TestProcessManager_MarshalSessionConfigIncludesApprovalPolicyAndMCPURL(t *testing.T) {
 	pm := NewProcessManager("codex", nil, nil)
 	data, err := pm.MarshalSessionConfig(SessionConfig{
 		SessionID:    "session-1",
@@ -98,13 +98,21 @@ func TestProcessManager_MarshalSessionConfigIncludesApprovalPolicyAndAuthHeader(
 	if payload["approval_policy"] != "never" {
 		t.Fatalf("approval_policy = %v, want never", payload["approval_policy"])
 	}
+	mcpServers, ok := payload["mcp_servers"].(map[string]any)
+	if !ok {
+		t.Fatalf("mcp_servers type = %T, want map[string]any", payload["mcp_servers"])
+	}
+	server, ok := mcpServers["runme-notebooks"].(map[string]any)
+	if !ok {
+		t.Fatalf("mcp_servers.runme-notebooks type = %T, want map[string]any", mcpServers["runme-notebooks"])
+	}
+	if server["url"] != "http://localhost/mcp/notebooks" {
+		t.Fatalf("mcp_servers.runme-notebooks.url = %v, want http://localhost/mcp/notebooks", server["url"])
+	}
 }
 
 func TestBuildTurnParamsIncludesInputAndToolOutput(t *testing.T) {
 	params := buildTurnParams(TurnRequest{
-		SessionID:          "session-1",
-		ThreadID:           "thread-1",
-		PreviousResponseID: "resp-1",
 		Input: &chatkit.UserMessageInput{
 			Content: []chatkit.UserMessageContent{
 				{Type: "input_text", Text: "hello"},
@@ -118,15 +126,9 @@ func TestBuildTurnParamsIncludesInputAndToolOutput(t *testing.T) {
 			},
 			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
 		},
-	})
-	if params["session_id"] != "session-1" {
-		t.Fatalf("session_id = %v, want session-1", params["session_id"])
-	}
-	if params["thread_id"] != "thread-1" {
-		t.Fatalf("thread_id = %v, want thread-1", params["thread_id"])
-	}
-	if params["previous_response_id"] != "resp-1" {
-		t.Fatalf("previous_response_id = %v, want resp-1", params["previous_response_id"])
+	}, "thread-1")
+	if params["threadId"] != "thread-1" {
+		t.Fatalf("threadId = %v, want thread-1", params["threadId"])
 	}
 	input, ok := params["input"].([]map[string]any)
 	if !ok {
@@ -144,15 +146,88 @@ func TestBuildTurnParamsIncludesInputAndToolOutput(t *testing.T) {
 	if input[2]["type"] != "text" {
 		t.Fatalf("input[2].type = %v, want text", input[2]["type"])
 	}
-	message, _ := params["message"].(string)
-	if !strings.Contains(message, "hello\n\nworld") {
-		t.Fatalf("message = %q, want user text content", message)
+}
+
+func TestBuildThreadStartParamsIncludesConfig(t *testing.T) {
+	params := buildThreadStartParams(SessionConfig{
+		SessionID:    "session-1",
+		MCPServerURL: "http://localhost/mcp/notebooks",
+		BearerToken:  "token-1",
+	}, true)
+	if params["approvalPolicy"] != "never" {
+		t.Fatalf("approvalPolicy = %v, want never", params["approvalPolicy"])
 	}
-	if !strings.Contains(message, "\"callId\":\"call-1\"") {
-		t.Fatalf("message = %q, want serialized tool output", message)
+	config, ok := params["config"].(map[string]any)
+	if !ok {
+		t.Fatalf("config type = %T, want map[string]any", params["config"])
 	}
-	if params["tool_output"] == nil {
-		t.Fatalf("tool_output should be present")
+	if config["approval_policy"] != "never" {
+		t.Fatalf("config.approval_policy = %v, want never", config["approval_policy"])
+	}
+}
+
+func TestBuildTurnParamsAllowsEmptyInput(t *testing.T) {
+	params := buildTurnParams(TurnRequest{}, "thread-1")
+	if params["threadId"] != "thread-1" {
+		t.Fatalf("threadId = %v, want thread-1", params["threadId"])
+	}
+	input, ok := params["input"].([]map[string]any)
+	if !ok {
+		t.Fatalf("input type = %T, want []map[string]any", params["input"])
+	}
+	if len(input) != 0 {
+		t.Fatalf("input len = %d, want 0", len(input))
+	}
+}
+
+func TestProcessManager_RunTurnStartsThreadWhenMissing(t *testing.T) {
+	captureFile := filepath.Join(t.TempDir(), "rpc-requests.jsonl")
+	pm := NewProcessManager(
+		os.Args[0],
+		[]string{"-test.run=TestProcessManagerHelper", "--"},
+		[]string{
+			"GO_WANT_PROCESS_MANAGER_HELPER=1",
+			"GO_HELPER_CAPTURE_FILE=" + captureFile,
+		},
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := pm.EnsureStarted(ctx); err != nil {
+		t.Fatalf("EnsureStarted returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = pm.Stop(context.Background())
+	})
+	if err := pm.ConfigureSession(ctx, SessionConfig{
+		SessionID:    "session-1",
+		MCPServerURL: "http://localhost/mcp/notebooks",
+		BearerToken:  "token-1",
+	}); err != nil {
+		t.Fatalf("ConfigureSession returned error: %v", err)
+	}
+
+	resp, err := pm.RunTurn(ctx, TurnRequest{
+		SessionID: "session-1",
+		Input: &chatkit.UserMessageInput{
+			Content: []chatkit.UserMessageContent{
+				{Type: "input_text", Text: "hello from test"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("RunTurn returned error: %v", err)
+	}
+	if resp.ThreadID == "" {
+		t.Fatalf("RunTurn should populate ThreadID when request thread is empty")
+	}
+	if len(resp.Events) == 0 {
+		t.Fatalf("RunTurn should include assistant events")
+	}
+
+	methods := waitForCapturedMethods(t, captureFile, 2*time.Second)
+	if !containsMethod(methods, defaultThreadStartMethod) {
+		t.Fatalf("captured methods %v do not include %q", methods, defaultThreadStartMethod)
 	}
 }
 
@@ -175,11 +250,17 @@ func TestProcessManager_RunTurnAndInterruptDispatchMethods(t *testing.T) {
 	t.Cleanup(func() {
 		_ = pm.Stop(context.Background())
 	})
+	if err := pm.ConfigureSession(ctx, SessionConfig{
+		SessionID:    "session-1",
+		MCPServerURL: "http://localhost/mcp/notebooks",
+		BearerToken:  "token-1",
+	}); err != nil {
+		t.Fatalf("ConfigureSession returned error: %v", err)
+	}
 
 	resp, err := pm.RunTurn(ctx, TurnRequest{
-		SessionID:          "session-1",
-		ThreadID:           "thread-1",
-		PreviousResponseID: "resp-1",
+		SessionID: "session-1",
+		ThreadID:  "thread-1",
 		Input: &chatkit.UserMessageInput{
 			Content: []chatkit.UserMessageContent{
 				{Type: "input_text", Text: "hello from test"},
@@ -191,6 +272,9 @@ func TestProcessManager_RunTurnAndInterruptDispatchMethods(t *testing.T) {
 	}
 	if resp == nil {
 		t.Fatalf("RunTurn response must not be nil")
+	}
+	if len(resp.Events) == 0 {
+		t.Fatalf("RunTurn should include assistant events")
 	}
 	if err := pm.Interrupt(ctx, "session-1", "thread-1"); err != nil {
 		t.Fatalf("Interrupt returned error: %v", err)
@@ -204,8 +288,8 @@ func TestProcessManager_RunTurnAndInterruptDispatchMethods(t *testing.T) {
 	if !containsMethod(methods, defaultTurnStartMethod) {
 		t.Fatalf("captured methods %v do not include %q", methods, defaultTurnStartMethod)
 	}
-	if !containsMethod(methods, defaultThreadInterrupt) {
-		t.Fatalf("captured methods %v do not include %q", methods, defaultThreadInterrupt)
+	if !containsMethod(methods, defaultTurnInterrupt) {
+		t.Fatalf("captured methods %v do not include %q", methods, defaultTurnInterrupt)
 	}
 }
 
@@ -288,7 +372,7 @@ func waitForCapturedMethods(t *testing.T, captureFile string, timeout time.Durat
 	deadline := time.Now().Add(timeout)
 	for {
 		methods, err := readCapturedMethods(captureFile)
-		if err == nil && containsMethod(methods, defaultThreadInterrupt) {
+		if err == nil && containsMethod(methods, defaultTurnInterrupt) {
 			return methods
 		}
 		if time.Now().After(deadline) {
@@ -348,6 +432,7 @@ func TestProcessManagerHelper(t *testing.T) {
 	dec := json.NewDecoder(os.Stdin)
 	enc := json.NewEncoder(os.Stdout)
 	captureFile := os.Getenv("GO_HELPER_CAPTURE_FILE")
+	turnByThread := map[string]string{}
 
 	for {
 		var req map[string]any
@@ -386,6 +471,73 @@ func TestProcessManagerHelper(t *testing.T) {
 					},
 				})
 			}
+			continue
+		}
+		if method == defaultThreadStartMethod {
+			_ = enc.Encode(map[string]any{
+				"jsonrpc": "2.0",
+				"id":      id,
+				"result": map[string]any{
+					"thread": map[string]any{
+						"id": "helper-thread-1",
+					},
+				},
+			})
+			continue
+		}
+		if method == defaultTurnStartMethod {
+			threadID := "thread-1"
+			if params, ok := req["params"].(map[string]any); ok {
+				if gotThreadID, ok := params["threadId"].(string); ok && gotThreadID != "" {
+					threadID = gotThreadID
+				}
+			}
+			turnID := "turn-" + threadID
+			turnByThread[threadID] = turnID
+			_ = enc.Encode(map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "item/agentMessage/delta",
+				"params": map[string]any{
+					"threadId": threadID,
+					"turnId":   turnID,
+					"itemId":   "item-1",
+					"delta":    "hello from helper",
+				},
+			})
+			_ = enc.Encode(map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "item/completed",
+				"params": map[string]any{
+					"threadId": threadID,
+					"turnId":   turnID,
+					"item": map[string]any{
+						"id":   "item-1",
+						"type": "agentMessage",
+						"text": "hello from helper",
+					},
+				},
+			})
+			_ = enc.Encode(map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "turn/completed",
+				"params": map[string]any{
+					"threadId": threadID,
+					"turn": map[string]any{
+						"id":     turnID,
+						"status": "completed",
+						"items":  []any{},
+					},
+				},
+			})
+			_ = enc.Encode(map[string]any{
+				"jsonrpc": "2.0",
+				"id":      id,
+				"result": map[string]any{
+					"turn": map[string]any{
+						"id": turnID,
+					},
+				},
+			})
 			continue
 		}
 		_ = enc.Encode(map[string]any{
