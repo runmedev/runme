@@ -128,8 +128,28 @@ func TestBuildTurnParamsIncludesInputAndToolOutput(t *testing.T) {
 	if params["previous_response_id"] != "resp-1" {
 		t.Fatalf("previous_response_id = %v, want resp-1", params["previous_response_id"])
 	}
-	if params["message"] != "hello\n\nworld" {
-		t.Fatalf("message = %v, want %q", params["message"], "hello\n\nworld")
+	input, ok := params["input"].([]map[string]any)
+	if !ok {
+		t.Fatalf("input type = %T, want []map[string]any", params["input"])
+	}
+	if len(input) != 3 {
+		t.Fatalf("input len = %d, want 3", len(input))
+	}
+	if input[0]["type"] != "text" || input[0]["text"] != "hello" {
+		t.Fatalf("input[0] = %#v, want text item hello", input[0])
+	}
+	if input[1]["type"] != "text" || input[1]["text"] != "world" {
+		t.Fatalf("input[1] = %#v, want text item world", input[1])
+	}
+	if input[2]["type"] != "text" {
+		t.Fatalf("input[2].type = %v, want text", input[2]["type"])
+	}
+	message, _ := params["message"].(string)
+	if !strings.Contains(message, "hello\n\nworld") {
+		t.Fatalf("message = %q, want user text content", message)
+	}
+	if !strings.Contains(message, "\"callId\":\"call-1\"") {
+		t.Fatalf("message = %q, want serialized tool output", message)
 	}
 	if params["tool_output"] == nil {
 		t.Fatalf("tool_output should be present")
@@ -189,6 +209,70 @@ func TestProcessManager_RunTurnAndInterruptDispatchMethods(t *testing.T) {
 	}
 }
 
+func TestProcessManager_EnsureStartedSendsInitializeParams(t *testing.T) {
+	captureFile := filepath.Join(t.TempDir(), "rpc-requests.jsonl")
+	pm := NewProcessManager(
+		os.Args[0],
+		[]string{"-test.run=TestProcessManagerHelper", "--"},
+		[]string{
+			"GO_WANT_PROCESS_MANAGER_HELPER=1",
+			"GO_HELPER_CAPTURE_FILE=" + captureFile,
+		},
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := pm.EnsureStarted(ctx); err != nil {
+		t.Fatalf("EnsureStarted returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = pm.Stop(context.Background())
+	})
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		requests, err := readCapturedRequests(captureFile)
+		if err == nil {
+			for _, req := range requests {
+				method, _ := req["method"].(string)
+				if method != defaultInitializeMethod {
+					continue
+				}
+
+				params, ok := req["params"].(map[string]any)
+				if !ok {
+					t.Fatalf("initialize params type = %T, want map[string]any", req["params"])
+				}
+				if params["protocolVersion"] != defaultInitializeProtocolVersion {
+					t.Fatalf("protocolVersion = %v, want %q", params["protocolVersion"], defaultInitializeProtocolVersion)
+				}
+				if _, ok := params["capabilities"].(map[string]any); !ok {
+					t.Fatalf("capabilities type = %T, want map[string]any", params["capabilities"])
+				}
+				clientInfo, ok := params["clientInfo"].(map[string]any)
+				if !ok {
+					t.Fatalf("clientInfo type = %T, want map[string]any", params["clientInfo"])
+				}
+				if clientInfo["name"] != defaultInitializeClientName {
+					t.Fatalf("clientInfo.name = %v, want %q", clientInfo["name"], defaultInitializeClientName)
+				}
+				if clientInfo["version"] != defaultInitializeClientVersion {
+					t.Fatalf("clientInfo.version = %v, want %q", clientInfo["version"], defaultInitializeClientVersion)
+				}
+				return
+			}
+		}
+
+		if time.Now().After(deadline) {
+			if err != nil {
+				t.Fatalf("read capture file: %v", err)
+			}
+			t.Fatalf("initialize request not captured in %s", captureFile)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func containsMethod(methods []string, want string) bool {
 	for _, method := range methods {
 		if method == want {
@@ -217,13 +301,13 @@ func waitForCapturedMethods(t *testing.T, captureFile string, timeout time.Durat
 	}
 }
 
-func readCapturedMethods(captureFile string) ([]string, error) {
+func readCapturedRequests(captureFile string) ([]map[string]any, error) {
 	data, err := os.ReadFile(captureFile)
 	if err != nil {
 		return nil, err
 	}
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-	methods := make([]string, 0, len(lines))
+	requests := make([]map[string]any, 0, len(lines))
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
 			continue
@@ -232,6 +316,18 @@ func readCapturedMethods(captureFile string) ([]string, error) {
 		if err := json.Unmarshal([]byte(line), &req); err != nil {
 			continue
 		}
+		requests = append(requests, req)
+	}
+	return requests, nil
+}
+
+func readCapturedMethods(captureFile string) ([]string, error) {
+	requests, err := readCapturedRequests(captureFile)
+	if err != nil {
+		return nil, err
+	}
+	methods := make([]string, 0, len(requests))
+	for _, req := range requests {
 		method, _ := req["method"].(string)
 		if method != "" {
 			methods = append(methods, method)
