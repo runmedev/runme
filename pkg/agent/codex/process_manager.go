@@ -16,7 +16,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/runmedev/runme/v3/pkg/agent/ai/chatkit"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
@@ -27,10 +26,13 @@ const (
 )
 
 const (
-	defaultInitializeMethod    = "initialize"
-	defaultSessionConfigMethod = "session/configure"
-	defaultTurnStartMethod     = "turn/start"
-	defaultThreadInterrupt     = "thread/interrupt"
+	defaultInitializeMethod          = "initialize"
+	defaultSessionConfigMethod       = "session/configure"
+	defaultTurnStartMethod           = "turn/start"
+	defaultThreadInterrupt           = "thread/interrupt"
+	defaultInitializeProtocolVersion = "2025-03-26"
+	defaultInitializeClientName      = "runme"
+	defaultInitializeClientVersion   = "dev"
 )
 
 type SessionConfig struct {
@@ -72,10 +74,21 @@ func NewProcessManager(command string, args []string, env []string) *ProcessMana
 		env:     append([]string(nil), env...),
 
 		initializeMethod:    defaultInitializeMethod,
-		initializeParams:    map[string]any{},
+		initializeParams:    defaultInitializeParams(),
 		sessionConfigMethod: defaultSessionConfigMethod,
 		turnStartMethod:     defaultTurnStartMethod,
 		threadInterrupt:     defaultThreadInterrupt,
+	}
+}
+
+func defaultInitializeParams() map[string]any {
+	return map[string]any{
+		"protocolVersion": defaultInitializeProtocolVersion,
+		"capabilities":    map[string]any{},
+		"clientInfo": map[string]any{
+			"name":    defaultInitializeClientName,
+			"version": defaultInitializeClientVersion,
+		},
 	}
 }
 
@@ -285,15 +298,48 @@ func buildTurnParams(req TurnRequest) map[string]any {
 		params["previous_response_id"] = req.PreviousResponseID
 		params["previousResponseId"] = req.PreviousResponseID
 	}
-	if req.Input != nil {
-		params["input"] = req.Input
-		params["message"] = flattenUserMessage(*req.Input)
+
+	input := buildTurnInput(req)
+	if len(input) > 0 {
+		params["input"] = input
+		params["message"] = flattenTurnInput(input)
 	}
 	if req.ToolOutput != nil {
-		params["tool_output"] = protoJSONValue(req.ToolOutput)
-		params["toolOutput"] = params["tool_output"]
+		toolOutput := protoJSONValue(req.ToolOutput)
+		params["tool_output"] = toolOutput
+		params["toolOutput"] = toolOutput
 	}
 	return params
+}
+
+func buildTurnInput(req TurnRequest) []map[string]any {
+	out := make([]map[string]any, 0, 2)
+
+	if req.Input != nil {
+		for _, content := range req.Input.Content {
+			if strings.TrimSpace(content.Text) == "" {
+				continue
+			}
+			out = append(out, map[string]any{
+				"type": "text",
+				"text": content.Text,
+			})
+		}
+	}
+
+	if req.ToolOutput != nil {
+		value := protoJSONValue(req.ToolOutput)
+		payload, err := json.Marshal(value)
+		if err != nil {
+			payload = []byte(`{"error":"failed to marshal tool output"}`)
+		}
+		out = append(out, map[string]any{
+			"type": "text",
+			"text": string(payload),
+		})
+	}
+
+	return out
 }
 
 func protoJSONValue(message interface{ ProtoReflect() protoreflect.Message }) any {
@@ -308,13 +354,14 @@ func protoJSONValue(message interface{ ProtoReflect() protoreflect.Message }) an
 	return out
 }
 
-func flattenUserMessage(input chatkit.UserMessageInput) string {
-	parts := make([]string, 0, len(input.Content))
-	for _, item := range input.Content {
-		if item.Text == "" {
+func flattenTurnInput(input []map[string]any) string {
+	parts := make([]string, 0, len(input))
+	for _, item := range input {
+		text, _ := item["text"].(string)
+		if strings.TrimSpace(text) == "" {
 			continue
 		}
-		parts = append(parts, item.Text)
+		parts = append(parts, text)
 	}
 	return strings.TrimSpace(strings.Join(parts, "\n\n"))
 }
