@@ -4,6 +4,7 @@ package runner
 
 import (
 	"bytes"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -34,6 +35,11 @@ func Test_EnvDirEnv(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, err)
+	if _, err := exec.LookPath("direnv"); err != nil {
+		require.Contains(t, logBuf.String(), "direnv not found")
+		return
+	}
+
 	require.Contains(t, logBuf.String(), "direnv: export +PGDATABASE +PGHOST +PGOPTIONS +PGPASSWORD +PGPORT +PGUSER")
 
 	expectedEnvs := []string{

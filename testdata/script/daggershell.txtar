@@ -1,3 +1,5 @@
+[!exec:dagger] skip
+
 env DAGGER_NO_NAG=1
 exec runme ls
 cmp stdout golden-list.txt
