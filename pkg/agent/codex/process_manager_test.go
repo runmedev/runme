@@ -368,6 +368,9 @@ func TestProcessManager_RunTurnAndInterruptDispatchMethods(t *testing.T) {
 	if !containsMethod(methods, defaultInitializeMethod) {
 		t.Fatalf("captured methods %v do not include %q", methods, defaultInitializeMethod)
 	}
+	if !containsMethod(methods, defaultInitializedMethod) {
+		t.Fatalf("captured methods %v do not include %q", methods, defaultInitializedMethod)
+	}
 	if !containsMethod(methods, defaultTurnStartMethod) {
 		t.Fatalf("captured methods %v do not include %q", methods, defaultTurnStartMethod)
 	}
@@ -437,6 +440,32 @@ func TestProcessManager_EnsureStartedSendsInitializeParams(t *testing.T) {
 			t.Fatalf("initialize request not captured in %s", captureFile)
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestProcessManager_EnsureStartedSendsInitializedNotification(t *testing.T) {
+	captureFile := filepath.Join(t.TempDir(), "rpc-requests.jsonl")
+	pm := NewProcessManager(
+		os.Args[0],
+		[]string{"-test.run=TestProcessManagerHelper", "--"},
+		[]string{
+			"GO_WANT_PROCESS_MANAGER_HELPER=1",
+			"GO_HELPER_CAPTURE_FILE=" + captureFile,
+		},
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := pm.EnsureStarted(ctx); err != nil {
+		t.Fatalf("EnsureStarted returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = pm.Stop(context.Background())
+	})
+
+	methods := waitForCapturedMethods(t, captureFile, 2*time.Second)
+	if !containsMethod(methods, defaultInitializedMethod) {
+		t.Fatalf("captured methods %v do not include %q", methods, defaultInitializedMethod)
 	}
 }
 

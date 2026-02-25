@@ -8,40 +8,43 @@ import (
 	"time"
 )
 
-const defaultSessionTokenTTL = 10 * time.Minute
+const defaultSessionTokenScope = "codex-app-server"
 
 var (
 	errSessionTokenInvalid = errors.New("invalid session token")
 	errSessionTokenExpired = errors.New("expired session token")
 )
 
-type sessionToken struct {
-	sessionID string
+type issuedToken struct {
+	value     string
 	expiresAt time.Time
 }
 
-// SessionTokenManager mints and validates short-lived bearer tokens scoped to a codex session.
+// SessionTokenManager mints and validates MCP bearer tokens for a codex app-server instance.
+// The same token is reused across requests so Codex does not need token refresh or per-thread auth state.
 type SessionTokenManager struct {
-	mu     sync.RWMutex
-	tokens map[string]sessionToken
-	nowFn  func() time.Time
-	ttl    time.Duration
+	mu    sync.Mutex
+	token issuedToken
+	nowFn func() time.Time
+	ttl   time.Duration
+	scope string
 }
 
 func NewSessionTokenManager(ttl time.Duration) *SessionTokenManager {
-	if ttl <= 0 {
-		ttl = defaultSessionTokenTTL
-	}
 	return &SessionTokenManager{
-		tokens: make(map[string]sessionToken, 8),
-		nowFn:  time.Now,
-		ttl:    ttl,
+		nowFn: time.Now,
+		ttl:   ttl,
+		scope: defaultSessionTokenScope,
 	}
 }
 
-func (m *SessionTokenManager) Issue(sessionID string) (string, error) {
-	if sessionID == "" {
-		return "", errors.New("session id must not be empty")
+func (m *SessionTokenManager) Issue() (string, error) {
+	now := m.nowFn()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.token.value != "" && (m.ttl <= 0 || now.Before(m.token.expiresAt)) {
+		return m.token.value, nil
 	}
 
 	b := make([]byte, 32)
@@ -49,14 +52,9 @@ func (m *SessionTokenManager) Issue(sessionID string) (string, error) {
 		return "", err
 	}
 	token := base64.RawURLEncoding.EncodeToString(b)
-
-	now := m.nowFn()
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.gcLocked(now)
-	m.tokens[token] = sessionToken{
-		sessionID: sessionID,
-		expiresAt: now.Add(m.ttl),
+	m.token = issuedToken{value: token}
+	if m.ttl > 0 {
+		m.token.expiresAt = now.Add(m.ttl)
 	}
 	return token, nil
 }
@@ -65,23 +63,13 @@ func (m *SessionTokenManager) Validate(token string) (string, error) {
 	now := m.nowFn()
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.gcLocked(now)
 
-	record, ok := m.tokens[token]
-	if !ok {
+	if m.token.value == "" || token != m.token.value {
 		return "", errSessionTokenInvalid
 	}
-	if now.After(record.expiresAt) {
-		delete(m.tokens, token)
+	if m.ttl > 0 && !m.token.expiresAt.IsZero() && now.After(m.token.expiresAt) {
+		m.token = issuedToken{}
 		return "", errSessionTokenExpired
 	}
-	return record.sessionID, nil
-}
-
-func (m *SessionTokenManager) gcLocked(now time.Time) {
-	for token, record := range m.tokens {
-		if now.After(record.expiresAt) {
-			delete(m.tokens, token)
-		}
-	}
+	return m.scope, nil
 }

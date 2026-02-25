@@ -193,17 +193,7 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	httpClient := &http.Client{Timeout: 120 * time.Second}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		t.Fatalf("request to /chatkit-codex failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("failed to read /chatkit-codex response: %v", err)
-	}
-	respText := string(respBody)
+	respText, statusCode := runManualChatKitCodexRequest(t, httpClient, req)
 
 	select {
 	case err := <-wsErrCh:
@@ -211,8 +201,8 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	default:
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("chatkit-codex status %d; body: %s\nrunme logs:\n%s", resp.StatusCode, respText, runmeLogs.String())
+	if statusCode != http.StatusOK {
+		t.Fatalf("chatkit-codex status %d; body: %s\nrunme logs:\n%s", statusCode, respText, runmeLogs.String())
 	}
 
 	if strings.Contains(respText, "codex_turn_failed") {
@@ -236,6 +226,50 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	if !notebookBridge.containsCellValue("Hello from Codex notebook tool call") {
 		t.Fatalf("expected notebook bridge state to contain inserted cell; cells=%#v\nbody: %s\nrunme logs:\n%s", notebookBridge.snapshotCells(), respText, runmeLogs.String())
 	}
+}
+
+func runManualChatKitCodexRequest(t *testing.T, client *http.Client, req *http.Request) (string, int) {
+	t.Helper()
+
+	const maxAttempts = 2
+	var lastBody string
+	var lastStatus int
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		clonedReq := req.Clone(req.Context())
+		if req.GetBody != nil {
+			body, err := req.GetBody()
+			if err != nil {
+				t.Fatalf("failed to clone request body: %v", err)
+			}
+			clonedReq.Body = body
+		}
+
+		resp, err := client.Do(clonedReq)
+		if err != nil {
+			t.Fatalf("request to /chatkit-codex failed: %v", err)
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			t.Fatalf("failed to read /chatkit-codex response: %v", err)
+		}
+
+		lastBody = string(respBody)
+		lastStatus = resp.StatusCode
+		if !isRetriableManualCodexTurnFailure(lastBody) || attempt == maxAttempts {
+			return lastBody, lastStatus
+		}
+		t.Logf("retrying transient codex upstream failure on attempt %d/%d", attempt, maxAttempts)
+	}
+
+	return lastBody, lastStatus
+}
+
+func isRetriableManualCodexTurnFailure(body string) bool {
+	return strings.Contains(body, `"code":"codex_turn_failed"`) &&
+		strings.Contains(body, "stream disconnected before completion")
 }
 
 type manualAssetsFileSystemProvider struct{}

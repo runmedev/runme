@@ -2,6 +2,7 @@ package codex
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,7 +20,7 @@ import (
 
 func TestToolBridge_RejectSecondConnection(t *testing.T) {
 	bridge := NewToolBridge()
-	ts := httptest.NewServer(http.HandlerFunc(bridge.HandleWebsocket))
+	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(ts.URL, "http")
@@ -40,7 +41,7 @@ func TestToolBridge_RejectSecondConnection(t *testing.T) {
 
 func TestToolBridge_ForceReplaceConnection(t *testing.T) {
 	bridge := NewToolBridge()
-	ts := httptest.NewServer(http.HandlerFunc(bridge.HandleWebsocket))
+	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(ts.URL, "http")
@@ -64,7 +65,7 @@ func TestToolBridge_ForceReplaceConnection(t *testing.T) {
 
 func TestToolBridge_CallRoundTrip(t *testing.T) {
 	bridge := NewToolBridge()
-	ts := httptest.NewServer(http.HandlerFunc(bridge.HandleWebsocket))
+	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(ts.URL, "http")
@@ -143,7 +144,7 @@ func TestToolBridge_CallRoundTrip(t *testing.T) {
 
 func TestToolBridge_IgnoresUnsupportedPayloads(t *testing.T) {
 	bridge := NewToolBridge()
-	ts := httptest.NewServer(http.HandlerFunc(bridge.HandleWebsocket))
+	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(ts.URL, "http")
@@ -179,7 +180,7 @@ func TestToolBridge_IgnoresUnsupportedPayloads(t *testing.T) {
 
 func TestToolBridge_CallRoundTripBinary(t *testing.T) {
 	bridge := NewToolBridge()
-	ts := httptest.NewServer(http.HandlerFunc(bridge.HandleWebsocket))
+	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(ts.URL, "http")
@@ -269,4 +270,20 @@ func respStatus(resp *http.Response) int {
 		return 0
 	}
 	return resp.StatusCode
+}
+
+func newTCP4TestServer(t *testing.T, handler http.Handler) *httptest.Server {
+	t.Helper()
+
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		if strings.Contains(err.Error(), "operation not permitted") {
+			t.Skipf("skipping websocket listener test in restricted sandbox: %v", err)
+		}
+		t.Fatalf("failed to start test listener: %v", err)
+	}
+	server := httptest.NewUnstartedServer(handler)
+	server.Listener = listener
+	server.Start()
+	return server
 }

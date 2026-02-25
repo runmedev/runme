@@ -28,6 +28,7 @@ const (
 
 const (
 	defaultInitializeMethod          = "initialize"
+	defaultInitializedMethod         = "initialized"
 	defaultThreadStartMethod         = "thread/start"
 	defaultThreadReadMethod          = "thread/read"
 	defaultTurnStartMethod           = "turn/start"
@@ -173,6 +174,13 @@ func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
 		startErr := fmt.Errorf("initialize codex app-server: %w", err)
 		observeAppServerStartup(time.Since(start), startErr)
 		logger.Error(startErr, "codex app-server initialize call failed")
+		return startErr
+	}
+	if err := client.Notify(healthCtx, defaultInitializedMethod, map[string]any{}); err != nil {
+		_ = p.Stop(context.Background())
+		startErr := fmt.Errorf("send codex initialized notification: %w", err)
+		observeAppServerStartup(time.Since(start), startErr)
+		logger.Error(startErr, "codex app-server initialized notification failed")
 		return startErr
 	}
 	observeAppServerStartup(time.Since(start), nil)

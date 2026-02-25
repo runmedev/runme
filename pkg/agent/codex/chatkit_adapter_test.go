@@ -85,18 +85,14 @@ func TestChatKitAdapter_ThreadsCreateStreamsCodexTurn(t *testing.T) {
 	if fakePM.configureSessionCall != 1 {
 		t.Fatalf("ConfigureSession calls = %d, want 1", fakePM.configureSessionCall)
 	}
-	token := rr.Header().Get(codexSessionTokenHeader)
-	if token == "" {
-		t.Fatalf("missing %s header", codexSessionTokenHeader)
-	}
 	if fakePM.runTurnCalls != 1 {
 		t.Fatalf("RunTurn calls = %d, want 1", fakePM.runTurnCalls)
 	}
 	if fakePM.lastSessionConfig.SessionID == "" {
 		t.Fatalf("SessionID should not be empty")
 	}
-	if fakePM.lastSessionConfig.BearerToken != token {
-		t.Fatalf("BearerToken mismatch between response header and configure payload")
+	if fakePM.lastSessionConfig.BearerToken == "" {
+		t.Fatalf("expected ConfigureSession to receive an MCP bearer token")
 	}
 	if fakePM.lastSessionConfig.MCPServerURL != "https://example.test/mcp/notebooks" {
 		t.Fatalf("MCPServerURL = %q, want https://example.test/mcp/notebooks", fakePM.lastSessionConfig.MCPServerURL)
@@ -122,6 +118,37 @@ func TestChatKitAdapter_ThreadsCreateStreamsCodexTurn(t *testing.T) {
 	}
 	if events[3]["type"] != "thread.item.added" {
 		t.Fatalf("fourth event type = %v, want thread.item.added", events[3]["type"])
+	}
+}
+
+func TestChatKitAdapter_ReusesAppServerTokenAcrossRequests(t *testing.T) {
+	fakePM := &fakeCodexProcessManager{
+		runTurnResp: &TurnResponse{ThreadID: "thread-1", PreviousResponseID: "resp-1"},
+	}
+	adapter := NewChatKitAdapter(ChatKitAdapterOptions{
+		ProcessManager: fakePM,
+		TokenManager:   NewSessionTokenManager(10 * time.Minute),
+	})
+
+	firstReq := httptest.NewRequest(http.MethodPost, "https://example.test/chatkit-codex", strings.NewReader(`{"type":"threads.create","chatkit_state":{"thread_id":"","previous_response_id":""},"params":{"input":{"content":[{"type":"input_text","text":"hello"}],"attachments":[],"inference_options":{}}}}`))
+	firstRes := httptest.NewRecorder()
+	adapter.Handle(firstRes, firstReq)
+	if firstRes.Code != http.StatusOK {
+		t.Fatalf("first status = %d, want %d; body=%s", firstRes.Code, http.StatusOK, firstRes.Body.String())
+	}
+	firstToken := fakePM.lastSessionConfig.BearerToken
+	if firstToken == "" {
+		t.Fatalf("first ConfigureSession token should not be empty")
+	}
+
+	secondReq := httptest.NewRequest(http.MethodPost, "https://example.test/chatkit-codex", strings.NewReader(`{"type":"threads.create","chatkit_state":{"thread_id":"","previous_response_id":""},"params":{"input":{"content":[{"type":"input_text","text":"again"}],"attachments":[],"inference_options":{}}}}`))
+	secondRes := httptest.NewRecorder()
+	adapter.Handle(secondRes, secondReq)
+	if secondRes.Code != http.StatusOK {
+		t.Fatalf("second status = %d, want %d; body=%s", secondRes.Code, http.StatusOK, secondRes.Body.String())
+	}
+	if fakePM.lastSessionConfig.BearerToken != firstToken {
+		t.Fatalf("expected adapter to reuse app-server MCP token; got %q then %q", firstToken, fakePM.lastSessionConfig.BearerToken)
 	}
 }
 

@@ -21,8 +21,6 @@ import (
 )
 
 const (
-	codexSessionTokenHeader = "X-Runme-Codex-Session-Token"
-
 	reqTypeThreadsCreate              = "threads.create"
 	reqTypeThreadsList                = "threads.list"
 	reqTypeThreadsGetByID             = "threads.get_by_id"
@@ -130,13 +128,12 @@ func (h *ChatKitAdapter) Handle(w http.ResponseWriter, r *http.Request) {
 	token := ""
 	if h.tokenManager != nil {
 		var err error
-		token, err = h.tokenManager.Issue(sessionID)
+		token, err = h.tokenManager.Issue()
 		if err != nil {
-			logger.Error(err, "failed to issue codex session token")
-			http.Error(w, "failed to issue codex session token: "+err.Error(), http.StatusInternalServerError)
+			logger.Error(err, "failed to issue codex mcp token")
+			http.Error(w, "failed to issue codex mcp token: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set(codexSessionTokenHeader, token)
 	}
 	if h.processManager != nil && token != "" {
 		cfg := SessionConfig{
@@ -484,10 +481,11 @@ func threadItemDoneEvent(item chatkit.ThreadItem) chatkit.ThreadItemDoneEvent {
 	return event
 }
 
-// PrepareSessionToken issues a token for a session without handling a chatkit request.
-func (h *ChatKitAdapter) PrepareSessionToken(ctx context.Context, sessionID string) (string, error) {
+// PrepareSessionToken returns the long-lived MCP token used by the managed codex app-server.
+func (h *ChatKitAdapter) PrepareSessionToken(ctx context.Context, _ string) (string, error) {
+	_ = ctx
 	if h.tokenManager == nil {
 		return "", nil
 	}
-	return h.tokenManager.Issue(sessionID)
+	return h.tokenManager.Issue()
 }

@@ -37,7 +37,7 @@ func TestStreamableMCPHandler_AllowsAuthorizedInitialize(t *testing.T) {
 		t.Fatalf("NewStreamableMCPHandler returned error: %v", err)
 	}
 
-	token, err := tokens.Issue("session-1")
+	token, err := tokens.Issue()
 	if err != nil {
 		t.Fatalf("Issue token failed: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestStreamableMCPHandler_AllowsQueryTokenInitialize(t *testing.T) {
 		t.Fatalf("NewStreamableMCPHandler returned error: %v", err)
 	}
 
-	token, err := tokens.Issue("session-1")
+	token, err := tokens.Issue()
 	if err != nil {
 		t.Fatalf("Issue token failed: %v", err)
 	}
