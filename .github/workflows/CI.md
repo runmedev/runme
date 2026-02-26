@@ -14,7 +14,6 @@ Run all tests with coverage reports.
 
 ```sh {"id":"01J5XTG2WKVR4WG7B2FNPF6VZT","name":"ci-coverage","promptEnv":"no"}
 unset RUNME_SESSION_STRATEGY RUNME_TLS_DIR RUNME_SERVER_ADDR
-export SHELL="/bin/bash"
 export TZ="UTC"
 export TAGS="docker_enabled"
 make test/coverage
@@ -25,7 +24,6 @@ Run txtar-based CLI e2e tests without coverage reports (Go's warnings are gettin
 
 ```sh {"id":"01JAJYWF198MWQXJBADFJVJGXM","name":"ci-txtar"}
 unset RUNME_SESSION_STRATEGY RUNME_TLS_DIR RUNME_SERVER_ADDR
-export SHELL="/bin/bash"
 export TZ="UTC"
 export TAGS="test_with_txtar"
 export RUN="^TestRunme\w*"

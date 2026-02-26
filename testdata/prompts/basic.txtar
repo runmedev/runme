@@ -1,4 +1,3 @@
-env SHELL=/bin/bash
 exec runme run --all --category=foo --filename=PROMPTS.md
 cmp stdout foo-bar-list.txt
 ! stderr .
