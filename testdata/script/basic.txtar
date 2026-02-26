@@ -14,22 +14,18 @@ cmp stdout golden-list-allow-unnamed.txt
 stderr 'failed to open file-based project \".*\/nonexistent.md\": file does not exist'
 ! stdout .
 
-env SHELL=/bin/bash
 exec runme run echo
 stdout 'Hello, runme!'
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run --filename README.md --index 0
 stdout 'Hello, runme!'
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run --filename README.md echo-1
 stdout '1\n2\n3\n'
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run --allow-unnamed tempdir
 stdout 'hi!'
 ! stderr .

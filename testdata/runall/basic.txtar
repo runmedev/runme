@@ -1,9 +1,7 @@
-env SHELL=/bin/bash
 exec runme run --all --filename=README.md
 cmp stdout all.txt
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme run foo-command
 cmp stdout skip.txt
 ! stderr .
