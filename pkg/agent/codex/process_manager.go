@@ -30,7 +30,6 @@ const (
 	defaultInitializeMethod          = "initialize"
 	defaultInitializedMethod         = "initialized"
 	defaultThreadStartMethod         = "thread/start"
-	defaultThreadReadMethod          = "thread/read"
 	defaultTurnStartMethod           = "turn/start"
 	defaultTurnInterrupt             = "turn/interrupt"
 	defaultInitializeProtocolVersion = "2025-03-26"
@@ -63,7 +62,6 @@ type ProcessManager struct {
 	initializeParams  any
 	initializeResult  json.RawMessage
 	threadStartMethod string
-	threadReadMethod  string
 	turnStartMethod   string
 	turnInterrupt     string
 	sessionConfigs    map[string]SessionConfig
@@ -85,7 +83,6 @@ func NewProcessManager(command string, args []string, env []string) *ProcessMana
 		initializeMethod:  defaultInitializeMethod,
 		initializeParams:  defaultInitializeParams(),
 		threadStartMethod: defaultThreadStartMethod,
-		threadReadMethod:  defaultThreadReadMethod,
 		turnStartMethod:   defaultTurnStartMethod,
 		turnInterrupt:     defaultTurnInterrupt,
 		sessionConfigs:    make(map[string]SessionConfig, 4),
@@ -485,12 +482,6 @@ type turnStartResponse struct {
 	} `json:"turn"`
 }
 
-type threadReadResponse struct {
-	Thread struct {
-		Turns []codexTurn `json:"turns"`
-	} `json:"thread"`
-}
-
 type codexTurn struct {
 	ID     string          `json:"id"`
 	Status string          `json:"status"`
@@ -524,39 +515,6 @@ type agentMessageDeltaNotification struct {
 type turnCompletedNotification struct {
 	ThreadID string    `json:"threadId"`
 	Turn     codexTurn `json:"turn"`
-}
-
-func selectTurn(turns []codexTurn, turnID string) (codexTurn, bool) {
-	if len(turns) == 0 {
-		return codexTurn{}, false
-	}
-	if turnID != "" {
-		for _, turn := range turns {
-			if turn.ID == turnID {
-				return turn, true
-			}
-		}
-	}
-	return turns[len(turns)-1], true
-}
-
-func extractTurnEvents(items []codexTurnItem) []TurnEvent {
-	events := make([]TurnEvent, 0, len(items))
-	for _, item := range items {
-		if item.Type != "agentMessage" {
-			continue
-		}
-		text := strings.TrimSpace(item.Text)
-		if text == "" {
-			continue
-		}
-		events = append(events, TurnEvent{
-			Type:   "assistant_message",
-			ItemID: item.ID,
-			Text:   text,
-		})
-	}
-	return events
 }
 
 func turnNotificationsComplete(notifications []jsonRPCNotification, turnID string) bool {
@@ -638,54 +596,6 @@ func extractTurnEventsFromNotifications(notifications []jsonRPCNotification, tur
 	}
 
 	return itemEvents
-}
-
-func waitForTurn(ctx context.Context, client *Client, threadReadMethod, threadID, turnID string) (codexTurn, error) {
-	deadline := time.Now().Add(8 * time.Second)
-	if d, ok := ctx.Deadline(); ok && d.Before(deadline) {
-		deadline = d
-	}
-
-	var lastErr error
-	for {
-		readResp := &threadReadResponse{}
-		err := client.Call(ctx, threadReadMethod, map[string]any{
-			"threadId":     threadID,
-			"includeTurns": true,
-		}, readResp)
-		if err == nil {
-			if selectedTurn, ok := selectTurn(readResp.Thread.Turns, turnID); ok {
-				return selectedTurn, nil
-			}
-			lastErr = errors.New("thread/read response missing turn")
-		} else {
-			lastErr = err
-			if !retryableThreadReadErr(err) {
-				return codexTurn{}, err
-			}
-		}
-
-		if time.Now().After(deadline) {
-			break
-		}
-
-		select {
-		case <-ctx.Done():
-			return codexTurn{}, ctx.Err()
-		case <-time.After(200 * time.Millisecond):
-		}
-	}
-
-	if lastErr == nil {
-		lastErr = errors.New("timed out waiting for turn")
-	}
-	return codexTurn{}, lastErr
-}
-
-func retryableThreadReadErr(err error) bool {
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "not materialized yet") ||
-		strings.Contains(msg, "includeturns is unavailable before first user message")
 }
 
 func protoJSONValue(message interface{ ProtoReflect() protoreflect.Message }) any {

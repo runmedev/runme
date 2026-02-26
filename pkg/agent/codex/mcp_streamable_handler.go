@@ -25,8 +25,10 @@ func SessionIDFromContext(ctx context.Context) string {
 	return sid
 }
 
-const executeApprovalHeader = "X-Runme-Codex-Execute-Approved"
-const sessionTokenQueryParam = "session_token"
+const (
+	executeApprovalHeader  = "X-Runme-Codex-Execute-Approved"
+	sessionTokenQueryParam = "session_token"
+)
 
 func approvedRefIDsFromContext(ctx context.Context) []string {
 	ids, _ := ctx.Value(approvedRefIDsContextKey).([]string)
