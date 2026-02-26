@@ -61,6 +61,7 @@ type ProcessManager struct {
 	client            *Client
 	initializeMethod  string
 	initializeParams  any
+	initializeResult  json.RawMessage
 	threadStartMethod string
 	threadReadMethod  string
 	turnStartMethod   string
@@ -169,7 +170,8 @@ func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
 		healthCtx, cancel = context.WithTimeout(ctx, defaultInitializeTimeout)
 		defer cancel()
 	}
-	if err := client.Call(healthCtx, initializeMethod, initializeParams, nil); err != nil {
+	var initializeResult json.RawMessage
+	if err := client.Call(healthCtx, initializeMethod, initializeParams, &initializeResult); err != nil {
 		_ = p.Stop(context.Background())
 		startErr := fmt.Errorf("initialize codex app-server: %w", err)
 		observeAppServerStartup(time.Since(start), startErr)
@@ -183,6 +185,9 @@ func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
 		logger.Error(startErr, "codex app-server initialized notification failed")
 		return startErr
 	}
+	p.mu.Lock()
+	p.initializeResult = append(json.RawMessage(nil), initializeResult...)
+	p.mu.Unlock()
 	observeAppServerStartup(time.Since(start), nil)
 	logger.Info("codex app-server started", "startupLatencyMs", time.Since(start).Milliseconds())
 	return nil
@@ -195,6 +200,12 @@ func (p *ProcessManager) StdIO() (io.WriteCloser, io.ReadCloser, io.ReadCloser, 
 		return nil, nil, nil, errors.New("codex process is not running")
 	}
 	return p.stdin, p.stdout, p.stderr, nil
+}
+
+func (p *ProcessManager) InitializeResult() json.RawMessage {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append(json.RawMessage(nil), p.initializeResult...)
 }
 
 func (p *ProcessManager) ConfigureSession(ctx context.Context, cfg SessionConfig) error {
@@ -228,6 +239,52 @@ func (p *ProcessManager) ConfigureSession(ctx context.Context, cfg SessionConfig
 
 	logger.Info("configured codex session")
 	return nil
+}
+
+func (p *ProcessManager) CallRaw(
+	ctx context.Context,
+	method string,
+	params any,
+	onNotification func(jsonRPCNotification) error,
+) (json.RawMessage, error) {
+	p.mu.Lock()
+	client := p.client
+	p.mu.Unlock()
+	if client == nil {
+		return nil, errors.New("codex process is not running")
+	}
+
+	var (
+		rawResult     json.RawMessage
+		notifications []jsonRPCNotification
+		turnResp      turnStartResponse
+	)
+	err := client.CallUntil(
+		ctx,
+		method,
+		params,
+		&rawResult,
+		func(note jsonRPCNotification) error {
+			notifications = append(notifications, note)
+			if onNotification != nil {
+				return onNotification(note)
+			}
+			return nil
+		},
+		func() bool {
+			if method != defaultTurnStartMethod {
+				return true
+			}
+			if len(rawResult) > 0 && turnResp.Turn.ID == "" {
+				_ = json.Unmarshal(rawResult, &turnResp)
+			}
+			return turnNotificationsComplete(notifications, turnResp.Turn.ID)
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return append(json.RawMessage(nil), rawResult...), nil
 }
 
 func (p *ProcessManager) RunTurn(ctx context.Context, req TurnRequest) (*TurnResponse, error) {
@@ -651,6 +708,7 @@ func (p *ProcessManager) Stop(ctx context.Context) error {
 	p.stdout = nil
 	p.stderr = nil
 	p.client = nil
+	p.initializeResult = nil
 	p.mu.Unlock()
 
 	if cmd == nil || cmd.Process == nil {

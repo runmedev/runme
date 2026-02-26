@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"math/big"
 	"net"
@@ -36,10 +35,10 @@ import (
 )
 
 // Test_Manual_CodexChatKitSmoke exists to speed up manual backend iteration for codex integration.
-// It starts a fake OIDC issuer and a real Runme server in-process, opens a real /codex/ws bridge
-// connection that serves notebook tool calls in memory, then sends a /chatkit-codex request that
-// must use notebook MCP tools to add a cell. It fails with full response diagnostics if either the
-// codex turn path or notebook tool bridge path breaks.
+// It starts a fake OIDC issuer and a real Runme server in-process, opens a real /codex/app-server/ws
+// proxy connection plus a real /codex/ws notebook bridge, then drives a Codex thread/turn flow that
+// must use notebook MCP tools to add a Python code cell. It fails with full response diagnostics if
+// either the Codex proxy path or notebook tool bridge path breaks.
 func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	SkipIfMissing(t, "RUN_MANUAL_TESTS")
 	runmeLogs := installManualTestLogger(t)
@@ -51,7 +50,7 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	const (
 		clientID = "manual-codex-client"
 		email    = "codex-manual@example.com"
-		prompt   = "Use the runme-notebooks tools to inspect the current notebook and add a new markdown cell with the exact text 'Hello from Codex notebook tool call'. Do not execute any cells."
+		prompt   = "Use the runme-notebooks tools to inspect the current notebook and add a new Python code cell whose exact contents are print('Hello, world!'). Do not execute any cells."
 	)
 
 	fakeOIDC := newManualFakeOIDC(t, clientID, email)
@@ -162,38 +161,16 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	wsErrCh := make(chan error, 1)
 	go notebookBridge.serve(wsConn, wsErrCh)
 
-	body, err := json.Marshal(map[string]any{
-		"type": "threads.create",
-		"chatkit_state": map[string]any{
-			"thread_id":            "",
-			"previous_response_id": "",
-		},
-		"params": map[string]any{
-			"input": map[string]any{
-				"content": []map[string]any{
-					{
-						"type": "input_text",
-						"text": prompt,
-					},
-				},
-				"attachments":       []any{},
-				"inference_options": map[string]any{},
-			},
-		},
-	})
+	proxyURL := "ws" + strings.TrimPrefix(baseURL, "http") + "/codex/app-server/ws"
+	proxyHeader := http.Header{}
+	proxyHeader.Set("Authorization", "Bearer "+idToken)
+	proxyConn, _, err := websocket.DefaultDialer.Dial(proxyURL, proxyHeader)
 	if err != nil {
-		t.Fatalf("failed to marshal request: %v", err)
+		t.Fatalf("failed to connect codex app-server proxy: %v", err)
 	}
+	defer proxyConn.Close()
 
-	req, err := http.NewRequest(http.MethodPost, baseURL+"/chatkit-codex", bytes.NewReader(body))
-	if err != nil {
-		t.Fatalf("failed to create request: %v", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+idToken)
-	req.Header.Set("Content-Type", "application/json")
-
-	httpClient := &http.Client{Timeout: 120 * time.Second}
-	respText, statusCode := runManualChatKitCodexRequest(t, httpClient, req)
+	threadID, turnTranscript := runManualCodexConversation(t, proxyConn, prompt, t.TempDir())
 
 	select {
 	case err := <-wsErrCh:
@@ -201,75 +178,160 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	default:
 	}
 
-	if statusCode != http.StatusOK {
-		t.Fatalf("chatkit-codex status %d; body: %s\nrunme logs:\n%s", statusCode, respText, runmeLogs.String())
+	if threadID == "" {
+		t.Fatalf("codex proxy response missing thread id; transcript: %s\nrunme logs:\n%s", turnTranscript, runmeLogs.String())
 	}
-
-	if strings.Contains(respText, "codex_turn_failed") {
-		t.Fatalf("chatkit-codex returned codex_turn_failed; body: %s\nrunme logs:\n%s", respText, runmeLogs.String())
-	}
-
-	if !strings.Contains(respText, `"type":"thread.created"`) {
-		t.Fatalf("chatkit-codex response missing thread.created event; body: %s\nrunme logs:\n%s", respText, runmeLogs.String())
-	}
-	if !strings.Contains(respText, `"type":"thread.item.added"`) {
-		t.Fatalf("chatkit-codex response missing assistant item event; body: %s\nrunme logs:\n%s", respText, runmeLogs.String())
+	if !strings.Contains(turnTranscript, `"method":"item/completed"`) && !strings.Contains(turnTranscript, `"method":"turn/completed"`) {
+		t.Fatalf("codex proxy transcript missing turn completion notifications; transcript: %s\nrunme logs:\n%s", turnTranscript, runmeLogs.String())
 	}
 
 	listCalls, getCalls, updateCalls := notebookBridge.callCounts()
 	if listCalls+getCalls == 0 {
-		t.Fatalf("expected codex to inspect notebook before editing; counts list=%d get=%d update=%d\nbody: %s\nrunme logs:\n%s", listCalls, getCalls, updateCalls, respText, runmeLogs.String())
+		t.Fatalf("expected codex to inspect notebook before editing; counts list=%d get=%d update=%d\ntranscript: %s\nrunme logs:\n%s", listCalls, getCalls, updateCalls, turnTranscript, runmeLogs.String())
 	}
 	if updateCalls == 0 {
-		t.Fatalf("expected codex to invoke UpdateCells; counts list=%d get=%d update=%d\nbody: %s\nrunme logs:\n%s", listCalls, getCalls, updateCalls, respText, runmeLogs.String())
+		t.Fatalf("expected codex to invoke UpdateCells; counts list=%d get=%d update=%d\ntranscript: %s\nrunme logs:\n%s", listCalls, getCalls, updateCalls, turnTranscript, runmeLogs.String())
 	}
-	if !notebookBridge.containsCellValue("Hello from Codex notebook tool call") {
-		t.Fatalf("expected notebook bridge state to contain inserted cell; cells=%#v\nbody: %s\nrunme logs:\n%s", notebookBridge.snapshotCells(), respText, runmeLogs.String())
+	if !notebookBridge.containsCodeCell("python", "print('Hello, world!')") {
+		t.Fatalf("expected notebook bridge state to contain inserted Python code cell; cells=%#v\ntranscript: %s\nrunme logs:\n%s", notebookBridge.snapshotCells(), turnTranscript, runmeLogs.String())
 	}
 }
 
-func runManualChatKitCodexRequest(t *testing.T, client *http.Client, req *http.Request) (string, int) {
+func runManualCodexConversation(t *testing.T, conn *websocket.Conn, prompt, cwd string) (string, string) {
 	t.Helper()
 
+	mustWriteManualProxyMessage(t, conn, map[string]any{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "initialize",
+		"params": map[string]any{
+			"protocolVersion": "2025-03-26",
+			"capabilities":    map[string]any{},
+			"clientInfo": map[string]any{
+				"name":    "manual-codex-test",
+				"version": "1.0.0",
+			},
+		},
+	})
+	_ = mustReadManualProxyResponse(t, conn, 1)
+	mustWriteManualProxyMessage(t, conn, map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "initialized",
+		"params":  map[string]any{},
+	})
+
+	mustWriteManualProxyMessage(t, conn, map[string]any{
+		"jsonrpc": "2.0",
+		"id":      2,
+		"method":  "thread/start",
+		"params": map[string]any{
+			"cwd":   cwd,
+			"model": "gpt-5.1-codex",
+		},
+	})
+	threadStart := mustReadManualProxyResponse(t, conn, 2)
+	threadResult, _ := threadStart["result"].(map[string]any)
+	threadValue, _ := threadResult["thread"].(map[string]any)
+	threadID, _ := threadValue["id"].(string)
+	if strings.TrimSpace(threadID) == "" {
+		t.Fatalf("thread/start response missing thread id: %#v", threadStart)
+	}
+
 	const maxAttempts = 2
-	var lastBody string
-	var lastStatus int
-
+	var transcript string
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		clonedReq := req.Clone(req.Context())
-		if req.GetBody != nil {
-			body, err := req.GetBody()
-			if err != nil {
-				t.Fatalf("failed to clone request body: %v", err)
+		mustWriteManualProxyMessage(t, conn, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      3,
+			"method":  "turn/start",
+			"params": map[string]any{
+				"threadId": threadID,
+				"input": []map[string]any{
+					{
+						"type": "text",
+						"text": prompt,
+					},
+				},
+			},
+		})
+
+		var messages []map[string]any
+		turnResp := mustReadManualProxyResponse(t, conn, 3, &messages)
+		transcript = manualProxyTranscript(messages)
+		if !isRetriableManualCodexTurnFailure(transcript, turnResp) || attempt == maxAttempts {
+			if errValue, ok := turnResp["error"]; ok && errValue != nil {
+				t.Fatalf("turn/start returned error: %#v\ntranscript: %s", errValue, transcript)
 			}
-			clonedReq.Body = body
-		}
-
-		resp, err := client.Do(clonedReq)
-		if err != nil {
-			t.Fatalf("request to /chatkit-codex failed: %v", err)
-		}
-
-		respBody, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			t.Fatalf("failed to read /chatkit-codex response: %v", err)
-		}
-
-		lastBody = string(respBody)
-		lastStatus = resp.StatusCode
-		if !isRetriableManualCodexTurnFailure(lastBody) || attempt == maxAttempts {
-			return lastBody, lastStatus
+			return threadID, transcript
 		}
 		t.Logf("retrying transient codex upstream failure on attempt %d/%d", attempt, maxAttempts)
 	}
 
-	return lastBody, lastStatus
+	return threadID, transcript
 }
 
-func isRetriableManualCodexTurnFailure(body string) bool {
-	return strings.Contains(body, `"code":"codex_turn_failed"`) &&
-		strings.Contains(body, "stream disconnected before completion")
+func isRetriableManualCodexTurnFailure(transcript string, response map[string]any) bool {
+	if strings.Contains(transcript, "stream disconnected before completion") {
+		return true
+	}
+	if response == nil {
+		return false
+	}
+	errValue, ok := response["error"].(map[string]any)
+	if !ok {
+		return false
+	}
+	message, _ := errValue["message"].(string)
+	return strings.Contains(message, "stream disconnected before completion")
+}
+
+func mustWriteManualProxyMessage(t *testing.T, conn *websocket.Conn, payload any) {
+	t.Helper()
+	if err := conn.WriteJSON(payload); err != nil {
+		t.Fatalf("WriteJSON failed: %v", err)
+	}
+}
+
+func mustReadManualProxyResponse(t *testing.T, conn *websocket.Conn, id int, collected ...*[]map[string]any) map[string]any {
+	t.Helper()
+
+	deadline := time.Now().Add(120 * time.Second)
+	for time.Now().Before(deadline) {
+		if err := conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
+			t.Fatalf("SetReadDeadline failed: %v", err)
+		}
+		_, payload, err := conn.ReadMessage()
+		if err != nil {
+			t.Fatalf("ReadMessage failed: %v", err)
+		}
+		msg := map[string]any{}
+		if err := json.Unmarshal(payload, &msg); err != nil {
+			t.Fatalf("failed to unmarshal proxy message %q: %v", string(payload), err)
+		}
+		if len(collected) > 0 && collected[0] != nil {
+			*collected[0] = append(*collected[0], msg)
+		}
+		if gotID, ok := msg["id"].(float64); ok && int(gotID) == id {
+			return msg
+		}
+	}
+	t.Fatalf("timed out waiting for proxy response id %d", id)
+	return nil
+}
+
+func manualProxyTranscript(messages []map[string]any) string {
+	if len(messages) == 0 {
+		return ""
+	}
+	encoded := make([]string, 0, len(messages))
+	for _, msg := range messages {
+		payload, err := json.Marshal(msg)
+		if err != nil {
+			continue
+		}
+		encoded = append(encoded, string(payload))
+	}
+	return strings.Join(encoded, "\n")
 }
 
 type manualAssetsFileSystemProvider struct{}
@@ -630,11 +692,11 @@ func (b *manualNotebookBridge) callCounts() (listCalls, getCalls, updateCalls in
 	return b.listCalls, b.getCalls, b.updateCalls
 }
 
-func (b *manualNotebookBridge) containsCellValue(value string) bool {
+func (b *manualNotebookBridge) containsCodeCell(languageID, value string) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for _, cell := range b.cells {
-		if strings.Contains(cell.GetValue(), value) {
+		if cell.GetLanguageId() == languageID && strings.Contains(cell.GetValue(), value) {
 			return true
 		}
 	}

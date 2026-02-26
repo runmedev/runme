@@ -65,7 +65,7 @@ type Server struct {
 	assetsFS          fs.FS
 	wsHandler         *stream.WebSocketHandler
 	chatKitHandler    *chatkit.ChatKitHandler
-	codexChatKit      *codex.ChatKitAdapter
+	codexProxy        http.Handler
 	codexBridge       *codex.ToolBridge
 	codexTokenManager *codex.SessionTokenManager
 	codexApprovals    *codex.ExecuteApprovalManager
@@ -341,23 +341,22 @@ func (s *Server) registerServices() error {
 			}
 			codexApprovalHandler := codex.NewExecuteApprovalHTTPHandler(codexApprovals)
 			codexProcess := codex.NewProcessManager("", nil, nil)
-			codexChatKit := codex.NewChatKitAdapter(codex.ChatKitAdapterOptions{
-				Fallback:       http.HandlerFunc(chatkitHandler.Handle),
-				ProcessManager: codexProcess,
-				TokenManager:   codexTokenManager,
-			})
+			codexProxy, err := codex.NewAppServerProxyHandler(codexProcess, codexTokenManager)
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize codex app-server proxy handler")
+			}
 
 			s.codexBridge = codexBridge
 			s.codexTokenManager = codexTokenManager
 			s.codexApprovals = codexApprovals
 			s.codexMCPHandler = codexMCPHandler
 			s.codexProcess = codexProcess
-			s.codexChatKit = codexChatKit
+			s.codexProxy = codexProxy
 
-			mux.HandleProtected("/chatkit-codex", otelhttp.NewHandler(http.HandlerFunc(codexChatKit.Handle), "/chatkit-codex"), s.checker, api.AgentUserRole)
+			mux.HandleProtected("/codex/app-server/ws", otelhttp.NewHandler(codexProxy, "/codex/app-server/ws"), s.checker, api.AgentUserRole)
 			mux.HandleProtected("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"), s.checker, api.AgentUserRole)
 			mux.HandleProtected("/codex/execute-approvals", otelhttp.NewHandler(codexApprovalHandler, "/codex/execute-approvals"), s.checker, api.AgentUserRole)
-			// This endpoint is intended for local codex app-server access and is protected by per-session bearer tokens.
+			// This endpoint is intended for local codex app-server access and is protected by app-server bearer tokens.
 			mux.Handle("/mcp/notebooks", otelhttp.NewHandler(codexMCPHandler, "/mcp/notebooks"))
 		} else {
 			log.Info("Agent does not support chatkit handler", "type", fmt.Sprintf("%T", s.agent))
