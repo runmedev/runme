@@ -9,7 +9,7 @@ import (
 )
 
 func TestStreamableMCPHandler_RequiresBearerToken(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	tokens := NewSessionTokenManager(0)
 	approvals := NewExecuteApprovalManager(0)
 	handler, err := NewStreamableMCPHandler(bridge, tokens, approvals)
@@ -29,7 +29,7 @@ func TestStreamableMCPHandler_RequiresBearerToken(t *testing.T) {
 }
 
 func TestStreamableMCPHandler_AllowsAuthorizedInitialize(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	tokens := NewSessionTokenManager(0)
 	approvals := NewExecuteApprovalManager(0)
 	handler, err := NewStreamableMCPHandler(bridge, tokens, approvals)
@@ -66,7 +66,7 @@ func TestStreamableMCPHandler_AllowsAuthorizedInitialize(t *testing.T) {
 }
 
 func TestStreamableMCPHandler_AllowsQueryTokenInitialize(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	tokens := NewSessionTokenManager(0)
 	approvals := NewExecuteApprovalManager(0)
 	handler, err := NewStreamableMCPHandler(bridge, tokens, approvals)
@@ -122,7 +122,7 @@ func TestParseApprovedRefIDs(t *testing.T) {
 }
 
 func TestNewStreamableMCPHandler_RequiresApprovalManager(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	tokens := NewSessionTokenManager(0)
 	if _, err := NewStreamableMCPHandler(bridge, tokens, nil); err == nil {
 		t.Fatalf("NewStreamableMCPHandler should require an approval manager")

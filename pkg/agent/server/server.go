@@ -332,7 +332,12 @@ func (s *Server) registerServices() error {
 			s.chatKitHandler = chatkitHandler
 			mux.HandleProtected("/chatkit", otelhttp.NewHandler(http.HandlerFunc(chatkitHandler.Handle), "/chatkit"), s.checker, api.AgentUserRole)
 
-			codexBridge := codex.NewToolBridge()
+			codexAuth := &iam.AuthContext{
+				OIDC:    oidc,
+				Checker: s.checker,
+				Role:    api.AgentUserRole,
+			}
+			codexBridge := codex.NewToolBridge(codexAuth)
 			codexTokenManager := codex.NewSessionTokenManager(0)
 			codexApprovals := codex.NewExecuteApprovalManager(0)
 			codexMCPHandler, err := codex.NewStreamableMCPHandler(codexBridge, codexTokenManager, codexApprovals)
@@ -341,7 +346,7 @@ func (s *Server) registerServices() error {
 			}
 			codexApprovalHandler := codex.NewExecuteApprovalHTTPHandler(codexApprovals)
 			codexProcess := codex.NewProcessManager("", nil, nil)
-			codexProxy, err := codex.NewAppServerProxyHandler(codexProcess, codexTokenManager)
+			codexProxy, err := codex.NewAppServerProxyHandler(codexProcess, codexTokenManager, codexAuth)
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize codex app-server proxy handler")
 			}
@@ -353,8 +358,8 @@ func (s *Server) registerServices() error {
 			s.codexProcess = codexProcess
 			s.codexProxy = codexProxy
 
-			mux.HandleProtected("/codex/app-server/ws", otelhttp.NewHandler(codexProxy, "/codex/app-server/ws"), s.checker, api.AgentUserRole)
-			mux.HandleProtected("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"), s.checker, api.AgentUserRole)
+			mux.Handle("/codex/app-server/ws", otelhttp.NewHandler(codexProxy, "/codex/app-server/ws"))
+			mux.Handle("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"))
 			mux.HandleProtected("/codex/execute-approvals", otelhttp.NewHandler(codexApprovalHandler, "/codex/execute-approvals"), s.checker, api.AgentUserRole)
 			// This endpoint is intended for local codex app-server access and is protected by app-server bearer tokens.
 			mux.Handle("/mcp/notebooks", otelhttp.NewHandler(codexMCPHandler, "/mcp/notebooks"))

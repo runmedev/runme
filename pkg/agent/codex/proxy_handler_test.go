@@ -53,7 +53,7 @@ func TestAppServerProxyHandler_InitializeHandledLocally(t *testing.T) {
 	process := &fakeProxyProcessManager{
 		initializeResult: json.RawMessage(`{"protocolVersion":"2025-03-26","capabilities":{},"serverInfo":{"name":"codex"}}`),
 	}
-	handler, err := NewAppServerProxyHandler(process, &fakeProxyTokenManager{token: "token-1"})
+	handler, err := NewAppServerProxyHandler(process, &fakeProxyTokenManager{token: "token-1"}, nil)
 	if err != nil {
 		t.Fatalf("NewAppServerProxyHandler returned error: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestAppServerProxyHandler_ThreadStartInjectsMCPConfig(t *testing.T) {
 			return json.RawMessage(`{"thread":{"id":"thread-1"}}`), nil
 		},
 	}
-	handler, err := NewAppServerProxyHandler(process, &fakeProxyTokenManager{token: "token-1"})
+	handler, err := NewAppServerProxyHandler(process, &fakeProxyTokenManager{token: "token-1"}, nil)
 	if err != nil {
 		t.Fatalf("NewAppServerProxyHandler returned error: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestAppServerProxyHandler_ForwardsTurnNotifications(t *testing.T) {
 			return json.RawMessage(`{"turn":{"id":"turn-1"}}`), nil
 		},
 	}
-	handler, err := NewAppServerProxyHandler(process, &fakeProxyTokenManager{token: "token-1"})
+	handler, err := NewAppServerProxyHandler(process, &fakeProxyTokenManager{token: "token-1"}, nil)
 	if err != nil {
 		t.Fatalf("NewAppServerProxyHandler returned error: %v", err)
 	}

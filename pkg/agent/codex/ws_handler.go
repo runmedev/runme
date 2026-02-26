@@ -19,6 +19,7 @@ import (
 	codexv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/codex/v1"
 
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
+	"github.com/runmedev/runme/v3/pkg/agent/iam"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
@@ -43,6 +44,7 @@ type bridgeCallResult struct {
 
 type ToolBridge struct {
 	upgrader websocket.Upgrader
+	auth     *iam.AuthContext
 
 	mu      sync.Mutex
 	conn    *websocket.Conn
@@ -52,7 +54,7 @@ type ToolBridge struct {
 	writeMu sync.Mutex
 }
 
-func NewToolBridge() *ToolBridge {
+func NewToolBridge(auth *iam.AuthContext) *ToolBridge {
 	return &ToolBridge{
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
@@ -61,6 +63,7 @@ func NewToolBridge() *ToolBridge {
 				return true
 			},
 		},
+		auth:    auth,
 		pending: make(map[string]pendingBridgeCall, 8),
 	}
 }
@@ -87,6 +90,21 @@ func (b *ToolBridge) HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 		logger.Error(err, "failed to upgrade /codex/ws connection")
 		return
 	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	authCtx, authErr := b.authorizeInitialRequest(ctx, conn)
+	if authErr != nil {
+		logger.Error(authErr, "failed to authorize /codex/ws connection")
+		_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, authErr.Error()), time.Now().Add(3*time.Second))
+		return
+	}
+	ctx = authCtx
+	logger = logs.FromContextWithTrace(ctx)
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
 
 	connSeq := b.installConnection(conn)
 	if existingConn != nil {
@@ -99,6 +117,26 @@ func (b *ToolBridge) HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 	logger.Info("codex bridge websocket connected")
 
 	b.readLoop(ctx, conn, connSeq)
+}
+
+func (b *ToolBridge) authorizeInitialRequest(ctx context.Context, conn *websocket.Conn) (context.Context, error) {
+	if b.auth == nil {
+		return ctx, nil
+	}
+	_, data, err := conn.ReadMessage()
+	if err != nil {
+		return ctx, err
+	}
+	var envelope struct {
+		Authorization string `json:"authorization"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return ctx, errors.New("first websocket request must be a JSON auth envelope")
+	}
+	if strings.TrimSpace(envelope.Authorization) == "" {
+		return ctx, errors.New("first websocket request missing authorization bearer token")
+	}
+	return b.auth.AuthorizeBearerToken(ctx, envelope.Authorization)
 }
 
 func writeBridgeConflict(w http.ResponseWriter) {

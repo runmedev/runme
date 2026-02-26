@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/gorilla/websocket"
 
+	"github.com/runmedev/runme/v3/pkg/agent/iam"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
@@ -32,6 +34,7 @@ type proxyTokenManager interface {
 type AppServerProxyHandler struct {
 	processManager proxyProcessManager
 	tokenManager   proxyTokenManager
+	auth          *iam.AuthContext
 	upgrader       websocket.Upgrader
 }
 
@@ -55,7 +58,7 @@ type proxyJSONRPCNotification struct {
 	Params  json.RawMessage `json:"params,omitempty"`
 }
 
-func NewAppServerProxyHandler(processManager proxyProcessManager, tokenManager proxyTokenManager) (*AppServerProxyHandler, error) {
+func NewAppServerProxyHandler(processManager proxyProcessManager, tokenManager proxyTokenManager, auth *iam.AuthContext) (*AppServerProxyHandler, error) {
 	if processManager == nil {
 		return nil, errors.New("process manager is nil")
 	}
@@ -65,6 +68,7 @@ func NewAppServerProxyHandler(processManager proxyProcessManager, tokenManager p
 	return &AppServerProxyHandler{
 		processManager: processManager,
 		tokenManager:   tokenManager,
+		auth:          auth,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -112,6 +116,7 @@ func (h *AppServerProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	writeMu := &sync.Mutex{}
 	state := proxyConnectionState{
 		initialized: false,
+		authenticated: h.auth == nil,
 		sessionConfig: SessionConfig{
 			SessionID:    defaultSessionTokenScope,
 			MCPServerURL: mcpServerURL(r),
@@ -124,6 +129,29 @@ func (h *AppServerProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		if err != nil {
 			logger.Error(err, "codex app-server proxy websocket closed")
 			return
+		}
+		if !state.authenticated {
+			authCtx, authErr := h.authorizeInitialRequest(ctx, req)
+			if authErr != nil {
+				logger.Error(authErr, "codex app-server proxy authorization failed", "method", req.Method)
+				_ = writeProxyResponse(conn, proxyJSONRPCResponse{
+					JSONRPC: "2.0",
+					ID:      req.ID,
+					Error: &jsonRPCError{
+						Code:    -32600,
+						Message: authErr.Error(),
+					},
+				})
+				_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, authErr.Error()), time.Now().Add(3*time.Second))
+				return
+			}
+			state.authenticated = true
+			ctx = authCtx
+			logger = logs.FromContextWithTrace(ctx).WithValues("component", "codex-app-server-proxy")
+			if principal := obs.GetPrincipal(ctx); principal != "" {
+				logger = logger.WithValues("principal", principal)
+			}
+			ctx = logr.NewContext(ctx, logger)
 		}
 		if err := h.handleRequest(ctx, conn, writeMu, &state, req); err != nil {
 			logger.Error(err, "codex app-server proxy request failed", "method", req.Method)
@@ -143,7 +171,33 @@ func (h *AppServerProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 type proxyConnectionState struct {
 	initialized   bool
+	authenticated bool
 	sessionConfig SessionConfig
+}
+
+func (h *AppServerProxyHandler) authorizeInitialRequest(ctx context.Context, req *proxyJSONRPCRequest) (context.Context, error) {
+	if req == nil {
+		return ctx, errors.New("missing initial request")
+	}
+	if req.Method != defaultInitializeMethod {
+		return ctx, errors.New("first request must be initialize with authorization")
+	}
+	params, err := parseProxyParams(req.Params)
+	if err != nil {
+		return ctx, err
+	}
+	paramMap, ok := params.(map[string]any)
+	if !ok {
+		return ctx, errors.New("initialize params must be an object")
+	}
+	authorization, _ := paramMap["authorization"].(string)
+	if strings.TrimSpace(authorization) == "" {
+		return ctx, errors.New("initialize params missing authorization bearer token")
+	}
+	if h.auth == nil {
+		return ctx, nil
+	}
+	return h.auth.AuthorizeBearerToken(ctx, authorization)
 }
 
 func (h *AppServerProxyHandler) handleRequest(

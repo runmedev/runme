@@ -19,7 +19,7 @@ import (
 )
 
 func TestToolBridge_RejectSecondConnection(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
@@ -40,7 +40,7 @@ func TestToolBridge_RejectSecondConnection(t *testing.T) {
 }
 
 func TestToolBridge_ForceReplaceConnection(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
@@ -64,7 +64,7 @@ func TestToolBridge_ForceReplaceConnection(t *testing.T) {
 }
 
 func TestToolBridge_CallRoundTrip(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
@@ -143,7 +143,7 @@ func TestToolBridge_CallRoundTrip(t *testing.T) {
 }
 
 func TestToolBridge_IgnoresUnsupportedPayloads(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
@@ -179,7 +179,7 @@ func TestToolBridge_IgnoresUnsupportedPayloads(t *testing.T) {
 }
 
 func TestToolBridge_CallRoundTripBinary(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
 	defer ts.Close()
 
@@ -251,7 +251,7 @@ func TestToolBridge_CallRoundTripBinary(t *testing.T) {
 }
 
 func TestToolBridge_CallFailsWithoutConnection(t *testing.T) {
-	bridge := NewToolBridge()
+	bridge := NewToolBridge(nil)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
