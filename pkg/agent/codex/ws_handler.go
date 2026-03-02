@@ -197,6 +197,7 @@ func (b *ToolBridge) Call(ctx context.Context, input *toolsv1.ToolCallInput) (*t
 		logger.Error(err, "failed to write bridge tool call request")
 		return nil, err
 	}
+	logBridgeToolInput(logger, input)
 	logger.Info("dispatched bridge tool call")
 
 	select {
@@ -208,6 +209,7 @@ func (b *ToolBridge) Call(ctx context.Context, input *toolsv1.ToolCallInput) (*t
 		if result.err != nil {
 			logger.Error(result.err, "bridge tool call failed")
 		} else {
+			logBridgeToolOutput(logger, result.output)
 			logger.Info("bridge tool call completed", "status", result.output.GetStatus().String())
 		}
 		return result.output, result.err
@@ -259,7 +261,7 @@ func (b *ToolBridge) readLoop(ctx context.Context, conn *websocket.Conn, connSeq
 			logger.Info("ignoring codex bridge response without bridge_call_id")
 			continue
 		}
-		logger.Info("received codex bridge response", "bridgeCallID", response.GetBridgeCallId())
+		logger.Info("received codex bridge response", "bridgeCallID", response.GetBridgeCallId(), logs.ZapProto("response", response))
 		b.resolvePending(response)
 	}
 }

@@ -158,6 +158,12 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	}
 	defer wsConn.Close()
 
+	if err := wsConn.WriteJSON(map[string]string{
+		"authorization": "Bearer " + idToken,
+	}); err != nil {
+		t.Fatalf("failed to authorize codex websocket bridge: %v", err)
+	}
+
 	wsErrCh := make(chan error, 1)
 	go notebookBridge.serve(wsConn, wsErrCh)
 
@@ -170,7 +176,13 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	}
 	defer proxyConn.Close()
 
-	threadID, turnTranscript := runManualCodexConversation(t, proxyConn, prompt, t.TempDir())
+	threadID, turnTranscript := runManualCodexConversation(
+		t,
+		proxyConn,
+		prompt,
+		t.TempDir(),
+		"Bearer "+idToken,
+	)
 
 	select {
 	case err := <-wsErrCh:
@@ -197,8 +209,16 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	}
 }
 
-func runManualCodexConversation(t *testing.T, conn *websocket.Conn, prompt, cwd string) (string, string) {
+func runManualCodexConversation(
+	t *testing.T,
+	conn *websocket.Conn,
+	prompt,
+	cwd,
+	authorization string,
+) (string, string) {
 	t.Helper()
+
+	recorder := &manualTranscriptRecorder{}
 
 	mustWriteManualProxyMessage(t, conn, map[string]any{
 		"jsonrpc": "2.0",
@@ -211,14 +231,15 @@ func runManualCodexConversation(t *testing.T, conn *websocket.Conn, prompt, cwd 
 				"name":    "manual-codex-test",
 				"version": "1.0.0",
 			},
+			"authorization": authorization,
 		},
-	})
-	_ = mustReadManualProxyResponse(t, conn, 1)
+	}, recorder)
+	_ = mustReadManualProxyResponse(t, conn, 1, recorder)
 	mustWriteManualProxyMessage(t, conn, map[string]any{
 		"jsonrpc": "2.0",
 		"method":  "initialized",
 		"params":  map[string]any{},
-	})
+	}, recorder)
 
 	mustWriteManualProxyMessage(t, conn, map[string]any{
 		"jsonrpc": "2.0",
@@ -228,8 +249,8 @@ func runManualCodexConversation(t *testing.T, conn *websocket.Conn, prompt, cwd 
 			"cwd":   cwd,
 			"model": "gpt-5.1-codex",
 		},
-	})
-	threadStart := mustReadManualProxyResponse(t, conn, 2)
+	}, recorder)
+	threadStart := mustReadManualProxyResponse(t, conn, 2, recorder)
 	threadResult, _ := threadStart["result"].(map[string]any)
 	threadValue, _ := threadResult["thread"].(map[string]any)
 	threadID, _ := threadValue["id"].(string)
@@ -253,11 +274,10 @@ func runManualCodexConversation(t *testing.T, conn *websocket.Conn, prompt, cwd 
 					},
 				},
 			},
-		})
+		}, recorder)
 
-		var messages []map[string]any
-		turnResp := mustReadManualProxyResponse(t, conn, 3, &messages)
-		transcript = manualProxyTranscript(messages)
+		turnResp := mustReadManualProxyResponse(t, conn, 3, recorder)
+		transcript = recorder.ndjson()
 		if !isRetriableManualCodexTurnFailure(transcript, turnResp) || attempt == maxAttempts {
 			if errValue, ok := turnResp["error"]; ok && errValue != nil {
 				t.Fatalf("turn/start returned error: %#v\ntranscript: %s", errValue, transcript)
@@ -285,15 +305,27 @@ func isRetriableManualCodexTurnFailure(transcript string, response map[string]an
 	return strings.Contains(message, "stream disconnected before completion")
 }
 
-func mustWriteManualProxyMessage(t *testing.T, conn *websocket.Conn, payload any) {
+func mustWriteManualProxyMessage(t *testing.T, conn *websocket.Conn, payload any, recorder *manualTranscriptRecorder) {
 	t.Helper()
+	recorder.record("request", payload)
 	if err := conn.WriteJSON(payload); err != nil {
 		t.Fatalf("WriteJSON failed: %v", err)
 	}
 }
 
-func mustReadManualProxyResponse(t *testing.T, conn *websocket.Conn, id int, collected ...*[]map[string]any) map[string]any {
+func mustReadManualProxyResponse(t *testing.T, conn *websocket.Conn, id int, args ...any) map[string]any {
 	t.Helper()
+
+	var recorder *manualTranscriptRecorder
+	var collected *[]map[string]any
+	for _, arg := range args {
+		switch typed := arg.(type) {
+		case *manualTranscriptRecorder:
+			recorder = typed
+		case *[]map[string]any:
+			collected = typed
+		}
+	}
 
 	deadline := time.Now().Add(120 * time.Second)
 	for time.Now().Before(deadline) {
@@ -308,8 +340,11 @@ func mustReadManualProxyResponse(t *testing.T, conn *websocket.Conn, id int, col
 		if err := json.Unmarshal(payload, &msg); err != nil {
 			t.Fatalf("failed to unmarshal proxy message %q: %v", string(payload), err)
 		}
-		if len(collected) > 0 && collected[0] != nil {
-			*collected[0] = append(*collected[0], msg)
+		if recorder != nil {
+			recorder.record(messageKind(msg), msg)
+		}
+		if collected != nil {
+			*collected = append(*collected, msg)
 		}
 		if gotID, ok := msg["id"].(float64); ok && int(gotID) == id {
 			return msg
@@ -319,19 +354,40 @@ func mustReadManualProxyResponse(t *testing.T, conn *websocket.Conn, id int, col
 	return nil
 }
 
-func manualProxyTranscript(messages []map[string]any) string {
-	if len(messages) == 0 {
+type manualTranscriptRecorder struct {
+	events []map[string]any
+}
+
+func (r *manualTranscriptRecorder) record(kind string, payload any) {
+	if r == nil {
+		return
+	}
+	r.events = append(r.events, map[string]any{
+		"kind":    kind,
+		"payload": payload,
+	})
+}
+
+func (r *manualTranscriptRecorder) ndjson() string {
+	if r == nil || len(r.events) == 0 {
 		return ""
 	}
-	encoded := make([]string, 0, len(messages))
-	for _, msg := range messages {
-		payload, err := json.Marshal(msg)
+	encoded := make([]string, 0, len(r.events))
+	for _, event := range r.events {
+		payload, err := json.Marshal(event)
 		if err != nil {
 			continue
 		}
 		encoded = append(encoded, string(payload))
 	}
 	return strings.Join(encoded, "\n")
+}
+
+func messageKind(message map[string]any) string {
+	if _, ok := message["id"]; ok {
+		return "response"
+	}
+	return "notification"
 }
 
 type manualAssetsFileSystemProvider struct{}
@@ -695,8 +751,15 @@ func (b *manualNotebookBridge) callCounts() (listCalls, getCalls, updateCalls in
 func (b *manualNotebookBridge) containsCodeCell(languageID, value string) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	normalize := func(input string) string {
+		return strings.ReplaceAll(strings.TrimSpace(input), "\"", "'")
+	}
+	expected := normalize(value)
 	for _, cell := range b.cells {
-		if cell.GetLanguageId() == languageID && strings.Contains(cell.GetValue(), value) {
+		if cell.GetLanguageId() != languageID {
+			continue
+		}
+		if strings.Contains(normalize(cell.GetValue()), expected) {
 			return true
 		}
 	}

@@ -34,7 +34,7 @@ type proxyTokenManager interface {
 type AppServerProxyHandler struct {
 	processManager proxyProcessManager
 	tokenManager   proxyTokenManager
-	auth          *iam.AuthContext
+	auth           *iam.AuthContext
 	upgrader       websocket.Upgrader
 }
 
@@ -68,7 +68,7 @@ func NewAppServerProxyHandler(processManager proxyProcessManager, tokenManager p
 	return &AppServerProxyHandler{
 		processManager: processManager,
 		tokenManager:   tokenManager,
-		auth:          auth,
+		auth:           auth,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -115,7 +115,7 @@ func (h *AppServerProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	writeMu := &sync.Mutex{}
 	state := proxyConnectionState{
-		initialized: false,
+		initialized:   false,
 		authenticated: h.auth == nil,
 		sessionConfig: SessionConfig{
 			SessionID:    defaultSessionTokenScope,
@@ -207,6 +207,10 @@ func (h *AppServerProxyHandler) handleRequest(
 	state *proxyConnectionState,
 	req *proxyJSONRPCRequest,
 ) error {
+	logger := logs.FromContextWithTrace(ctx).WithValues("component", "codex-app-server-proxy")
+	if principal := obs.GetPrincipal(ctx); principal != "" {
+		logger = logger.WithValues("principal", principal)
+	}
 	if req == nil {
 		return errors.New("request is nil")
 	}
@@ -273,12 +277,15 @@ func (h *AppServerProxyHandler) handleRequest(
 		}
 	}
 
+	logProxyRequest(logger, req, params)
 	result, err := h.processManager.CallRaw(ctx, req.Method, params, func(note jsonRPCNotification) error {
+		logProxyNotification(logger, note)
 		return writeProxyNotification(conn, writeMu, note)
 	})
 	if err != nil {
 		return err
 	}
+	logProxyResponse(logger, req.Method, req.ID, result)
 	return writeProxyResponse(conn, proxyJSONRPCResponse{
 		JSONRPC: "2.0",
 		ID:      req.ID,

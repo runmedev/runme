@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	defaultShutdownTimeout   = 3 * time.Second
-	defaultInitializeTimeout = 5 * time.Second
+	defaultShutdownTimeout    = 3 * time.Second
+	defaultInitializeTimeout  = 20 * time.Second
+	defaultInitializedTimeout = 5 * time.Second
 )
 
 const (
@@ -161,21 +162,27 @@ func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
 	initializeParams := p.initializeParams
 	p.mu.Unlock()
 
-	healthCtx := ctx
+	initializeCtx := ctx
 	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
 		var cancel context.CancelFunc
-		healthCtx, cancel = context.WithTimeout(ctx, defaultInitializeTimeout)
+		initializeCtx, cancel = context.WithTimeout(ctx, defaultInitializeTimeout)
 		defer cancel()
 	}
 	var initializeResult json.RawMessage
-	if err := client.Call(healthCtx, initializeMethod, initializeParams, &initializeResult); err != nil {
+	if err := client.Call(initializeCtx, initializeMethod, initializeParams, &initializeResult); err != nil {
 		_ = p.Stop(context.Background())
 		startErr := fmt.Errorf("initialize codex app-server: %w", err)
 		observeAppServerStartup(time.Since(start), startErr)
 		logger.Error(startErr, "codex app-server initialize call failed")
 		return startErr
 	}
-	if err := client.Notify(healthCtx, defaultInitializedMethod, map[string]any{}); err != nil {
+	initializedCtx := ctx
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		initializedCtx, cancel = context.WithTimeout(ctx, defaultInitializedTimeout)
+		defer cancel()
+	}
+	if err := client.Notify(initializedCtx, defaultInitializedMethod, map[string]any{}); err != nil {
 		_ = p.Stop(context.Background())
 		startErr := fmt.Errorf("send codex initialized notification: %w", err)
 		observeAppServerStartup(time.Since(start), startErr)
