@@ -42,6 +42,9 @@ type Multiplexer struct {
 	runner  *runme.Runner
 	streams *Streams
 
+	// tap receives session lifecycle and data events. Never nil (uses noopTap as default).
+	tap StreamTap
+
 	// authedWebsocketRequests is a channel that receives socket requests from authenticated clients.
 	authedWebsocketRequests chan *streamv1.WebsocketRequest
 
@@ -51,7 +54,11 @@ type Multiplexer struct {
 }
 
 // NewMultiplexer creates a new Multiplexer (see description above).
-func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, runner *runme.Runner) *Multiplexer {
+// tap may be nil, in which case recording is disabled.
+func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, runner *runme.Runner, tap StreamTap) *Multiplexer {
+	if tap == nil {
+		tap = noopTap{}
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	m := &Multiplexer{
 		ctx:    ctx,
@@ -60,6 +67,7 @@ func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, ru
 		runID:  runID,
 		auth:   auth,
 		runner: runner,
+		tap:    tap,
 	}
 
 	m.authedWebsocketRequests = make(chan *streamv1.WebsocketRequest, 100)
@@ -76,6 +84,8 @@ func (m *Multiplexer) acceptConnection(streamID string, sc *Connection) error {
 		log.Error(err, "Could not create stream")
 		return err
 	}
+
+	m.tap.ClientConnect(streamID)
 
 	// Start a goroutine to receive requests for a specific stream.
 	go m.receiveRequests(streamID, sc)
@@ -97,7 +107,10 @@ func (m *Multiplexer) receiveRequests(streamID string, sc *Connection) {
 	)
 	defer span.End()
 
-	defer m.streams.removeStream(ctx, streamID)
+	defer func() {
+		m.tap.ClientDisconnect(streamID)
+		m.streams.removeStream(ctx, streamID)
+	}()
 	log := logs.FromContextWithTrace(ctx)
 
 	if err := m.streams.receive(ctx, streamID, m.runID, sc); err != nil {
@@ -151,6 +164,10 @@ func (m *Multiplexer) close() {
 	time.Sleep(ClientGracePeriod)
 	// With Runme's execution finished we can close all websocket connections.
 	m.streams.close(m.ctx)
+
+	// Finalize the recording after all streams are closed.
+	m.tap.RunEnd(-1)
+	_ = m.tap.Close()
 }
 
 // process manages request processing for a runID. Returns false if a run is already in flight.
@@ -175,6 +192,8 @@ func (m *Multiplexer) process() (wait bool) {
 	}
 	p = NewProcessor(ctx, m.runID)
 	m.setInflight(p)
+
+	m.tap.RunStart(m.runID)
 
 	// Start a goroutine to execute requests against runme server.
 	go m.execute(p)
@@ -205,7 +224,31 @@ func (m *Multiplexer) process() (wait bool) {
 				log.Info("Received message doesn't contain an ExecuteRequest")
 				continue
 			}
-			p.ExecuteRequests <- req.GetExecuteRequest()
+
+			execReq := req.GetExecuteRequest()
+
+			// Record input data.
+			if len(execReq.GetInputData()) > 0 {
+				m.tap.Input(execReq.GetInputData())
+			}
+
+			// Record winsize changes.
+			if ws := execReq.GetWinsize(); ws != nil {
+				m.tap.Resize(ws.GetCols(), ws.GetRows())
+			}
+
+			// Record command start when a Config is present (first request).
+			if cfg := execReq.GetConfig(); cfg != nil {
+				program := cfg.GetProgramName()
+				if program == "" {
+					if cmds := cfg.GetCommands(); cmds != nil && len(cmds.GetItems()) > 0 {
+						program = cmds.GetItems()[0]
+					}
+				}
+				m.tap.CommandStart(program, cfg.GetDirectory())
+			}
+
+			p.ExecuteRequests <- execReq
 		}
 	}
 }
@@ -254,6 +297,20 @@ func (m *Multiplexer) broadcastResponses(p *Processor) {
 			// The channel is closed, no more responses to broadcast.
 			return
 		}
+
+		// Record stdout data.
+		if len(res.GetStdoutData()) > 0 {
+			m.tap.Output(res.GetStdoutData())
+		}
+		// Record stderr data.
+		if len(res.GetStderrData()) > 0 {
+			m.tap.Stderr(res.GetStderrData())
+		}
+		// Record command end when exit code is present.
+		if res.GetExitCode() != nil {
+			m.tap.CommandEnd(int(res.GetExitCode().GetValue()))
+		}
+
 		response := &streamv1.WebsocketResponse{
 			Status: &streamv1.WebsocketStatus{
 				Code: code.Code_OK,

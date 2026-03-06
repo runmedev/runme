@@ -75,6 +75,7 @@ type Server struct {
 	registerHandlers RegisterHandlers
 	assetsFS         fs.FS
 	wsHandler        *stream.WebSocketHandler
+	tapFactory       stream.TapFactory
 	chatKitHandler   *chatkit.ChatKitHandler
 	codex            codexComponents
 }
@@ -93,6 +94,9 @@ type (
 		// AssetsFileSystemProvider is an optional asset filesystem provider. If nil, a default implementation
 		// will be used when the agent is enabled.
 		AssetsFileSystemProvider AssetsFileSystemProvider
+		// TapFactory creates a StreamTap for each new multiplexer run.
+		// If nil, no recording is performed.
+		TapFactory stream.TapFactory
 	}
 )
 
@@ -191,6 +195,7 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 		checker:          checker,
 		registerHandlers: opts.RegisterHandlers,
 		assetsFS:         assetsFS,
+		tapFactory:       opts.TapFactory,
 	}
 	return s, nil
 }
@@ -406,6 +411,10 @@ func (s *Server) registerServices() error {
 			Checker: s.checker,
 			Role:    api.RunnerUserRole,
 		})
+		if s.tapFactory != nil {
+			s.wsHandler.SetTapFactory(s.tapFactory)
+			log.Info("Stream tap factory configured for session recording")
+		}
 		// Unprotected WebSockets handler since socket protection is done on the app-level (messages)
 		mux.Handle("/ws", otelhttp.NewHandler(http.HandlerFunc(s.wsHandler.Handler), "/ws"))
 		log.Info("Setting up runner websocket handler", "path", "/ws")
