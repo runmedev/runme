@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -176,13 +177,32 @@ func Test_Manual_CodexChatKitSmoke(t *testing.T) {
 	}
 	defer proxyConn.Close()
 
+	recorder := &manualTranscriptRecorder{}
+	var conversationPath string
+	t.Cleanup(func() {
+		path, err := recorder.writeJSONFile(threadConversationArtifact{
+			ThreadID: threadIDOrEmpty(recorder),
+			Prompt:   prompt,
+		})
+		if err != nil {
+			t.Logf("failed to write manual Codex conversation artifact: %v", err)
+			return
+		}
+		conversationPath = path
+		t.Logf("manual Codex conversation JSON written to %s", path)
+	})
+
 	threadID, turnTranscript := runManualCodexConversation(
 		t,
 		proxyConn,
 		prompt,
 		t.TempDir(),
 		"Bearer "+idToken,
+		recorder,
 	)
+	if conversationPath == "" {
+		t.Logf("manual Codex conversation JSON will be written during cleanup")
+	}
 
 	select {
 	case err := <-wsErrCh:
@@ -215,10 +235,9 @@ func runManualCodexConversation(
 	prompt,
 	cwd,
 	authorization string,
+	recorder *manualTranscriptRecorder,
 ) (string, string) {
 	t.Helper()
-
-	recorder := &manualTranscriptRecorder{}
 
 	mustWriteManualProxyMessage(t, conn, map[string]any{
 		"jsonrpc": "2.0",
@@ -381,6 +400,58 @@ func (r *manualTranscriptRecorder) ndjson() string {
 		encoded = append(encoded, string(payload))
 	}
 	return strings.Join(encoded, "\n")
+}
+
+func (r *manualTranscriptRecorder) writeJSONFile(artifact threadConversationArtifact) (string, error) {
+	if r == nil {
+		return "", fmt.Errorf("manual transcript recorder is nil")
+	}
+	artifact.Events = append([]map[string]any(nil), r.events...)
+	file, err := os.CreateTemp("/tmp", "runme-codex-conversation-*.json")
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	payload, err := json.MarshalIndent(artifact, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	if _, err := file.Write(payload); err != nil {
+		return "", err
+	}
+	return file.Name(), nil
+}
+
+type threadConversationArtifact struct {
+	ThreadID string           `json:"thread_id"`
+	Prompt   string           `json:"prompt"`
+	Events   []map[string]any `json:"events"`
+}
+
+func threadIDOrEmpty(recorder *manualTranscriptRecorder) string {
+	if recorder == nil {
+		return ""
+	}
+	for _, event := range recorder.events {
+		payload, ok := event["payload"].(map[string]any)
+		if !ok {
+			continue
+		}
+		result, ok := payload["result"].(map[string]any)
+		if !ok {
+			continue
+		}
+		thread, ok := result["thread"].(map[string]any)
+		if !ok {
+			continue
+		}
+		threadID, _ := thread["id"].(string)
+		if strings.TrimSpace(threadID) != "" {
+			return threadID
+		}
+	}
+	return ""
 }
 
 func messageKind(message map[string]any) string {
