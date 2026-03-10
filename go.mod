@@ -64,12 +64,12 @@ require (
 	go.uber.org/multierr v1.11.0
 	golang.org/x/net v0.51.0
 	golang.org/x/oauth2 v0.35.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.42.0
 	golang.org/x/term v0.40.0
 	google.golang.org/api v0.269.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171
 	google.golang.org/protobuf v1.36.11
-	mvdan.cc/sh/v3 v3.12.0
+	mvdan.cc/sh/v3 v3.13.0
 	oras.land/oras-go/v2 v2.6.0
 	sigs.k8s.io/kustomize/kyaml v0.21.1
 )
