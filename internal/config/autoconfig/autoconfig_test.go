@@ -3,7 +3,6 @@ package autoconfig
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -76,7 +75,6 @@ server: null
 	t.Run("ServerInConfigWithoutTLS", func(t *testing.T) {
 		builder := NewBuilder()
 		temp := t.TempDir()
-		address := mustFreeTCPAddress(t)
 
 		err := os.WriteFile(filepath.Join(temp, "README.md"), []byte("Hello, World!"), 0o644)
 		require.NoError(t, err)
@@ -86,10 +84,6 @@ server: null
 				Data: []byte(`version: v1alpha1
 project:
   filename: ` + filepath.Join(temp, "README.md") + `
-server:
-  address: ` + address + `
-  tls:
-    enabled: false
 `),
 			},
 		}
@@ -126,7 +120,6 @@ server:
 	t.Run("ServerInConfigWithTLS", func(t *testing.T) {
 		builder := NewBuilder()
 		temp := t.TempDir()
-		address := mustFreeTCPAddress(t)
 
 		err := os.WriteFile(filepath.Join(temp, "README.md"), []byte("Hello, World!"), 0o644)
 		require.NoError(t, err)
@@ -136,10 +129,6 @@ server:
 				Data: []byte(`version: v1alpha1
 project:
   filename: ` + filepath.Join(temp, "README.md") + `
-server:
-  address: ` + address + `
-  tls:
-    enabled: true
 `),
 			},
 		}
@@ -174,31 +163,22 @@ server:
 	})
 }
 
-func mustFreeTCPAddress(t *testing.T) string {
-	t.Helper()
-
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	addr := lis.Addr().String()
-	require.NoError(t, lis.Close())
-	return addr
-}
-
 func checkHealth(client healthv1.HealthClient) error {
 	var (
 		resp *healthv1.HealthCheckResponse
 		err  error
 	)
 
-	deadline := time.Now().Add(20 * time.Second)
-	for time.Now().Before(deadline) {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	for i := 0; i < 5; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		resp, err = client.Check(ctx, &healthv1.HealthCheckRequest{})
-		cancel()
-		if err == nil && resp.GetStatus() == healthv1.HealthCheckResponse_SERVING {
-			return nil
+		if err != nil || resp.Status != healthv1.HealthCheckResponse_SERVING {
+			cancel()
+			time.Sleep(time.Millisecond * 100)
+			continue
 		}
-		time.Sleep(250 * time.Millisecond)
+		cancel()
+		break
 	}
 
 	return err

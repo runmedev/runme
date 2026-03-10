@@ -7,7 +7,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -571,9 +570,6 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if tc.name == "Clojure" {
-				requireWorkingBabashka(t)
-			}
 
 			stream, err := client.Execute(context.Background())
 			require.NoError(t, err)
@@ -848,9 +844,9 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		assert.NoError(t, err)
 
 		result := <-resultC
-		require.NotNil(t, result.Err)
-		assert.Contains(t, result.Err.Error(), "exit status")
-		assert.True(t, result.ExitCode == 1 || result.ExitCode == 130, "unexpected exit code: %d", result.ExitCode)
+		// TODO(adamb): This should be a specific gRPC error rather than Unknown.
+		assert.Contains(t, result.Err.Error(), "exit status 130")
+		assert.Equal(t, 130, result.ExitCode)
 	})
 
 	t.Run("CloseSendDirection", func(t *testing.T) {
@@ -881,22 +877,6 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		assert.Contains(t, result.Err.Error(), "signal: interrupt")
 		assert.Equal(t, 130, result.ExitCode)
 	})
-}
-
-func requireExecutable(t *testing.T, name string) {
-	t.Helper()
-	if _, err := exec.LookPath(name); err != nil {
-		t.Skipf("skipping test: %q is not available in PATH", name)
-	}
-}
-
-func requireWorkingBabashka(t *testing.T) {
-	t.Helper()
-	requireExecutable(t, "bb")
-	cmd := exec.Command("bb", "-e", "(println \"ok\")")
-	if err := cmd.Run(); err != nil {
-		t.Skipf("skipping test: babashka is not functional in this environment: %v", err)
-	}
 }
 
 func TestRunnerServiceServerExecute_WithSession(t *testing.T) {

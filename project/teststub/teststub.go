@@ -38,12 +38,10 @@ func Setup(t *testing.T, temp string) Path {
 
 	// don't break tests on Windows
 	if runtime.GOOS != "windows" {
-		if _, err := exec.LookPath("direnv"); err == nil {
-			cmd := exec.Command("direnv", "allow")
-			cmd.Dir = filepath.Join(temp, "direnv-project")
-			cmd.Env = os.Environ()
-			require.NoError(t, cmd.Run())
-		}
+		cmd := exec.Command("direnv", "allow")
+		cmd.Dir = filepath.Join(temp, "direnv-project")
+		cmd.Env = os.Environ()
+		require.NoError(t, cmd.Run())
 	}
 
 	return Path{root: temp}
@@ -52,12 +50,10 @@ func Setup(t *testing.T, temp string) Path {
 func Cleanup(t *testing.T, temp string) {
 	t.Helper()
 
-	if _, err := exec.LookPath("direnv"); err == nil {
-		cmd := exec.Command("direnv", "prune")
-		cmd.Dir = filepath.Join(temp, "direnv-project")
-		cmd.Env = os.Environ()
-		_ = cmd.Run() // not critical
-	}
+	cmd := exec.Command("direnv", "prune")
+	cmd.Dir = filepath.Join(temp, "direnv-project")
+	cmd.Env = os.Environ()
+	_ = cmd.Run() // not critical
 
 	err := os.RemoveAll(filepath.Join(temp, "git-project", ".git"))
 	require.NoError(t, err)
