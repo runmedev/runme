@@ -105,9 +105,9 @@ print("important message")
 
 		// Rust is like Python. Envs are user-local and need to be sourced.
 		cargoEnvCfg := &ProgramConfig{
-			ProgramName: "bash",
+			ProgramName: "sh",
 			Source: &runnerv2.ProgramConfig_Script{
-				Script: `source "$HOME/.cargo/env"`,
+				Script: `[ ! -e "$HOME/.cargo/env" ] || . "$HOME/.cargo/env"`,
 			},
 			Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 		}
