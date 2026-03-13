@@ -50,6 +50,15 @@ import (
 )
 
 // Server is the main server for the cloud assistant
+type codexComponents struct {
+	proxy        http.Handler
+	bridge       *codex.ToolBridge
+	tokenManager *codex.SessionTokenManager
+	approvals    *codex.ExecuteApprovalManager
+	mcpHandler   http.Handler
+	process      *codex.ProcessManager
+}
+
 type Server struct {
 	telemetry         *config.TelemetryConfig
 	serverConfig      *config.AssistantServerConfig
@@ -65,12 +74,7 @@ type Server struct {
 	assetsFS          fs.FS
 	wsHandler         *stream.WebSocketHandler
 	chatKitHandler    *chatkit.ChatKitHandler
-	codexProxy        http.Handler
-	codexBridge       *codex.ToolBridge
-	codexTokenManager *codex.SessionTokenManager
-	codexApprovals    *codex.ExecuteApprovalManager
-	codexMCPHandler   http.Handler
-	codexProcess      *codex.ProcessManager
+	codex             codexComponents
 }
 
 type (
@@ -351,12 +355,14 @@ func (s *Server) registerServices() error {
 				return errors.Wrap(err, "failed to initialize codex app-server proxy handler")
 			}
 
-			s.codexBridge = codexBridge
-			s.codexTokenManager = codexTokenManager
-			s.codexApprovals = codexApprovals
-			s.codexMCPHandler = codexMCPHandler
-			s.codexProcess = codexProcess
-			s.codexProxy = codexProxy
+			s.codex = codexComponents{
+				proxy:        codexProxy,
+				bridge:       codexBridge,
+				tokenManager: codexTokenManager,
+				approvals:    codexApprovals,
+				mcpHandler:   codexMCPHandler,
+				process:      codexProcess,
+			}
 
 			mux.Handle("/codex/app-server/ws", otelhttp.NewHandler(codexProxy, "/codex/app-server/ws"))
 			mux.Handle("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"))
@@ -458,14 +464,14 @@ func (s *Server) shutdown() {
 		s.wsHandler.Shutdown()
 		log.Info("Cancelled active runs")
 	}
-	if s.codexBridge != nil {
-		s.codexBridge.Shutdown()
+	if s.codex.bridge != nil {
+		s.codex.bridge.Shutdown()
 		log.Info("Cancelled codex bridge")
 	}
-	if s.codexProcess != nil {
+	if s.codex.process != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := s.codexProcess.Stop(ctx); err != nil {
+		if err := s.codex.process.Stop(ctx); err != nil {
 			log.Error(err, "Error stopping codex process")
 		}
 	}
