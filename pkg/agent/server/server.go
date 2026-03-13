@@ -18,6 +18,7 @@ import (
 
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/ai/chatkit"
+	"github.com/runmedev/runme/v3/pkg/agent/codex"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -49,21 +50,31 @@ import (
 )
 
 // Server is the main server for the cloud assistant
+type codexComponents struct {
+	proxy        http.Handler
+	bridge       *codex.ToolBridge
+	tokenManager *codex.SessionTokenManager
+	approvals    *codex.ExecuteApprovalManager
+	mcpHandler   http.Handler
+	process      *codex.ProcessManager
+}
+
 type Server struct {
-	telemetry        *config.TelemetryConfig
-	serverConfig     *config.AssistantServerConfig
-	webAppConfig     *agentv1.WebAppConfig
-	hServer          *http.Server
-	engine           http.Handler
-	shutdownComplete chan bool
-	runner           *runme.Runner
-	parser           *runme.Parser
-	agent            agentv1connect.MessagesServiceHandler
-	checker          iam.Checker
-	registerHandlers RegisterHandlers
-	assetsFS         fs.FS
-	wsHandler        *stream.WebSocketHandler
-	chatKitHandler   *chatkit.ChatKitHandler
+	telemetry         *config.TelemetryConfig
+	serverConfig      *config.AssistantServerConfig
+	webAppConfig      *agentv1.WebAppConfig
+	hServer           *http.Server
+	engine            http.Handler
+	shutdownComplete  chan bool
+	runner            *runme.Runner
+	parser            *runme.Parser
+	agent             agentv1connect.MessagesServiceHandler
+	checker           iam.Checker
+	registerHandlers  RegisterHandlers
+	assetsFS          fs.FS
+	wsHandler         *stream.WebSocketHandler
+	chatKitHandler    *chatkit.ChatKitHandler
+	codex             codexComponents
 }
 
 type (
@@ -324,6 +335,40 @@ func (s *Server) registerServices() error {
 			chatkitHandler := chatkit.NewChatKitHandler(concreteAgent)
 			s.chatKitHandler = chatkitHandler
 			mux.HandleProtected("/chatkit", otelhttp.NewHandler(http.HandlerFunc(chatkitHandler.Handle), "/chatkit"), s.checker, api.AgentUserRole)
+
+			codexAuth := &iam.AuthContext{
+				OIDC:    oidc,
+				Checker: s.checker,
+				Role:    api.AgentUserRole,
+			}
+			codexBridge := codex.NewToolBridge(codexAuth)
+			codexTokenManager := codex.NewSessionTokenManager(0)
+			codexApprovals := codex.NewExecuteApprovalManager(0)
+			codexMCPHandler, err := codex.NewStreamableMCPHandler(codexBridge, codexTokenManager, codexApprovals)
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize codex notebook MCP handler")
+			}
+			codexApprovalHandler := codex.NewExecuteApprovalHTTPHandler(codexApprovals)
+			codexProcess := codex.NewProcessManager("", nil, nil)
+			codexProxy, err := codex.NewAppServerProxyHandler(codexProcess, codexTokenManager, codexAuth)
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize codex app-server proxy handler")
+			}
+
+			s.codex = codexComponents{
+				proxy:        codexProxy,
+				bridge:       codexBridge,
+				tokenManager: codexTokenManager,
+				approvals:    codexApprovals,
+				mcpHandler:   codexMCPHandler,
+				process:      codexProcess,
+			}
+
+			mux.Handle("/codex/app-server/ws", otelhttp.NewHandler(codexProxy, "/codex/app-server/ws"))
+			mux.Handle("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"))
+			mux.HandleProtected("/codex/execute-approvals", otelhttp.NewHandler(codexApprovalHandler, "/codex/execute-approvals"), s.checker, api.AgentUserRole)
+			// This endpoint is intended for local codex app-server access and is protected by app-server bearer tokens.
+			mux.Handle("/mcp/notebooks", otelhttp.NewHandler(codexMCPHandler, "/mcp/notebooks"))
 		} else {
 			log.Info("Agent does not support chatkit handler", "type", fmt.Sprintf("%T", s.agent))
 		}
@@ -418,6 +463,17 @@ func (s *Server) shutdown() {
 	if s.wsHandler != nil {
 		s.wsHandler.Shutdown()
 		log.Info("Cancelled active runs")
+	}
+	if s.codex.bridge != nil {
+		s.codex.bridge.Shutdown()
+		log.Info("Cancelled codex bridge")
+	}
+	if s.codex.process != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := s.codex.process.Stop(ctx); err != nil {
+			log.Error(err, "Error stopping codex process")
+		}
 	}
 
 	if s.hServer != nil {
