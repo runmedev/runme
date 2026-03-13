@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -74,6 +75,28 @@ func TestNewDirProject(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, filepath.IsAbs(proj.Root()), "project root is not absolute: %s", proj.Root())
 	})
+
+}
+
+func TestNewDirProject_FallbackOnUnsupportedGitExtensions(t *testing.T) {
+	repoDir := t.TempDir()
+	_, err := git.PlainInit(repoDir, false)
+	require.NoError(t, err)
+
+	configPath := filepath.Join(repoDir, ".git", "config")
+	f, err := os.OpenFile(configPath, os.O_APPEND|os.O_WRONLY, 0)
+	require.NoError(t, err)
+	_, err = f.WriteString("\n[extensions]\n\tworktreeConfig = true\n")
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	_, err = NewDirProject(repoDir)
+	require.Error(t, err)
+
+	p, err := NewDirProject(repoDir, WithAllowUnsupportedGitExtensions(true))
+	require.NoError(t, err)
+	require.Nil(t, p.repo)
+	assert.Equal(t, repoDir, p.Root())
 }
 
 func TestNewFileProject(t *testing.T) {
