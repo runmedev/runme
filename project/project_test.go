@@ -75,7 +75,6 @@ func TestNewDirProject(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, filepath.IsAbs(proj.Root()), "project root is not absolute: %s", proj.Root())
 	})
-
 }
 
 func TestNewDirProject_FallbackOnUnsupportedGitExtensions(t *testing.T) {
