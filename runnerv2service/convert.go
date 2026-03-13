@@ -20,7 +20,7 @@ func convertProtoProjectToProject(runnerProj *runnerv2.Project) (*project.Projec
 		return nil, nil
 	}
 
-	opts := project.DefaultProjectOptions[:]
+	opts := append(project.DefaultProjectOptions[:], project.WithAllowUnsupportedGitExtensions(true))
 
 	if runnerProj.EnvLoadOrder != nil {
 		opts = append(opts, project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder))

@@ -127,6 +127,15 @@ func WithLogger(logger *zap.Logger) ProjectOption {
 	}
 }
 
+// WithAllowUnsupportedGitExtensions configures NewDirProject to continue in
+// plain directory mode when go-git can't open a repository due to unsupported
+// repository extensions.
+func WithAllowUnsupportedGitExtensions(value bool) ProjectOption {
+	return func(p *Project) {
+		p.allowUnsupportedGitExtensions = value
+	}
+}
+
 type Project struct {
 	// filePath is used for file-based projects.
 	filePath string
@@ -143,6 +152,9 @@ type Project struct {
 	repo             *git.Repository
 	plainOpenOptions *git.PlainOpenOptions
 	respectGitignore bool
+	// allowUnsupportedGitExtensions keeps project initialization working even
+	// if go-git cannot parse repository extensions.
+	allowUnsupportedGitExtensions bool
 
 	// envFilesReadOrder is a list of paths to .env files
 	// to read from.
@@ -174,6 +186,12 @@ func normalizeAndValidatePath(path string) (string, error) {
 	return path, nil
 }
 
+func isUnsupportedGitOpenError(err error) bool {
+	return errors.Is(err, git.ErrUnsupportedExtensionRepositoryFormatVersion) ||
+		errors.Is(err, git.ErrUnknownExtension) ||
+		errors.Is(err, git.ErrUnsupportedRepositoryFormatVersion)
+}
+
 func NewDirProject(
 	dir string,
 	opts ...ProjectOption,
@@ -182,6 +200,10 @@ func NewDirProject(
 
 	for _, opt := range opts {
 		opt(p)
+	}
+
+	if p.logger == nil {
+		p.logger = zap.NewNop()
 	}
 
 	var err error
@@ -204,6 +226,16 @@ func NewDirProject(
 		openOptions,
 	)
 	if err != nil && !errors.Is(err, git.ErrRepositoryNotExists) {
+		if p.allowUnsupportedGitExtensions && isUnsupportedGitOpenError(err) {
+			p.logger.Info(
+				"failed to open git repository due to unsupported extensions; continuing with directory project",
+				zap.String("dir", dir),
+				zap.Error(err),
+			)
+			err = nil
+		}
+	}
+	if err != nil && !errors.Is(err, git.ErrRepositoryNotExists) {
 		return nil, errors.Wrapf(err, "failed to open dir-based project %q", dir)
 	}
 
@@ -213,10 +245,6 @@ func NewDirProject(
 			return nil, errors.Wrapf(err, "failed to open dir-based project %q", dir)
 		}
 		p.fs = wt.Filesystem
-	}
-
-	if p.logger == nil {
-		p.logger = zap.NewNop()
 	}
 
 	return p, nil
