@@ -60,21 +60,21 @@ type codexComponents struct {
 }
 
 type Server struct {
-	telemetry         *config.TelemetryConfig
-	serverConfig      *config.AssistantServerConfig
-	webAppConfig      *agentv1.WebAppConfig
-	hServer           *http.Server
-	engine            http.Handler
-	shutdownComplete  chan bool
-	runner            *runme.Runner
-	parser            *runme.Parser
-	agent             agentv1connect.MessagesServiceHandler
-	checker           iam.Checker
-	registerHandlers  RegisterHandlers
-	assetsFS          fs.FS
-	wsHandler         *stream.WebSocketHandler
-	chatKitHandler    *chatkit.ChatKitHandler
-	codex             codexComponents
+	telemetry        *config.TelemetryConfig
+	serverConfig     *config.AssistantServerConfig
+	webAppConfig     *agentv1.WebAppConfig
+	hServer          *http.Server
+	engine           http.Handler
+	shutdownComplete chan bool
+	runner           *runme.Runner
+	parser           *runme.Parser
+	agent            agentv1connect.MessagesServiceHandler
+	checker          iam.Checker
+	registerHandlers RegisterHandlers
+	assetsFS         fs.FS
+	wsHandler        *stream.WebSocketHandler
+	chatKitHandler   *chatkit.ChatKitHandler
+	codex            codexComponents
 }
 
 type (
