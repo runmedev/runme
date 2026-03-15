@@ -130,6 +130,7 @@ Like many complex go projects, this project uses a variety of linting tools to e
 
 ```sh {"id":"01HF7BT3HEQBTBM9SSTKQENPT3","interactive":"false","name":"lint"}
 make lint
+make fmt
 ```
 
 The rest of the project's linting suite can be run with:

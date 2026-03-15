@@ -777,32 +777,40 @@ type AuthContext struct {
 }
 
 func (a *AuthContext) AuthorizeRequest(ctx context.Context, req *streamv1.WebsocketRequest) error {
+	_, err := a.AuthorizeBearerToken(ctx, req.GetAuthorization())
+	return err
+}
+
+func (a *AuthContext) AuthorizeBearerToken(ctx context.Context, bearerToken string) (context.Context, error) {
 	log := logs.FromContextWithTrace(ctx)
 
-	// Nil token is not fatal until authz denies access
-	idToken, err := a.OIDC.verifyBearerToken(req.GetAuthorization())
-	if err != nil {
-		log.Error(err, "ID token verification failed")
-		// TODO(jlewi): I think we want to return an error if the idToken is invalid rather than keep going.
-		// I think the remaining code assumes a valid token and might even seg fault if we don't have an idtoken.
-		// However, returning here currently breaks
-		// websocket stream tests in pkg/agent/runme/stream/handler_test.go because
-		// those tests intentionally omit Authorization while using AllowAllChecker.
-		// So we need to update the tests to be able to return here.
+	if a == nil {
+		return ctx, nil
+	}
+
+	var idToken *jwt.Token
+	var err error
+	if a.OIDC != nil {
+		idToken, err = a.OIDC.verifyBearerToken(bearerToken)
+		if err != nil {
+			log.Error(err, "ID token verification failed")
+		}
+	}
+
+	if a.Checker == nil {
+		return ContextWithIDToken(ctx, idToken), nil
 	}
 
 	principal, err := a.Checker.GetPrincipal(idToken)
 	if err != nil {
 		log.Error(err, "Could not extract principal from token", "tokenSummary", tokenSummary(idToken))
-		return ErrPrincipalExtraction
+		return ctx, ErrPrincipalExtraction
 	}
-	if a.Checker != nil {
-		if ok := a.Checker.Check(principal, a.Role); !ok {
-			log.Info("User does not have the required role", "principal", principal)
-			return ErrRoleDenied
-		}
+	if ok := a.Checker.Check(principal, a.Role); !ok {
+		log.Info("User does not have the required role", "principal", principal)
+		return ctx, ErrRoleDenied
 	}
-	return nil
+	return ContextWithIDToken(ctx, idToken), nil
 }
 
 // TestIDP is an IDP that we can use for testing.
