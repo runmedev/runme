@@ -381,8 +381,16 @@ func NewAuthMiddlewareForOIDC(oidc *OIDC) (func(http.Handler) http.Handler, erro
 			var token *jwt.Token
 			var err error
 
-			// Prefer bearer token over session cookie
+			// Prefer bearer token over session cookie.
+			// For browser WebSockets, custom Authorization headers are unavailable,
+			// so we also accept `?authorization=Bearer ...` as a fallback.
 			bearerToken := r.Header.Get("Authorization")
+			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(bearerToken)), "bearer ") {
+				queryAuthorization := r.URL.Query().Get("authorization")
+				if strings.HasPrefix(strings.ToLower(strings.TrimSpace(queryAuthorization)), "bearer ") {
+					bearerToken = queryAuthorization
+				}
+			}
 			if strings.HasPrefix(strings.ToLower(bearerToken), "bearer ") {
 				token, err = oidc.verifyBearerToken(bearerToken)
 			} else {
