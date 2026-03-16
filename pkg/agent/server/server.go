@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -161,10 +162,11 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 	}
 
 	// Determine whether we want to serve the SPA and if so configure it.
-	// Currently, we infer whether to serve the SPA based on whether the server is running the agent service
+	// We only initialize SPA assets when static assets are configured (or when a custom provider is injected).
 	var assetsFS fs.FS
-	if agent != nil {
-		log.Info("Enabling SPA serving")
+	staticAssetsConfigured := strings.TrimSpace(opts.Server.StaticAssets) != ""
+	if agent != nil && (staticAssetsConfigured || opts.AssetsFileSystemProvider != nil) {
+		log.Info("Enabling SPA serving", "staticAssetsConfigured", staticAssetsConfigured, "hasCustomProvider", opts.AssetsFileSystemProvider != nil)
 		provider := opts.AssetsFileSystemProvider
 		if provider == nil {
 			provider = NewDefaultAssetsFileSystemProvider(opts.Server.StaticAssets)
@@ -174,6 +176,8 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 		} else {
 			return nil, errors.Wrapf(err, "Failed to get asset handler")
 		}
+	} else {
+		log.Info("SPA serving is disabled", "agentNil", agent == nil, "staticAssetsConfigured", staticAssetsConfigured, "hasCustomProvider", opts.AssetsFileSystemProvider != nil)
 	}
 
 	s := &Server{
@@ -433,8 +437,8 @@ func (s *Server) registerServices() error {
 		}
 	}
 
-	// The single page app is currently only enabled in the agent not the runner.
-	if s.agent != nil {
+	// Enable the single page app only when assets are configured.
+	if s.assetsFS != nil {
 		// Handle the single page app and assets unprotected
 		log.Info("Single page app is enabled")
 		singlePageApp, err := s.singlePageAppHandler()
@@ -443,7 +447,7 @@ func (s *Server) registerServices() error {
 		}
 		mux.Handle("/", singlePageApp)
 	} else {
-		log.Info("Single page app is disabled", "agentNil", s.agent == nil)
+		log.Info("Single page app is disabled", "assetsFSConfigured", s.assetsFS != nil)
 	}
 	s.engine = mux
 
