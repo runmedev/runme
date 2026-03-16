@@ -2,8 +2,36 @@ package server
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 )
+
+func TestCopyProxyRequestHeaders_StripsSensitiveHeaders(t *testing.T) {
+	src := http.Header{}
+	src.Set("Authorization", "Bearer test")
+	src.Set("Origin", "http://localhost:5173")
+	src.Set("Referer", "http://localhost:5173/")
+	src.Set("Cookie", "session=abc123")
+	src.Set("X-XSRFToken", "token")
+	src.Set("Content-Type", "application/json")
+	src.Set("X-Test", "ok")
+
+	dst := http.Header{}
+	copyProxyRequestHeaders(dst, src)
+
+	for _, key := range []string{"Authorization", "Origin", "Referer", "Cookie", "X-XSRFToken"} {
+		if got := dst.Get(key); got != "" {
+			t.Fatalf("expected %s to be filtered, got %q", key, got)
+		}
+	}
+
+	if got := dst.Get("Content-Type"); got != "application/json" {
+		t.Fatalf("expected Content-Type to be copied, got %q", got)
+	}
+	if got := dst.Get("X-Test"); got != "ok" {
+		t.Fatalf("expected X-Test to be copied, got %q", got)
+	}
+}
 
 func TestCopyProxyResponseHeaders_StripsCORSHeaders(t *testing.T) {
 	src := http.Header{}
@@ -46,3 +74,18 @@ func TestCopyProxyResponseHeaders_StripsCORSHeaders(t *testing.T) {
 	}
 }
 
+func TestSetUpstreamAuthToken(t *testing.T) {
+	upstreamURL, err := url.Parse("http://localhost:8888/api/kernels?foo=bar")
+	if err != nil {
+		t.Fatalf("failed to parse url: %v", err)
+	}
+
+	setUpstreamAuthToken(upstreamURL, "abc123")
+	got := upstreamURL.Query().Get("token")
+	if got != "abc123" {
+		t.Fatalf("expected token query param to be set, got %q", got)
+	}
+	if got := upstreamURL.Query().Get("foo"); got != "bar" {
+		t.Fatalf("expected existing query params to be preserved, got %q", got)
+	}
+}

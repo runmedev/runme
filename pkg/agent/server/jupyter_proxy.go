@@ -179,6 +179,7 @@ func (h *jupyterProxyHandler) forwardHTTP(w http.ResponseWriter, r *http.Request
 		writeHTTPError(w, http.StatusInternalServerError, "failed to construct upstream url")
 		return
 	}
+	setUpstreamAuthToken(upstreamURL, server.Token)
 
 	var body io.Reader
 	if r.Body != nil {
@@ -226,6 +227,7 @@ func (h *jupyterProxyHandler) forwardChannelsWebSocket(w http.ResponseWriter, r 
 		writeHTTPError(w, http.StatusInternalServerError, "failed to construct upstream url")
 		return
 	}
+	setUpstreamAuthToken(upstreamURL, server.Token)
 	switch upstreamURL.Scheme {
 	case "http":
 		upstreamURL.Scheme = "ws"
@@ -448,12 +450,22 @@ func buildUpstreamURL(base *url.URL, upstreamPath, rawQuery string) (*url.URL, e
 	return base.ResolveReference(ref), nil
 }
 
+func setUpstreamAuthToken(upstreamURL *url.URL, token string) {
+	if upstreamURL == nil {
+		return
+	}
+	trimmedToken := strings.TrimSpace(token)
+	if trimmedToken == "" {
+		return
+	}
+	query := upstreamURL.Query()
+	query.Set("token", trimmedToken)
+	upstreamURL.RawQuery = query.Encode()
+}
+
 func copyProxyRequestHeaders(dst, src http.Header) {
 	for k, values := range src {
-		if isHopByHopHeader(k) {
-			continue
-		}
-		if strings.EqualFold(k, "Authorization") {
+		if isHopByHopHeader(k) || isRestrictedProxyRequestHeader(k) {
 			continue
 		}
 		for _, value := range values {
@@ -504,6 +516,19 @@ func isCORSResponseHeader(key string) bool {
 		"access-control-allow-headers",
 		"access-control-expose-headers",
 		"access-control-max-age":
+		return true
+	default:
+		return false
+	}
+}
+
+func isRestrictedProxyRequestHeader(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case "authorization",
+		"origin",
+		"referer",
+		"cookie",
+		"x-xsrftoken":
 		return true
 	default:
 		return false
