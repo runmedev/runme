@@ -222,7 +222,11 @@ func (h *jupyterProxyHandler) forwardChannelsWebSocket(w http.ResponseWriter, r 
 		return
 	}
 
-	upstreamURL, err := buildUpstreamURL(server.BaseURL, "/api/kernels/"+url.PathEscape(kernelID)+"/channels", r.URL.RawQuery)
+	upstreamURL, err := buildUpstreamURL(
+		server.BaseURL,
+		"/api/kernels/"+url.PathEscape(kernelID)+"/channels",
+		sanitizeClientQueryForUpstream(r.URL.RawQuery),
+	)
 	if err != nil {
 		writeHTTPError(w, http.StatusInternalServerError, "failed to construct upstream url")
 		return
@@ -448,6 +452,25 @@ func buildUpstreamURL(base *url.URL, upstreamPath, rawQuery string) (*url.URL, e
 		RawQuery: rawQuery,
 	}
 	return base.ResolveReference(ref), nil
+}
+
+func sanitizeClientQueryForUpstream(rawQuery string) string {
+	if strings.TrimSpace(rawQuery) == "" {
+		return ""
+	}
+
+	queryValues, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return rawQuery
+	}
+
+	for key := range queryValues {
+		if strings.EqualFold(strings.TrimSpace(key), "authorization") {
+			delete(queryValues, key)
+		}
+	}
+
+	return queryValues.Encode()
 }
 
 func setUpstreamAuthToken(upstreamURL *url.URL, token string) {

@@ -382,8 +382,10 @@ func NewAuthMiddlewareForOIDC(oidc *OIDC) (func(http.Handler) http.Handler, erro
 			var err error
 
 			// Prefer bearer token over session cookie.
-			// For browser WebSockets, custom Authorization headers are unavailable,
-			// so we also accept `?authorization=Bearer ...` as a fallback.
+			// Browser WebSocket clients cannot set custom Authorization headers, so
+			// the Jupyter channels client sends `?authorization=Bearer ...` during
+			// the handshake. The Jupyter proxy strips this param before forwarding
+			// upstream to avoid leaking the bearer token.
 			bearerToken := r.Header.Get("Authorization")
 			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(bearerToken)), "bearer ") {
 				queryAuthorization := r.URL.Query().Get("authorization")

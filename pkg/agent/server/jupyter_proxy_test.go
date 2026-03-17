@@ -89,3 +89,29 @@ func TestSetUpstreamAuthToken(t *testing.T) {
 		t.Fatalf("expected existing query params to be preserved, got %q", got)
 	}
 }
+
+func TestSanitizeClientQueryForUpstream_RemovesAuthorization(t *testing.T) {
+	query := "authorization=Bearer+abc123&session_id=s1&Authorization=Bearer+ignored"
+	got := sanitizeClientQueryForUpstream(query)
+	parsed, err := url.ParseQuery(got)
+	if err != nil {
+		t.Fatalf("failed to parse sanitized query: %v", err)
+	}
+
+	if auth := parsed.Get("authorization"); auth != "" {
+		t.Fatalf("expected authorization query to be removed, got %q", auth)
+	}
+	if auth := parsed.Get("Authorization"); auth != "" {
+		t.Fatalf("expected Authorization query to be removed, got %q", auth)
+	}
+	if sessionID := parsed.Get("session_id"); sessionID != "s1" {
+		t.Fatalf("expected session_id to be preserved, got %q", sessionID)
+	}
+}
+
+func TestSanitizeClientQueryForUpstream_InvalidQueryPassthrough(t *testing.T) {
+	const raw = "%zz=1"
+	if got := sanitizeClientQueryForUpstream(raw); got != raw {
+		t.Fatalf("expected invalid query to pass through, got %q", got)
+	}
+}
