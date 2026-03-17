@@ -15,8 +15,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"go.uber.org/zap"
+
+	"github.com/runmedev/runme/v3/pkg/agent/logs"
 )
 
 const (
