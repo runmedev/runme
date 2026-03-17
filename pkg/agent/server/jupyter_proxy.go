@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 
@@ -267,11 +269,11 @@ func (h *jupyterProxyHandler) forwardChannelsWebSocket(w http.ResponseWriter, r 
 	defer clientConn.Close()
 
 	errCh := make(chan error, 2)
-	go bridgeWebSocketMessages(clientConn, upstreamConn, errCh)
-	go bridgeWebSocketMessages(upstreamConn, clientConn, errCh)
+	go bridgeWebSocketMessages(clientConn, upstreamConn, "upstream_to_client", errCh)
+	go bridgeWebSocketMessages(upstreamConn, clientConn, "client_to_upstream", errCh)
 
 	if err := <-errCh; err != nil {
-		log.Info("jupyter channels websocket bridge closed", "error", err.Error())
+		logJupyterWebSocketBridgeClose(log, serverName, kernelID, err)
 	}
 }
 
@@ -559,15 +561,107 @@ func isRestrictedProxyRequestHeader(key string) bool {
 	}
 }
 
-func bridgeWebSocketMessages(dst, src *websocket.Conn, errCh chan<- error) {
+type webSocketBridgeError struct {
+	err         error
+	direction   string
+	operation   string
+	srcRemote   string
+	dstRemote   string
+	messageType int
+}
+
+func (e *webSocketBridgeError) Error() string {
+	if e == nil || e.err == nil {
+		return ""
+	}
+	return e.err.Error()
+}
+
+func (e *webSocketBridgeError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.err
+}
+
+func remoteAddr(conn *websocket.Conn) string {
+	if conn == nil || conn.UnderlyingConn() == nil {
+		return ""
+	}
+	return conn.UnderlyingConn().RemoteAddr().String()
+}
+
+func logJupyterWebSocketBridgeClose(log logr.Logger, serverName, kernelID string, err error) {
+	if err == nil {
+		return
+	}
+
+	fields := []any{
+		"server", serverName,
+		"kernel_id", kernelID,
+		"error", err.Error(),
+	}
+
+	var bridgeErr *webSocketBridgeError
+	if errors.As(err, &bridgeErr) {
+		fields = append(
+			fields,
+			"direction", bridgeErr.direction,
+			"operation", bridgeErr.operation,
+			"src_remote_addr", bridgeErr.srcRemote,
+			"dst_remote_addr", bridgeErr.dstRemote,
+		)
+		if bridgeErr.messageType > 0 {
+			fields = append(fields, "message_type", bridgeErr.messageType)
+		}
+	}
+
+	var closeErr *websocket.CloseError
+	if errors.As(err, &closeErr) {
+		fields = append(
+			fields,
+			"is_websocket_close", true,
+			"close_code", closeErr.Code,
+			"close_text", closeErr.Text,
+		)
+	} else {
+		fields = append(fields, "is_websocket_close", false)
+	}
+
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		fields = append(
+			fields,
+			"is_timeout", netErr.Timeout(),
+			"is_temporary", netErr.Temporary(),
+		)
+	}
+
+	log.Info("jupyter channels websocket bridge closed", fields...)
+}
+
+func bridgeWebSocketMessages(dst, src *websocket.Conn, direction string, errCh chan<- error) {
 	for {
 		msgType, payload, err := src.ReadMessage()
 		if err != nil {
-			errCh <- err
+			errCh <- &webSocketBridgeError{
+				err:       err,
+				direction: direction,
+				operation: "read",
+				srcRemote: remoteAddr(src),
+				dstRemote: remoteAddr(dst),
+			}
 			return
 		}
 		if err := dst.WriteMessage(msgType, payload); err != nil {
-			errCh <- err
+			errCh <- &webSocketBridgeError{
+				err:         err,
+				direction:   direction,
+				operation:   "write",
+				srcRemote:   remoteAddr(src),
+				dstRemote:   remoteAddr(dst),
+				messageType: msgType,
+			}
 			return
 		}
 	}
