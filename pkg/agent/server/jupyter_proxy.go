@@ -25,6 +25,13 @@ import (
 const (
 	jupyterServersRoute = "/v1/jupyter/servers"
 	jupyterConfigDir    = "jupyter"
+
+	// Keep idle Jupyter channels sockets alive across intermediaries.
+	// Long-running cells can be quiet for extended periods, so liveness cannot
+	// depend on a steady stream of Jupyter messages.
+	jupyterChannelsPingInterval     = 20 * time.Second
+	jupyterChannelsPongWait         = 60 * time.Second
+	jupyterChannelsPingWriteTimeout = 10 * time.Second
 )
 
 type jupyterProxyHandler struct {
@@ -268,9 +275,17 @@ func (h *jupyterProxyHandler) forwardChannelsWebSocket(w http.ResponseWriter, r 
 	}
 	defer clientConn.Close()
 
-	errCh := make(chan error, 2)
+	if err := configureWebSocketPongKeepalive(clientConn, jupyterChannelsPongWait); err != nil {
+		log.Error(err, "failed to configure jupyter client websocket keepalive")
+	}
+
+	errCh := make(chan error, 3)
+	stopKeepalive := make(chan struct{})
+	defer close(stopKeepalive)
+
 	go bridgeWebSocketMessages(clientConn, upstreamConn, "upstream_to_client", errCh)
 	go bridgeWebSocketMessages(upstreamConn, clientConn, "client_to_upstream", errCh)
+	go sendWebSocketKeepalivePings(clientConn, "runme_to_client_keepalive", errCh, stopKeepalive)
 
 	if err := <-errCh; err != nil {
 		logJupyterWebSocketBridgeClose(log, serverName, kernelID, err)
@@ -663,6 +678,50 @@ func bridgeWebSocketMessages(dst, src *websocket.Conn, direction string, errCh c
 				messageType: msgType,
 			}
 			return
+		}
+	}
+}
+
+func configureWebSocketPongKeepalive(conn *websocket.Conn, pongWait time.Duration) error {
+	if conn == nil {
+		return errors.New("websocket connection is required")
+	}
+	if pongWait <= 0 {
+		return errors.New("pong wait must be positive")
+	}
+	if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		return err
+	}
+	conn.SetPongHandler(func(_ string) error {
+		return conn.SetReadDeadline(time.Now().Add(pongWait))
+	})
+	return nil
+}
+
+func sendWebSocketKeepalivePings(conn *websocket.Conn, direction string, errCh chan<- error, stop <-chan struct{}) {
+	ticker := time.NewTicker(jupyterChannelsPingInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-stop:
+			return
+		case <-ticker.C:
+			if err := conn.WriteControl(
+				websocket.PingMessage,
+				[]byte("runme-keepalive"),
+				time.Now().Add(jupyterChannelsPingWriteTimeout),
+			); err != nil {
+				errCh <- &webSocketBridgeError{
+					err:         err,
+					direction:   direction,
+					operation:   "write_ping",
+					srcRemote:   "runme",
+					dstRemote:   remoteAddr(conn),
+					messageType: websocket.PingMessage,
+				}
+				return
+			}
 		}
 	}
 }
