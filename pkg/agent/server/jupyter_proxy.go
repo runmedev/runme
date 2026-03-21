@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -283,8 +284,8 @@ func (h *jupyterProxyHandler) forwardChannelsWebSocket(w http.ResponseWriter, r 
 	stopKeepalive := make(chan struct{})
 	defer close(stopKeepalive)
 
-	go bridgeWebSocketMessages(clientConn, upstreamConn, "upstream_to_client", errCh)
-	go bridgeWebSocketMessages(upstreamConn, clientConn, "client_to_upstream", errCh)
+	go bridgeWebSocketMessagesWithContext(ctx, clientConn, upstreamConn, "upstream_to_client", errCh)
+	go bridgeWebSocketMessagesWithContext(ctx, upstreamConn, clientConn, "client_to_upstream", errCh)
 	go sendWebSocketKeepalivePings(clientConn, "runme_to_client_keepalive", errCh, stopKeepalive)
 
 	if err := <-errCh; err != nil {
@@ -655,10 +656,30 @@ func logJupyterWebSocketBridgeClose(log logr.Logger, serverName, kernelID string
 	log.Info("jupyter channels websocket bridge closed", fields...)
 }
 
-func bridgeWebSocketMessages(dst, src *websocket.Conn, direction string, errCh chan<- error) {
+func bridgeWebSocketMessagesWithContext(
+	ctx context.Context,
+	dst, src *websocket.Conn,
+	direction string,
+	errCh chan<- error,
+) {
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			// Force src.ReadMessage to return so the bridge can exit promptly.
+			_ = src.SetReadDeadline(time.Now())
+		case <-done:
+		}
+	}()
+
 	for {
 		msgType, payload, err := src.ReadMessage()
 		if err != nil {
+			if ctx.Err() != nil {
+				err = ctx.Err()
+			}
 			errCh <- &webSocketBridgeError{
 				err:       err,
 				direction: direction,
