@@ -267,6 +267,15 @@ func TestOIDC_TokenHierarchy(t *testing.T) {
 		}
 	})
 
+	t.Run("Query bearer token is accepted when header is missing", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/protected?authorization="+url.QueryEscape("Bearer "+token), nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != AuthedButForbidden {
+			t.Errorf("Expected status %d, got %d", AuthedButForbidden, rec.Code)
+		}
+	})
+
 	t.Run("Unauthorized if no token anywhere", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/protected", nil)
 		rec := httptest.NewRecorder()

@@ -72,6 +72,7 @@ func NewServeCmd(appName string) *cobra.Command {
 			serverOptions := &server.Options{
 				Telemetry: app.AppConfig.Telemetry,
 				Server:    app.AppConfig.AssistantServer,
+				ConfigDir: app.AppConfig.GetConfigDir(),
 				IAMPolicy: app.AppConfig.IAMPolicy,
 				WebApp:    app.AppConfig.WebApp,
 			}

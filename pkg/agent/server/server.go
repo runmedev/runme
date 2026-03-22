@@ -62,6 +62,7 @@ type codexComponents struct {
 type Server struct {
 	telemetry        *config.TelemetryConfig
 	serverConfig     *config.AssistantServerConfig
+	configDir        string
 	webAppConfig     *agentv1.WebAppConfig
 	hServer          *http.Server
 	engine           http.Handler
@@ -82,6 +83,7 @@ type (
 	Options          struct {
 		Telemetry *config.TelemetryConfig
 		Server    *config.AssistantServerConfig
+		ConfigDir string
 		WebApp    *agentv1.WebAppConfig
 		IAMPolicy *api.IAMPolicy
 		// RegisterHandlers is a callback that allows you to register additional handlers in the server.
@@ -177,6 +179,7 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 	s := &Server{
 		telemetry:        opts.Telemetry,
 		serverConfig:     opts.Server,
+		configDir:        opts.ConfigDir,
 		webAppConfig:     opts.WebApp,
 		runner:           runner,
 		parser:           parser,
@@ -398,6 +401,23 @@ func (s *Server) registerServices() error {
 		log.Info("Setting up runner service", "path", runnerSvcPath)
 		mux.HandleProtected(runnerSvcPath, runnerSvcHandler, s.checker, api.RunnerUserRole)
 	}
+
+	jupyterProxy, err := newJupyterProxyHandler(s.configDir)
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize jupyter proxy handler")
+	}
+	mux.HandleProtected(
+		"/v1/jupyter/servers",
+		otelhttp.NewHandler(jupyterProxy, "/v1/jupyter/servers"),
+		s.checker,
+		api.RunnerUserRole,
+	)
+	mux.HandleProtected(
+		"/v1/jupyter/servers/",
+		otelhttp.NewHandler(jupyterProxy, "/v1/jupyter/servers/"),
+		s.checker,
+		api.RunnerUserRole,
+	)
 
 	// Health check should be public
 	checker := grpchealth.NewStaticChecker()
