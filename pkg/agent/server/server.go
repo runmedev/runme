@@ -447,7 +447,7 @@ func (s *Server) registerServices() error {
 		}
 		mux.Handle("/", singlePageApp)
 	} else {
-		log.Info("Single page app is disabled", "assetsFSConfigured", s.assetsFS != nil)
+		log.Info("Single page app is disabled")
 	}
 	s.engine = mux
 
