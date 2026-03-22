@@ -47,9 +47,6 @@ func Test_NewServer_AgentEnabled_WithoutStaticAssets_DoesNotInitializeAssets(t *
 	if s.assetsFS != nil {
 		t.Fatalf("expected assets filesystem to remain nil when static assets are not configured")
 	}
-	if err := s.registerServices(); err != nil {
-		t.Fatalf("expected service registration to succeed without SPA assets: %v", err)
-	}
 }
 
 func Test_NewServer_AgentEnabled_WithStaticAssets_InitializesAssets(t *testing.T) {

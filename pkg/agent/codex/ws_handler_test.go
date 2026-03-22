@@ -2,6 +2,7 @@ package codex
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -75,29 +76,30 @@ func TestToolBridge_CallRoundTrip(t *testing.T) {
 	}
 	defer conn.Close()
 
+	responderErrCh := make(chan error, 1)
 	go func() {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
-			t.Errorf("ReadMessage request failed: %v", err)
+			responderErrCh <- fmt.Errorf("ReadMessage request failed: %w", err)
 			return
 		}
 		if messageType != websocket.TextMessage {
-			t.Errorf("unexpected websocket message type: got %d", messageType)
+			responderErrCh <- fmt.Errorf("unexpected websocket message type: got %d", messageType)
 			return
 		}
 		req := &codexv1.WebsocketResponse{}
 		if err := protojson.Unmarshal(message, req); err != nil {
-			t.Errorf("Unmarshal websocket response failed: %v", err)
+			responderErrCh <- fmt.Errorf("Unmarshal websocket response failed: %w", err)
 			return
 		}
 		toolReq := req.GetNotebookToolCallRequest()
 		if toolReq == nil {
-			t.Errorf("request missing notebook_tool_call_request payload")
+			responderErrCh <- fmt.Errorf("request missing notebook_tool_call_request payload")
 			return
 		}
 		parsedInput := toolReq.GetInput()
 		if parsedInput.GetListCells() == nil {
-			t.Errorf("request missing list_cells payload")
+			responderErrCh <- fmt.Errorf("request missing list_cells payload")
 			return
 		}
 
@@ -117,14 +119,17 @@ func TestToolBridge_CallRoundTrip(t *testing.T) {
 		}
 		respJSON, err := protojson.Marshal(resp)
 		if err != nil {
-			t.Errorf("Marshal websocket request failed: %v", err)
+			responderErrCh <- fmt.Errorf("Marshal websocket request failed: %w", err)
 			return
 		}
 		if err := conn.WriteMessage(websocket.TextMessage, respJSON); err != nil {
-			t.Errorf("WriteMessage response failed: %v", err)
+			responderErrCh <- fmt.Errorf("WriteMessage response failed: %w", err)
 			return
 		}
+		responderErrCh <- nil
 	}()
+
+	waitForBridgeConnection(t, bridge)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -140,6 +145,9 @@ func TestToolBridge_CallRoundTrip(t *testing.T) {
 	if output.GetListCells() == nil {
 		t.Fatalf("Call output missing list_cells payload")
 	}
+	if responderErr := <-responderErrCh; responderErr != nil {
+		t.Fatal(responderErr)
+	}
 }
 
 func TestToolBridge_IgnoresUnsupportedPayloads(t *testing.T) {
@@ -154,17 +162,22 @@ func TestToolBridge_IgnoresUnsupportedPayloads(t *testing.T) {
 	}
 	defer conn.Close()
 
+	writerErrCh := make(chan error, 1)
 	go func() {
 		message := &codexv1.WebsocketRequest{}
 		data, marshalErr := protojson.Marshal(message)
 		if marshalErr != nil {
-			t.Errorf("Marshal websocket request failed: %v", marshalErr)
+			writerErrCh <- fmt.Errorf("Marshal websocket request failed: %w", marshalErr)
 			return
 		}
 		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			t.Errorf("WriteMessage failed: %v", err)
+			writerErrCh <- fmt.Errorf("WriteMessage failed: %w", err)
+			return
 		}
+		writerErrCh <- nil
 	}()
+
+	waitForBridgeConnection(t, bridge)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
@@ -175,6 +188,9 @@ func TestToolBridge_IgnoresUnsupportedPayloads(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatalf("Call should fail when no notebook_tool_call_response is returned")
+	}
+	if writerErr := <-writerErrCh; writerErr != nil {
+		t.Fatal(writerErr)
 	}
 }
 
@@ -190,24 +206,25 @@ func TestToolBridge_CallRoundTripBinary(t *testing.T) {
 	}
 	defer conn.Close()
 
+	responderErrCh := make(chan error, 1)
 	go func() {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
-			t.Errorf("ReadMessage request failed: %v", err)
+			responderErrCh <- fmt.Errorf("ReadMessage request failed: %w", err)
 			return
 		}
 		if messageType != websocket.TextMessage {
-			t.Errorf("unexpected websocket message type: got %d", messageType)
+			responderErrCh <- fmt.Errorf("unexpected websocket message type: got %d", messageType)
 			return
 		}
 		req := &codexv1.WebsocketResponse{}
 		if err := protojson.Unmarshal(message, req); err != nil {
-			t.Errorf("Unmarshal websocket response failed: %v", err)
+			responderErrCh <- fmt.Errorf("Unmarshal websocket response failed: %w", err)
 			return
 		}
 		toolReq := req.GetNotebookToolCallRequest()
 		if toolReq == nil {
-			t.Errorf("request missing notebook_tool_call_request payload")
+			responderErrCh <- fmt.Errorf("request missing notebook_tool_call_request payload")
 			return
 		}
 		resp := &codexv1.WebsocketRequest{
@@ -226,13 +243,17 @@ func TestToolBridge_CallRoundTripBinary(t *testing.T) {
 		}
 		data, err := proto.Marshal(resp)
 		if err != nil {
-			t.Errorf("Marshal binary response failed: %v", err)
+			responderErrCh <- fmt.Errorf("Marshal binary response failed: %w", err)
 			return
 		}
 		if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
-			t.Errorf("WriteMessage response failed: %v", err)
+			responderErrCh <- fmt.Errorf("WriteMessage response failed: %w", err)
+			return
 		}
+		responderErrCh <- nil
 	}()
+
+	waitForBridgeConnection(t, bridge)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -247,6 +268,9 @@ func TestToolBridge_CallRoundTripBinary(t *testing.T) {
 	}
 	if output.GetListCells() == nil {
 		t.Fatalf("Call output missing list_cells payload")
+	}
+	if responderErr := <-responderErrCh; responderErr != nil {
+		t.Fatal(responderErr)
 	}
 }
 
@@ -286,4 +310,21 @@ func newTCP4TestServer(t *testing.T, handler http.Handler) *httptest.Server {
 	server.Listener = listener
 	server.Start()
 	return server
+}
+
+func waitForBridgeConnection(t *testing.T, bridge *ToolBridge) {
+	t.Helper()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		bridge.mu.Lock()
+		connected := bridge.conn != nil
+		bridge.mu.Unlock()
+		if connected {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Fatalf("timed out waiting for codex websocket bridge connection")
 }
