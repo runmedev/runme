@@ -80,11 +80,6 @@ archives:
       - LICENSE
 
 blobs:
-  # - provider: gs
-  #   bucket: "{{ .Env.GS_BUCKET }}"
-  #   ids:
-  #     - cli
-  #   directory: "{{ .Version }}"
   - provider: s3
     bucket: "{{ .Env.S3_BUCKET }}"
     ids:
