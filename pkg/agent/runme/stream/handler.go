@@ -30,6 +30,9 @@ type WebSocketHandler struct {
 
 	runner *runme.Runner
 
+	// tapFactory creates a StreamTap per run. May be nil (no recording).
+	tapFactory TapFactory
+
 	mu   sync.Mutex
 	runs map[string]*Multiplexer
 }
@@ -40,6 +43,14 @@ func NewWebSocketHandler(runner *runme.Runner, auth *iam.AuthContext) *WebSocket
 		runner: runner,
 		runs:   make(map[string]*Multiplexer),
 	}
+}
+
+// SetTapFactory configures a factory that creates a StreamTap for each new run.
+// If factory is nil or returns nil, recording is disabled for that run.
+func (h *WebSocketHandler) SetTapFactory(factory TapFactory) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.tapFactory = factory
 }
 
 // Handler is the main handler mounted in a mux to handle websocket connection upgrades.
@@ -105,7 +116,11 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 	// If we already have a run, accept the connection on the existing multiplexer.
 	multiplex, ok := h.runs[runID]
 	if !ok {
-		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner)
+		var tap StreamTap
+		if h.tapFactory != nil {
+			tap = h.tapFactory(runID)
+		}
+		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner, tap)
 		h.runs[runID] = multiplex
 	}
 
