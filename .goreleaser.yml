@@ -133,18 +133,18 @@ nfpms:
       - apk
       - rpm
 
-scoops:
-  - url_template: "https://downloads.runme.dev/runme/{{ .Version }}/{{ .ArtifactName }}"
-    repository:
-      owner: stateful
-      name: scoop-bucket
-      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
-    commit_author:
-      name: release-bot
-      email: bot@runme.dev
-    homepage: https://runme.dev
-    description: "Execute your runbooks, docs, and READMEs."
-    skip_upload: auto
+# scoops:
+#   - url_template: "https://downloads.runme.dev/runme/{{ .Version }}/{{ .ArtifactName }}"
+#     repository:
+#       owner: stateful
+#       name: scoop-bucket
+#       token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
+#     commit_author:
+#       name: release-bot
+#       email: bot@runme.dev
+#     homepage: https://runme.dev
+#     description: "Execute your runbooks, docs, and READMEs."
+#     skip_upload: auto
 
 dockers:
   - image_templates:
