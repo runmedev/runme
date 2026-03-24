@@ -98,7 +98,7 @@ brews:
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     url_template: "https://downloads.runme.dev/runme/{{ .Version }}/{{ .ArtifactName }}"
     dependencies: []
-    skip_upload: auto
+    skip_upload: "true"
     directory: Formula
     download_strategy: CurlDownloadStrategy
     commit_author:
