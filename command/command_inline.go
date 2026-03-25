@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"context"
+	"os"
 
 	"go.uber.org/zap"
 )
@@ -11,6 +12,14 @@ type inlineCommand struct {
 	internalCommand
 
 	logger *zap.Logger
+}
+
+func (c *inlineCommand) getPty() *os.File {
+	cmd, ok := c.internalCommand.(commandWithPty)
+	if !ok {
+		return nil
+	}
+	return cmd.getPty()
 }
 
 func (c *inlineCommand) Start(ctx context.Context) error {
