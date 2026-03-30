@@ -226,17 +226,15 @@ func NewDirProject(
 		openOptions,
 	)
 	if err != nil && !errors.Is(err, git.ErrRepositoryNotExists) {
-		if p.allowUnsupportedGitExtensions && isUnsupportedGitOpenError(err) {
-			p.logger.Info(
-				"failed to open git repository due to unsupported extensions; continuing with directory project",
-				zap.String("dir", dir),
-				zap.Error(err),
-			)
-			err = nil
+		if !p.allowUnsupportedGitExtensions || !isUnsupportedGitOpenError(err) {
+			return nil, errors.Wrapf(err, "failed to open dir-based project %q", dir)
 		}
-	}
-	if err != nil && !errors.Is(err, git.ErrRepositoryNotExists) {
-		return nil, errors.Wrapf(err, "failed to open dir-based project %q", dir)
+
+		p.logger.Info(
+			"failed to open git repository due to unsupported extensions; continuing with directory project",
+			zap.String("dir", dir),
+			zap.Error(err),
+		)
 	}
 
 	if p.repo != nil {
