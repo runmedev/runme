@@ -2,9 +2,11 @@
 
 This directory contains a prototype macOS menu bar app (`RunmeMenuBar`) that:
 
-- launches `runme agent serve` as a subprocess
+- discovers config files matching `config*.yaml` / `config*.yml` in `~/.runme-agent`
+- shows one submenu per config file in the menu bar menu
+- launches `runme agent serve --config <path>` as a subprocess
 - checks server health by polling `GET /metrics`
-- exposes `Start`, `Stop`, `Open Runme UI`, and `Open Log File` actions
+- exposes `Start/Stop`, `Open UI`, and `Open Log` per config
 
 ## Status
 
@@ -24,14 +26,21 @@ swift run
 
 The app prefers that bundled binary by default.
 
+## Menu Behavior
+
+- Each discovered config gets its own submenu.
+- Submenu shows status and actions based on process state.
+- Prototype currently enforces a single active config at a time to avoid port conflicts.
+
 ## Environment Variables
 
 - `RUNME_BIN`: full path to `runme` executable (default: bundle, then Homebrew/common paths)
-- `RUNME_CONFIG`: config file path passed to `runme agent serve --config` (default: `~/.runme-agent/config.yaml`)
-- `RUNME_ENDPOINT`: UI/server endpoint (default: `http://127.0.0.1:8080`)
-- `RUNME_LOG_PATH`: log file path (default: `~/Library/Logs/Runme/agent.log`)
+- `RUNME_CONFIG_DIR`: directory to scan for `config*.yaml` files (default: `~/.runme-agent`)
+- `RUNME_CONFIG`: optional explicit config path to include in the discovered list
+- `RUNME_ENDPOINT`: optional endpoint override for all configs
+- `RUNME_LOG_PATH`: optional single log path override for all configs
 
 ## Notes
 
 - Stop currently sends `SIGINT` to the subprocess.
-- The app currently does not bootstrap or validate `RUNME_CONFIG`; it expects an existing working config.
+- Endpoint parsing is best-effort from `assistantServer.bindAddress` and `assistantServer.port`.

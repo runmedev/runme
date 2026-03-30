@@ -4,43 +4,49 @@ struct MenuView: View {
     @EnvironmentObject var supervisor: AgentSupervisor
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Runme Agent")
-                .font(.headline)
-            Text(supervisor.state.rawValue)
-                .font(.subheadline)
-            Text(supervisor.statusMessage)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+        Text("Runme: \(supervisor.summaryState.rawValue)")
+        Text(supervisor.summaryMessage)
 
-            Divider()
+        Divider()
 
-            Button("Open Runme UI") {
-                supervisor.openWebUI()
-            }
+        if supervisor.configs.isEmpty {
+            Text("No config*.yaml found")
+        } else {
+            ForEach(supervisor.configs) { cfg in
+                let status = supervisor.status(for: cfg)
+                Menu("\(cfg.fileName) (\(status.state.rawValue))") {
+                    Text(status.message)
+                    Divider()
 
-            if supervisor.isRunning {
-                Button("Stop Server") {
-                    supervisor.stop()
+                    if supervisor.isRunning(cfg) {
+                        Button("Stop") {
+                            supervisor.stop(cfg)
+                        }
+                    } else {
+                        Button("Start") {
+                            supervisor.start(cfg)
+                        }
+                    }
+
+                    Button("Open UI") {
+                        supervisor.openWebUI(cfg)
+                    }
+
+                    Button("Open Log") {
+                        supervisor.openLogFile(cfg)
+                    }
                 }
-            } else {
-                Button("Start Server") {
-                    supervisor.start()
-                }
-            }
-
-            Button("Open Log File") {
-                supervisor.openLogFile()
-            }
-
-            Divider()
-
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
             }
         }
-        .frame(width: 300)
-        .padding()
+
+        Divider()
+
+        Button("Refresh Configs") {
+            supervisor.refreshConfigs()
+        }
+
+        Button("Quit") {
+            NSApplication.shared.terminate(nil)
+        }
     }
 }

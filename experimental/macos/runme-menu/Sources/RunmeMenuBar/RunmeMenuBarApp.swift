@@ -13,11 +13,11 @@ struct RunmeMenuBarApp: App {
     @StateObject private var supervisor = AgentSupervisor()
 
     var body: some Scene {
-        MenuBarExtra("Runme", systemImage: supervisor.state.iconName) {
+        MenuBarExtra("Runme", systemImage: supervisor.summaryState.iconName) {
             MenuView()
                 .environmentObject(supervisor)
         }
-        .menuBarExtraStyle(.window)
+        .menuBarExtraStyle(.menu)
 
         Settings {
             EmptyView()
