@@ -161,7 +161,16 @@ final class AgentSupervisor: ObservableObject {
             return URL(fileURLWithPath: NSString(string: override).expandingTildeInPath)
         }
 
-        if let bundled = Bundle.main.url(forResource: "runme", withExtension: nil) {
+        if let bundled = Bundle.module.url(forResource: "runme", withExtension: nil, subdirectory: "Resources")
+            ?? Bundle.module.url(forResource: "runme", withExtension: nil),
+            FileManager.default.isExecutableFile(atPath: bundled.path)
+        {
+            return bundled
+        }
+
+        if let bundled = Bundle.main.url(forResource: "runme", withExtension: nil),
+            FileManager.default.isExecutableFile(atPath: bundled.path)
+        {
             return bundled
         }
 

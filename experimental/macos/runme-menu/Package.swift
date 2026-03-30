@@ -11,7 +11,10 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "RunmeMenuBar"
+            name: "RunmeMenuBar",
+            resources: [
+                .copy("Resources"),
+            ]
         ),
     ]
 )

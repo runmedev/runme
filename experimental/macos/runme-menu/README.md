@@ -14,8 +14,15 @@ Prototype only. This is not yet integrated into release packaging, login items, 
 
 ```bash
 cd experimental/macos/runme-menu
+./scripts/bundle-runme.sh
 swift run
 ```
+
+`bundle-runme.sh` builds `runme` from this repository and places it at:
+
+`Sources/RunmeMenuBar/Resources/runme`
+
+The app prefers that bundled binary by default.
 
 ## Environment Variables
 
