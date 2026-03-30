@@ -103,6 +103,8 @@ func projectFromReq(req *projectv1.LoadRequest) (*project.Project, error) {
 			opts = append(opts, project.WithFindRepoUpward())
 		}
 
+		opts = append(opts, project.WithAllowUnsupportedGitExtensions(true))
+
 		return project.NewDirProject(v.Directory.Path, opts...)
 	case *projectv1.LoadRequest_File:
 		return project.NewFileProject(v.File.Path)

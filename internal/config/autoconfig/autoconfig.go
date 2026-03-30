@@ -219,6 +219,8 @@ func getProject(c *config.Config, logger *zap.Logger) (*project.Project, error) 
 		opts = append(opts, project.WithFindRepoUpward())
 	}
 
+	opts = append(opts, project.WithAllowUnsupportedGitExtensions(true))
+
 	return project.NewDirProject(projDir, opts...)
 }
 

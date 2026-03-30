@@ -85,6 +85,8 @@ func getProjectWithEnvDir(enabled bool) (*project.Project, error) {
 			opts = append(opts, project.WithEnvFilesReadOrder(fEnvOrder))
 		}
 
+		opts = append(opts, project.WithAllowUnsupportedGitExtensions(true))
+
 		var err error
 		proj, err = project.NewDirProject(projDir, opts...)
 		if err != nil {

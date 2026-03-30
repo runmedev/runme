@@ -202,6 +202,8 @@ func ConvertRunnerProject(runnerProj *runnerv1.Project) (*project.Project, error
 		opts = append(opts, project.WithEnvFilesReadOrder(runnerProj.EnvLoadOrder))
 	}
 
+	opts = append(opts, project.WithAllowUnsupportedGitExtensions(true))
+
 	proj, err := project.NewDirProject(runnerProj.Root, opts...)
 	if err != nil {
 		return nil, err
