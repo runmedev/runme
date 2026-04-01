@@ -25,8 +25,8 @@ func TestScriptEnvSetter(t *testing.T) {
 
 		expected := "#!/bin/sh\n" +
 			"set -euxo pipefail\n" +
-			"env -0 > /tmp/pre-path\n" +
-			"__cleanup() {\nrv=$?\nenv -0 > /tmp/post-path\nexit $rv\n}\n" +
+			envDumpCommand + " > /tmp/pre-path\n" +
+			"__cleanup() {\nrv=$?\n" + envDumpCommand + " > /tmp/post-path\nexit $rv\n}\n" +
 			"trap -- \"__cleanup\" EXIT\n" +
 			"set +euxo pipefail\n"
 		require.EqualValues(t, expected, buf.String())
@@ -40,8 +40,8 @@ func TestScriptEnvSetter(t *testing.T) {
 		require.NoError(t, err)
 
 		expected := "#!/bin/sh\n" +
-			"env -0 > /tmp/pre-path\n" +
-			"__cleanup() {\nrv=$?\nenv -0 > /tmp/post-path\nexit $rv\n}\n" +
+			envDumpCommand + " > /tmp/pre-path\n" +
+			"__cleanup() {\nrv=$?\n" + envDumpCommand + " > /tmp/post-path\nexit $rv\n}\n" +
 			"trap -- \"__cleanup\" EXIT\n"
 		require.EqualValues(t, expected, buf.String())
 	})

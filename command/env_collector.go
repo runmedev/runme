@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -35,7 +36,13 @@ var envDumpCommand = func() string {
 // TODO(adamb): this can be made obsolete. runme must be built
 // in the test environment and put into the PATH.
 func SetEnvDumpCommandForTesting() {
-	envDumpCommand = "env -0"
+	env, err := exec.LookPath("env")
+	if err != nil {
+		panic(err)
+	}
+
+	envDumpCommand = env + " -0"
+
 	// When overriding [envDumpCommand], we disable the encryption.
 	// There is no reliable way at the moment to have encryption and
 	// not control the dump command.

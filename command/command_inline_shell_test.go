@@ -64,7 +64,7 @@ func TestInlineShellCommand_CollectEnv(t *testing.T) {
 				Commands: &runnerv2.ProgramConfig_CommandList{
 					Items: []string{
 						"export TEST_ENV=1",
-						"sleep 5",
+						"/usr/bin/env sleep infinity",
 					},
 				},
 			},
