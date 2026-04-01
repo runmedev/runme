@@ -139,6 +139,8 @@ func toolCallOutcome(output *toolsv1.ToolCallOutput, err error) string {
 		return toolOutcomeSuccess
 	case output.GetExecuteCells() != nil:
 		return toolOutcomeSuccess
+	case output.GetExecuteCode() != nil:
+		return toolOutcomeSuccess
 	default:
 		return toolOutcomeNoPayload
 	}

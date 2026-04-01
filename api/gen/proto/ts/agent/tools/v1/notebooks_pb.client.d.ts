@@ -9,6 +9,8 @@ import type { SendSlackMessageResponse } from "./notebooks_pb";
 import type { SendSlackMessageRequest } from "./notebooks_pb";
 import type { TerminateRunResponse } from "./notebooks_pb";
 import type { TerminateRunRequest } from "./notebooks_pb";
+import type { ExecuteCodeResponse } from "./notebooks_pb";
+import type { ExecuteCodeRequest } from "./notebooks_pb";
 import type { NotebookServiceExecuteCellsResponse } from "./notebooks_pb";
 import type { NotebookServiceExecuteCellsRequest } from "./notebooks_pb";
 import type { ListCellsResponse } from "./notebooks_pb";
@@ -72,6 +74,12 @@ export interface INotebookServiceClient {
      * @generated from protobuf rpc: ExecuteCells
      */
     executeCells(input: NotebookServiceExecuteCellsRequest, options?: RpcOptions): UnaryCall<NotebookServiceExecuteCellsRequest, NotebookServiceExecuteCellsResponse>;
+    /**
+     * ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+     *
+     * @generated from protobuf rpc: ExecuteCode
+     */
+    executeCode(input: ExecuteCodeRequest, options?: RpcOptions): UnaryCall<ExecuteCodeRequest, ExecuteCodeResponse>;
     /**
      * TerminateRun terminates the run. Call this when no further processing is necessary to handle
      * the user request.
@@ -162,6 +170,12 @@ export declare class NotebookServiceClient implements INotebookServiceClient, Se
      * @generated from protobuf rpc: ExecuteCells
      */
     executeCells(input: NotebookServiceExecuteCellsRequest, options?: RpcOptions): UnaryCall<NotebookServiceExecuteCellsRequest, NotebookServiceExecuteCellsResponse>;
+    /**
+     * ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+     *
+     * @generated from protobuf rpc: ExecuteCode
+     */
+    executeCode(input: ExecuteCodeRequest, options?: RpcOptions): UnaryCall<ExecuteCodeRequest, ExecuteCodeResponse>;
     /**
      * TerminateRun terminates the run. Call this when no further processing is necessary to handle
      * the user request.

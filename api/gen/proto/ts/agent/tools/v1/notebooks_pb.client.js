@@ -77,13 +77,22 @@ export class NotebookServiceClient {
         return stackIntercept("unary", this._transport, method, opt, input);
     }
     /**
+     * ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+     *
+     * @generated from protobuf rpc: ExecuteCode
+     */
+    executeCode(input, options) {
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        return stackIntercept("unary", this._transport, method, opt, input);
+    }
+    /**
      * TerminateRun terminates the run. Call this when no further processing is necessary to handle
      * the user request.
      *
      * @generated from protobuf rpc: TerminateRun
      */
     terminateRun(input, options) {
-        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }
     /**
@@ -110,7 +119,7 @@ export class NotebookServiceClient {
      * @generated from protobuf rpc: SendSlackMessage
      */
     sendSlackMessage(input, options) {
-        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
         return stackIntercept("unary", this._transport, method, opt, input);
     }
 }

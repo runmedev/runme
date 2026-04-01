@@ -368,6 +368,8 @@ func toolNameFromInput(input *toolsv1.ToolCallInput) string {
 		return "UpdateCells"
 	case input.GetExecuteCells() != nil:
 		return "ExecuteCells"
+	case input.GetExecuteCode() != nil:
+		return "ExecuteCode"
 	default:
 		return "Unknown"
 	}

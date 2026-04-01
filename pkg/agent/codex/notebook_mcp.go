@@ -11,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
+	mcpruntime "github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
@@ -53,6 +54,10 @@ type executeCellsArgs struct {
 	RefIDs []string `json:"ref_ids,omitempty"`
 }
 
+type executeCodeArgs struct {
+	Code string `json:"code,omitempty"`
+}
+
 func NewNotebookMCPBridge(bridge bridgeCaller) *NotebookMCPBridge {
 	return &NotebookMCPBridge{
 		bridge:      bridge,
@@ -81,22 +86,34 @@ func (b *NotebookMCPBridge) NewServer() *mcpserver.MCPServer {
 	)
 
 	server.AddTool(
-		toolsv1mcp.NotebookService_ListCellsToolOpenAI,
+		toMCPTool(toolsv1mcp.NotebookService_ListCellsToolOpenAI),
 		mcp.NewTypedToolHandler(b.handleListCells),
 	)
 	server.AddTool(
-		toolsv1mcp.NotebookService_GetCellsToolOpenAI,
+		toMCPTool(toolsv1mcp.NotebookService_GetCellsToolOpenAI),
 		mcp.NewTypedToolHandler(b.handleGetCells),
 	)
 	server.AddTool(
-		toolsv1mcp.NotebookService_UpdateCellsToolOpenAI,
+		toMCPTool(toolsv1mcp.NotebookService_UpdateCellsToolOpenAI),
 		mcp.NewTypedToolHandler(b.handleUpdateCells),
 	)
 	server.AddTool(
-		toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI,
+		toMCPTool(toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI),
 		mcp.NewTypedToolHandler(b.handleExecuteCells),
 	)
+	server.AddTool(
+		toMCPTool(toolsv1mcp.NotebookService_ExecuteCodeToolOpenAI),
+		mcp.NewTypedToolHandler(b.handleExecuteCode),
+	)
 	return server
+}
+
+func toMCPTool(tool mcpruntime.Tool) mcp.Tool {
+	return mcp.Tool{
+		Name:           tool.Name,
+		Description:    tool.Description,
+		RawInputSchema: tool.RawInputSchema,
+	}
 }
 
 func (b *NotebookMCPBridge) handleListCells(ctx context.Context, _ mcp.CallToolRequest, _ listCellsArgs) (*mcp.CallToolResult, error) {
@@ -170,6 +187,24 @@ func (b *NotebookMCPBridge) handleExecuteCells(ctx context.Context, _ mcp.CallTo
 	}
 	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
 	return toolOutputToResult(output.GetExecuteCells(), output)
+}
+
+func (b *NotebookMCPBridge) handleExecuteCode(ctx context.Context, _ mcp.CallToolRequest, args executeCodeArgs) (*mcp.CallToolResult, error) {
+	logger := loggerForToolCall(ctx, "ExecuteCode")
+	input := &toolsv1.ToolCallInput{
+		Input: &toolsv1.ToolCallInput_ExecuteCode{
+			ExecuteCode: &toolsv1.ExecuteCodeRequest{
+				Code: args.Code,
+			},
+		},
+	}
+	output, err := b.callBridgeForTool(ctx, "ExecuteCode", input)
+	if err != nil {
+		logger.Error(err, "failed to dispatch tool call")
+		return mcp.NewToolResultErrorFromErr("failed to dispatch ExecuteCode over codex bridge", err), nil
+	}
+	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
+	return toolOutputToResult(output.GetExecuteCode(), output)
 }
 
 func (b *NotebookMCPBridge) callBridge(ctx context.Context, input *toolsv1.ToolCallInput) (*toolsv1.ToolCallOutput, error) {

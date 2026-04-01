@@ -5,14 +5,12 @@
 package toolsv1connect
 
 import (
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	http "net/http"
 	strings "strings"
-
-	connect "connectrpc.com/connect"
-
-	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 )
 
 // This is a compile-time assertion to ensure that this generated file and the connect package are
@@ -47,6 +45,9 @@ const (
 	// NotebookServiceExecuteCellsProcedure is the fully-qualified name of the NotebookService's
 	// ExecuteCells RPC.
 	NotebookServiceExecuteCellsProcedure = "/agent.tools.v1.NotebookService/ExecuteCells"
+	// NotebookServiceExecuteCodeProcedure is the fully-qualified name of the NotebookService's
+	// ExecuteCode RPC.
+	NotebookServiceExecuteCodeProcedure = "/agent.tools.v1.NotebookService/ExecuteCode"
 	// NotebookServiceTerminateRunProcedure is the fully-qualified name of the NotebookService's
 	// TerminateRun RPC.
 	NotebookServiceTerminateRunProcedure = "/agent.tools.v1.NotebookService/TerminateRun"
@@ -79,6 +80,8 @@ type NotebookServiceClient interface {
 	// Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
 	// cells. The response will contain the cell including the outputs of execution.
 	ExecuteCells(context.Context, *connect.Request[v1.NotebookServiceExecuteCellsRequest]) (*connect.Response[v1.NotebookServiceExecuteCellsResponse], error)
+	// ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+	ExecuteCode(context.Context, *connect.Request[v1.ExecuteCodeRequest]) (*connect.Response[v1.ExecuteCodeResponse], error)
 	// TerminateRun terminates the run. Call this when no further processing is necessary to handle
 	// the user request.
 	TerminateRun(context.Context, *connect.Request[v1.TerminateRunRequest]) (*connect.Response[v1.TerminateRunResponse], error)
@@ -140,6 +143,12 @@ func NewNotebookServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(notebookServiceMethods.ByName("ExecuteCells")),
 			connect.WithClientOptions(opts...),
 		),
+		executeCode: connect.NewClient[v1.ExecuteCodeRequest, v1.ExecuteCodeResponse](
+			httpClient,
+			baseURL+NotebookServiceExecuteCodeProcedure,
+			connect.WithSchema(notebookServiceMethods.ByName("ExecuteCode")),
+			connect.WithClientOptions(opts...),
+		),
 		terminateRun: connect.NewClient[v1.TerminateRunRequest, v1.TerminateRunResponse](
 			httpClient,
 			baseURL+NotebookServiceTerminateRunProcedure,
@@ -161,6 +170,7 @@ type notebookServiceClient struct {
 	getCells         *connect.Client[v1.GetCellsRequest, v1.GetCellsResponse]
 	listCells        *connect.Client[v1.ListCellsRequest, v1.ListCellsResponse]
 	executeCells     *connect.Client[v1.NotebookServiceExecuteCellsRequest, v1.NotebookServiceExecuteCellsResponse]
+	executeCode      *connect.Client[v1.ExecuteCodeRequest, v1.ExecuteCodeResponse]
 	terminateRun     *connect.Client[v1.TerminateRunRequest, v1.TerminateRunResponse]
 	sendSlackMessage *connect.Client[v1.SendSlackMessageRequest, v1.SendSlackMessageResponse]
 }
@@ -183,6 +193,11 @@ func (c *notebookServiceClient) ListCells(ctx context.Context, req *connect.Requ
 // ExecuteCells calls agent.tools.v1.NotebookService.ExecuteCells.
 func (c *notebookServiceClient) ExecuteCells(ctx context.Context, req *connect.Request[v1.NotebookServiceExecuteCellsRequest]) (*connect.Response[v1.NotebookServiceExecuteCellsResponse], error) {
 	return c.executeCells.CallUnary(ctx, req)
+}
+
+// ExecuteCode calls agent.tools.v1.NotebookService.ExecuteCode.
+func (c *notebookServiceClient) ExecuteCode(ctx context.Context, req *connect.Request[v1.ExecuteCodeRequest]) (*connect.Response[v1.ExecuteCodeResponse], error) {
+	return c.executeCode.CallUnary(ctx, req)
 }
 
 // TerminateRun calls agent.tools.v1.NotebookService.TerminateRun.
@@ -219,6 +234,8 @@ type NotebookServiceHandler interface {
 	// Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
 	// cells. The response will contain the cell including the outputs of execution.
 	ExecuteCells(context.Context, *connect.Request[v1.NotebookServiceExecuteCellsRequest]) (*connect.Response[v1.NotebookServiceExecuteCellsResponse], error)
+	// ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+	ExecuteCode(context.Context, *connect.Request[v1.ExecuteCodeRequest]) (*connect.Response[v1.ExecuteCodeResponse], error)
 	// TerminateRun terminates the run. Call this when no further processing is necessary to handle
 	// the user request.
 	TerminateRun(context.Context, *connect.Request[v1.TerminateRunRequest]) (*connect.Response[v1.TerminateRunResponse], error)
@@ -276,6 +293,12 @@ func NewNotebookServiceHandler(svc NotebookServiceHandler, opts ...connect.Handl
 		connect.WithSchema(notebookServiceMethods.ByName("ExecuteCells")),
 		connect.WithHandlerOptions(opts...),
 	)
+	notebookServiceExecuteCodeHandler := connect.NewUnaryHandler(
+		NotebookServiceExecuteCodeProcedure,
+		svc.ExecuteCode,
+		connect.WithSchema(notebookServiceMethods.ByName("ExecuteCode")),
+		connect.WithHandlerOptions(opts...),
+	)
 	notebookServiceTerminateRunHandler := connect.NewUnaryHandler(
 		NotebookServiceTerminateRunProcedure,
 		svc.TerminateRun,
@@ -298,6 +321,8 @@ func NewNotebookServiceHandler(svc NotebookServiceHandler, opts ...connect.Handl
 			notebookServiceListCellsHandler.ServeHTTP(w, r)
 		case NotebookServiceExecuteCellsProcedure:
 			notebookServiceExecuteCellsHandler.ServeHTTP(w, r)
+		case NotebookServiceExecuteCodeProcedure:
+			notebookServiceExecuteCodeHandler.ServeHTTP(w, r)
 		case NotebookServiceTerminateRunProcedure:
 			notebookServiceTerminateRunHandler.ServeHTTP(w, r)
 		case NotebookServiceSendSlackMessageProcedure:
@@ -325,6 +350,10 @@ func (UnimplementedNotebookServiceHandler) ListCells(context.Context, *connect.R
 
 func (UnimplementedNotebookServiceHandler) ExecuteCells(context.Context, *connect.Request[v1.NotebookServiceExecuteCellsRequest]) (*connect.Response[v1.NotebookServiceExecuteCellsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.ExecuteCells is not implemented"))
+}
+
+func (UnimplementedNotebookServiceHandler) ExecuteCode(context.Context, *connect.Request[v1.ExecuteCodeRequest]) (*connect.Response[v1.ExecuteCodeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.ExecuteCode is not implemented"))
 }
 
 func (UnimplementedNotebookServiceHandler) TerminateRun(context.Context, *connect.Request[v1.TerminateRunRequest]) (*connect.Response[v1.TerminateRunResponse], error) {

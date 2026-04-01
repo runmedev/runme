@@ -230,6 +230,62 @@ export declare type NotebookServiceExecuteCellsResponseJson = {
 export declare const NotebookServiceExecuteCellsResponseSchema: GenMessage<NotebookServiceExecuteCellsResponse, {jsonType: NotebookServiceExecuteCellsResponseJson}>;
 
 /**
+ * @generated from message agent.tools.v1.ExecuteCodeRequest
+ */
+export declare type ExecuteCodeRequest = Message<"agent.tools.v1.ExecuteCodeRequest"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+};
+
+/**
+ * @generated from message agent.tools.v1.ExecuteCodeRequest
+ */
+export declare type ExecuteCodeRequestJson = {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code?: string;
+};
+
+/**
+ * Describes the message agent.tools.v1.ExecuteCodeRequest.
+ * Use `create(ExecuteCodeRequestSchema)` to create a new message.
+ */
+export declare const ExecuteCodeRequestSchema: GenMessage<ExecuteCodeRequest, {jsonType: ExecuteCodeRequestJson}>;
+
+/**
+ * @generated from message agent.tools.v1.ExecuteCodeResponse
+ */
+export declare type ExecuteCodeResponse = Message<"agent.tools.v1.ExecuteCodeResponse"> & {
+  /**
+   * output contains merged stdout/stderr in execution order.
+   *
+   * @generated from field: string output = 1;
+   */
+  output: string;
+};
+
+/**
+ * @generated from message agent.tools.v1.ExecuteCodeResponse
+ */
+export declare type ExecuteCodeResponseJson = {
+  /**
+   * output contains merged stdout/stderr in execution order.
+   *
+   * @generated from field: string output = 1;
+   */
+  output?: string;
+};
+
+/**
+ * Describes the message agent.tools.v1.ExecuteCodeResponse.
+ * Use `create(ExecuteCodeResponseSchema)` to create a new message.
+ */
+export declare const ExecuteCodeResponseSchema: GenMessage<ExecuteCodeResponse, {jsonType: ExecuteCodeResponseJson}>;
+
+/**
  * @generated from message agent.tools.v1.TerminateRunRequest
  */
 export declare type TerminateRunRequest = Message<"agent.tools.v1.TerminateRunRequest"> & {
@@ -325,6 +381,12 @@ export declare type ToolCallInput = Message<"agent.tools.v1.ToolCallInput"> & {
      */
     value: SendSlackMessageRequest;
     case: "sendSlackMessage";
+  } | {
+    /**
+     * @generated from field: agent.tools.v1.ExecuteCodeRequest execute_code = 9;
+     */
+    value: ExecuteCodeRequest;
+    case: "executeCode";
   } | { case: undefined; value?: undefined };
 };
 
@@ -378,6 +440,11 @@ export declare type ToolCallInputJson = {
    * @generated from field: agent.tools.v1.SendSlackMessageRequest send_slack_message = 8;
    */
   sendSlackMessage?: SendSlackMessageRequestJson;
+
+  /**
+   * @generated from field: agent.tools.v1.ExecuteCodeRequest execute_code = 9;
+   */
+  executeCode?: ExecuteCodeRequestJson;
 };
 
 /**
@@ -439,6 +506,12 @@ export declare type ToolCallOutput = Message<"agent.tools.v1.ToolCallOutput"> & 
      */
     value: SendSlackMessageResponse;
     case: "sendSlackMessage";
+  } | {
+    /**
+     * @generated from field: agent.tools.v1.ExecuteCodeResponse execute_code = 11;
+     */
+    value: ExecuteCodeResponse;
+    case: "executeCode";
   } | { case: undefined; value?: undefined };
 
   /**
@@ -497,6 +570,11 @@ export declare type ToolCallOutputJson = {
    * @generated from field: agent.tools.v1.SendSlackMessageResponse send_slack_message = 10;
    */
   sendSlackMessage?: SendSlackMessageResponseJson;
+
+  /**
+   * @generated from field: agent.tools.v1.ExecuteCodeResponse execute_code = 11;
+   */
+  executeCode?: ExecuteCodeResponseJson;
 
   /**
    * @generated from field: agent.tools.v1.ToolCallOutput.Status status = 6;
@@ -745,6 +823,16 @@ export declare const NotebookService: GenService<{
     output: typeof NotebookServiceExecuteCellsResponseSchema;
   },
   /**
+   * ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+   *
+   * @generated from rpc agent.tools.v1.NotebookService.ExecuteCode
+   */
+  executeCode: {
+    methodKind: "unary";
+    input: typeof ExecuteCodeRequestSchema;
+    output: typeof ExecuteCodeResponseSchema;
+  },
+  /**
    * TerminateRun terminates the run. Call this when no further processing is necessary to handle
    * the user request.
    *
@@ -784,3 +872,4 @@ export declare const NotebookService: GenService<{
     output: typeof SendSlackMessageResponseSchema;
   },
 }>;
+

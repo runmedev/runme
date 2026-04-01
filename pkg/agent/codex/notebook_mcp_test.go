@@ -13,14 +13,16 @@ import (
 type fakeBridge struct {
 	callCount   int
 	lastCtx     context.Context
+	lastInput   *toolsv1.ToolCallInput
 	nextOutput  *toolsv1.ToolCallOutput
 	nextErr     error
 	blockOnCall bool
 }
 
-func (f *fakeBridge) Call(ctx context.Context, _ *toolsv1.ToolCallInput) (*toolsv1.ToolCallOutput, error) {
+func (f *fakeBridge) Call(ctx context.Context, input *toolsv1.ToolCallInput) (*toolsv1.ToolCallOutput, error) {
 	f.callCount++
 	f.lastCtx = ctx
+	f.lastInput = input
 	if f.blockOnCall {
 		<-ctx.Done()
 		return nil, ctx.Err()
@@ -148,5 +150,36 @@ func TestNotebookMCPBridge_ExecuteCellsUsesApprovalManager(t *testing.T) {
 	}
 	if bridge.callCount != 1 {
 		t.Fatalf("bridge call count = %d, want 1 after consumed approval", bridge.callCount)
+	}
+}
+
+func TestNotebookMCPBridge_ExecuteCodeCallsBridge(t *testing.T) {
+	bridge := &fakeBridge{
+		nextOutput: &toolsv1.ToolCallOutput{
+			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
+			Output: &toolsv1.ToolCallOutput_ExecuteCode{
+				ExecuteCode: &toolsv1.ExecuteCodeResponse{
+					Output: "ok\n",
+				},
+			},
+		},
+	}
+	nb := NewNotebookMCPBridge(bridge)
+
+	result, err := nb.handleExecuteCode(context.Background(), mcp.CallToolRequest{}, executeCodeArgs{Code: "console.log('ok')"}) //nolint:forbidigo
+	if err != nil {
+		t.Fatalf("handleExecuteCode returned error: %v", err)
+	}
+	if result == nil || result.IsError {
+		t.Fatalf("expected ExecuteCode to succeed")
+	}
+	if bridge.callCount != 1 {
+		t.Fatalf("bridge call count = %d, want 1", bridge.callCount)
+	}
+	if bridge.lastInput == nil || bridge.lastInput.GetExecuteCode() == nil {
+		t.Fatalf("expected ExecuteCode input to be dispatched")
+	}
+	if bridge.lastInput.GetExecuteCode().GetCode() != "console.log('ok')" {
+		t.Fatalf("execute code = %q, want %q", bridge.lastInput.GetExecuteCode().GetCode(), "console.log('ok')")
 	}
 }
