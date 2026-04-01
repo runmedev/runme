@@ -86,22 +86,6 @@ func (b *NotebookMCPBridge) NewServer() *mcpserver.MCPServer {
 	)
 
 	server.AddTool(
-		toMCPTool(toolsv1mcp.NotebookService_ListCellsToolOpenAI),
-		mcp.NewTypedToolHandler(b.handleListCells),
-	)
-	server.AddTool(
-		toMCPTool(toolsv1mcp.NotebookService_GetCellsToolOpenAI),
-		mcp.NewTypedToolHandler(b.handleGetCells),
-	)
-	server.AddTool(
-		toMCPTool(toolsv1mcp.NotebookService_UpdateCellsToolOpenAI),
-		mcp.NewTypedToolHandler(b.handleUpdateCells),
-	)
-	server.AddTool(
-		toMCPTool(toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI),
-		mcp.NewTypedToolHandler(b.handleExecuteCells),
-	)
-	server.AddTool(
 		toMCPTool(toolsv1mcp.NotebookService_ExecuteCodeToolOpenAI),
 		mcp.NewTypedToolHandler(b.handleExecuteCode),
 	)
