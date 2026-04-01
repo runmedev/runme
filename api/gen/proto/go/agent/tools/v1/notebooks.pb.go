@@ -7,14 +7,12 @@
 package toolsv1
 
 import (
+	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
-	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 )
 
 const (
@@ -70,7 +68,7 @@ func (x ToolCallOutput_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ToolCallOutput_Status.Descriptor instead.
 func (ToolCallOutput_Status) EnumDescriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{11, 0}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{13, 0}
 }
 
 type ListCellsRequest struct {
@@ -423,6 +421,95 @@ func (x *NotebookServiceExecuteCellsResponse) GetCells() []*v1.Cell {
 	return nil
 }
 
+type ExecuteCodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecuteCodeRequest) Reset() {
+	*x = ExecuteCodeRequest{}
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteCodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteCodeRequest) ProtoMessage() {}
+
+func (x *ExecuteCodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteCodeRequest.ProtoReflect.Descriptor instead.
+func (*ExecuteCodeRequest) Descriptor() ([]byte, []int) {
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ExecuteCodeRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type ExecuteCodeResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// output contains merged stdout/stderr in execution order.
+	Output        string `protobuf:"bytes,1,opt,name=output,proto3" json:"output,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecuteCodeResponse) Reset() {
+	*x = ExecuteCodeResponse{}
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteCodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteCodeResponse) ProtoMessage() {}
+
+func (x *ExecuteCodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteCodeResponse.ProtoReflect.Descriptor instead.
+func (*ExecuteCodeResponse) Descriptor() ([]byte, []int) {
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ExecuteCodeResponse) GetOutput() string {
+	if x != nil {
+		return x.Output
+	}
+	return ""
+}
+
 type TerminateRunRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -431,7 +518,7 @@ type TerminateRunRequest struct {
 
 func (x *TerminateRunRequest) Reset() {
 	*x = TerminateRunRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[8]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -443,7 +530,7 @@ func (x *TerminateRunRequest) String() string {
 func (*TerminateRunRequest) ProtoMessage() {}
 
 func (x *TerminateRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[8]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,7 +543,7 @@ func (x *TerminateRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateRunRequest.ProtoReflect.Descriptor instead.
 func (*TerminateRunRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{8}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{10}
 }
 
 type TerminateRunResponse struct {
@@ -467,7 +554,7 @@ type TerminateRunResponse struct {
 
 func (x *TerminateRunResponse) Reset() {
 	*x = TerminateRunResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[9]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -479,7 +566,7 @@ func (x *TerminateRunResponse) String() string {
 func (*TerminateRunResponse) ProtoMessage() {}
 
 func (x *TerminateRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[9]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +579,7 @@ func (x *TerminateRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateRunResponse.ProtoReflect.Descriptor instead.
 func (*TerminateRunResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{9}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{11}
 }
 
 // ToolCallInput/ToolCallOutput are used by the backend to send/receive toolcalls from chatkit.
@@ -513,6 +600,7 @@ type ToolCallInput struct {
 	//	*ToolCallInput_ExecuteCells
 	//	*ToolCallInput_TerminateRun
 	//	*ToolCallInput_SendSlackMessage
+	//	*ToolCallInput_ExecuteCode
 	Input         isToolCallInput_Input `protobuf_oneof:"input"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -520,7 +608,7 @@ type ToolCallInput struct {
 
 func (x *ToolCallInput) Reset() {
 	*x = ToolCallInput{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[10]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -532,7 +620,7 @@ func (x *ToolCallInput) String() string {
 func (*ToolCallInput) ProtoMessage() {}
 
 func (x *ToolCallInput) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[10]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -545,7 +633,7 @@ func (x *ToolCallInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCallInput.ProtoReflect.Descriptor instead.
 func (*ToolCallInput) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{10}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ToolCallInput) GetCallId() string {
@@ -623,6 +711,15 @@ func (x *ToolCallInput) GetSendSlackMessage() *SendSlackMessageRequest {
 	return nil
 }
 
+func (x *ToolCallInput) GetExecuteCode() *ExecuteCodeRequest {
+	if x != nil {
+		if x, ok := x.Input.(*ToolCallInput_ExecuteCode); ok {
+			return x.ExecuteCode
+		}
+	}
+	return nil
+}
+
 type isToolCallInput_Input interface {
 	isToolCallInput_Input()
 }
@@ -651,6 +748,10 @@ type ToolCallInput_SendSlackMessage struct {
 	SendSlackMessage *SendSlackMessageRequest `protobuf:"bytes,8,opt,name=send_slack_message,json=sendSlackMessage,proto3,oneof"`
 }
 
+type ToolCallInput_ExecuteCode struct {
+	ExecuteCode *ExecuteCodeRequest `protobuf:"bytes,9,opt,name=execute_code,json=executeCode,proto3,oneof"`
+}
+
 func (*ToolCallInput_UpdateCells) isToolCallInput_Input() {}
 
 func (*ToolCallInput_ListCells) isToolCallInput_Input() {}
@@ -662,6 +763,8 @@ func (*ToolCallInput_ExecuteCells) isToolCallInput_Input() {}
 func (*ToolCallInput_TerminateRun) isToolCallInput_Input() {}
 
 func (*ToolCallInput_SendSlackMessage) isToolCallInput_Input() {}
+
+func (*ToolCallInput_ExecuteCode) isToolCallInput_Input() {}
 
 type ToolCallOutput struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
@@ -675,6 +778,7 @@ type ToolCallOutput struct {
 	//	*ToolCallOutput_ExecuteCells
 	//	*ToolCallOutput_TerminateRun
 	//	*ToolCallOutput_SendSlackMessage
+	//	*ToolCallOutput_ExecuteCode
 	Output isToolCallOutput_Output `protobuf_oneof:"output"`
 	Status ToolCallOutput_Status   `protobuf:"varint,6,opt,name=status,proto3,enum=agent.tools.v1.ToolCallOutput_Status" json:"status,omitempty"`
 	// client_error will be an error message if the client had one.
@@ -685,7 +789,7 @@ type ToolCallOutput struct {
 
 func (x *ToolCallOutput) Reset() {
 	*x = ToolCallOutput{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[11]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -697,7 +801,7 @@ func (x *ToolCallOutput) String() string {
 func (*ToolCallOutput) ProtoMessage() {}
 
 func (x *ToolCallOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[11]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -710,7 +814,7 @@ func (x *ToolCallOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCallOutput.ProtoReflect.Descriptor instead.
 func (*ToolCallOutput) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{11}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ToolCallOutput) GetCallId() string {
@@ -788,6 +892,15 @@ func (x *ToolCallOutput) GetSendSlackMessage() *SendSlackMessageResponse {
 	return nil
 }
 
+func (x *ToolCallOutput) GetExecuteCode() *ExecuteCodeResponse {
+	if x != nil {
+		if x, ok := x.Output.(*ToolCallOutput_ExecuteCode); ok {
+			return x.ExecuteCode
+		}
+	}
+	return nil
+}
+
 func (x *ToolCallOutput) GetStatus() ToolCallOutput_Status {
 	if x != nil {
 		return x.Status
@@ -830,6 +943,10 @@ type ToolCallOutput_SendSlackMessage struct {
 	SendSlackMessage *SendSlackMessageResponse `protobuf:"bytes,10,opt,name=send_slack_message,json=sendSlackMessage,proto3,oneof"`
 }
 
+type ToolCallOutput_ExecuteCode struct {
+	ExecuteCode *ExecuteCodeResponse `protobuf:"bytes,11,opt,name=execute_code,json=executeCode,proto3,oneof"`
+}
+
 func (*ToolCallOutput_UpdateCells) isToolCallOutput_Output() {}
 
 func (*ToolCallOutput_ListCells) isToolCallOutput_Output() {}
@@ -841,6 +958,8 @@ func (*ToolCallOutput_ExecuteCells) isToolCallOutput_Output() {}
 func (*ToolCallOutput_TerminateRun) isToolCallOutput_Output() {}
 
 func (*ToolCallOutput_SendSlackMessage) isToolCallOutput_Output() {}
+
+func (*ToolCallOutput_ExecuteCode) isToolCallOutput_Output() {}
 
 // ChatkitState is used by the backend to pass state back to chatkit.
 // This avoids needing to store state on the backend because we can just have the client store it.
@@ -854,7 +973,7 @@ type ChatkitState struct {
 
 func (x *ChatkitState) Reset() {
 	*x = ChatkitState{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[12]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -866,7 +985,7 @@ func (x *ChatkitState) String() string {
 func (*ChatkitState) ProtoMessage() {}
 
 func (x *ChatkitState) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[12]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -879,7 +998,7 @@ func (x *ChatkitState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatkitState.ProtoReflect.Descriptor instead.
 func (*ChatkitState) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{12}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ChatkitState) GetPreviousResponseId() string {
@@ -908,7 +1027,7 @@ type SendSlackMessageRequest struct {
 
 func (x *SendSlackMessageRequest) Reset() {
 	*x = SendSlackMessageRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[13]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -920,7 +1039,7 @@ func (x *SendSlackMessageRequest) String() string {
 func (*SendSlackMessageRequest) ProtoMessage() {}
 
 func (x *SendSlackMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[13]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -933,7 +1052,7 @@ func (x *SendSlackMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendSlackMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendSlackMessageRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{13}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SendSlackMessageRequest) GetChannel() string {
@@ -974,7 +1093,7 @@ type SendSlackMessageResponse struct {
 
 func (x *SendSlackMessageResponse) Reset() {
 	*x = SendSlackMessageResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[14]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -986,7 +1105,7 @@ func (x *SendSlackMessageResponse) String() string {
 func (*SendSlackMessageResponse) ProtoMessage() {}
 
 func (x *SendSlackMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[14]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -999,7 +1118,7 @@ func (x *SendSlackMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendSlackMessageResponse.ProtoReflect.Descriptor instead.
 func (*SendSlackMessageResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{14}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SendSlackMessageResponse) GetError() string {
@@ -1028,9 +1147,13 @@ const file_agent_tools_v1_notebooks_proto_rawDesc = "" +
 	"\"NotebookServiceExecuteCellsRequest\x12\x17\n" +
 	"\aref_ids\x18\x01 \x03(\tR\x06refIds\"R\n" +
 	"#NotebookServiceExecuteCellsResponse\x12+\n" +
-	"\x05cells\x18\x01 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\"\x15\n" +
+	"\x05cells\x18\x01 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\"(\n" +
+	"\x12ExecuteCodeRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"-\n" +
+	"\x13ExecuteCodeResponse\x12\x16\n" +
+	"\x06output\x18\x01 \x01(\tR\x06output\"\x15\n" +
 	"\x13TerminateRunRequest\"\x16\n" +
-	"\x14TerminateRunResponse\"\xaf\x04\n" +
+	"\x14TerminateRunResponse\"\xf8\x04\n" +
 	"\rToolCallInput\x12\x17\n" +
 	"\acall_id\x18\x01 \x01(\tR\x06callId\x120\n" +
 	"\x14previous_response_id\x18\x02 \x01(\tR\x12previousResponseId\x12G\n" +
@@ -1040,8 +1163,9 @@ const file_agent_tools_v1_notebooks_proto_rawDesc = "" +
 	"\tget_cells\x18\x05 \x01(\v2\x1f.agent.tools.v1.GetCellsRequestH\x00R\bgetCells\x12Y\n" +
 	"\rexecute_cells\x18\x06 \x01(\v22.agent.tools.v1.NotebookServiceExecuteCellsRequestH\x00R\fexecuteCells\x12J\n" +
 	"\rterminate_run\x18\a \x01(\v2#.agent.tools.v1.TerminateRunRequestH\x00R\fterminateRun\x12W\n" +
-	"\x12send_slack_message\x18\b \x01(\v2'.agent.tools.v1.SendSlackMessageRequestH\x00R\x10sendSlackMessageB\a\n" +
-	"\x05input\"\xe2\x05\n" +
+	"\x12send_slack_message\x18\b \x01(\v2'.agent.tools.v1.SendSlackMessageRequestH\x00R\x10sendSlackMessage\x12G\n" +
+	"\fexecute_code\x18\t \x01(\v2\".agent.tools.v1.ExecuteCodeRequestH\x00R\vexecuteCodeB\a\n" +
+	"\x05input\"\xac\x06\n" +
 	"\x0eToolCallOutput\x12\x17\n" +
 	"\acall_id\x18\x01 \x01(\tR\x06callId\x120\n" +
 	"\x14previous_response_id\x18\x02 \x01(\tR\x12previousResponseId\x12H\n" +
@@ -1052,7 +1176,8 @@ const file_agent_tools_v1_notebooks_proto_rawDesc = "" +
 	"\rexecute_cells\x18\b \x01(\v23.agent.tools.v1.NotebookServiceExecuteCellsResponseH\x00R\fexecuteCells\x12K\n" +
 	"\rterminate_run\x18\t \x01(\v2$.agent.tools.v1.TerminateRunResponseH\x00R\fterminateRun\x12X\n" +
 	"\x12send_slack_message\x18\n" +
-	" \x01(\v2(.agent.tools.v1.SendSlackMessageResponseH\x00R\x10sendSlackMessage\x12=\n" +
+	" \x01(\v2(.agent.tools.v1.SendSlackMessageResponseH\x00R\x10sendSlackMessage\x12H\n" +
+	"\fexecute_code\x18\v \x01(\v2#.agent.tools.v1.ExecuteCodeResponseH\x00R\vexecuteCode\x12=\n" +
 	"\x06status\x18\x06 \x01(\x0e2%.agent.tools.v1.ToolCallOutput.StatusR\x06status\x12!\n" +
 	"\fclient_error\x18\a \x01(\tR\vclientError\"G\n" +
 	"\x06Status\x12\x16\n" +
@@ -1069,12 +1194,13 @@ const file_agent_tools_v1_notebooks_proto_rawDesc = "" +
 	"\x04text\x18\x03 \x01(\tR\x04text\x12\x19\n" +
 	"\bfile_ids\x18\x04 \x03(\tR\afileIds\"0\n" +
 	"\x18SendSlackMessageResponse\x12\x14\n" +
-	"\x05error\x18\x01 \x01(\tR\x05error2\xd1\x04\n" +
+	"\x05error\x18\x01 \x01(\tR\x05error2\xab\x05\n" +
 	"\x0fNotebookService\x12X\n" +
 	"\vUpdateCells\x12\".agent.tools.v1.UpdateCellsRequest\x1a#.agent.tools.v1.UpdateCellsResponse\"\x00\x12O\n" +
 	"\bGetCells\x12\x1f.agent.tools.v1.GetCellsRequest\x1a .agent.tools.v1.GetCellsResponse\"\x00\x12R\n" +
 	"\tListCells\x12 .agent.tools.v1.ListCellsRequest\x1a!.agent.tools.v1.ListCellsResponse\"\x00\x12y\n" +
-	"\fExecuteCells\x122.agent.tools.v1.NotebookServiceExecuteCellsRequest\x1a3.agent.tools.v1.NotebookServiceExecuteCellsResponse\"\x00\x12[\n" +
+	"\fExecuteCells\x122.agent.tools.v1.NotebookServiceExecuteCellsRequest\x1a3.agent.tools.v1.NotebookServiceExecuteCellsResponse\"\x00\x12X\n" +
+	"\vExecuteCode\x12\".agent.tools.v1.ExecuteCodeRequest\x1a#.agent.tools.v1.ExecuteCodeResponse\"\x00\x12[\n" +
 	"\fTerminateRun\x12#.agent.tools.v1.TerminateRunRequest\x1a$.agent.tools.v1.TerminateRunResponse\"\x00\x12g\n" +
 	"\x10SendSlackMessage\x12'.agent.tools.v1.SendSlackMessageRequest\x1a(.agent.tools.v1.SendSlackMessageResponse\"\x00BFZDgithub.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1;toolsv1b\x06proto3"
 
@@ -1090,66 +1216,69 @@ func file_agent_tools_v1_notebooks_proto_rawDescGZIP() []byte {
 	return file_agent_tools_v1_notebooks_proto_rawDescData
 }
 
-var (
-	file_agent_tools_v1_notebooks_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_agent_tools_v1_notebooks_proto_msgTypes  = make([]protoimpl.MessageInfo, 15)
-	file_agent_tools_v1_notebooks_proto_goTypes   = []any{
-		(ToolCallOutput_Status)(0),                  // 0: agent.tools.v1.ToolCallOutput.Status
-		(*ListCellsRequest)(nil),                    // 1: agent.tools.v1.ListCellsRequest
-		(*ListCellsResponse)(nil),                   // 2: agent.tools.v1.ListCellsResponse
-		(*GetCellsRequest)(nil),                     // 3: agent.tools.v1.GetCellsRequest
-		(*GetCellsResponse)(nil),                    // 4: agent.tools.v1.GetCellsResponse
-		(*UpdateCellsRequest)(nil),                  // 5: agent.tools.v1.UpdateCellsRequest
-		(*UpdateCellsResponse)(nil),                 // 6: agent.tools.v1.UpdateCellsResponse
-		(*NotebookServiceExecuteCellsRequest)(nil),  // 7: agent.tools.v1.NotebookServiceExecuteCellsRequest
-		(*NotebookServiceExecuteCellsResponse)(nil), // 8: agent.tools.v1.NotebookServiceExecuteCellsResponse
-		(*TerminateRunRequest)(nil),                 // 9: agent.tools.v1.TerminateRunRequest
-		(*TerminateRunResponse)(nil),                // 10: agent.tools.v1.TerminateRunResponse
-		(*ToolCallInput)(nil),                       // 11: agent.tools.v1.ToolCallInput
-		(*ToolCallOutput)(nil),                      // 12: agent.tools.v1.ToolCallOutput
-		(*ChatkitState)(nil),                        // 13: agent.tools.v1.ChatkitState
-		(*SendSlackMessageRequest)(nil),             // 14: agent.tools.v1.SendSlackMessageRequest
-		(*SendSlackMessageResponse)(nil),            // 15: agent.tools.v1.SendSlackMessageResponse
-		(*v1.Cell)(nil),                             // 16: runme.parser.v1.Cell
-	}
-)
-
+var file_agent_tools_v1_notebooks_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_agent_tools_v1_notebooks_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_agent_tools_v1_notebooks_proto_goTypes = []any{
+	(ToolCallOutput_Status)(0),                  // 0: agent.tools.v1.ToolCallOutput.Status
+	(*ListCellsRequest)(nil),                    // 1: agent.tools.v1.ListCellsRequest
+	(*ListCellsResponse)(nil),                   // 2: agent.tools.v1.ListCellsResponse
+	(*GetCellsRequest)(nil),                     // 3: agent.tools.v1.GetCellsRequest
+	(*GetCellsResponse)(nil),                    // 4: agent.tools.v1.GetCellsResponse
+	(*UpdateCellsRequest)(nil),                  // 5: agent.tools.v1.UpdateCellsRequest
+	(*UpdateCellsResponse)(nil),                 // 6: agent.tools.v1.UpdateCellsResponse
+	(*NotebookServiceExecuteCellsRequest)(nil),  // 7: agent.tools.v1.NotebookServiceExecuteCellsRequest
+	(*NotebookServiceExecuteCellsResponse)(nil), // 8: agent.tools.v1.NotebookServiceExecuteCellsResponse
+	(*ExecuteCodeRequest)(nil),                  // 9: agent.tools.v1.ExecuteCodeRequest
+	(*ExecuteCodeResponse)(nil),                 // 10: agent.tools.v1.ExecuteCodeResponse
+	(*TerminateRunRequest)(nil),                 // 11: agent.tools.v1.TerminateRunRequest
+	(*TerminateRunResponse)(nil),                // 12: agent.tools.v1.TerminateRunResponse
+	(*ToolCallInput)(nil),                       // 13: agent.tools.v1.ToolCallInput
+	(*ToolCallOutput)(nil),                      // 14: agent.tools.v1.ToolCallOutput
+	(*ChatkitState)(nil),                        // 15: agent.tools.v1.ChatkitState
+	(*SendSlackMessageRequest)(nil),             // 16: agent.tools.v1.SendSlackMessageRequest
+	(*SendSlackMessageResponse)(nil),            // 17: agent.tools.v1.SendSlackMessageResponse
+	(*v1.Cell)(nil),                             // 18: runme.parser.v1.Cell
+}
 var file_agent_tools_v1_notebooks_proto_depIdxs = []int32{
-	16, // 0: agent.tools.v1.ListCellsResponse.cells:type_name -> runme.parser.v1.Cell
-	16, // 1: agent.tools.v1.GetCellsResponse.cells:type_name -> runme.parser.v1.Cell
-	16, // 2: agent.tools.v1.UpdateCellsRequest.cells:type_name -> runme.parser.v1.Cell
-	16, // 3: agent.tools.v1.UpdateCellsResponse.cells:type_name -> runme.parser.v1.Cell
-	16, // 4: agent.tools.v1.NotebookServiceExecuteCellsResponse.cells:type_name -> runme.parser.v1.Cell
+	18, // 0: agent.tools.v1.ListCellsResponse.cells:type_name -> runme.parser.v1.Cell
+	18, // 1: agent.tools.v1.GetCellsResponse.cells:type_name -> runme.parser.v1.Cell
+	18, // 2: agent.tools.v1.UpdateCellsRequest.cells:type_name -> runme.parser.v1.Cell
+	18, // 3: agent.tools.v1.UpdateCellsResponse.cells:type_name -> runme.parser.v1.Cell
+	18, // 4: agent.tools.v1.NotebookServiceExecuteCellsResponse.cells:type_name -> runme.parser.v1.Cell
 	5,  // 5: agent.tools.v1.ToolCallInput.update_cells:type_name -> agent.tools.v1.UpdateCellsRequest
 	1,  // 6: agent.tools.v1.ToolCallInput.list_cells:type_name -> agent.tools.v1.ListCellsRequest
 	3,  // 7: agent.tools.v1.ToolCallInput.get_cells:type_name -> agent.tools.v1.GetCellsRequest
 	7,  // 8: agent.tools.v1.ToolCallInput.execute_cells:type_name -> agent.tools.v1.NotebookServiceExecuteCellsRequest
-	9,  // 9: agent.tools.v1.ToolCallInput.terminate_run:type_name -> agent.tools.v1.TerminateRunRequest
-	14, // 10: agent.tools.v1.ToolCallInput.send_slack_message:type_name -> agent.tools.v1.SendSlackMessageRequest
-	6,  // 11: agent.tools.v1.ToolCallOutput.update_cells:type_name -> agent.tools.v1.UpdateCellsResponse
-	2,  // 12: agent.tools.v1.ToolCallOutput.list_cells:type_name -> agent.tools.v1.ListCellsResponse
-	4,  // 13: agent.tools.v1.ToolCallOutput.get_cells:type_name -> agent.tools.v1.GetCellsResponse
-	8,  // 14: agent.tools.v1.ToolCallOutput.execute_cells:type_name -> agent.tools.v1.NotebookServiceExecuteCellsResponse
-	10, // 15: agent.tools.v1.ToolCallOutput.terminate_run:type_name -> agent.tools.v1.TerminateRunResponse
-	15, // 16: agent.tools.v1.ToolCallOutput.send_slack_message:type_name -> agent.tools.v1.SendSlackMessageResponse
-	0,  // 17: agent.tools.v1.ToolCallOutput.status:type_name -> agent.tools.v1.ToolCallOutput.Status
-	5,  // 18: agent.tools.v1.NotebookService.UpdateCells:input_type -> agent.tools.v1.UpdateCellsRequest
-	3,  // 19: agent.tools.v1.NotebookService.GetCells:input_type -> agent.tools.v1.GetCellsRequest
-	1,  // 20: agent.tools.v1.NotebookService.ListCells:input_type -> agent.tools.v1.ListCellsRequest
-	7,  // 21: agent.tools.v1.NotebookService.ExecuteCells:input_type -> agent.tools.v1.NotebookServiceExecuteCellsRequest
-	9,  // 22: agent.tools.v1.NotebookService.TerminateRun:input_type -> agent.tools.v1.TerminateRunRequest
-	14, // 23: agent.tools.v1.NotebookService.SendSlackMessage:input_type -> agent.tools.v1.SendSlackMessageRequest
-	6,  // 24: agent.tools.v1.NotebookService.UpdateCells:output_type -> agent.tools.v1.UpdateCellsResponse
-	4,  // 25: agent.tools.v1.NotebookService.GetCells:output_type -> agent.tools.v1.GetCellsResponse
-	2,  // 26: agent.tools.v1.NotebookService.ListCells:output_type -> agent.tools.v1.ListCellsResponse
-	8,  // 27: agent.tools.v1.NotebookService.ExecuteCells:output_type -> agent.tools.v1.NotebookServiceExecuteCellsResponse
-	10, // 28: agent.tools.v1.NotebookService.TerminateRun:output_type -> agent.tools.v1.TerminateRunResponse
-	15, // 29: agent.tools.v1.NotebookService.SendSlackMessage:output_type -> agent.tools.v1.SendSlackMessageResponse
-	24, // [24:30] is the sub-list for method output_type
-	18, // [18:24] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	11, // 9: agent.tools.v1.ToolCallInput.terminate_run:type_name -> agent.tools.v1.TerminateRunRequest
+	16, // 10: agent.tools.v1.ToolCallInput.send_slack_message:type_name -> agent.tools.v1.SendSlackMessageRequest
+	9,  // 11: agent.tools.v1.ToolCallInput.execute_code:type_name -> agent.tools.v1.ExecuteCodeRequest
+	6,  // 12: agent.tools.v1.ToolCallOutput.update_cells:type_name -> agent.tools.v1.UpdateCellsResponse
+	2,  // 13: agent.tools.v1.ToolCallOutput.list_cells:type_name -> agent.tools.v1.ListCellsResponse
+	4,  // 14: agent.tools.v1.ToolCallOutput.get_cells:type_name -> agent.tools.v1.GetCellsResponse
+	8,  // 15: agent.tools.v1.ToolCallOutput.execute_cells:type_name -> agent.tools.v1.NotebookServiceExecuteCellsResponse
+	12, // 16: agent.tools.v1.ToolCallOutput.terminate_run:type_name -> agent.tools.v1.TerminateRunResponse
+	17, // 17: agent.tools.v1.ToolCallOutput.send_slack_message:type_name -> agent.tools.v1.SendSlackMessageResponse
+	10, // 18: agent.tools.v1.ToolCallOutput.execute_code:type_name -> agent.tools.v1.ExecuteCodeResponse
+	0,  // 19: agent.tools.v1.ToolCallOutput.status:type_name -> agent.tools.v1.ToolCallOutput.Status
+	5,  // 20: agent.tools.v1.NotebookService.UpdateCells:input_type -> agent.tools.v1.UpdateCellsRequest
+	3,  // 21: agent.tools.v1.NotebookService.GetCells:input_type -> agent.tools.v1.GetCellsRequest
+	1,  // 22: agent.tools.v1.NotebookService.ListCells:input_type -> agent.tools.v1.ListCellsRequest
+	7,  // 23: agent.tools.v1.NotebookService.ExecuteCells:input_type -> agent.tools.v1.NotebookServiceExecuteCellsRequest
+	9,  // 24: agent.tools.v1.NotebookService.ExecuteCode:input_type -> agent.tools.v1.ExecuteCodeRequest
+	11, // 25: agent.tools.v1.NotebookService.TerminateRun:input_type -> agent.tools.v1.TerminateRunRequest
+	16, // 26: agent.tools.v1.NotebookService.SendSlackMessage:input_type -> agent.tools.v1.SendSlackMessageRequest
+	6,  // 27: agent.tools.v1.NotebookService.UpdateCells:output_type -> agent.tools.v1.UpdateCellsResponse
+	4,  // 28: agent.tools.v1.NotebookService.GetCells:output_type -> agent.tools.v1.GetCellsResponse
+	2,  // 29: agent.tools.v1.NotebookService.ListCells:output_type -> agent.tools.v1.ListCellsResponse
+	8,  // 30: agent.tools.v1.NotebookService.ExecuteCells:output_type -> agent.tools.v1.NotebookServiceExecuteCellsResponse
+	10, // 31: agent.tools.v1.NotebookService.ExecuteCode:output_type -> agent.tools.v1.ExecuteCodeResponse
+	12, // 32: agent.tools.v1.NotebookService.TerminateRun:output_type -> agent.tools.v1.TerminateRunResponse
+	17, // 33: agent.tools.v1.NotebookService.SendSlackMessage:output_type -> agent.tools.v1.SendSlackMessageResponse
+	27, // [27:34] is the sub-list for method output_type
+	20, // [20:27] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_agent_tools_v1_notebooks_proto_init() }
@@ -1157,21 +1286,23 @@ func file_agent_tools_v1_notebooks_proto_init() {
 	if File_agent_tools_v1_notebooks_proto != nil {
 		return
 	}
-	file_agent_tools_v1_notebooks_proto_msgTypes[10].OneofWrappers = []any{
+	file_agent_tools_v1_notebooks_proto_msgTypes[12].OneofWrappers = []any{
 		(*ToolCallInput_UpdateCells)(nil),
 		(*ToolCallInput_ListCells)(nil),
 		(*ToolCallInput_GetCells)(nil),
 		(*ToolCallInput_ExecuteCells)(nil),
 		(*ToolCallInput_TerminateRun)(nil),
 		(*ToolCallInput_SendSlackMessage)(nil),
+		(*ToolCallInput_ExecuteCode)(nil),
 	}
-	file_agent_tools_v1_notebooks_proto_msgTypes[11].OneofWrappers = []any{
+	file_agent_tools_v1_notebooks_proto_msgTypes[13].OneofWrappers = []any{
 		(*ToolCallOutput_UpdateCells)(nil),
 		(*ToolCallOutput_ListCells)(nil),
 		(*ToolCallOutput_GetCells)(nil),
 		(*ToolCallOutput_ExecuteCells)(nil),
 		(*ToolCallOutput_TerminateRun)(nil),
 		(*ToolCallOutput_SendSlackMessage)(nil),
+		(*ToolCallOutput_ExecuteCode)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1179,7 +1310,7 @@ func file_agent_tools_v1_notebooks_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_tools_v1_notebooks_proto_rawDesc), len(file_agent_tools_v1_notebooks_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -88,6 +88,26 @@ export interface NotebookServiceExecuteCellsResponse {
     cells: Cell[];
 }
 /**
+ * @generated from protobuf message agent.tools.v1.ExecuteCodeRequest
+ */
+export interface ExecuteCodeRequest {
+    /**
+     * @generated from protobuf field: string code = 1
+     */
+    code: string;
+}
+/**
+ * @generated from protobuf message agent.tools.v1.ExecuteCodeResponse
+ */
+export interface ExecuteCodeResponse {
+    /**
+     * output contains merged stdout/stderr in execution order.
+     *
+     * @generated from protobuf field: string output = 1
+     */
+    output: string;
+}
+/**
  * @generated from protobuf message agent.tools.v1.TerminateRunRequest
  */
 export interface TerminateRunRequest {
@@ -156,6 +176,12 @@ export interface ToolCallInput {
          */
         sendSlackMessage: SendSlackMessageRequest;
     } | {
+        oneofKind: "executeCode";
+        /**
+         * @generated from protobuf field: agent.tools.v1.ExecuteCodeRequest execute_code = 9
+         */
+        executeCode: ExecuteCodeRequest;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -210,6 +236,12 @@ export interface ToolCallOutput {
          * @generated from protobuf field: agent.tools.v1.SendSlackMessageResponse send_slack_message = 10
          */
         sendSlackMessage: SendSlackMessageResponse;
+    } | {
+        oneofKind: "executeCode";
+        /**
+         * @generated from protobuf field: agent.tools.v1.ExecuteCodeResponse execute_code = 11
+         */
+        executeCode: ExecuteCodeResponse;
     } | {
         oneofKind: undefined;
     };
@@ -369,6 +401,26 @@ declare class NotebookServiceExecuteCellsResponse$Type extends MessageType<Noteb
  * @generated MessageType for protobuf message agent.tools.v1.NotebookServiceExecuteCellsResponse
  */
 export declare const NotebookServiceExecuteCellsResponse: NotebookServiceExecuteCellsResponse$Type;
+declare class ExecuteCodeRequest$Type extends MessageType<ExecuteCodeRequest> {
+    constructor();
+    create(value?: PartialMessage<ExecuteCodeRequest>): ExecuteCodeRequest;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecuteCodeRequest): ExecuteCodeRequest;
+    internalBinaryWrite(message: ExecuteCodeRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message agent.tools.v1.ExecuteCodeRequest
+ */
+export declare const ExecuteCodeRequest: ExecuteCodeRequest$Type;
+declare class ExecuteCodeResponse$Type extends MessageType<ExecuteCodeResponse> {
+    constructor();
+    create(value?: PartialMessage<ExecuteCodeResponse>): ExecuteCodeResponse;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecuteCodeResponse): ExecuteCodeResponse;
+    internalBinaryWrite(message: ExecuteCodeResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message agent.tools.v1.ExecuteCodeResponse
+ */
+export declare const ExecuteCodeResponse: ExecuteCodeResponse$Type;
 declare class TerminateRunRequest$Type extends MessageType<TerminateRunRequest> {
     constructor();
     create(value?: PartialMessage<TerminateRunRequest>): TerminateRunRequest;

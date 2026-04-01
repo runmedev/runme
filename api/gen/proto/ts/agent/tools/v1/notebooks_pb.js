@@ -400,6 +400,100 @@ class NotebookServiceExecuteCellsResponse$Type extends MessageType {
  */
 export const NotebookServiceExecuteCellsResponse = new NotebookServiceExecuteCellsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ExecuteCodeRequest$Type extends MessageType {
+    constructor() {
+        super("agent.tools.v1.ExecuteCodeRequest", [
+            { no: 1, name: "code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value) {
+        const message = globalThis.Object.create((this.messagePrototype));
+        message.code = "";
+        if (value !== undefined)
+            reflectionMergePartial(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string code */ 1:
+                    message.code = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+        /* string code = 1; */
+        if (message.code !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.code);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message agent.tools.v1.ExecuteCodeRequest
+ */
+export const ExecuteCodeRequest = new ExecuteCodeRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ExecuteCodeResponse$Type extends MessageType {
+    constructor() {
+        super("agent.tools.v1.ExecuteCodeResponse", [
+            { no: 1, name: "output", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value) {
+        const message = globalThis.Object.create((this.messagePrototype));
+        message.output = "";
+        if (value !== undefined)
+            reflectionMergePartial(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string output */ 1:
+                    message.output = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+        /* string output = 1; */
+        if (message.output !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.output);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message agent.tools.v1.ExecuteCodeResponse
+ */
+export const ExecuteCodeResponse = new ExecuteCodeResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class TerminateRunRequest$Type extends MessageType {
     constructor() {
         super("agent.tools.v1.TerminateRunRequest", []);
@@ -486,7 +580,8 @@ class ToolCallInput$Type extends MessageType {
             { no: 5, name: "get_cells", kind: "message", oneof: "input", T: () => GetCellsRequest },
             { no: 6, name: "execute_cells", kind: "message", oneof: "input", T: () => NotebookServiceExecuteCellsRequest },
             { no: 7, name: "terminate_run", kind: "message", oneof: "input", T: () => TerminateRunRequest },
-            { no: 8, name: "send_slack_message", kind: "message", oneof: "input", T: () => SendSlackMessageRequest }
+            { no: 8, name: "send_slack_message", kind: "message", oneof: "input", T: () => SendSlackMessageRequest },
+            { no: 9, name: "execute_code", kind: "message", oneof: "input", T: () => ExecuteCodeRequest }
         ]);
     }
     create(value) {
@@ -545,6 +640,12 @@ class ToolCallInput$Type extends MessageType {
                         sendSlackMessage: SendSlackMessageRequest.internalBinaryRead(reader, reader.uint32(), options, message.input.sendSlackMessage)
                     };
                     break;
+                case /* agent.tools.v1.ExecuteCodeRequest execute_code */ 9:
+                    message.input = {
+                        oneofKind: "executeCode",
+                        executeCode: ExecuteCodeRequest.internalBinaryRead(reader, reader.uint32(), options, message.input.executeCode)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -581,6 +682,9 @@ class ToolCallInput$Type extends MessageType {
         /* agent.tools.v1.SendSlackMessageRequest send_slack_message = 8; */
         if (message.input.oneofKind === "sendSlackMessage")
             SendSlackMessageRequest.internalBinaryWrite(message.input.sendSlackMessage, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* agent.tools.v1.ExecuteCodeRequest execute_code = 9; */
+        if (message.input.oneofKind === "executeCode")
+            ExecuteCodeRequest.internalBinaryWrite(message.input.executeCode, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -603,6 +707,7 @@ class ToolCallOutput$Type extends MessageType {
             { no: 8, name: "execute_cells", kind: "message", oneof: "output", T: () => NotebookServiceExecuteCellsResponse },
             { no: 9, name: "terminate_run", kind: "message", oneof: "output", T: () => TerminateRunResponse },
             { no: 10, name: "send_slack_message", kind: "message", oneof: "output", T: () => SendSlackMessageResponse },
+            { no: 11, name: "execute_code", kind: "message", oneof: "output", T: () => ExecuteCodeResponse },
             { no: 6, name: "status", kind: "enum", T: () => ["agent.tools.v1.ToolCallOutput.Status", ToolCallOutput_Status, "STATUS_"] },
             { no: 7, name: "client_error", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -665,6 +770,12 @@ class ToolCallOutput$Type extends MessageType {
                         sendSlackMessage: SendSlackMessageResponse.internalBinaryRead(reader, reader.uint32(), options, message.output.sendSlackMessage)
                     };
                     break;
+                case /* agent.tools.v1.ExecuteCodeResponse execute_code */ 11:
+                    message.output = {
+                        oneofKind: "executeCode",
+                        executeCode: ExecuteCodeResponse.internalBinaryRead(reader, reader.uint32(), options, message.output.executeCode)
+                    };
+                    break;
                 case /* agent.tools.v1.ToolCallOutput.Status status */ 6:
                     message.status = reader.int32();
                     break;
@@ -713,6 +824,9 @@ class ToolCallOutput$Type extends MessageType {
         /* agent.tools.v1.SendSlackMessageResponse send_slack_message = 10; */
         if (message.output.oneofKind === "sendSlackMessage")
             SendSlackMessageResponse.internalBinaryWrite(message.output.sendSlackMessage, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* agent.tools.v1.ExecuteCodeResponse execute_code = 11; */
+        if (message.output.oneofKind === "executeCode")
+            ExecuteCodeResponse.internalBinaryWrite(message.output.executeCode, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -904,6 +1018,7 @@ export const NotebookService = new ServiceType("agent.tools.v1.NotebookService",
     { name: "GetCells", options: {}, I: GetCellsRequest, O: GetCellsResponse },
     { name: "ListCells", options: {}, I: ListCellsRequest, O: ListCellsResponse },
     { name: "ExecuteCells", options: {}, I: NotebookServiceExecuteCellsRequest, O: NotebookServiceExecuteCellsResponse },
+    { name: "ExecuteCode", options: {}, I: ExecuteCodeRequest, O: ExecuteCodeResponse },
     { name: "TerminateRun", options: {}, I: TerminateRunRequest, O: TerminateRunResponse },
     { name: "SendSlackMessage", options: {}, I: SendSlackMessageRequest, O: SendSlackMessageResponse }
 ]);

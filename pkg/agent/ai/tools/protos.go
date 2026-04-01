@@ -37,6 +37,8 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 		descriptor = (&toolsv1.GetCellsRequest{}).ProtoReflect().Descriptor()
 	case toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI.Name:
 		descriptor = (&toolsv1.NotebookServiceExecuteCellsRequest{}).ProtoReflect().Descriptor()
+	case toolsv1mcp.NotebookService_ExecuteCodeToolOpenAI.Name:
+		descriptor = (&toolsv1.ExecuteCodeRequest{}).ProtoReflect().Descriptor()
 	case toolsv1mcp.NotebookService_TerminateRunToolOpenAI.Name:
 		descriptor = (&toolsv1.TerminateRunRequest{}).ProtoReflect().Descriptor()
 	case toolsv1mcp.NotebookService_SendSlackMessageToolOpenAI.Name:
@@ -82,6 +84,11 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 			ExecuteCells: &toolsv1.NotebookServiceExecuteCellsRequest{},
 		}
 		pbMessage = callInput.GetExecuteCells()
+	case toolsv1mcp.NotebookService_ExecuteCodeToolOpenAI.Name:
+		callInput.Input = &toolsv1.ToolCallInput_ExecuteCode{
+			ExecuteCode: &toolsv1.ExecuteCodeRequest{},
+		}
+		pbMessage = callInput.GetExecuteCode()
 	case toolsv1mcp.NotebookService_TerminateRunToolOpenAI.Name:
 		callInput.Input = &toolsv1.ToolCallInput_TerminateRun{
 			TerminateRun: &toolsv1.TerminateRunRequest{},
@@ -181,6 +188,8 @@ func AddToolCallOutputToResponse(_ context.Context, toolCallOutput *toolsv1.Tool
 		m = toolCallOutput.GetGetCells()
 	case *toolsv1.ToolCallOutput_ExecuteCells:
 		m = toolCallOutput.GetExecuteCells()
+	case *toolsv1.ToolCallOutput_ExecuteCode:
+		m = toolCallOutput.GetExecuteCode()
 	default:
 		return errors.WithStack(fmt.Errorf("unexpected type %T", toolCallOutput.Output))
 	}

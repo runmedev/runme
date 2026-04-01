@@ -38,7 +38,7 @@ const (
 	defaultInitializeClientVersion   = "dev"
 )
 
-const defaultThreadDeveloperInstructions = "You are working inside a Runme notebook. When asked to inspect or modify the notebook, use the runme-notebooks MCP tools (ListCells, GetCells, UpdateCells) instead of only describing the change. Use ListCells first to inspect the current notebook before editing cells."
+const defaultThreadDeveloperInstructions = "You are working inside a Runme notebook. Prefer the runme-notebooks MCP tool ExecuteCode for notebook workflows by writing JavaScript that uses the AppKernel helpers (runme, notebooks). Use legacy notebook MCP tools (ListCells, GetCells, UpdateCells, ExecuteCells) only when ExecuteCode is insufficient."
 
 type SessionConfig struct {
 	SessionID    string

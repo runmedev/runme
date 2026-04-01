@@ -8,7 +8,6 @@ package toolsv1
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -24,6 +23,7 @@ const (
 	NotebookService_GetCells_FullMethodName         = "/agent.tools.v1.NotebookService/GetCells"
 	NotebookService_ListCells_FullMethodName        = "/agent.tools.v1.NotebookService/ListCells"
 	NotebookService_ExecuteCells_FullMethodName     = "/agent.tools.v1.NotebookService/ExecuteCells"
+	NotebookService_ExecuteCode_FullMethodName      = "/agent.tools.v1.NotebookService/ExecuteCode"
 	NotebookService_TerminateRun_FullMethodName     = "/agent.tools.v1.NotebookService/TerminateRun"
 	NotebookService_SendSlackMessage_FullMethodName = "/agent.tools.v1.NotebookService/SendSlackMessage"
 )
@@ -62,6 +62,8 @@ type NotebookServiceClient interface {
 	// Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
 	// cells. The response will contain the cell including the outputs of execution.
 	ExecuteCells(ctx context.Context, in *NotebookServiceExecuteCellsRequest, opts ...grpc.CallOption) (*NotebookServiceExecuteCellsResponse, error)
+	// ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+	ExecuteCode(ctx context.Context, in *ExecuteCodeRequest, opts ...grpc.CallOption) (*ExecuteCodeResponse, error)
 	// TerminateRun terminates the run. Call this when no further processing is necessary to handle
 	// the user request.
 	TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*TerminateRunResponse, error)
@@ -136,6 +138,16 @@ func (c *notebookServiceClient) ExecuteCells(ctx context.Context, in *NotebookSe
 	return out, nil
 }
 
+func (c *notebookServiceClient) ExecuteCode(ctx context.Context, in *ExecuteCodeRequest, opts ...grpc.CallOption) (*ExecuteCodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecuteCodeResponse)
+	err := c.cc.Invoke(ctx, NotebookService_ExecuteCode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *notebookServiceClient) TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*TerminateRunResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TerminateRunResponse)
@@ -190,6 +202,8 @@ type NotebookServiceServer interface {
 	// Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
 	// cells. The response will contain the cell including the outputs of execution.
 	ExecuteCells(context.Context, *NotebookServiceExecuteCellsRequest) (*NotebookServiceExecuteCellsResponse, error)
+	// ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+	ExecuteCode(context.Context, *ExecuteCodeRequest) (*ExecuteCodeResponse, error)
 	// TerminateRun terminates the run. Call this when no further processing is necessary to handle
 	// the user request.
 	TerminateRun(context.Context, *TerminateRunRequest) (*TerminateRunResponse, error)
@@ -227,23 +241,21 @@ type UnimplementedNotebookServiceServer struct{}
 func (UnimplementedNotebookServiceServer) UpdateCells(context.Context, *UpdateCellsRequest) (*UpdateCellsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateCells not implemented")
 }
-
 func (UnimplementedNotebookServiceServer) GetCells(context.Context, *GetCellsRequest) (*GetCellsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCells not implemented")
 }
-
 func (UnimplementedNotebookServiceServer) ListCells(context.Context, *ListCellsRequest) (*ListCellsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCells not implemented")
 }
-
 func (UnimplementedNotebookServiceServer) ExecuteCells(context.Context, *NotebookServiceExecuteCellsRequest) (*NotebookServiceExecuteCellsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExecuteCells not implemented")
 }
-
+func (UnimplementedNotebookServiceServer) ExecuteCode(context.Context, *ExecuteCodeRequest) (*ExecuteCodeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecuteCode not implemented")
+}
 func (UnimplementedNotebookServiceServer) TerminateRun(context.Context, *TerminateRunRequest) (*TerminateRunResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TerminateRun not implemented")
 }
-
 func (UnimplementedNotebookServiceServer) SendSlackMessage(context.Context, *SendSlackMessageRequest) (*SendSlackMessageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendSlackMessage not implemented")
 }
@@ -340,6 +352,24 @@ func _NotebookService_ExecuteCells_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NotebookService_ExecuteCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteCodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotebookServiceServer).ExecuteCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NotebookService_ExecuteCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotebookServiceServer).ExecuteCode(ctx, req.(*ExecuteCodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _NotebookService_TerminateRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TerminateRunRequest)
 	if err := dec(in); err != nil {
@@ -398,6 +428,10 @@ var NotebookService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ExecuteCells",
 			Handler:    _NotebookService_ExecuteCells_Handler,
+		},
+		{
+			MethodName: "ExecuteCode",
+			Handler:    _NotebookService_ExecuteCode_Handler,
 		},
 		{
 			MethodName: "TerminateRun",

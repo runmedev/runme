@@ -43,6 +43,9 @@ service NotebookService {
   // cells. The response will contain the cell including the outputs of execution.
   rpc ExecuteCells(NotebookServiceExecuteCellsRequest) returns (NotebookServiceExecuteCellsResponse) {}
 
+  // ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+  rpc ExecuteCode(ExecuteCodeRequest) returns (ExecuteCodeResponse) {}
+
   // TerminateRun terminates the run. Call this when no further processing is necessary to handle
   // the user request.
   rpc TerminateRun(TerminateRunRequest) returns (TerminateRunResponse) {}
@@ -113,6 +116,15 @@ message NotebookServiceExecuteCellsResponse {
   repeated runme.parser.v1.Cell cells = 1;
 }
 
+message ExecuteCodeRequest {
+  string code = 1;
+}
+
+message ExecuteCodeResponse {
+  // output contains merged stdout/stderr in execution order.
+  string output = 1;
+}
+
 message TerminateRunRequest {}
 
 message TerminateRunResponse {}
@@ -134,6 +146,7 @@ message ToolCallInput {
     NotebookServiceExecuteCellsRequest execute_cells = 6;
     TerminateRunRequest terminate_run = 7;
     SendSlackMessageRequest send_slack_message = 8;
+    ExecuteCodeRequest execute_code = 9;
   }
 }
 
@@ -148,6 +161,7 @@ message ToolCallOutput {
     NotebookServiceExecuteCellsResponse execute_cells = 8;
     TerminateRunResponse terminate_run = 9;
     SendSlackMessageResponse send_slack_message = 10;
+    ExecuteCodeResponse execute_code = 11;
   }
 
   enum Status {
