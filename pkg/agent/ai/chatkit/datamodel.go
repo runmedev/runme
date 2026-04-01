@@ -31,8 +31,6 @@ type StreamingReq interface {
 	isStreamingReq()
 }
 
-const threadsCreateReqType = "threads.create"
-
 type ThreadsCreateReq struct {
 	Type   string             `json:"type"`
 	Params ThreadCreateParams `json:"params"`
@@ -43,8 +41,6 @@ func (req ThreadsCreateReq) isStreamingReq() {}
 type ThreadCreateParams struct {
 	Input UserMessageInput `json:"input"`
 }
-
-const threadsAdduserMessageReqType = "threads.add_user_message"
 
 type ThreadsAddUserMessageReq struct {
 	Type   string                     `json:"type"`
@@ -57,8 +53,6 @@ type ThreadAddUserMessageParams struct {
 	ThreadID string           `json:"thread_id"`
 	Input    UserMessageInput `json:"input"`
 }
-
-const threadsAddClientToolOutputReqType = "threads.add_client_tool_output"
 
 type ThreadsAddClientToolOutputReq struct {
 	Type   string                          `json:"type"`

@@ -18,7 +18,6 @@ import (
 	"golang.org/x/net/http2/h2c"
 
 	"github.com/runmedev/runme/v3/pkg/agent/ai"
-	"github.com/runmedev/runme/v3/pkg/agent/ai/chatkit"
 	"github.com/runmedev/runme/v3/pkg/agent/codex"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -76,7 +75,6 @@ type Server struct {
 	assetsFS         fs.FS
 	wsHandler        *stream.WebSocketHandler
 	tapFactory       stream.TapFactory
-	chatKitHandler   *chatkit.ChatKitHandler
 	codex            codexComponents
 }
 
@@ -352,11 +350,7 @@ func (s *Server) registerServices() error {
 		// Protect the AI messages service
 		mux.HandleProtected(aiSvcPath, aiSvcHandler, s.checker, api.AgentUserRole)
 
-		if concreteAgent, ok := s.agent.(*ai.Agent); ok {
-			chatkitHandler := chatkit.NewChatKitHandler(concreteAgent)
-			s.chatKitHandler = chatkitHandler
-			mux.HandleProtected("/chatkit", otelhttp.NewHandler(http.HandlerFunc(chatkitHandler.Handle), "/chatkit"), s.checker, api.AgentUserRole)
-
+		if _, ok := s.agent.(*ai.Agent); ok {
 			codexAuth := &iam.AuthContext{
 				OIDC:    oidc,
 				Checker: s.checker,
@@ -391,7 +385,7 @@ func (s *Server) registerServices() error {
 			// This endpoint is intended for local codex app-server access and is protected by app-server bearer tokens.
 			mux.Handle("/mcp/notebooks", otelhttp.NewHandler(codexMCPHandler, "/mcp/notebooks"))
 		} else {
-			log.Info("Agent does not support chatkit handler", "type", fmt.Sprintf("%T", s.agent))
+			log.Info("Agent does not support codex integration", "type", fmt.Sprintf("%T", s.agent))
 		}
 	} else {
 		log.Info("AI service is disabled", "agentNil", s.agent == nil)
