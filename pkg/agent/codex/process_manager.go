@@ -38,7 +38,7 @@ const (
 	defaultInitializeClientVersion   = "dev"
 )
 
-const defaultThreadDeveloperInstructions = "You are working inside a Runme notebook. Prefer the runme-notebooks MCP tool ExecuteCode for notebook workflows by writing JavaScript that uses the AppKernel helpers (runme, notebooks). Use legacy notebook MCP tools (ListCells, GetCells, UpdateCells, ExecuteCells) only when ExecuteCode is insufficient."
+const defaultThreadDeveloperInstructions = "You are working inside a Runme notebook. Use the runme-notebooks MCP tool ExecuteCode for all notebook work. ExecuteCode runs JavaScript with AppKernel helpers (runme, notebooks, help). Start by calling help() and notebooks.help() (or notebooks.help('update'|'get'|'execute')) to inspect the runtime contracts. Read notebook state with notebooks.get() and apply targeted edits with notebooks.update({ target?, expectedRevision?, operations }). Run only requested cells with notebooks.execute({ target?, refIds }). Use console.log for concise progress output."
 
 type SessionConfig struct {
 	SessionID    string

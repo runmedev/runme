@@ -3,23 +3,19 @@ package ai
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/openai/openai-go/option"
 
-	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
-
 	"connectrpc.com/connect"
 	"github.com/go-logr/zapr"
-	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
+	mcpruntime "github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
-
-	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
@@ -46,6 +42,17 @@ Follow these rules
 * Do not rely on outdated documents for determining the status of systems and services.
 * Do use the code tool to run shell commands to observe the current status of the Cloud
 `
+	codeModeNotebookInstructions = `For notebook tasks, use the ExecuteCode tool only.
+ExecuteCode runs JavaScript in AppKernel with helpers: runme, notebooks, and help().
+
+Use this workflow for notebook edits:
+1. Inspect available APIs with help() and notebooks.help() (or notebooks.help("update"), notebooks.help("get"), notebooks.help("execute")).
+2. Inspect notebook state with notebooks.get() (or notebooks.list() first if targeting by URI).
+3. Apply precise edits with notebooks.update({ target?, expectedRevision?, operations }).
+4. Execute only requested cells with notebooks.execute({ target?, refIds }).
+5. Use console.log for concise progress/status output.
+
+When unsure about argument shapes, call notebooks.help(...) first and follow that contract exactly.`
 )
 
 // Agent implements the AI Service
@@ -167,6 +174,9 @@ func (a *Agent) BuildResponseParams(ctx context.Context, req *agentv1.GenerateRe
 	}
 
 	instructions := a.instructions
+	if req.GetContext() == agentv1.GenerateRequest_CONTEXT_WEBAPP {
+		instructions = strings.TrimSpace(instructions + "\n\n" + codeModeNotebookInstructions)
+	}
 
 	model := openai.ChatModelGPT4oMini
 	if req.GetModel() != "" {
@@ -196,10 +206,6 @@ func (a *Agent) BuildResponseParams(ctx context.Context, req *agentv1.GenerateRe
 				},
 			},
 		})
-	}
-
-	if err := maybeAddListCells(ctx, req, createResponse); err != nil {
-		return createResponse, nil, err
 	}
 
 	// Right now chatKit can only handle one tool call at a time. So disable parallel toolCalls.
@@ -237,15 +243,13 @@ func (a *Agent) useOAuthForOpenAI() bool {
 
 // getNotebookTools returns a list of tools that allow the AI to work with notebooks.
 func getNotebookTools() ([]responses.ToolUnionParam, error) {
-	defs := []mcp.Tool{
-		toolsv1mcp.NotebookService_GetCellsToolOpenAI,
-		toolsv1mcp.NotebookService_ListCellsToolOpenAI,
-		toolsv1mcp.NotebookService_UpdateCellsToolOpenAI,
+	defs := []mcpruntime.Tool{
+		toolsv1mcp.NotebookService_ExecuteCodeToolOpenAI,
 	}
 
 	tools := make([]responses.ToolUnionParam, 0, len(defs))
 	for _, t := range defs {
-		tool, err := mcpToolToOpenAITool(t)
+		tool, err := mcpToolToOpenAITool(runtimeToolToMCPTool(t))
 		if err != nil {
 			return nil, err
 		}
@@ -260,16 +264,15 @@ func getAsynchronousTools() ([]responses.ToolUnionParam, error) {
 	if err != nil {
 		return nil, err
 	}
-	tools := make([]responses.ToolUnionParam, 0, len(nbTools)+3)
+	tools := make([]responses.ToolUnionParam, 0, len(nbTools)+2)
 	tools = append(tools, nbTools...)
 
-	defs := []mcp.Tool{
-		toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI,
+	defs := []mcpruntime.Tool{
 		toolsv1mcp.NotebookService_TerminateRunToolOpenAI,
 		toolsv1mcp.NotebookService_SendSlackMessageToolOpenAI,
 	}
 	for _, t := range defs {
-		tool, err := mcpToolToOpenAITool(t)
+		tool, err := mcpToolToOpenAITool(runtimeToolToMCPTool(t))
 		if err != nil {
 			return nil, err
 		}
@@ -299,54 +302,10 @@ func mcpToolToOpenAITool(tool mcp.Tool) (responses.ToolUnionParam, error) {
 	return result, nil
 }
 
-// maybeAddListCells adds a synthetic list-cells tool call/output so the model gets notebook context.
-func maybeAddListCells(_ context.Context, req *agentv1.GenerateRequest, resp *responses.ResponseNewParams) error {
-	if len(req.GetCells()) == 0 {
-		return nil
-	}
-
-	listCellsResult := &toolsv1.ListCellsResponse{
-		Cells: make([]*parserv1.Cell, 0, len(req.Cells)),
-	}
-	for _, c := range req.Cells {
-		listCellsResult.Cells = append(listCellsResult.Cells, toListCell(c))
-	}
-
-	listRequest := &toolsv1.ListCellsRequest{}
-	listCallID := uuid.NewString()
-
-	listRequestJSON, err := protojson.Marshal(listRequest)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal list cells request")
-	}
-
-	resp.Input.OfInputItemList = append(resp.Input.OfInputItemList, responses.ResponseInputItemUnionParam{
-		OfFunctionCall: &responses.ResponseFunctionToolCallParam{
-			CallID:    listCallID,
-			Name:      toolsv1mcp.NotebookService_ListCellsToolOpenAI.GetName(),
-			Arguments: string(listRequestJSON),
-		},
-	})
-
-	listResultJSON, err := protojson.Marshal(listCellsResult)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal list cells response")
-	}
-
-	resp.Input.OfInputItemList = append(resp.Input.OfInputItemList, responses.ResponseInputItemUnionParam{
-		OfFunctionCallOutput: &responses.ResponseInputItemFunctionCallOutputParam{
-			CallID: listCallID,
-			Output: string(listResultJSON),
-		},
-	})
-
-	return nil
-}
-
-// toListCell returns the minimal fields needed for list-cells context.
-func toListCell(c *parserv1.Cell) *parserv1.Cell {
-	return &parserv1.Cell{
-		RefId:    c.GetRefId(),
-		Metadata: c.GetMetadata(),
+func runtimeToolToMCPTool(tool mcpruntime.Tool) mcp.Tool {
+	return mcp.Tool{
+		Name:           tool.Name,
+		Description:    tool.Description,
+		RawInputSchema: tool.RawInputSchema,
 	}
 }

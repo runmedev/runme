@@ -8,6 +8,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
+	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
 )
 
 type fakeBridge struct {
@@ -182,4 +183,24 @@ func TestNotebookMCPBridge_ExecuteCodeCallsBridge(t *testing.T) {
 	if bridge.lastInput.GetExecuteCode().GetCode() != "console.log('ok')" {
 		t.Fatalf("execute code = %q, want %q", bridge.lastInput.GetExecuteCode().GetCode(), "console.log('ok')")
 	}
+}
+
+func TestNotebookMCPBridge_NewServerRegistersExecuteCodeOnly(t *testing.T) {
+	nb := NewNotebookMCPBridge(&fakeBridge{})
+	server := nb.NewServer()
+	tools := server.ListTools()
+	if len(tools) != 1 {
+		t.Fatalf("tool count = %d, want 1", len(tools))
+	}
+	if _, ok := tools[toolsv1mcp.NotebookService_ExecuteCodeToolOpenAI.Name]; !ok {
+		t.Fatalf("expected ExecuteCode tool to be registered; got keys=%v", mapKeys(tools))
+	}
+}
+
+func mapKeys[T any](items map[string]T) []string {
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	return keys
 }
