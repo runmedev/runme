@@ -270,6 +270,13 @@ input DocResultInput {
 	"""
 	link: String
 }
+input ExecuteCodeResponseInput {
+	"""
+	 output contains merged stdout/stderr in execution order.
+
+	"""
+	output: String
+}
 type ExecutionSummaryTiming {
 	startTime: Int64Value
 	endTime: Int64Value
@@ -356,9 +363,6 @@ type GenerateResponse {
 	cells: [Cell!]
 	responseId: String
 }
-input GetCellsResponseInput {
-	cells: [CellInput!]
-}
 """
  Wrapper message for `int64`.
 
@@ -391,9 +395,6 @@ input Int64ValueInput {
 	"""
 	value: Int
 }
-input ListCellsResponseInput {
-	cells: [CellInput!]
-}
 input LogRequestInput {
 	notebook: NotebookInput
 }
@@ -404,13 +405,6 @@ input NotebookInput {
 	cells: [CellInput!]
 	metadata: [Notebook_MetadataEntryInput!]
 	frontmatter: FrontmatterInput
-}
-input NotebookServiceExecuteCellsResponseInput {
-	"""
-	 Cells contains the cells that were executed
-
-	"""
-	cells: [CellInput!]
 }
 input Notebook_MetadataEntryInput {
 	key: String
@@ -434,13 +428,6 @@ input RunmeSessionInput {
 	id: String
 	document: RunmeSessionDocumentInput
 }
-input SendSlackMessageResponseInput {
-	"""
-	 The error if there is one
-
-	"""
-	error: String
-}
 type Subscription {
 	"""
 	 Generate generates cells. Responses are streamed.
@@ -459,11 +446,7 @@ input TextRangeInput {
 input ToolCallOutputInput {
 	callId: String
 	previousResponseId: String
-	updateCells: UpdateCellsResponseInput @ToolCallOutputOutput
-	listCells: ListCellsResponseInput @ToolCallOutputOutput
-	getCells: GetCellsResponseInput @ToolCallOutputOutput
-	executeCells: NotebookServiceExecuteCellsResponseInput @ToolCallOutputOutput
-	sendSlackMessage: SendSlackMessageResponseInput @ToolCallOutputOutput
+	executeCode: ExecuteCodeResponseInput @ToolCallOutputOutput
 	status: ToolCallOutput_Status
 	"""
 	 client_error will be an error message if the client had one.
@@ -507,12 +490,4 @@ input UInt32ValueInput {
 
 	"""
 	value: Int
-}
-input UpdateCellsResponseInput {
-	"""
-	 We want to provide the updated cells to the AI because the cells might have been modified by
-	 the agent (e.g. ref_ids) might have been generated.
-
-	"""
-	cells: [CellInput!]
 }

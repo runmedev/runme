@@ -8,6 +8,7 @@ plugins:
   - local:
       - go
       - run
-      - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@latest
+      # Pin the generator version so output shape is deterministic.
+      - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@v0.0.0-20260323112146-887f275039cd
     out: api/gen/proto/go
     opt: paths=source_relative

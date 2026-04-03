@@ -29,7 +29,8 @@ import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
-lines = path.read_text().splitlines(keepends=True)
+content = path.read_text()
+lines = content.splitlines(keepends=True)
 keep = []
 inside_var_block = False
 found_var_block = False

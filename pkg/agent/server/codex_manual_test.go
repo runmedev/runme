@@ -720,97 +720,67 @@ func (b *manualNotebookBridge) handleToolCall(req *codexv1.NotebookToolCallReque
 }
 
 func (b *manualNotebookBridge) toolOutputForInput(callID string, input *toolsv1.ToolCallInput) (*toolsv1.ToolCallOutput, error) {
-	switch {
-	case input.GetListCells() != nil:
-		b.mu.Lock()
-		b.listCalls++
-		cells := cloneManualCells(b.cells)
-		b.mu.Unlock()
-		return &toolsv1.ToolCallOutput{
-			CallId: callID,
-			Output: &toolsv1.ToolCallOutput_ListCells{
-				ListCells: &toolsv1.ListCellsResponse{Cells: cells},
-			},
-			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
-		}, nil
-	case input.GetGetCells() != nil:
-		b.mu.Lock()
-		b.getCalls++
-		cells := b.getCellsLocked(input.GetGetCells().GetRefIds())
-		b.mu.Unlock()
-		return &toolsv1.ToolCallOutput{
-			CallId: callID,
-			Output: &toolsv1.ToolCallOutput_GetCells{
-				GetCells: &toolsv1.GetCellsResponse{Cells: cells},
-			},
-			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
-		}, nil
-	case input.GetUpdateCells() != nil:
-		b.mu.Lock()
-		b.updateCalls++
-		updated := b.applyUpdateLocked(input.GetUpdateCells().GetCells())
-		b.mu.Unlock()
-		return &toolsv1.ToolCallOutput{
-			CallId: callID,
-			Output: &toolsv1.ToolCallOutput_UpdateCells{
-				UpdateCells: &toolsv1.UpdateCellsResponse{Cells: updated},
-			},
-			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
-		}, nil
-	case input.GetExecuteCells() != nil:
-		return &toolsv1.ToolCallOutput{
-			CallId: callID,
-			Output: &toolsv1.ToolCallOutput_ExecuteCells{
-				ExecuteCells: &toolsv1.NotebookServiceExecuteCellsResponse{},
-			},
-			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
-		}, nil
-	default:
+	executeCode := input.GetExecuteCode()
+	if executeCode == nil {
 		return nil, fmt.Errorf("unsupported tool call payload %T", input.GetInput())
 	}
+
+	output := b.executeCode(executeCode.GetCode())
+	return &toolsv1.ToolCallOutput{
+		CallId: callID,
+		Output: &toolsv1.ToolCallOutput_ExecuteCode{
+			ExecuteCode: &toolsv1.ExecuteCodeResponse{Output: output},
+		},
+		Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
+	}, nil
 }
 
-func (b *manualNotebookBridge) getCellsLocked(refIDs []string) []*parserv1.Cell {
-	if len(refIDs) == 0 {
-		return cloneManualCells(b.cells)
-	}
+func (b *manualNotebookBridge) executeCode(code string) string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
-	cells := make([]*parserv1.Cell, 0, len(refIDs))
-	for _, refID := range refIDs {
-		for _, cell := range b.cells {
-			if cell.GetRefId() != refID {
-				continue
-			}
-			cells = append(cells, cloneManualCell(cell))
-			break
+	var outputs []string
+	if strings.Contains(code, "notebooks.list") {
+		b.listCalls++
+		outputs = append(outputs, `[{"uri":"local://file/manual-notebook","name":"manual.json","isOpen":true,"source":"local"}]`)
+	}
+	if strings.Contains(code, "notebooks.get") {
+		b.getCalls++
+		payload, err := json.Marshal(map[string]any{
+			"handle": map[string]any{
+				"uri":      "local://file/manual-notebook",
+				"revision": 1,
+			},
+			"uri":      "local://file/manual-notebook",
+			"name":     "manual.json",
+			"revision": 1,
+			"notebook": map[string]any{
+				"cells": cloneManualCells(b.cells),
+			},
+		})
+		if err == nil {
+			outputs = append(outputs, string(payload))
 		}
 	}
-	return cells
-}
-
-func (b *manualNotebookBridge) applyUpdateLocked(incoming []*parserv1.Cell) []*parserv1.Cell {
-	updated := make([]*parserv1.Cell, 0, len(incoming))
-	for _, cell := range incoming {
-		next := cloneManualCell(cell)
-		if strings.TrimSpace(next.GetRefId()) == "" {
-			next.RefId = fmt.Sprintf("manual-cell-%d", b.nextID)
-			b.nextID++
+	if strings.Contains(code, "notebooks.update") {
+		b.updateCalls++
+		cellValue := "print('Hello, world!')"
+		if strings.Contains(code, `print("Hello, world!")`) {
+			cellValue = `print("Hello, world!")`
 		}
-		replaced := false
-		for i, existing := range b.cells {
-			if existing.GetRefId() != next.GetRefId() {
-				continue
-			}
-			b.cells[i] = next
-			replaced = true
-			break
-		}
-		if !replaced {
-			b.cells = append(b.cells, next)
-		}
-		updated = append(updated, cloneManualCell(next))
+		b.cells = append(b.cells, &parserv1.Cell{
+			RefId:      fmt.Sprintf("manual-cell-%d", b.nextID),
+			Kind:       parserv1.CellKind_CELL_KIND_CODE,
+			LanguageId: "python",
+			Value:      cellValue,
+		})
+		b.nextID++
+		outputs = append(outputs, `{"handle":{"uri":"local://file/manual-notebook","revision":2}}`)
 	}
-	return updated
+	if len(outputs) == 0 {
+		outputs = append(outputs, "ok")
+	}
+	return strings.Join(outputs, "\n")
 }
 
 func (b *manualNotebookBridge) callCounts() (listCalls, getCalls, updateCalls int) {
