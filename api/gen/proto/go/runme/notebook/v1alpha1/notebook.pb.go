@@ -157,14 +157,17 @@ func file_runme_notebook_v1alpha1_notebook_proto_rawDescGZIP() []byte {
 	return file_runme_notebook_v1alpha1_notebook_proto_rawDescData
 }
 
-var file_runme_notebook_v1alpha1_notebook_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_runme_notebook_v1alpha1_notebook_proto_goTypes = []any{
-	(*ResolveNotebookRequest)(nil),  // 0: runme.notebook.v1alpha1.ResolveNotebookRequest
-	(*ResolveNotebookResponse)(nil), // 1: runme.notebook.v1alpha1.ResolveNotebookResponse
-	(*v1.Notebook)(nil),             // 2: runme.parser.v1.Notebook
-	(v11.CommandMode)(0),            // 3: runme.runner.v1.CommandMode
-	(*wrapperspb.UInt32Value)(nil),  // 4: google.protobuf.UInt32Value
-}
+var (
+	file_runme_notebook_v1alpha1_notebook_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_runme_notebook_v1alpha1_notebook_proto_goTypes  = []any{
+		(*ResolveNotebookRequest)(nil),  // 0: runme.notebook.v1alpha1.ResolveNotebookRequest
+		(*ResolveNotebookResponse)(nil), // 1: runme.notebook.v1alpha1.ResolveNotebookResponse
+		(*v1.Notebook)(nil),             // 2: runme.parser.v1.Notebook
+		(v11.CommandMode)(0),            // 3: runme.runner.v1.CommandMode
+		(*wrapperspb.UInt32Value)(nil),  // 4: google.protobuf.UInt32Value
+	}
+)
+
 var file_runme_notebook_v1alpha1_notebook_proto_depIdxs = []int32{
 	2, // 0: runme.notebook.v1alpha1.ResolveNotebookRequest.notebook:type_name -> runme.parser.v1.Notebook
 	3, // 1: runme.notebook.v1alpha1.ResolveNotebookRequest.command_mode:type_name -> runme.runner.v1.CommandMode

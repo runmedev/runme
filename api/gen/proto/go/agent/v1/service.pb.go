@@ -384,18 +384,21 @@ func file_agent_v1_service_proto_rawDescGZIP() []byte {
 	return file_agent_v1_service_proto_rawDescData
 }
 
-var file_agent_v1_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_agent_v1_service_proto_goTypes = []any{
-	(GenerateRequest_Context)(0), // 0: agent.v1.GenerateRequest.Context
-	(*GenerateRequest)(nil),      // 1: agent.v1.GenerateRequest
-	(*GenerateResponse)(nil),     // 2: agent.v1.GenerateResponse
-	(*LogRequest)(nil),           // 3: agent.v1.LogRequest
-	(*LogResponse)(nil),          // 4: agent.v1.LogResponse
-	(*v1.Cell)(nil),              // 5: runme.parser.v1.Cell
-	(*v11.ToolCallOutput)(nil),   // 6: agent.tools.v1.ToolCallOutput
-	(*v1.Notebook)(nil),          // 7: runme.parser.v1.Notebook
-}
+var (
+	file_agent_v1_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_agent_v1_service_proto_msgTypes  = make([]protoimpl.MessageInfo, 4)
+	file_agent_v1_service_proto_goTypes   = []any{
+		(GenerateRequest_Context)(0), // 0: agent.v1.GenerateRequest.Context
+		(*GenerateRequest)(nil),      // 1: agent.v1.GenerateRequest
+		(*GenerateResponse)(nil),     // 2: agent.v1.GenerateResponse
+		(*LogRequest)(nil),           // 3: agent.v1.LogRequest
+		(*LogResponse)(nil),          // 4: agent.v1.LogResponse
+		(*v1.Cell)(nil),              // 5: runme.parser.v1.Cell
+		(*v11.ToolCallOutput)(nil),   // 6: agent.tools.v1.ToolCallOutput
+		(*v1.Notebook)(nil),          // 7: runme.parser.v1.Notebook
+	}
+)
+
 var file_agent_v1_service_proto_depIdxs = []int32{
 	5, // 0: agent.v1.GenerateRequest.cells:type_name -> runme.parser.v1.Cell
 	0, // 1: agent.v1.GenerateRequest.context:type_name -> agent.v1.GenerateRequest.Context

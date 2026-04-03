@@ -189,11 +189,14 @@ func file_agent_v1_webapp_proto_rawDescGZIP() []byte {
 	return file_agent_v1_webapp_proto_rawDescData
 }
 
-var file_agent_v1_webapp_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_agent_v1_webapp_proto_goTypes = []any{
-	(*InitialConfigState)(nil), // 0: agent.v1.InitialConfigState
-	(*WebAppConfig)(nil),       // 1: agent.v1.WebAppConfig
-}
+var (
+	file_agent_v1_webapp_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_agent_v1_webapp_proto_goTypes  = []any{
+		(*InitialConfigState)(nil), // 0: agent.v1.InitialConfigState
+		(*WebAppConfig)(nil),       // 1: agent.v1.WebAppConfig
+	}
+)
+
 var file_agent_v1_webapp_proto_depIdxs = []int32{
 	1, // 0: agent.v1.InitialConfigState.web_app:type_name -> agent.v1.WebAppConfig
 	1, // [1:1] is the sub-list for method output_type
