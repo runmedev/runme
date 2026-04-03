@@ -642,20 +642,23 @@ func file_agent_tools_v1_notebooks_proto_rawDescGZIP() []byte {
 	return file_agent_tools_v1_notebooks_proto_rawDescData
 }
 
-var file_agent_tools_v1_notebooks_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_tools_v1_notebooks_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_agent_tools_v1_notebooks_proto_goTypes = []any{
-	(ToolCallOutput_Status)(0),       // 0: agent.tools.v1.ToolCallOutput.Status
-	(*ExecuteCodeRequest)(nil),       // 1: agent.tools.v1.ExecuteCodeRequest
-	(*ExecuteCodeResponse)(nil),      // 2: agent.tools.v1.ExecuteCodeResponse
-	(*TerminateRunRequest)(nil),      // 3: agent.tools.v1.TerminateRunRequest
-	(*TerminateRunResponse)(nil),     // 4: agent.tools.v1.TerminateRunResponse
-	(*ToolCallInput)(nil),            // 5: agent.tools.v1.ToolCallInput
-	(*ToolCallOutput)(nil),           // 6: agent.tools.v1.ToolCallOutput
-	(*ChatkitState)(nil),             // 7: agent.tools.v1.ChatkitState
-	(*SendSlackMessageRequest)(nil),  // 8: agent.tools.v1.SendSlackMessageRequest
-	(*SendSlackMessageResponse)(nil), // 9: agent.tools.v1.SendSlackMessageResponse
-}
+var (
+	file_agent_tools_v1_notebooks_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_agent_tools_v1_notebooks_proto_msgTypes  = make([]protoimpl.MessageInfo, 9)
+	file_agent_tools_v1_notebooks_proto_goTypes   = []any{
+		(ToolCallOutput_Status)(0),       // 0: agent.tools.v1.ToolCallOutput.Status
+		(*ExecuteCodeRequest)(nil),       // 1: agent.tools.v1.ExecuteCodeRequest
+		(*ExecuteCodeResponse)(nil),      // 2: agent.tools.v1.ExecuteCodeResponse
+		(*TerminateRunRequest)(nil),      // 3: agent.tools.v1.TerminateRunRequest
+		(*TerminateRunResponse)(nil),     // 4: agent.tools.v1.TerminateRunResponse
+		(*ToolCallInput)(nil),            // 5: agent.tools.v1.ToolCallInput
+		(*ToolCallOutput)(nil),           // 6: agent.tools.v1.ToolCallOutput
+		(*ChatkitState)(nil),             // 7: agent.tools.v1.ChatkitState
+		(*SendSlackMessageRequest)(nil),  // 8: agent.tools.v1.SendSlackMessageRequest
+		(*SendSlackMessageResponse)(nil), // 9: agent.tools.v1.SendSlackMessageResponse
+	}
+)
+
 var file_agent_tools_v1_notebooks_proto_depIdxs = []int32{
 	1, // 0: agent.tools.v1.ToolCallInput.execute_code:type_name -> agent.tools.v1.ExecuteCodeRequest
 	2, // 1: agent.tools.v1.ToolCallOutput.execute_code:type_name -> agent.tools.v1.ExecuteCodeResponse

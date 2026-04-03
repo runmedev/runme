@@ -423,17 +423,20 @@ func file_runme_stream_v1_websockets_proto_rawDescGZIP() []byte {
 	return file_runme_stream_v1_websockets_proto_rawDescData
 }
 
-var file_runme_stream_v1_websockets_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_runme_stream_v1_websockets_proto_goTypes = []any{
-	(*WebsocketStatus)(nil),    // 0: runme.stream.v1.WebsocketStatus
-	(*Ping)(nil),               // 1: runme.stream.v1.Ping
-	(*Pong)(nil),               // 2: runme.stream.v1.Pong
-	(*WebsocketRequest)(nil),   // 3: runme.stream.v1.WebsocketRequest
-	(*WebsocketResponse)(nil),  // 4: runme.stream.v1.WebsocketResponse
-	(code.Code)(0),             // 5: google.rpc.Code
-	(*v2.ExecuteRequest)(nil),  // 6: runme.runner.v2.ExecuteRequest
-	(*v2.ExecuteResponse)(nil), // 7: runme.runner.v2.ExecuteResponse
-}
+var (
+	file_runme_stream_v1_websockets_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+	file_runme_stream_v1_websockets_proto_goTypes  = []any{
+		(*WebsocketStatus)(nil),    // 0: runme.stream.v1.WebsocketStatus
+		(*Ping)(nil),               // 1: runme.stream.v1.Ping
+		(*Pong)(nil),               // 2: runme.stream.v1.Pong
+		(*WebsocketRequest)(nil),   // 3: runme.stream.v1.WebsocketRequest
+		(*WebsocketResponse)(nil),  // 4: runme.stream.v1.WebsocketResponse
+		(code.Code)(0),             // 5: google.rpc.Code
+		(*v2.ExecuteRequest)(nil),  // 6: runme.runner.v2.ExecuteRequest
+		(*v2.ExecuteResponse)(nil), // 7: runme.runner.v2.ExecuteResponse
+	}
+)
+
 var file_runme_stream_v1_websockets_proto_depIdxs = []int32{
 	5, // 0: runme.stream.v1.WebsocketStatus.code:type_name -> google.rpc.Code
 	6, // 1: runme.stream.v1.WebsocketRequest.execute_request:type_name -> runme.runner.v2.ExecuteRequest
