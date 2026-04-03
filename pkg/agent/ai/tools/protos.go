@@ -55,10 +55,6 @@ func ArgsToToolCallInput(ctx context.Context, name string, callID string, args s
 	default:
 		return callInput, errors.Errorf("Unknown message type: %s", name)
 	}
-
-	if pbMessage == nil {
-		return callInput, errors.Errorf("Message type: %s produced nil pbMessage; this is a bug", name)
-	}
 	if err := mapToProto(argsMap, pbMessage); err != nil {
 		return callInput, errors.Wrap(err, "Failed to deserialize map arguments to proto")
 	}
