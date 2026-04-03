@@ -4,7 +4,7 @@ module github.com/runmedev/runme/v3
 //   go install github.com/runmedev/runme/v3@latest
 // This ensures you get the latest v3.x.x version, not the old v1.x.x versions.
 
-go 1.25.7
+go 1.26.1
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
