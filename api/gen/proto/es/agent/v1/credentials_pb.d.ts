@@ -108,4 +108,3 @@ export declare type OAuthTokenJson = {
  * Use `create(OAuthTokenSchema)` to create a new message.
  */
 export declare const OAuthTokenSchema: GenMessage<OAuthToken, {jsonType: OAuthTokenJson}>;
-

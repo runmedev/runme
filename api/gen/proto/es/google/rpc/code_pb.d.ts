@@ -275,4 +275,3 @@ export declare type CodeJson = "OK" | "CANCELLED" | "UNKNOWN" | "INVALID_ARGUMEN
  * Describes the enum google.rpc.Code.
  */
 export declare const CodeSchema: GenEnum<Code, CodeJson>;
-

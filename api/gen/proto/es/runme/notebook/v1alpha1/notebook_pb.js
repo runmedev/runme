@@ -32,4 +32,3 @@ export const ResolveNotebookResponseSchema = /*@__PURE__*/
  */
 export const NotebookService = /*@__PURE__*/
   serviceDesc(file_runme_notebook_v1alpha1_notebook, 0);
-

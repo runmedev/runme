@@ -48,6 +48,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
+	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260323112146-887f275039cd
 	github.com/rogpeppe/go-internal v1.14.1
 	github.com/rs/cors v1.11.1
 	github.com/spf13/viper v1.21.0
@@ -169,7 +170,6 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/redpanda-data/common-go/api v0.0.0-20250801174835-9eea07f1ea06 // indirect
-	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260323112146-887f275039cd // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/sanity-io/litter v1.5.5 // indirect
 	github.com/securego/gosec/v2 v2.22.1 // indirect

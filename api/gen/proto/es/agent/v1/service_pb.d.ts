@@ -314,4 +314,3 @@ export declare const LogService: GenService<{
     output: typeof LogResponseSchema;
   },
 }>;
-
