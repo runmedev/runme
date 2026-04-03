@@ -172,4 +172,3 @@ export declare type WebsocketResponseJson = {
  * Use `create(WebsocketResponseSchema)` to create a new message.
  */
 export declare const WebsocketResponseSchema: GenMessage<WebsocketResponse, {jsonType: WebsocketResponseJson}>;
-

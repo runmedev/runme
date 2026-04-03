@@ -15,7 +15,7 @@ input ExecuteCodeRequestInput {
 type ExecuteCodeResponse {
 	"""
 	 output contains merged stdout/stderr in execution order.
-	
+
 	"""
 	output: String
 }
@@ -23,7 +23,7 @@ type Mutation {
 	"""
 	 ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
 	 stdout/stderr string.
-	
+
 	 Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
 	 tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
 	   - await help() to inspect the top-level helper API.
@@ -31,10 +31,10 @@ type Mutation {
 	   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
 	     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
 	   - use console.log(...) to return concise status and requested values to the user.
-	
+
 	 Prefer small, precise JS snippets and use top-level await for async helper calls so the command
 	 finishes only after notebook operations and executions complete.
-	
+
 	"""
 	notebookServiceExecuteCode(in: ExecuteCodeRequestInput): ExecuteCodeResponse
 }
