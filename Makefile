@@ -69,6 +69,7 @@ test-docker/cleanup:
 .PHONY: test-docker/run
 test-docker/run:
 	docker run --rm \
+		-e GOTOOLCHAIN=auto \
 		-e RUNME_TEST_ENV=docker \
 		-v $(shell pwd):/workspace \
 		-v dev.runme.test-env-gocache:/root/.cache/go-build \
