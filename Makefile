@@ -101,7 +101,7 @@ install/dev:
 	@# Remove when buf starts respecting binaries from provided by "go tool".
 	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
 	@# Does not work with "go tool".
-	go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@go
+	GOTOOLCHAIN=go1.26.1 go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@go
 
 .PHONY: fmt
 fmt:
