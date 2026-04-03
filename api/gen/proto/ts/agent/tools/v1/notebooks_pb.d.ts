@@ -9,84 +9,6 @@ import type { BinaryReadOptions } from "@protobuf-ts/runtime";
 import type { IBinaryReader } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Cell } from "../../../runme/parser/v1/parser_pb";
-/**
- * @generated from protobuf message agent.tools.v1.ListCellsRequest
- */
-export interface ListCellsRequest {
-}
-/**
- * @generated from protobuf message agent.tools.v1.ListCellsResponse
- */
-export interface ListCellsResponse {
-    /**
-     * @generated from protobuf field: repeated runme.parser.v1.Cell cells = 2
-     */
-    cells: Cell[];
-}
-/**
- * @generated from protobuf message agent.tools.v1.GetCellsRequest
- */
-export interface GetCellsRequest {
-    /**
-     * @generated from protobuf field: repeated string ref_ids = 1
-     */
-    refIds: string[];
-}
-/**
- * @generated from protobuf message agent.tools.v1.GetCellsResponse
- */
-export interface GetCellsResponse {
-    /**
-     * @generated from protobuf field: repeated runme.parser.v1.Cell cells = 1
-     */
-    cells: Cell[];
-}
-/**
- * @generated from protobuf message agent.tools.v1.UpdateCellsRequest
- */
-export interface UpdateCellsRequest {
-    /**
-     * @generated from protobuf field: repeated runme.parser.v1.Cell cells = 1
-     */
-    cells: Cell[];
-}
-/**
- * @generated from protobuf message agent.tools.v1.UpdateCellsResponse
- */
-export interface UpdateCellsResponse {
-    /**
-     * We want to provide the updated cells to the AI because the cells might have been modified by
-     * the agent (e.g. ref_ids) might have been generated.
-     *
-     * @generated from protobuf field: repeated runme.parser.v1.Cell cells = 1
-     */
-    cells: Cell[];
-}
-/**
- * @generated from protobuf message agent.tools.v1.NotebookServiceExecuteCellsRequest
- */
-export interface NotebookServiceExecuteCellsRequest {
-    /**
-     * TODO(jlewi): Right now you the AI has to specify the IDs of the cells to execute. This means it
-     * needs to use separate Update calls to set the code to execute. In the future, we may want to
-     * allow the AISRE to issue a single execute request to update and execute.
-     *
-     * @generated from protobuf field: repeated string ref_ids = 1
-     */
-    refIds: string[];
-}
-/**
- * @generated from protobuf message agent.tools.v1.NotebookServiceExecuteCellsResponse
- */
-export interface NotebookServiceExecuteCellsResponse {
-    /**
-     * Cells contains the cells that were executed
-     *
-     * @generated from protobuf field: repeated runme.parser.v1.Cell cells = 1
-     */
-    cells: Cell[];
-}
 /**
  * @generated from protobuf message agent.tools.v1.ExecuteCodeRequest
  */
@@ -140,42 +62,6 @@ export interface ToolCallInput {
      * @generated from protobuf oneof: input
      */
     input: {
-        oneofKind: "updateCells";
-        /**
-         * @generated from protobuf field: agent.tools.v1.UpdateCellsRequest update_cells = 3
-         */
-        updateCells: UpdateCellsRequest;
-    } | {
-        oneofKind: "listCells";
-        /**
-         * @generated from protobuf field: agent.tools.v1.ListCellsRequest list_cells = 4
-         */
-        listCells: ListCellsRequest;
-    } | {
-        oneofKind: "getCells";
-        /**
-         * @generated from protobuf field: agent.tools.v1.GetCellsRequest get_cells = 5
-         */
-        getCells: GetCellsRequest;
-    } | {
-        oneofKind: "executeCells";
-        /**
-         * @generated from protobuf field: agent.tools.v1.NotebookServiceExecuteCellsRequest execute_cells = 6
-         */
-        executeCells: NotebookServiceExecuteCellsRequest;
-    } | {
-        oneofKind: "terminateRun";
-        /**
-         * @generated from protobuf field: agent.tools.v1.TerminateRunRequest terminate_run = 7
-         */
-        terminateRun: TerminateRunRequest;
-    } | {
-        oneofKind: "sendSlackMessage";
-        /**
-         * @generated from protobuf field: agent.tools.v1.SendSlackMessageRequest send_slack_message = 8
-         */
-        sendSlackMessage: SendSlackMessageRequest;
-    } | {
         oneofKind: "executeCode";
         /**
          * @generated from protobuf field: agent.tools.v1.ExecuteCodeRequest execute_code = 9
@@ -201,42 +87,6 @@ export interface ToolCallOutput {
      * @generated from protobuf oneof: output
      */
     output: {
-        oneofKind: "updateCells";
-        /**
-         * @generated from protobuf field: agent.tools.v1.UpdateCellsResponse update_cells = 3
-         */
-        updateCells: UpdateCellsResponse;
-    } | {
-        oneofKind: "listCells";
-        /**
-         * @generated from protobuf field: agent.tools.v1.ListCellsResponse list_cells = 4
-         */
-        listCells: ListCellsResponse;
-    } | {
-        oneofKind: "getCells";
-        /**
-         * @generated from protobuf field: agent.tools.v1.GetCellsResponse get_cells = 5
-         */
-        getCells: GetCellsResponse;
-    } | {
-        oneofKind: "executeCells";
-        /**
-         * @generated from protobuf field: agent.tools.v1.NotebookServiceExecuteCellsResponse execute_cells = 8
-         */
-        executeCells: NotebookServiceExecuteCellsResponse;
-    } | {
-        oneofKind: "terminateRun";
-        /**
-         * @generated from protobuf field: agent.tools.v1.TerminateRunResponse terminate_run = 9
-         */
-        terminateRun: TerminateRunResponse;
-    } | {
-        oneofKind: "sendSlackMessage";
-        /**
-         * @generated from protobuf field: agent.tools.v1.SendSlackMessageResponse send_slack_message = 10
-         */
-        sendSlackMessage: SendSlackMessageResponse;
-    } | {
         oneofKind: "executeCode";
         /**
          * @generated from protobuf field: agent.tools.v1.ExecuteCodeResponse execute_code = 11
@@ -321,86 +171,6 @@ export interface SendSlackMessageResponse {
      */
     error: string;
 }
-declare class ListCellsRequest$Type extends MessageType<ListCellsRequest> {
-    constructor();
-    create(value?: PartialMessage<ListCellsRequest>): ListCellsRequest;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListCellsRequest): ListCellsRequest;
-    internalBinaryWrite(message: ListCellsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
-}
-/**
- * @generated MessageType for protobuf message agent.tools.v1.ListCellsRequest
- */
-export declare const ListCellsRequest: ListCellsRequest$Type;
-declare class ListCellsResponse$Type extends MessageType<ListCellsResponse> {
-    constructor();
-    create(value?: PartialMessage<ListCellsResponse>): ListCellsResponse;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListCellsResponse): ListCellsResponse;
-    internalBinaryWrite(message: ListCellsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
-}
-/**
- * @generated MessageType for protobuf message agent.tools.v1.ListCellsResponse
- */
-export declare const ListCellsResponse: ListCellsResponse$Type;
-declare class GetCellsRequest$Type extends MessageType<GetCellsRequest> {
-    constructor();
-    create(value?: PartialMessage<GetCellsRequest>): GetCellsRequest;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetCellsRequest): GetCellsRequest;
-    internalBinaryWrite(message: GetCellsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
-}
-/**
- * @generated MessageType for protobuf message agent.tools.v1.GetCellsRequest
- */
-export declare const GetCellsRequest: GetCellsRequest$Type;
-declare class GetCellsResponse$Type extends MessageType<GetCellsResponse> {
-    constructor();
-    create(value?: PartialMessage<GetCellsResponse>): GetCellsResponse;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetCellsResponse): GetCellsResponse;
-    internalBinaryWrite(message: GetCellsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
-}
-/**
- * @generated MessageType for protobuf message agent.tools.v1.GetCellsResponse
- */
-export declare const GetCellsResponse: GetCellsResponse$Type;
-declare class UpdateCellsRequest$Type extends MessageType<UpdateCellsRequest> {
-    constructor();
-    create(value?: PartialMessage<UpdateCellsRequest>): UpdateCellsRequest;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateCellsRequest): UpdateCellsRequest;
-    internalBinaryWrite(message: UpdateCellsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
-}
-/**
- * @generated MessageType for protobuf message agent.tools.v1.UpdateCellsRequest
- */
-export declare const UpdateCellsRequest: UpdateCellsRequest$Type;
-declare class UpdateCellsResponse$Type extends MessageType<UpdateCellsResponse> {
-    constructor();
-    create(value?: PartialMessage<UpdateCellsResponse>): UpdateCellsResponse;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateCellsResponse): UpdateCellsResponse;
-    internalBinaryWrite(message: UpdateCellsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
-}
-/**
- * @generated MessageType for protobuf message agent.tools.v1.UpdateCellsResponse
- */
-export declare const UpdateCellsResponse: UpdateCellsResponse$Type;
-declare class NotebookServiceExecuteCellsRequest$Type extends MessageType<NotebookServiceExecuteCellsRequest> {
-    constructor();
-    create(value?: PartialMessage<NotebookServiceExecuteCellsRequest>): NotebookServiceExecuteCellsRequest;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: NotebookServiceExecuteCellsRequest): NotebookServiceExecuteCellsRequest;
-    internalBinaryWrite(message: NotebookServiceExecuteCellsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
-}
-/**
- * @generated MessageType for protobuf message agent.tools.v1.NotebookServiceExecuteCellsRequest
- */
-export declare const NotebookServiceExecuteCellsRequest: NotebookServiceExecuteCellsRequest$Type;
-declare class NotebookServiceExecuteCellsResponse$Type extends MessageType<NotebookServiceExecuteCellsResponse> {
-    constructor();
-    create(value?: PartialMessage<NotebookServiceExecuteCellsResponse>): NotebookServiceExecuteCellsResponse;
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: NotebookServiceExecuteCellsResponse): NotebookServiceExecuteCellsResponse;
-    internalBinaryWrite(message: NotebookServiceExecuteCellsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
-}
-/**
- * @generated MessageType for protobuf message agent.tools.v1.NotebookServiceExecuteCellsResponse
- */
-export declare const NotebookServiceExecuteCellsResponse: NotebookServiceExecuteCellsResponse$Type;
 declare class ExecuteCodeRequest$Type extends MessageType<ExecuteCodeRequest> {
     constructor();
     create(value?: PartialMessage<ExecuteCodeRequest>): ExecuteCodeRequest;

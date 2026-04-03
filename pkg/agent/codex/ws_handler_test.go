@@ -98,8 +98,8 @@ func TestToolBridge_CallRoundTrip(t *testing.T) {
 			return
 		}
 		parsedInput := toolReq.GetInput()
-		if parsedInput.GetListCells() == nil {
-			responderErrCh <- fmt.Errorf("request missing list_cells payload")
+		if parsedInput.GetExecuteCode() == nil {
+			responderErrCh <- fmt.Errorf("request missing execute_code payload")
 			return
 		}
 
@@ -109,8 +109,8 @@ func TestToolBridge_CallRoundTrip(t *testing.T) {
 					BridgeCallId: toolReq.GetBridgeCallId(),
 					Output: &toolsv1.ToolCallOutput{
 						CallId: toolReq.GetBridgeCallId(),
-						Output: &toolsv1.ToolCallOutput_ListCells{
-							ListCells: &toolsv1.ListCellsResponse{},
+						Output: &toolsv1.ToolCallOutput_ExecuteCode{
+							ExecuteCode: &toolsv1.ExecuteCodeResponse{Output: "ok\n"},
 						},
 						Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
 					},
@@ -135,15 +135,15 @@ func TestToolBridge_CallRoundTrip(t *testing.T) {
 	defer cancel()
 
 	output, err := bridge.Call(ctx, &toolsv1.ToolCallInput{
-		Input: &toolsv1.ToolCallInput_ListCells{
-			ListCells: &toolsv1.ListCellsRequest{},
+		Input: &toolsv1.ToolCallInput_ExecuteCode{
+			ExecuteCode: &toolsv1.ExecuteCodeRequest{Code: "console.log('ok')"},
 		},
 	})
 	if err != nil {
 		t.Fatalf("Call returned error: %v", err)
 	}
-	if output.GetListCells() == nil {
-		t.Fatalf("Call output missing list_cells payload")
+	if output.GetExecuteCode() == nil {
+		t.Fatalf("Call output missing execute_code payload")
 	}
 	if responderErr := <-responderErrCh; responderErr != nil {
 		t.Fatal(responderErr)
@@ -182,8 +182,8 @@ func TestToolBridge_IgnoresUnsupportedPayloads(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	_, err = bridge.Call(ctx, &toolsv1.ToolCallInput{
-		Input: &toolsv1.ToolCallInput_ListCells{
-			ListCells: &toolsv1.ListCellsRequest{},
+		Input: &toolsv1.ToolCallInput_ExecuteCode{
+			ExecuteCode: &toolsv1.ExecuteCodeRequest{Code: "console.log('ok')"},
 		},
 	})
 	if err == nil {
@@ -233,8 +233,8 @@ func TestToolBridge_CallRoundTripBinary(t *testing.T) {
 					BridgeCallId: toolReq.GetBridgeCallId(),
 					Output: &toolsv1.ToolCallOutput{
 						CallId: toolReq.GetBridgeCallId(),
-						Output: &toolsv1.ToolCallOutput_ListCells{
-							ListCells: &toolsv1.ListCellsResponse{},
+						Output: &toolsv1.ToolCallOutput_ExecuteCode{
+							ExecuteCode: &toolsv1.ExecuteCodeResponse{Output: "ok\n"},
 						},
 						Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
 					},
@@ -259,15 +259,15 @@ func TestToolBridge_CallRoundTripBinary(t *testing.T) {
 	defer cancel()
 
 	output, err := bridge.Call(ctx, &toolsv1.ToolCallInput{
-		Input: &toolsv1.ToolCallInput_ListCells{
-			ListCells: &toolsv1.ListCellsRequest{},
+		Input: &toolsv1.ToolCallInput_ExecuteCode{
+			ExecuteCode: &toolsv1.ExecuteCodeRequest{Code: "console.log('ok')"},
 		},
 	})
 	if err != nil {
 		t.Fatalf("Call returned error: %v", err)
 	}
-	if output.GetListCells() == nil {
-		t.Fatalf("Call output missing list_cells payload")
+	if output.GetExecuteCode() == nil {
+		t.Fatalf("Call output missing execute_code payload")
 	}
 	if responderErr := <-responderErrCh; responderErr != nil {
 		t.Fatal(responderErr)
@@ -280,8 +280,8 @@ func TestToolBridge_CallFailsWithoutConnection(t *testing.T) {
 	defer cancel()
 
 	_, err := bridge.Call(ctx, &toolsv1.ToolCallInput{
-		Input: &toolsv1.ToolCallInput_ListCells{
-			ListCells: &toolsv1.ListCellsRequest{},
+		Input: &toolsv1.ToolCallInput_ExecuteCode{
+			ExecuteCode: &toolsv1.ExecuteCodeRequest{Code: "console.log('ok')"},
 		},
 	})
 	if err == nil {

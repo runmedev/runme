@@ -157,6 +157,7 @@ func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
 	p.stdout = stdout
 	p.stderr = stderr
 	p.client = NewClient(stdout, stdin)
+	p.client.SetServerRequestHandler(handleAppServerRequest)
 	client := p.client
 	initializeMethod := p.initializeMethod
 	initializeParams := p.initializeParams
@@ -436,6 +437,56 @@ func buildThreadStartParams(cfg SessionConfig, includeConfig bool) map[string]an
 		params["config"] = buildSessionConfigParams(cfg)
 	}
 	return params
+}
+
+func handleAppServerRequest(req jsonRPCServerRequest) (any, error) {
+	switch req.Method {
+	case "mcpServer/elicitation/request":
+		return handleMCPServerElicitationRequest(req.Params)
+	default:
+		return nil, fmt.Errorf("unsupported app-server request method %q", req.Method)
+	}
+}
+
+func handleMCPServerElicitationRequest(params json.RawMessage) (map[string]any, error) {
+	request := struct {
+		ServerName string         `json:"serverName"`
+		Mode       string         `json:"mode"`
+		Meta       map[string]any `json:"_meta"`
+	}{
+		Meta: map[string]any{},
+	}
+	if err := json.Unmarshal(params, &request); err != nil {
+		return nil, fmt.Errorf("decode mcpServer/elicitation/request params: %w", err)
+	}
+	if request.ServerName != "runme-notebooks" {
+		return map[string]any{
+			"action":  "decline",
+			"content": nil,
+			"_meta":   nil,
+		}, nil
+	}
+	if request.Mode != "form" {
+		return map[string]any{
+			"action":  "decline",
+			"content": nil,
+			"_meta":   nil,
+		}, nil
+	}
+	if request.Meta["codex_approval_kind"] != "mcp_tool_call" {
+		return map[string]any{
+			"action":  "decline",
+			"content": nil,
+			"_meta":   nil,
+		}, nil
+	}
+	return map[string]any{
+		"action":  "accept",
+		"content": map[string]any{},
+		"_meta": map[string]any{
+			"persist": "session",
+		},
+	}, nil
 }
 
 func buildTurnParams(req TurnRequest, threadID string) map[string]any {

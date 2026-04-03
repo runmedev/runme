@@ -8,6 +8,7 @@ package toolsv1
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,13 +20,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NotebookService_UpdateCells_FullMethodName      = "/agent.tools.v1.NotebookService/UpdateCells"
-	NotebookService_GetCells_FullMethodName         = "/agent.tools.v1.NotebookService/GetCells"
-	NotebookService_ListCells_FullMethodName        = "/agent.tools.v1.NotebookService/ListCells"
-	NotebookService_ExecuteCells_FullMethodName     = "/agent.tools.v1.NotebookService/ExecuteCells"
-	NotebookService_ExecuteCode_FullMethodName      = "/agent.tools.v1.NotebookService/ExecuteCode"
-	NotebookService_TerminateRun_FullMethodName     = "/agent.tools.v1.NotebookService/TerminateRun"
-	NotebookService_SendSlackMessage_FullMethodName = "/agent.tools.v1.NotebookService/SendSlackMessage"
+	NotebookService_ExecuteCode_FullMethodName = "/agent.tools.v1.NotebookService/ExecuteCode"
 )
 
 // NotebookServiceClient is the client API for NotebookService service.
@@ -40,54 +35,20 @@ const (
 //
 // It looks like only comments on the method get translated into the description.
 type NotebookServiceClient interface {
-	// UpdateCell updates a cell in the document.
-	// Cell is the cell to create or update. To update
-	// an existing cell specify the ID of that cell in the ref_id field.
-	// To create a new cell leave ref_id blank.
+	// ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
+	// stdout/stderr string.
 	//
-	// You can use cell.metadata["agent/summary"] to include a short summary or description of the
-	// cell. You should set the description so that its useful for deciding what cells you should read
-	// to answer the user's queries.
+	// Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
+	// tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
+	//   - await help() to inspect the top-level helper API.
+	//   - await notebooks.help() or await notebooks.help("<method>") to inspect notebook APIs.
+	//   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
+	//     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
+	//   - use console.log(...) to return concise status and requested values to the user.
 	//
-	// UpdateCellResponse will include cell id and metadata of the updated cells.
-	UpdateCells(ctx context.Context, in *UpdateCellsRequest, opts ...grpc.CallOption) (*UpdateCellsResponse, error)
-	// GetCells fetches the cells with the given ref_ids.
-	// Use this to read the contents of cells in the notebook.
-	GetCells(ctx context.Context, in *GetCellsRequest, opts ...grpc.CallOption) (*GetCellsResponse, error)
-	// ListCells lists the cells in a notebook.
-	// Important: Only the ref_id and metadata will be populated. You should use that to decide
-	// which cells to read.
-	ListCells(ctx context.Context, in *ListCellsRequest, opts ...grpc.CallOption) (*ListCellsResponse, error)
-	// ExecuteCells executes the cells with the given ids in a notebook.
-	// Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
-	// cells. The response will contain the cell including the outputs of execution.
-	ExecuteCells(ctx context.Context, in *NotebookServiceExecuteCellsRequest, opts ...grpc.CallOption) (*NotebookServiceExecuteCellsResponse, error)
-	// ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+	// Prefer small, precise JS snippets and use top-level await for async helper calls so the command
+	// finishes only after notebook operations and executions complete.
 	ExecuteCode(ctx context.Context, in *ExecuteCodeRequest, opts ...grpc.CallOption) (*ExecuteCodeResponse, error)
-	// TerminateRun terminates the run. Call this when no further processing is necessary to handle
-	// the user request.
-	TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*TerminateRunResponse, error)
-	// TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-	//
-	// SlackMessageRequest sends a slack message to the user.
-	// Channel is The channel to send the message to e.g. "C09DF7PL6K0".
-	// Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
-	// If no slack channel was included in the request, do not invoke this tool.
-	//
-	// timestamp it the (unique identifier) of the slack thread you want to post into e.g.
-	// 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
-	// "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
-	// request, you may omit this property which will start a new thread.`,
-	//
-	// text is the message that the user will see in slack.
-	//
-	//	A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
-	//	```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
-	//	@channel in this message.",
-	//
-	// fileIDs optionally send files generated as part of the investigation to the user in slack
-	// (often images). e.g. ["call_ABC", "call_DEF"]`,
-	SendSlackMessage(ctx context.Context, in *SendSlackMessageRequest, opts ...grpc.CallOption) (*SendSlackMessageResponse, error)
 }
 
 type notebookServiceClient struct {
@@ -98,70 +59,10 @@ func NewNotebookServiceClient(cc grpc.ClientConnInterface) NotebookServiceClient
 	return &notebookServiceClient{cc}
 }
 
-func (c *notebookServiceClient) UpdateCells(ctx context.Context, in *UpdateCellsRequest, opts ...grpc.CallOption) (*UpdateCellsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateCellsResponse)
-	err := c.cc.Invoke(ctx, NotebookService_UpdateCells_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *notebookServiceClient) GetCells(ctx context.Context, in *GetCellsRequest, opts ...grpc.CallOption) (*GetCellsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetCellsResponse)
-	err := c.cc.Invoke(ctx, NotebookService_GetCells_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *notebookServiceClient) ListCells(ctx context.Context, in *ListCellsRequest, opts ...grpc.CallOption) (*ListCellsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListCellsResponse)
-	err := c.cc.Invoke(ctx, NotebookService_ListCells_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *notebookServiceClient) ExecuteCells(ctx context.Context, in *NotebookServiceExecuteCellsRequest, opts ...grpc.CallOption) (*NotebookServiceExecuteCellsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(NotebookServiceExecuteCellsResponse)
-	err := c.cc.Invoke(ctx, NotebookService_ExecuteCells_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *notebookServiceClient) ExecuteCode(ctx context.Context, in *ExecuteCodeRequest, opts ...grpc.CallOption) (*ExecuteCodeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ExecuteCodeResponse)
 	err := c.cc.Invoke(ctx, NotebookService_ExecuteCode_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *notebookServiceClient) TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*TerminateRunResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TerminateRunResponse)
-	err := c.cc.Invoke(ctx, NotebookService_TerminateRun_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *notebookServiceClient) SendSlackMessage(ctx context.Context, in *SendSlackMessageRequest, opts ...grpc.CallOption) (*SendSlackMessageResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SendSlackMessageResponse)
-	err := c.cc.Invoke(ctx, NotebookService_SendSlackMessage_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -180,54 +81,20 @@ func (c *notebookServiceClient) SendSlackMessage(ctx context.Context, in *SendSl
 //
 // It looks like only comments on the method get translated into the description.
 type NotebookServiceServer interface {
-	// UpdateCell updates a cell in the document.
-	// Cell is the cell to create or update. To update
-	// an existing cell specify the ID of that cell in the ref_id field.
-	// To create a new cell leave ref_id blank.
+	// ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
+	// stdout/stderr string.
 	//
-	// You can use cell.metadata["agent/summary"] to include a short summary or description of the
-	// cell. You should set the description so that its useful for deciding what cells you should read
-	// to answer the user's queries.
+	// Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
+	// tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
+	//   - await help() to inspect the top-level helper API.
+	//   - await notebooks.help() or await notebooks.help("<method>") to inspect notebook APIs.
+	//   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
+	//     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
+	//   - use console.log(...) to return concise status and requested values to the user.
 	//
-	// UpdateCellResponse will include cell id and metadata of the updated cells.
-	UpdateCells(context.Context, *UpdateCellsRequest) (*UpdateCellsResponse, error)
-	// GetCells fetches the cells with the given ref_ids.
-	// Use this to read the contents of cells in the notebook.
-	GetCells(context.Context, *GetCellsRequest) (*GetCellsResponse, error)
-	// ListCells lists the cells in a notebook.
-	// Important: Only the ref_id and metadata will be populated. You should use that to decide
-	// which cells to read.
-	ListCells(context.Context, *ListCellsRequest) (*ListCellsResponse, error)
-	// ExecuteCells executes the cells with the given ids in a notebook.
-	// Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
-	// cells. The response will contain the cell including the outputs of execution.
-	ExecuteCells(context.Context, *NotebookServiceExecuteCellsRequest) (*NotebookServiceExecuteCellsResponse, error)
-	// ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+	// Prefer small, precise JS snippets and use top-level await for async helper calls so the command
+	// finishes only after notebook operations and executions complete.
 	ExecuteCode(context.Context, *ExecuteCodeRequest) (*ExecuteCodeResponse, error)
-	// TerminateRun terminates the run. Call this when no further processing is necessary to handle
-	// the user request.
-	TerminateRun(context.Context, *TerminateRunRequest) (*TerminateRunResponse, error)
-	// TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-	//
-	// SlackMessageRequest sends a slack message to the user.
-	// Channel is The channel to send the message to e.g. "C09DF7PL6K0".
-	// Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
-	// If no slack channel was included in the request, do not invoke this tool.
-	//
-	// timestamp it the (unique identifier) of the slack thread you want to post into e.g.
-	// 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
-	// "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
-	// request, you may omit this property which will start a new thread.`,
-	//
-	// text is the message that the user will see in slack.
-	//
-	//	A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
-	//	```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
-	//	@channel in this message.",
-	//
-	// fileIDs optionally send files generated as part of the investigation to the user in slack
-	// (often images). e.g. ["call_ABC", "call_DEF"]`,
-	SendSlackMessage(context.Context, *SendSlackMessageRequest) (*SendSlackMessageResponse, error)
 	mustEmbedUnimplementedNotebookServiceServer()
 }
 
@@ -238,26 +105,8 @@ type NotebookServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedNotebookServiceServer struct{}
 
-func (UnimplementedNotebookServiceServer) UpdateCells(context.Context, *UpdateCellsRequest) (*UpdateCellsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateCells not implemented")
-}
-func (UnimplementedNotebookServiceServer) GetCells(context.Context, *GetCellsRequest) (*GetCellsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetCells not implemented")
-}
-func (UnimplementedNotebookServiceServer) ListCells(context.Context, *ListCellsRequest) (*ListCellsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListCells not implemented")
-}
-func (UnimplementedNotebookServiceServer) ExecuteCells(context.Context, *NotebookServiceExecuteCellsRequest) (*NotebookServiceExecuteCellsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ExecuteCells not implemented")
-}
 func (UnimplementedNotebookServiceServer) ExecuteCode(context.Context, *ExecuteCodeRequest) (*ExecuteCodeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExecuteCode not implemented")
-}
-func (UnimplementedNotebookServiceServer) TerminateRun(context.Context, *TerminateRunRequest) (*TerminateRunResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method TerminateRun not implemented")
-}
-func (UnimplementedNotebookServiceServer) SendSlackMessage(context.Context, *SendSlackMessageRequest) (*SendSlackMessageResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SendSlackMessage not implemented")
 }
 func (UnimplementedNotebookServiceServer) mustEmbedUnimplementedNotebookServiceServer() {}
 func (UnimplementedNotebookServiceServer) testEmbeddedByValue()                         {}
@@ -280,78 +129,6 @@ func RegisterNotebookServiceServer(s grpc.ServiceRegistrar, srv NotebookServiceS
 	s.RegisterService(&NotebookService_ServiceDesc, srv)
 }
 
-func _NotebookService_UpdateCells_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateCellsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NotebookServiceServer).UpdateCells(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: NotebookService_UpdateCells_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NotebookServiceServer).UpdateCells(ctx, req.(*UpdateCellsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NotebookService_GetCells_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCellsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NotebookServiceServer).GetCells(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: NotebookService_GetCells_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NotebookServiceServer).GetCells(ctx, req.(*GetCellsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NotebookService_ListCells_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListCellsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NotebookServiceServer).ListCells(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: NotebookService_ListCells_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NotebookServiceServer).ListCells(ctx, req.(*ListCellsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NotebookService_ExecuteCells_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NotebookServiceExecuteCellsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NotebookServiceServer).ExecuteCells(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: NotebookService_ExecuteCells_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NotebookServiceServer).ExecuteCells(ctx, req.(*NotebookServiceExecuteCellsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _NotebookService_ExecuteCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ExecuteCodeRequest)
 	if err := dec(in); err != nil {
@@ -370,42 +147,6 @@ func _NotebookService_ExecuteCode_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _NotebookService_TerminateRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TerminateRunRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NotebookServiceServer).TerminateRun(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: NotebookService_TerminateRun_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NotebookServiceServer).TerminateRun(ctx, req.(*TerminateRunRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _NotebookService_SendSlackMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendSlackMessageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NotebookServiceServer).SendSlackMessage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: NotebookService_SendSlackMessage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NotebookServiceServer).SendSlackMessage(ctx, req.(*SendSlackMessageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // NotebookService_ServiceDesc is the grpc.ServiceDesc for NotebookService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -414,32 +155,8 @@ var NotebookService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*NotebookServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "UpdateCells",
-			Handler:    _NotebookService_UpdateCells_Handler,
-		},
-		{
-			MethodName: "GetCells",
-			Handler:    _NotebookService_GetCells_Handler,
-		},
-		{
-			MethodName: "ListCells",
-			Handler:    _NotebookService_ListCells_Handler,
-		},
-		{
-			MethodName: "ExecuteCells",
-			Handler:    _NotebookService_ExecuteCells_Handler,
-		},
-		{
 			MethodName: "ExecuteCode",
 			Handler:    _NotebookService_ExecuteCode_Handler,
-		},
-		{
-			MethodName: "TerminateRun",
-			Handler:    _NotebookService_TerminateRun_Handler,
-		},
-		{
-			MethodName: "SendSlackMessage",
-			Handler:    _NotebookService_SendSlackMessage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

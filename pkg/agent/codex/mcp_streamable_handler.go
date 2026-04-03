@@ -16,7 +16,6 @@ type contextKey int
 
 const (
 	sessionIDContextKey contextKey = iota
-	approvedRefIDsContextKey
 )
 
 // SessionIDFromContext returns the session id authenticated for an MCP HTTP request.
@@ -25,40 +24,26 @@ func SessionIDFromContext(ctx context.Context) string {
 	return sid
 }
 
-const (
-	executeApprovalHeader  = "X-Runme-Codex-Execute-Approved"
-	sessionTokenQueryParam = "session_token"
-)
-
-func approvedRefIDsFromContext(ctx context.Context) []string {
-	ids, _ := ctx.Value(approvedRefIDsContextKey).([]string)
-	return ids
-}
+const sessionTokenQueryParam = "session_token"
 
 type StreamableMCPHandler struct {
-	inner     http.Handler
-	tokens    *SessionTokenManager
-	approvals *ExecuteApprovalManager
+	inner  http.Handler
+	tokens *SessionTokenManager
 }
 
-func NewStreamableMCPHandler(bridge *ToolBridge, tokens *SessionTokenManager, approvals *ExecuteApprovalManager) (*StreamableMCPHandler, error) {
+func NewStreamableMCPHandler(bridge *ToolBridge, tokens *SessionTokenManager) (*StreamableMCPHandler, error) {
 	if bridge == nil {
 		return nil, errors.New("bridge is nil")
 	}
 	if tokens == nil {
 		return nil, errors.New("token manager is nil")
 	}
-	if approvals == nil {
-		return nil, errors.New("execute approval manager is nil")
-	}
 	nbBridge := NewNotebookMCPBridge(bridge)
-	nbBridge.SetExecuteApprover(executeApprovalApprover{manager: approvals})
 	mcpServer := nbBridge.NewServer()
 	streamable := mcpserver.NewStreamableHTTPServer(mcpServer)
 	return &StreamableMCPHandler{
-		inner:     streamable,
-		tokens:    tokens,
-		approvals: approvals,
+		inner:  streamable,
+		tokens: tokens,
 	}, nil
 }
 
@@ -77,7 +62,6 @@ func (h *StreamableMCPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	logger = logger.WithValues("sessionID", sid)
 	logger.Info("authenticated codex mcp request")
 	ctx := context.WithValue(r.Context(), sessionIDContextKey, sid)
-	ctx = context.WithValue(ctx, approvedRefIDsContextKey, parseApprovedRefIDs(r.Header.Get(executeApprovalHeader)))
 	h.inner.ServeHTTP(w, r.WithContext(ctx))
 }
 
@@ -108,21 +92,4 @@ func extractBearerToken(r *http.Request) (string, error) {
 		return token, nil
 	}
 	return "", errors.New("missing bearer token")
-}
-
-func parseApprovedRefIDs(raw string) []string {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return nil
-	}
-	parts := strings.Split(raw, ",")
-	out := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-		out = append(out, part)
-	}
-	return out
 }

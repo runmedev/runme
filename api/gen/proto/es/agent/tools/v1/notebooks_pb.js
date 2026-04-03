@@ -3,117 +3,60 @@
 /* eslint-disable */
 
 import { enumDesc, fileDesc, messageDesc, serviceDesc, tsEnum } from "@bufbuild/protobuf/codegenv2";
-import { file_runme_parser_v1_parser } from "../../../runme/parser/v1/parser_pb";
 
 /**
  * Describes the file agent/tools/v1/notebooks.proto.
  */
 export const file_agent_tools_v1_notebooks = /*@__PURE__*/
-  fileDesc("Ch5hZ2VudC90b29scy92MS9ub3RlYm9va3MucHJvdG8SDmFnZW50LnRvb2xzLnYxIhIKEExpc3RDZWxsc1JlcXVlc3QiOQoRTGlzdENlbGxzUmVzcG9uc2USJAoFY2VsbHMYAiADKAsyFS5ydW5tZS5wYXJzZXIudjEuQ2VsbCIiCg9HZXRDZWxsc1JlcXVlc3QSDwoHcmVmX2lkcxgBIAMoCSI4ChBHZXRDZWxsc1Jlc3BvbnNlEiQKBWNlbGxzGAEgAygLMhUucnVubWUucGFyc2VyLnYxLkNlbGwiOgoSVXBkYXRlQ2VsbHNSZXF1ZXN0EiQKBWNlbGxzGAEgAygLMhUucnVubWUucGFyc2VyLnYxLkNlbGwiOwoTVXBkYXRlQ2VsbHNSZXNwb25zZRIkCgVjZWxscxgBIAMoCzIVLnJ1bm1lLnBhcnNlci52MS5DZWxsIjUKIk5vdGVib29rU2VydmljZUV4ZWN1dGVDZWxsc1JlcXVlc3QSDwoHcmVmX2lkcxgBIAMoCSJLCiNOb3RlYm9va1NlcnZpY2VFeGVjdXRlQ2VsbHNSZXNwb25zZRIkCgVjZWxscxgBIAMoCzIVLnJ1bm1lLnBhcnNlci52MS5DZWxsIiIKEkV4ZWN1dGVDb2RlUmVxdWVzdBIMCgRjb2RlGAEgASgJIiUKE0V4ZWN1dGVDb2RlUmVzcG9uc2USDgoGb3V0cHV0GAEgASgJIhUKE1Rlcm1pbmF0ZVJ1blJlcXVlc3QiFgoUVGVybWluYXRlUnVuUmVzcG9uc2Ui/wMKDVRvb2xDYWxsSW5wdXQSDwoHY2FsbF9pZBgBIAEoCRIcChRwcmV2aW91c19yZXNwb25zZV9pZBgCIAEoCRI6Cgx1cGRhdGVfY2VsbHMYAyABKAsyIi5hZ2VudC50b29scy52MS5VcGRhdGVDZWxsc1JlcXVlc3RIABI2CgpsaXN0X2NlbGxzGAQgASgLMiAuYWdlbnQudG9vbHMudjEuTGlzdENlbGxzUmVxdWVzdEgAEjQKCWdldF9jZWxscxgFIAEoCzIfLmFnZW50LnRvb2xzLnYxLkdldENlbGxzUmVxdWVzdEgAEksKDWV4ZWN1dGVfY2VsbHMYBiABKAsyMi5hZ2VudC50b29scy52MS5Ob3RlYm9va1NlcnZpY2VFeGVjdXRlQ2VsbHNSZXF1ZXN0SAASPAoNdGVybWluYXRlX3J1bhgHIAEoCzIjLmFnZW50LnRvb2xzLnYxLlRlcm1pbmF0ZVJ1blJlcXVlc3RIABJFChJzZW5kX3NsYWNrX21lc3NhZ2UYCCABKAsyJy5hZ2VudC50b29scy52MS5TZW5kU2xhY2tNZXNzYWdlUmVxdWVzdEgAEjoKDGV4ZWN1dGVfY29kZRgJIAEoCzIiLmFnZW50LnRvb2xzLnYxLkV4ZWN1dGVDb2RlUmVxdWVzdEgAQgcKBWlucHV0Ip4FCg5Ub29sQ2FsbE91dHB1dBIPCgdjYWxsX2lkGAEgASgJEhwKFHByZXZpb3VzX3Jlc3BvbnNlX2lkGAIgASgJEjsKDHVwZGF0ZV9jZWxscxgDIAEoCzIjLmFnZW50LnRvb2xzLnYxLlVwZGF0ZUNlbGxzUmVzcG9uc2VIABI3CgpsaXN0X2NlbGxzGAQgASgLMiEuYWdlbnQudG9vbHMudjEuTGlzdENlbGxzUmVzcG9uc2VIABI1CglnZXRfY2VsbHMYBSABKAsyIC5hZ2VudC50b29scy52MS5HZXRDZWxsc1Jlc3BvbnNlSAASTAoNZXhlY3V0ZV9jZWxscxgIIAEoCzIzLmFnZW50LnRvb2xzLnYxLk5vdGVib29rU2VydmljZUV4ZWN1dGVDZWxsc1Jlc3BvbnNlSAASPQoNdGVybWluYXRlX3J1bhgJIAEoCzIkLmFnZW50LnRvb2xzLnYxLlRlcm1pbmF0ZVJ1blJlc3BvbnNlSAASRgoSc2VuZF9zbGFja19tZXNzYWdlGAogASgLMiguYWdlbnQudG9vbHMudjEuU2VuZFNsYWNrTWVzc2FnZVJlc3BvbnNlSAASOwoMZXhlY3V0ZV9jb2RlGAsgASgLMiMuYWdlbnQudG9vbHMudjEuRXhlY3V0ZUNvZGVSZXNwb25zZUgAEjUKBnN0YXR1cxgGIAEoDjIlLmFnZW50LnRvb2xzLnYxLlRvb2xDYWxsT3V0cHV0LlN0YXR1cxIUCgxjbGllbnRfZXJyb3IYByABKAkiRwoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhIKDlNUQVRVU19TVUNDRVNTEAESEQoNU1RBVFVTX0ZBSUxFRBACQggKBm91dHB1dCI/CgxDaGF0a2l0U3RhdGUSHAoUcHJldmlvdXNfcmVzcG9uc2VfaWQYASABKAkSEQoJdGhyZWFkX2lkGAIgASgJIl0KF1NlbmRTbGFja01lc3NhZ2VSZXF1ZXN0Eg8KB2NoYW5uZWwYASABKAkSEQoJdGltZXN0YW1wGAIgASgJEgwKBHRleHQYAyABKAkSEAoIZmlsZV9pZHMYBCADKAkiKQoYU2VuZFNsYWNrTWVzc2FnZVJlc3BvbnNlEg0KBWVycm9yGAEgASgJMqsFCg9Ob3RlYm9va1NlcnZpY2USWAoLVXBkYXRlQ2VsbHMSIi5hZ2VudC50b29scy52MS5VcGRhdGVDZWxsc1JlcXVlc3QaIy5hZ2VudC50b29scy52MS5VcGRhdGVDZWxsc1Jlc3BvbnNlIgASTwoIR2V0Q2VsbHMSHy5hZ2VudC50b29scy52MS5HZXRDZWxsc1JlcXVlc3QaIC5hZ2VudC50b29scy52MS5HZXRDZWxsc1Jlc3BvbnNlIgASUgoJTGlzdENlbGxzEiAuYWdlbnQudG9vbHMudjEuTGlzdENlbGxzUmVxdWVzdBohLmFnZW50LnRvb2xzLnYxLkxpc3RDZWxsc1Jlc3BvbnNlIgASeQoMRXhlY3V0ZUNlbGxzEjIuYWdlbnQudG9vbHMudjEuTm90ZWJvb2tTZXJ2aWNlRXhlY3V0ZUNlbGxzUmVxdWVzdBozLmFnZW50LnRvb2xzLnYxLk5vdGVib29rU2VydmljZUV4ZWN1dGVDZWxsc1Jlc3BvbnNlIgASWAoLRXhlY3V0ZUNvZGUSIi5hZ2VudC50b29scy52MS5FeGVjdXRlQ29kZVJlcXVlc3QaIy5hZ2VudC50b29scy52MS5FeGVjdXRlQ29kZVJlc3BvbnNlIgASWwoMVGVybWluYXRlUnVuEiMuYWdlbnQudG9vbHMudjEuVGVybWluYXRlUnVuUmVxdWVzdBokLmFnZW50LnRvb2xzLnYxLlRlcm1pbmF0ZVJ1blJlc3BvbnNlIgASZwoQU2VuZFNsYWNrTWVzc2FnZRInLmFnZW50LnRvb2xzLnYxLlNlbmRTbGFja01lc3NhZ2VSZXF1ZXN0GiguYWdlbnQudG9vbHMudjEuU2VuZFNsYWNrTWVzc2FnZVJlc3BvbnNlIgBCRlpEZ2l0aHViLmNvbS9ydW5tZWRldi9ydW5tZS92My9hcGkvZ2VuL3Byb3RvL2dvL2FnZW50L3Rvb2xzL3YxO3Rvb2xzdjFiBnByb3RvMw", [file_runme_parser_v1_parser]);
-
-/**
- * Describes the message agent.tools.v1.ListCellsRequest.
- * Use `create(ListCellsRequestSchema)` to create a new message.
- */
-export const ListCellsRequestSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 0);
-
-/**
- * Describes the message agent.tools.v1.ListCellsResponse.
- * Use `create(ListCellsResponseSchema)` to create a new message.
- */
-export const ListCellsResponseSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 1);
-
-/**
- * Describes the message agent.tools.v1.GetCellsRequest.
- * Use `create(GetCellsRequestSchema)` to create a new message.
- */
-export const GetCellsRequestSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 2);
-
-/**
- * Describes the message agent.tools.v1.GetCellsResponse.
- * Use `create(GetCellsResponseSchema)` to create a new message.
- */
-export const GetCellsResponseSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 3);
-
-/**
- * Describes the message agent.tools.v1.UpdateCellsRequest.
- * Use `create(UpdateCellsRequestSchema)` to create a new message.
- */
-export const UpdateCellsRequestSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 4);
-
-/**
- * Describes the message agent.tools.v1.UpdateCellsResponse.
- * Use `create(UpdateCellsResponseSchema)` to create a new message.
- */
-export const UpdateCellsResponseSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 5);
-
-/**
- * Describes the message agent.tools.v1.NotebookServiceExecuteCellsRequest.
- * Use `create(NotebookServiceExecuteCellsRequestSchema)` to create a new message.
- */
-export const NotebookServiceExecuteCellsRequestSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 6);
-
-/**
- * Describes the message agent.tools.v1.NotebookServiceExecuteCellsResponse.
- * Use `create(NotebookServiceExecuteCellsResponseSchema)` to create a new message.
- */
-export const NotebookServiceExecuteCellsResponseSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 7);
+  fileDesc("Ch5hZ2VudC90b29scy92MS9ub3RlYm9va3MucHJvdG8SDmFnZW50LnRvb2xzLnYxIiIKEkV4ZWN1dGVDb2RlUmVxdWVzdBIMCgRjb2RlGAEgASgJIiUKE0V4ZWN1dGVDb2RlUmVzcG9uc2USDgoGb3V0cHV0GAEgASgJIhUKE1Rlcm1pbmF0ZVJ1blJlcXVlc3QiFgoUVGVybWluYXRlUnVuUmVzcG9uc2Ui/gEKDVRvb2xDYWxsSW5wdXQSDwoHY2FsbF9pZBgBIAEoCRIcChRwcmV2aW91c19yZXNwb25zZV9pZBgCIAEoCRI6CgxleGVjdXRlX2NvZGUYCSABKAsyIi5hZ2VudC50b29scy52MS5FeGVjdXRlQ29kZVJlcXVlc3RIAEIHCgVpbnB1dEoECAMQBEoECAQQBUoECAUQBkoECAYQB0oECAcQCEoECAgQCVIMdXBkYXRlX2NlbGxzUgpsaXN0X2NlbGxzUglnZXRfY2VsbHNSDWV4ZWN1dGVfY2VsbHNSDXRlcm1pbmF0ZV9ydW5SEnNlbmRfc2xhY2tfbWVzc2FnZSKXAwoOVG9vbENhbGxPdXRwdXQSDwoHY2FsbF9pZBgBIAEoCRIcChRwcmV2aW91c19yZXNwb25zZV9pZBgCIAEoCRI7CgxleGVjdXRlX2NvZGUYCyABKAsyIy5hZ2VudC50b29scy52MS5FeGVjdXRlQ29kZVJlc3BvbnNlSAASNQoGc3RhdHVzGAYgASgOMiUuYWdlbnQudG9vbHMudjEuVG9vbENhbGxPdXRwdXQuU3RhdHVzEhQKDGNsaWVudF9lcnJvchgHIAEoCSJHCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1NVQ0NFU1MQARIRCg1TVEFUVVNfRkFJTEVEEAJCCAoGb3V0cHV0SgQIAxAESgQIBBAFSgQIBRAGSgQICBAJSgQICRAKSgQIChALUgx1cGRhdGVfY2VsbHNSCmxpc3RfY2VsbHNSCWdldF9jZWxsc1INZXhlY3V0ZV9jZWxsc1INdGVybWluYXRlX3J1blISc2VuZF9zbGFja19tZXNzYWdlIj8KDENoYXRraXRTdGF0ZRIcChRwcmV2aW91c19yZXNwb25zZV9pZBgBIAEoCRIRCgl0aHJlYWRfaWQYAiABKAkiXQoXU2VuZFNsYWNrTWVzc2FnZVJlcXVlc3QSDwoHY2hhbm5lbBgBIAEoCRIRCgl0aW1lc3RhbXAYAiABKAkSDAoEdGV4dBgDIAEoCRIQCghmaWxlX2lkcxgEIAMoCSIpChhTZW5kU2xhY2tNZXNzYWdlUmVzcG9uc2USDQoFZXJyb3IYASABKAkyawoPTm90ZWJvb2tTZXJ2aWNlElgKC0V4ZWN1dGVDb2RlEiIuYWdlbnQudG9vbHMudjEuRXhlY3V0ZUNvZGVSZXF1ZXN0GiMuYWdlbnQudG9vbHMudjEuRXhlY3V0ZUNvZGVSZXNwb25zZSIAQkZaRGdpdGh1Yi5jb20vcnVubWVkZXYvcnVubWUvdjMvYXBpL2dlbi9wcm90by9nby9hZ2VudC90b29scy92MTt0b29sc3YxYgZwcm90bzM");
 
 /**
  * Describes the message agent.tools.v1.ExecuteCodeRequest.
  * Use `create(ExecuteCodeRequestSchema)` to create a new message.
  */
 export const ExecuteCodeRequestSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 8);
+  messageDesc(file_agent_tools_v1_notebooks, 0);
 
 /**
  * Describes the message agent.tools.v1.ExecuteCodeResponse.
  * Use `create(ExecuteCodeResponseSchema)` to create a new message.
  */
 export const ExecuteCodeResponseSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 9);
+  messageDesc(file_agent_tools_v1_notebooks, 1);
 
 /**
  * Describes the message agent.tools.v1.TerminateRunRequest.
  * Use `create(TerminateRunRequestSchema)` to create a new message.
  */
 export const TerminateRunRequestSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 10);
+  messageDesc(file_agent_tools_v1_notebooks, 2);
 
 /**
  * Describes the message agent.tools.v1.TerminateRunResponse.
  * Use `create(TerminateRunResponseSchema)` to create a new message.
  */
 export const TerminateRunResponseSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 11);
+  messageDesc(file_agent_tools_v1_notebooks, 3);
 
 /**
  * Describes the message agent.tools.v1.ToolCallInput.
  * Use `create(ToolCallInputSchema)` to create a new message.
  */
 export const ToolCallInputSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 12);
+  messageDesc(file_agent_tools_v1_notebooks, 4);
 
 /**
  * Describes the message agent.tools.v1.ToolCallOutput.
  * Use `create(ToolCallOutputSchema)` to create a new message.
  */
 export const ToolCallOutputSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 13);
+  messageDesc(file_agent_tools_v1_notebooks, 5);
 
 /**
  * Describes the enum agent.tools.v1.ToolCallOutput.Status.
  */
 export const ToolCallOutput_StatusSchema = /*@__PURE__*/
-  enumDesc(file_agent_tools_v1_notebooks, 13, 0);
+  enumDesc(file_agent_tools_v1_notebooks, 5, 0);
 
 /**
  * @generated from enum agent.tools.v1.ToolCallOutput.Status
@@ -126,21 +69,21 @@ export const ToolCallOutput_Status = /*@__PURE__*/
  * Use `create(ChatkitStateSchema)` to create a new message.
  */
 export const ChatkitStateSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 14);
+  messageDesc(file_agent_tools_v1_notebooks, 6);
 
 /**
  * Describes the message agent.tools.v1.SendSlackMessageRequest.
  * Use `create(SendSlackMessageRequestSchema)` to create a new message.
  */
 export const SendSlackMessageRequestSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 15);
+  messageDesc(file_agent_tools_v1_notebooks, 7);
 
 /**
  * Describes the message agent.tools.v1.SendSlackMessageResponse.
  * Use `create(SendSlackMessageResponseSchema)` to create a new message.
  */
 export const SendSlackMessageResponseSchema = /*@__PURE__*/
-  messageDesc(file_agent_tools_v1_notebooks, 16);
+  messageDesc(file_agent_tools_v1_notebooks, 8);
 
 /**
  * NotebookService defines methods the AI can use to interact with the notebook.
@@ -150,9 +93,6 @@ export const SendSlackMessageResponseSchema = /*@__PURE__*/
  * use the script api/proto/agent/tools/v1/build_tool_mcps.sh to build the go code with the JSONSchemas.
  *
  * It looks like only comments on the method get translated into the description.
- *
- * TODO(jlewi): We should make it UpdateCells to allow the model to update multiple cells in a
- * single call.
  *
  * @generated from service agent.tools.v1.NotebookService
  */

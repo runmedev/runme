@@ -7,12 +7,12 @@
 package toolsv1
 
 import (
-	v1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -68,357 +68,7 @@ func (x ToolCallOutput_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ToolCallOutput_Status.Descriptor instead.
 func (ToolCallOutput_Status) EnumDescriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{13, 0}
-}
-
-type ListCellsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListCellsRequest) Reset() {
-	*x = ListCellsRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListCellsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListCellsRequest) ProtoMessage() {}
-
-func (x *ListCellsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListCellsRequest.ProtoReflect.Descriptor instead.
-func (*ListCellsRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{0}
-}
-
-type ListCellsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cells         []*v1.Cell             `protobuf:"bytes,2,rep,name=cells,proto3" json:"cells,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListCellsResponse) Reset() {
-	*x = ListCellsResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListCellsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListCellsResponse) ProtoMessage() {}
-
-func (x *ListCellsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListCellsResponse.ProtoReflect.Descriptor instead.
-func (*ListCellsResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ListCellsResponse) GetCells() []*v1.Cell {
-	if x != nil {
-		return x.Cells
-	}
-	return nil
-}
-
-type GetCellsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RefIds        []string               `protobuf:"bytes,1,rep,name=ref_ids,json=refIds,proto3" json:"ref_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetCellsRequest) Reset() {
-	*x = GetCellsRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetCellsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetCellsRequest) ProtoMessage() {}
-
-func (x *GetCellsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetCellsRequest.ProtoReflect.Descriptor instead.
-func (*GetCellsRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *GetCellsRequest) GetRefIds() []string {
-	if x != nil {
-		return x.RefIds
-	}
-	return nil
-}
-
-type GetCellsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cells         []*v1.Cell             `protobuf:"bytes,1,rep,name=cells,proto3" json:"cells,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetCellsResponse) Reset() {
-	*x = GetCellsResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetCellsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetCellsResponse) ProtoMessage() {}
-
-func (x *GetCellsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetCellsResponse.ProtoReflect.Descriptor instead.
-func (*GetCellsResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *GetCellsResponse) GetCells() []*v1.Cell {
-	if x != nil {
-		return x.Cells
-	}
-	return nil
-}
-
-type UpdateCellsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cells         []*v1.Cell             `protobuf:"bytes,1,rep,name=cells,proto3" json:"cells,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateCellsRequest) Reset() {
-	*x = UpdateCellsRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateCellsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateCellsRequest) ProtoMessage() {}
-
-func (x *UpdateCellsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateCellsRequest.ProtoReflect.Descriptor instead.
-func (*UpdateCellsRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *UpdateCellsRequest) GetCells() []*v1.Cell {
-	if x != nil {
-		return x.Cells
-	}
-	return nil
-}
-
-type UpdateCellsResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// We want to provide the updated cells to the AI because the cells might have been modified by
-	// the agent (e.g. ref_ids) might have been generated.
-	Cells         []*v1.Cell `protobuf:"bytes,1,rep,name=cells,proto3" json:"cells,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateCellsResponse) Reset() {
-	*x = UpdateCellsResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateCellsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateCellsResponse) ProtoMessage() {}
-
-func (x *UpdateCellsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateCellsResponse.ProtoReflect.Descriptor instead.
-func (*UpdateCellsResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UpdateCellsResponse) GetCells() []*v1.Cell {
-	if x != nil {
-		return x.Cells
-	}
-	return nil
-}
-
-type NotebookServiceExecuteCellsRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// TODO(jlewi): Right now you the AI has to specify the IDs of the cells to execute. This means it
-	// needs to use separate Update calls to set the code to execute. In the future, we may want to
-	// allow the AISRE to issue a single execute request to update and execute.
-	RefIds        []string `protobuf:"bytes,1,rep,name=ref_ids,json=refIds,proto3" json:"ref_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *NotebookServiceExecuteCellsRequest) Reset() {
-	*x = NotebookServiceExecuteCellsRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NotebookServiceExecuteCellsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NotebookServiceExecuteCellsRequest) ProtoMessage() {}
-
-func (x *NotebookServiceExecuteCellsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NotebookServiceExecuteCellsRequest.ProtoReflect.Descriptor instead.
-func (*NotebookServiceExecuteCellsRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *NotebookServiceExecuteCellsRequest) GetRefIds() []string {
-	if x != nil {
-		return x.RefIds
-	}
-	return nil
-}
-
-type NotebookServiceExecuteCellsResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Cells contains the cells that were executed
-	Cells         []*v1.Cell `protobuf:"bytes,1,rep,name=cells,proto3" json:"cells,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *NotebookServiceExecuteCellsResponse) Reset() {
-	*x = NotebookServiceExecuteCellsResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NotebookServiceExecuteCellsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NotebookServiceExecuteCellsResponse) ProtoMessage() {}
-
-func (x *NotebookServiceExecuteCellsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NotebookServiceExecuteCellsResponse.ProtoReflect.Descriptor instead.
-func (*NotebookServiceExecuteCellsResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *NotebookServiceExecuteCellsResponse) GetCells() []*v1.Cell {
-	if x != nil {
-		return x.Cells
-	}
-	return nil
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{5, 0}
 }
 
 type ExecuteCodeRequest struct {
@@ -430,7 +80,7 @@ type ExecuteCodeRequest struct {
 
 func (x *ExecuteCodeRequest) Reset() {
 	*x = ExecuteCodeRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[8]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +92,7 @@ func (x *ExecuteCodeRequest) String() string {
 func (*ExecuteCodeRequest) ProtoMessage() {}
 
 func (x *ExecuteCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[8]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +105,7 @@ func (x *ExecuteCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteCodeRequest.ProtoReflect.Descriptor instead.
 func (*ExecuteCodeRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{8}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ExecuteCodeRequest) GetCode() string {
@@ -475,7 +125,7 @@ type ExecuteCodeResponse struct {
 
 func (x *ExecuteCodeResponse) Reset() {
 	*x = ExecuteCodeResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[9]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -487,7 +137,7 @@ func (x *ExecuteCodeResponse) String() string {
 func (*ExecuteCodeResponse) ProtoMessage() {}
 
 func (x *ExecuteCodeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[9]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -500,7 +150,7 @@ func (x *ExecuteCodeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecuteCodeResponse.ProtoReflect.Descriptor instead.
 func (*ExecuteCodeResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{9}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ExecuteCodeResponse) GetOutput() string {
@@ -518,7 +168,7 @@ type TerminateRunRequest struct {
 
 func (x *TerminateRunRequest) Reset() {
 	*x = TerminateRunRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[10]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -530,7 +180,7 @@ func (x *TerminateRunRequest) String() string {
 func (*TerminateRunRequest) ProtoMessage() {}
 
 func (x *TerminateRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[10]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -543,7 +193,7 @@ func (x *TerminateRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateRunRequest.ProtoReflect.Descriptor instead.
 func (*TerminateRunRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{10}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{2}
 }
 
 type TerminateRunResponse struct {
@@ -554,7 +204,7 @@ type TerminateRunResponse struct {
 
 func (x *TerminateRunResponse) Reset() {
 	*x = TerminateRunResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[11]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -566,7 +216,7 @@ func (x *TerminateRunResponse) String() string {
 func (*TerminateRunResponse) ProtoMessage() {}
 
 func (x *TerminateRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[11]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -579,7 +229,7 @@ func (x *TerminateRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateRunResponse.ProtoReflect.Descriptor instead.
 func (*TerminateRunResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{11}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{3}
 }
 
 // ToolCallInput/ToolCallOutput are used by the backend to send/receive toolcalls from chatkit.
@@ -594,12 +244,6 @@ type ToolCallInput struct {
 	PreviousResponseId string                 `protobuf:"bytes,2,opt,name=previous_response_id,json=previousResponseId,proto3" json:"previous_response_id,omitempty"`
 	// Types that are valid to be assigned to Input:
 	//
-	//	*ToolCallInput_UpdateCells
-	//	*ToolCallInput_ListCells
-	//	*ToolCallInput_GetCells
-	//	*ToolCallInput_ExecuteCells
-	//	*ToolCallInput_TerminateRun
-	//	*ToolCallInput_SendSlackMessage
 	//	*ToolCallInput_ExecuteCode
 	Input         isToolCallInput_Input `protobuf_oneof:"input"`
 	unknownFields protoimpl.UnknownFields
@@ -608,7 +252,7 @@ type ToolCallInput struct {
 
 func (x *ToolCallInput) Reset() {
 	*x = ToolCallInput{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[12]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -620,7 +264,7 @@ func (x *ToolCallInput) String() string {
 func (*ToolCallInput) ProtoMessage() {}
 
 func (x *ToolCallInput) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[12]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -633,7 +277,7 @@ func (x *ToolCallInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCallInput.ProtoReflect.Descriptor instead.
 func (*ToolCallInput) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{12}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ToolCallInput) GetCallId() string {
@@ -657,60 +301,6 @@ func (x *ToolCallInput) GetInput() isToolCallInput_Input {
 	return nil
 }
 
-func (x *ToolCallInput) GetUpdateCells() *UpdateCellsRequest {
-	if x != nil {
-		if x, ok := x.Input.(*ToolCallInput_UpdateCells); ok {
-			return x.UpdateCells
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallInput) GetListCells() *ListCellsRequest {
-	if x != nil {
-		if x, ok := x.Input.(*ToolCallInput_ListCells); ok {
-			return x.ListCells
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallInput) GetGetCells() *GetCellsRequest {
-	if x != nil {
-		if x, ok := x.Input.(*ToolCallInput_GetCells); ok {
-			return x.GetCells
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallInput) GetExecuteCells() *NotebookServiceExecuteCellsRequest {
-	if x != nil {
-		if x, ok := x.Input.(*ToolCallInput_ExecuteCells); ok {
-			return x.ExecuteCells
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallInput) GetTerminateRun() *TerminateRunRequest {
-	if x != nil {
-		if x, ok := x.Input.(*ToolCallInput_TerminateRun); ok {
-			return x.TerminateRun
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallInput) GetSendSlackMessage() *SendSlackMessageRequest {
-	if x != nil {
-		if x, ok := x.Input.(*ToolCallInput_SendSlackMessage); ok {
-			return x.SendSlackMessage
-		}
-	}
-	return nil
-}
-
 func (x *ToolCallInput) GetExecuteCode() *ExecuteCodeRequest {
 	if x != nil {
 		if x, ok := x.Input.(*ToolCallInput_ExecuteCode); ok {
@@ -724,45 +314,9 @@ type isToolCallInput_Input interface {
 	isToolCallInput_Input()
 }
 
-type ToolCallInput_UpdateCells struct {
-	UpdateCells *UpdateCellsRequest `protobuf:"bytes,3,opt,name=update_cells,json=updateCells,proto3,oneof"`
-}
-
-type ToolCallInput_ListCells struct {
-	ListCells *ListCellsRequest `protobuf:"bytes,4,opt,name=list_cells,json=listCells,proto3,oneof"`
-}
-
-type ToolCallInput_GetCells struct {
-	GetCells *GetCellsRequest `protobuf:"bytes,5,opt,name=get_cells,json=getCells,proto3,oneof"`
-}
-
-type ToolCallInput_ExecuteCells struct {
-	ExecuteCells *NotebookServiceExecuteCellsRequest `protobuf:"bytes,6,opt,name=execute_cells,json=executeCells,proto3,oneof"`
-}
-
-type ToolCallInput_TerminateRun struct {
-	TerminateRun *TerminateRunRequest `protobuf:"bytes,7,opt,name=terminate_run,json=terminateRun,proto3,oneof"`
-}
-
-type ToolCallInput_SendSlackMessage struct {
-	SendSlackMessage *SendSlackMessageRequest `protobuf:"bytes,8,opt,name=send_slack_message,json=sendSlackMessage,proto3,oneof"`
-}
-
 type ToolCallInput_ExecuteCode struct {
 	ExecuteCode *ExecuteCodeRequest `protobuf:"bytes,9,opt,name=execute_code,json=executeCode,proto3,oneof"`
 }
-
-func (*ToolCallInput_UpdateCells) isToolCallInput_Input() {}
-
-func (*ToolCallInput_ListCells) isToolCallInput_Input() {}
-
-func (*ToolCallInput_GetCells) isToolCallInput_Input() {}
-
-func (*ToolCallInput_ExecuteCells) isToolCallInput_Input() {}
-
-func (*ToolCallInput_TerminateRun) isToolCallInput_Input() {}
-
-func (*ToolCallInput_SendSlackMessage) isToolCallInput_Input() {}
 
 func (*ToolCallInput_ExecuteCode) isToolCallInput_Input() {}
 
@@ -772,12 +326,6 @@ type ToolCallOutput struct {
 	PreviousResponseId string                 `protobuf:"bytes,2,opt,name=previous_response_id,json=previousResponseId,proto3" json:"previous_response_id,omitempty"`
 	// Types that are valid to be assigned to Output:
 	//
-	//	*ToolCallOutput_UpdateCells
-	//	*ToolCallOutput_ListCells
-	//	*ToolCallOutput_GetCells
-	//	*ToolCallOutput_ExecuteCells
-	//	*ToolCallOutput_TerminateRun
-	//	*ToolCallOutput_SendSlackMessage
 	//	*ToolCallOutput_ExecuteCode
 	Output isToolCallOutput_Output `protobuf_oneof:"output"`
 	Status ToolCallOutput_Status   `protobuf:"varint,6,opt,name=status,proto3,enum=agent.tools.v1.ToolCallOutput_Status" json:"status,omitempty"`
@@ -789,7 +337,7 @@ type ToolCallOutput struct {
 
 func (x *ToolCallOutput) Reset() {
 	*x = ToolCallOutput{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[13]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -801,7 +349,7 @@ func (x *ToolCallOutput) String() string {
 func (*ToolCallOutput) ProtoMessage() {}
 
 func (x *ToolCallOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[13]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -814,7 +362,7 @@ func (x *ToolCallOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCallOutput.ProtoReflect.Descriptor instead.
 func (*ToolCallOutput) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{13}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ToolCallOutput) GetCallId() string {
@@ -834,60 +382,6 @@ func (x *ToolCallOutput) GetPreviousResponseId() string {
 func (x *ToolCallOutput) GetOutput() isToolCallOutput_Output {
 	if x != nil {
 		return x.Output
-	}
-	return nil
-}
-
-func (x *ToolCallOutput) GetUpdateCells() *UpdateCellsResponse {
-	if x != nil {
-		if x, ok := x.Output.(*ToolCallOutput_UpdateCells); ok {
-			return x.UpdateCells
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallOutput) GetListCells() *ListCellsResponse {
-	if x != nil {
-		if x, ok := x.Output.(*ToolCallOutput_ListCells); ok {
-			return x.ListCells
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallOutput) GetGetCells() *GetCellsResponse {
-	if x != nil {
-		if x, ok := x.Output.(*ToolCallOutput_GetCells); ok {
-			return x.GetCells
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallOutput) GetExecuteCells() *NotebookServiceExecuteCellsResponse {
-	if x != nil {
-		if x, ok := x.Output.(*ToolCallOutput_ExecuteCells); ok {
-			return x.ExecuteCells
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallOutput) GetTerminateRun() *TerminateRunResponse {
-	if x != nil {
-		if x, ok := x.Output.(*ToolCallOutput_TerminateRun); ok {
-			return x.TerminateRun
-		}
-	}
-	return nil
-}
-
-func (x *ToolCallOutput) GetSendSlackMessage() *SendSlackMessageResponse {
-	if x != nil {
-		if x, ok := x.Output.(*ToolCallOutput_SendSlackMessage); ok {
-			return x.SendSlackMessage
-		}
 	}
 	return nil
 }
@@ -919,45 +413,9 @@ type isToolCallOutput_Output interface {
 	isToolCallOutput_Output()
 }
 
-type ToolCallOutput_UpdateCells struct {
-	UpdateCells *UpdateCellsResponse `protobuf:"bytes,3,opt,name=update_cells,json=updateCells,proto3,oneof"`
-}
-
-type ToolCallOutput_ListCells struct {
-	ListCells *ListCellsResponse `protobuf:"bytes,4,opt,name=list_cells,json=listCells,proto3,oneof"`
-}
-
-type ToolCallOutput_GetCells struct {
-	GetCells *GetCellsResponse `protobuf:"bytes,5,opt,name=get_cells,json=getCells,proto3,oneof"`
-}
-
-type ToolCallOutput_ExecuteCells struct {
-	ExecuteCells *NotebookServiceExecuteCellsResponse `protobuf:"bytes,8,opt,name=execute_cells,json=executeCells,proto3,oneof"`
-}
-
-type ToolCallOutput_TerminateRun struct {
-	TerminateRun *TerminateRunResponse `protobuf:"bytes,9,opt,name=terminate_run,json=terminateRun,proto3,oneof"`
-}
-
-type ToolCallOutput_SendSlackMessage struct {
-	SendSlackMessage *SendSlackMessageResponse `protobuf:"bytes,10,opt,name=send_slack_message,json=sendSlackMessage,proto3,oneof"`
-}
-
 type ToolCallOutput_ExecuteCode struct {
 	ExecuteCode *ExecuteCodeResponse `protobuf:"bytes,11,opt,name=execute_code,json=executeCode,proto3,oneof"`
 }
-
-func (*ToolCallOutput_UpdateCells) isToolCallOutput_Output() {}
-
-func (*ToolCallOutput_ListCells) isToolCallOutput_Output() {}
-
-func (*ToolCallOutput_GetCells) isToolCallOutput_Output() {}
-
-func (*ToolCallOutput_ExecuteCells) isToolCallOutput_Output() {}
-
-func (*ToolCallOutput_TerminateRun) isToolCallOutput_Output() {}
-
-func (*ToolCallOutput_SendSlackMessage) isToolCallOutput_Output() {}
 
 func (*ToolCallOutput_ExecuteCode) isToolCallOutput_Output() {}
 
@@ -973,7 +431,7 @@ type ChatkitState struct {
 
 func (x *ChatkitState) Reset() {
 	*x = ChatkitState{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[14]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -985,7 +443,7 @@ func (x *ChatkitState) String() string {
 func (*ChatkitState) ProtoMessage() {}
 
 func (x *ChatkitState) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[14]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -998,7 +456,7 @@ func (x *ChatkitState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatkitState.ProtoReflect.Descriptor instead.
 func (*ChatkitState) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{14}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ChatkitState) GetPreviousResponseId() string {
@@ -1027,7 +485,7 @@ type SendSlackMessageRequest struct {
 
 func (x *SendSlackMessageRequest) Reset() {
 	*x = SendSlackMessageRequest{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[15]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1039,7 +497,7 @@ func (x *SendSlackMessageRequest) String() string {
 func (*SendSlackMessageRequest) ProtoMessage() {}
 
 func (x *SendSlackMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[15]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1052,7 +510,7 @@ func (x *SendSlackMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendSlackMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendSlackMessageRequest) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{15}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SendSlackMessageRequest) GetChannel() string {
@@ -1093,7 +551,7 @@ type SendSlackMessageResponse struct {
 
 func (x *SendSlackMessageResponse) Reset() {
 	*x = SendSlackMessageResponse{}
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[16]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1105,7 +563,7 @@ func (x *SendSlackMessageResponse) String() string {
 func (*SendSlackMessageResponse) ProtoMessage() {}
 
 func (x *SendSlackMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[16]
+	mi := &file_agent_tools_v1_notebooks_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1118,7 +576,7 @@ func (x *SendSlackMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendSlackMessageResponse.ProtoReflect.Descriptor instead.
 func (*SendSlackMessageResponse) Descriptor() ([]byte, []int) {
-	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{16}
+	return file_agent_tools_v1_notebooks_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SendSlackMessageResponse) GetError() string {
@@ -1132,51 +590,22 @@ var File_agent_tools_v1_notebooks_proto protoreflect.FileDescriptor
 
 const file_agent_tools_v1_notebooks_proto_rawDesc = "" +
 	"\n" +
-	"\x1eagent/tools/v1/notebooks.proto\x12\x0eagent.tools.v1\x1a\x1crunme/parser/v1/parser.proto\"\x12\n" +
-	"\x10ListCellsRequest\"@\n" +
-	"\x11ListCellsResponse\x12+\n" +
-	"\x05cells\x18\x02 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\"*\n" +
-	"\x0fGetCellsRequest\x12\x17\n" +
-	"\aref_ids\x18\x01 \x03(\tR\x06refIds\"?\n" +
-	"\x10GetCellsResponse\x12+\n" +
-	"\x05cells\x18\x01 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\"A\n" +
-	"\x12UpdateCellsRequest\x12+\n" +
-	"\x05cells\x18\x01 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\"B\n" +
-	"\x13UpdateCellsResponse\x12+\n" +
-	"\x05cells\x18\x01 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\"=\n" +
-	"\"NotebookServiceExecuteCellsRequest\x12\x17\n" +
-	"\aref_ids\x18\x01 \x03(\tR\x06refIds\"R\n" +
-	"#NotebookServiceExecuteCellsResponse\x12+\n" +
-	"\x05cells\x18\x01 \x03(\v2\x15.runme.parser.v1.CellR\x05cells\"(\n" +
+	"\x1eagent/tools/v1/notebooks.proto\x12\x0eagent.tools.v1\"(\n" +
 	"\x12ExecuteCodeRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\"-\n" +
 	"\x13ExecuteCodeResponse\x12\x16\n" +
 	"\x06output\x18\x01 \x01(\tR\x06output\"\x15\n" +
 	"\x13TerminateRunRequest\"\x16\n" +
-	"\x14TerminateRunResponse\"\xf8\x04\n" +
+	"\x14TerminateRunResponse\"\xa7\x02\n" +
 	"\rToolCallInput\x12\x17\n" +
 	"\acall_id\x18\x01 \x01(\tR\x06callId\x120\n" +
 	"\x14previous_response_id\x18\x02 \x01(\tR\x12previousResponseId\x12G\n" +
-	"\fupdate_cells\x18\x03 \x01(\v2\".agent.tools.v1.UpdateCellsRequestH\x00R\vupdateCells\x12A\n" +
-	"\n" +
-	"list_cells\x18\x04 \x01(\v2 .agent.tools.v1.ListCellsRequestH\x00R\tlistCells\x12>\n" +
-	"\tget_cells\x18\x05 \x01(\v2\x1f.agent.tools.v1.GetCellsRequestH\x00R\bgetCells\x12Y\n" +
-	"\rexecute_cells\x18\x06 \x01(\v22.agent.tools.v1.NotebookServiceExecuteCellsRequestH\x00R\fexecuteCells\x12J\n" +
-	"\rterminate_run\x18\a \x01(\v2#.agent.tools.v1.TerminateRunRequestH\x00R\fterminateRun\x12W\n" +
-	"\x12send_slack_message\x18\b \x01(\v2'.agent.tools.v1.SendSlackMessageRequestH\x00R\x10sendSlackMessage\x12G\n" +
 	"\fexecute_code\x18\t \x01(\v2\".agent.tools.v1.ExecuteCodeRequestH\x00R\vexecuteCodeB\a\n" +
-	"\x05input\"\xac\x06\n" +
+	"\x05inputJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tR\fupdate_cellsR\n" +
+	"list_cellsR\tget_cellsR\rexecute_cellsR\rterminate_runR\x12send_slack_message\"\xd5\x03\n" +
 	"\x0eToolCallOutput\x12\x17\n" +
 	"\acall_id\x18\x01 \x01(\tR\x06callId\x120\n" +
 	"\x14previous_response_id\x18\x02 \x01(\tR\x12previousResponseId\x12H\n" +
-	"\fupdate_cells\x18\x03 \x01(\v2#.agent.tools.v1.UpdateCellsResponseH\x00R\vupdateCells\x12B\n" +
-	"\n" +
-	"list_cells\x18\x04 \x01(\v2!.agent.tools.v1.ListCellsResponseH\x00R\tlistCells\x12?\n" +
-	"\tget_cells\x18\x05 \x01(\v2 .agent.tools.v1.GetCellsResponseH\x00R\bgetCells\x12Z\n" +
-	"\rexecute_cells\x18\b \x01(\v23.agent.tools.v1.NotebookServiceExecuteCellsResponseH\x00R\fexecuteCells\x12K\n" +
-	"\rterminate_run\x18\t \x01(\v2$.agent.tools.v1.TerminateRunResponseH\x00R\fterminateRun\x12X\n" +
-	"\x12send_slack_message\x18\n" +
-	" \x01(\v2(.agent.tools.v1.SendSlackMessageResponseH\x00R\x10sendSlackMessage\x12H\n" +
 	"\fexecute_code\x18\v \x01(\v2#.agent.tools.v1.ExecuteCodeResponseH\x00R\vexecuteCode\x12=\n" +
 	"\x06status\x18\x06 \x01(\x0e2%.agent.tools.v1.ToolCallOutput.StatusR\x06status\x12!\n" +
 	"\fclient_error\x18\a \x01(\tR\vclientError\"G\n" +
@@ -1184,7 +613,10 @@ const file_agent_tools_v1_notebooks_proto_rawDesc = "" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSTATUS_SUCCESS\x10\x01\x12\x11\n" +
 	"\rSTATUS_FAILED\x10\x02B\b\n" +
-	"\x06output\"]\n" +
+	"\x06outputJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"J\x04\b\n" +
+	"\x10\vR\fupdate_cellsR\n" +
+	"list_cellsR\tget_cellsR\rexecute_cellsR\rterminate_runR\x12send_slack_message\"]\n" +
 	"\fChatkitState\x120\n" +
 	"\x14previous_response_id\x18\x01 \x01(\tR\x12previousResponseId\x12\x1b\n" +
 	"\tthread_id\x18\x02 \x01(\tR\bthreadId\"\x80\x01\n" +
@@ -1194,15 +626,9 @@ const file_agent_tools_v1_notebooks_proto_rawDesc = "" +
 	"\x04text\x18\x03 \x01(\tR\x04text\x12\x19\n" +
 	"\bfile_ids\x18\x04 \x03(\tR\afileIds\"0\n" +
 	"\x18SendSlackMessageResponse\x12\x14\n" +
-	"\x05error\x18\x01 \x01(\tR\x05error2\xab\x05\n" +
+	"\x05error\x18\x01 \x01(\tR\x05error2k\n" +
 	"\x0fNotebookService\x12X\n" +
-	"\vUpdateCells\x12\".agent.tools.v1.UpdateCellsRequest\x1a#.agent.tools.v1.UpdateCellsResponse\"\x00\x12O\n" +
-	"\bGetCells\x12\x1f.agent.tools.v1.GetCellsRequest\x1a .agent.tools.v1.GetCellsResponse\"\x00\x12R\n" +
-	"\tListCells\x12 .agent.tools.v1.ListCellsRequest\x1a!.agent.tools.v1.ListCellsResponse\"\x00\x12y\n" +
-	"\fExecuteCells\x122.agent.tools.v1.NotebookServiceExecuteCellsRequest\x1a3.agent.tools.v1.NotebookServiceExecuteCellsResponse\"\x00\x12X\n" +
-	"\vExecuteCode\x12\".agent.tools.v1.ExecuteCodeRequest\x1a#.agent.tools.v1.ExecuteCodeResponse\"\x00\x12[\n" +
-	"\fTerminateRun\x12#.agent.tools.v1.TerminateRunRequest\x1a$.agent.tools.v1.TerminateRunResponse\"\x00\x12g\n" +
-	"\x10SendSlackMessage\x12'.agent.tools.v1.SendSlackMessageRequest\x1a(.agent.tools.v1.SendSlackMessageResponse\"\x00BFZDgithub.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1;toolsv1b\x06proto3"
+	"\vExecuteCode\x12\".agent.tools.v1.ExecuteCodeRequest\x1a#.agent.tools.v1.ExecuteCodeResponse\"\x00BFZDgithub.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1;toolsv1b\x06proto3"
 
 var (
 	file_agent_tools_v1_notebooks_proto_rawDescOnce sync.Once
@@ -1217,68 +643,30 @@ func file_agent_tools_v1_notebooks_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_tools_v1_notebooks_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_tools_v1_notebooks_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_agent_tools_v1_notebooks_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_agent_tools_v1_notebooks_proto_goTypes = []any{
-	(ToolCallOutput_Status)(0),                  // 0: agent.tools.v1.ToolCallOutput.Status
-	(*ListCellsRequest)(nil),                    // 1: agent.tools.v1.ListCellsRequest
-	(*ListCellsResponse)(nil),                   // 2: agent.tools.v1.ListCellsResponse
-	(*GetCellsRequest)(nil),                     // 3: agent.tools.v1.GetCellsRequest
-	(*GetCellsResponse)(nil),                    // 4: agent.tools.v1.GetCellsResponse
-	(*UpdateCellsRequest)(nil),                  // 5: agent.tools.v1.UpdateCellsRequest
-	(*UpdateCellsResponse)(nil),                 // 6: agent.tools.v1.UpdateCellsResponse
-	(*NotebookServiceExecuteCellsRequest)(nil),  // 7: agent.tools.v1.NotebookServiceExecuteCellsRequest
-	(*NotebookServiceExecuteCellsResponse)(nil), // 8: agent.tools.v1.NotebookServiceExecuteCellsResponse
-	(*ExecuteCodeRequest)(nil),                  // 9: agent.tools.v1.ExecuteCodeRequest
-	(*ExecuteCodeResponse)(nil),                 // 10: agent.tools.v1.ExecuteCodeResponse
-	(*TerminateRunRequest)(nil),                 // 11: agent.tools.v1.TerminateRunRequest
-	(*TerminateRunResponse)(nil),                // 12: agent.tools.v1.TerminateRunResponse
-	(*ToolCallInput)(nil),                       // 13: agent.tools.v1.ToolCallInput
-	(*ToolCallOutput)(nil),                      // 14: agent.tools.v1.ToolCallOutput
-	(*ChatkitState)(nil),                        // 15: agent.tools.v1.ChatkitState
-	(*SendSlackMessageRequest)(nil),             // 16: agent.tools.v1.SendSlackMessageRequest
-	(*SendSlackMessageResponse)(nil),            // 17: agent.tools.v1.SendSlackMessageResponse
-	(*v1.Cell)(nil),                             // 18: runme.parser.v1.Cell
+	(ToolCallOutput_Status)(0),       // 0: agent.tools.v1.ToolCallOutput.Status
+	(*ExecuteCodeRequest)(nil),       // 1: agent.tools.v1.ExecuteCodeRequest
+	(*ExecuteCodeResponse)(nil),      // 2: agent.tools.v1.ExecuteCodeResponse
+	(*TerminateRunRequest)(nil),      // 3: agent.tools.v1.TerminateRunRequest
+	(*TerminateRunResponse)(nil),     // 4: agent.tools.v1.TerminateRunResponse
+	(*ToolCallInput)(nil),            // 5: agent.tools.v1.ToolCallInput
+	(*ToolCallOutput)(nil),           // 6: agent.tools.v1.ToolCallOutput
+	(*ChatkitState)(nil),             // 7: agent.tools.v1.ChatkitState
+	(*SendSlackMessageRequest)(nil),  // 8: agent.tools.v1.SendSlackMessageRequest
+	(*SendSlackMessageResponse)(nil), // 9: agent.tools.v1.SendSlackMessageResponse
 }
 var file_agent_tools_v1_notebooks_proto_depIdxs = []int32{
-	18, // 0: agent.tools.v1.ListCellsResponse.cells:type_name -> runme.parser.v1.Cell
-	18, // 1: agent.tools.v1.GetCellsResponse.cells:type_name -> runme.parser.v1.Cell
-	18, // 2: agent.tools.v1.UpdateCellsRequest.cells:type_name -> runme.parser.v1.Cell
-	18, // 3: agent.tools.v1.UpdateCellsResponse.cells:type_name -> runme.parser.v1.Cell
-	18, // 4: agent.tools.v1.NotebookServiceExecuteCellsResponse.cells:type_name -> runme.parser.v1.Cell
-	5,  // 5: agent.tools.v1.ToolCallInput.update_cells:type_name -> agent.tools.v1.UpdateCellsRequest
-	1,  // 6: agent.tools.v1.ToolCallInput.list_cells:type_name -> agent.tools.v1.ListCellsRequest
-	3,  // 7: agent.tools.v1.ToolCallInput.get_cells:type_name -> agent.tools.v1.GetCellsRequest
-	7,  // 8: agent.tools.v1.ToolCallInput.execute_cells:type_name -> agent.tools.v1.NotebookServiceExecuteCellsRequest
-	11, // 9: agent.tools.v1.ToolCallInput.terminate_run:type_name -> agent.tools.v1.TerminateRunRequest
-	16, // 10: agent.tools.v1.ToolCallInput.send_slack_message:type_name -> agent.tools.v1.SendSlackMessageRequest
-	9,  // 11: agent.tools.v1.ToolCallInput.execute_code:type_name -> agent.tools.v1.ExecuteCodeRequest
-	6,  // 12: agent.tools.v1.ToolCallOutput.update_cells:type_name -> agent.tools.v1.UpdateCellsResponse
-	2,  // 13: agent.tools.v1.ToolCallOutput.list_cells:type_name -> agent.tools.v1.ListCellsResponse
-	4,  // 14: agent.tools.v1.ToolCallOutput.get_cells:type_name -> agent.tools.v1.GetCellsResponse
-	8,  // 15: agent.tools.v1.ToolCallOutput.execute_cells:type_name -> agent.tools.v1.NotebookServiceExecuteCellsResponse
-	12, // 16: agent.tools.v1.ToolCallOutput.terminate_run:type_name -> agent.tools.v1.TerminateRunResponse
-	17, // 17: agent.tools.v1.ToolCallOutput.send_slack_message:type_name -> agent.tools.v1.SendSlackMessageResponse
-	10, // 18: agent.tools.v1.ToolCallOutput.execute_code:type_name -> agent.tools.v1.ExecuteCodeResponse
-	0,  // 19: agent.tools.v1.ToolCallOutput.status:type_name -> agent.tools.v1.ToolCallOutput.Status
-	5,  // 20: agent.tools.v1.NotebookService.UpdateCells:input_type -> agent.tools.v1.UpdateCellsRequest
-	3,  // 21: agent.tools.v1.NotebookService.GetCells:input_type -> agent.tools.v1.GetCellsRequest
-	1,  // 22: agent.tools.v1.NotebookService.ListCells:input_type -> agent.tools.v1.ListCellsRequest
-	7,  // 23: agent.tools.v1.NotebookService.ExecuteCells:input_type -> agent.tools.v1.NotebookServiceExecuteCellsRequest
-	9,  // 24: agent.tools.v1.NotebookService.ExecuteCode:input_type -> agent.tools.v1.ExecuteCodeRequest
-	11, // 25: agent.tools.v1.NotebookService.TerminateRun:input_type -> agent.tools.v1.TerminateRunRequest
-	16, // 26: agent.tools.v1.NotebookService.SendSlackMessage:input_type -> agent.tools.v1.SendSlackMessageRequest
-	6,  // 27: agent.tools.v1.NotebookService.UpdateCells:output_type -> agent.tools.v1.UpdateCellsResponse
-	4,  // 28: agent.tools.v1.NotebookService.GetCells:output_type -> agent.tools.v1.GetCellsResponse
-	2,  // 29: agent.tools.v1.NotebookService.ListCells:output_type -> agent.tools.v1.ListCellsResponse
-	8,  // 30: agent.tools.v1.NotebookService.ExecuteCells:output_type -> agent.tools.v1.NotebookServiceExecuteCellsResponse
-	10, // 31: agent.tools.v1.NotebookService.ExecuteCode:output_type -> agent.tools.v1.ExecuteCodeResponse
-	12, // 32: agent.tools.v1.NotebookService.TerminateRun:output_type -> agent.tools.v1.TerminateRunResponse
-	17, // 33: agent.tools.v1.NotebookService.SendSlackMessage:output_type -> agent.tools.v1.SendSlackMessageResponse
-	27, // [27:34] is the sub-list for method output_type
-	20, // [20:27] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	1, // 0: agent.tools.v1.ToolCallInput.execute_code:type_name -> agent.tools.v1.ExecuteCodeRequest
+	2, // 1: agent.tools.v1.ToolCallOutput.execute_code:type_name -> agent.tools.v1.ExecuteCodeResponse
+	0, // 2: agent.tools.v1.ToolCallOutput.status:type_name -> agent.tools.v1.ToolCallOutput.Status
+	1, // 3: agent.tools.v1.NotebookService.ExecuteCode:input_type -> agent.tools.v1.ExecuteCodeRequest
+	2, // 4: agent.tools.v1.NotebookService.ExecuteCode:output_type -> agent.tools.v1.ExecuteCodeResponse
+	4, // [4:5] is the sub-list for method output_type
+	3, // [3:4] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_agent_tools_v1_notebooks_proto_init() }
@@ -1286,22 +674,10 @@ func file_agent_tools_v1_notebooks_proto_init() {
 	if File_agent_tools_v1_notebooks_proto != nil {
 		return
 	}
-	file_agent_tools_v1_notebooks_proto_msgTypes[12].OneofWrappers = []any{
-		(*ToolCallInput_UpdateCells)(nil),
-		(*ToolCallInput_ListCells)(nil),
-		(*ToolCallInput_GetCells)(nil),
-		(*ToolCallInput_ExecuteCells)(nil),
-		(*ToolCallInput_TerminateRun)(nil),
-		(*ToolCallInput_SendSlackMessage)(nil),
+	file_agent_tools_v1_notebooks_proto_msgTypes[4].OneofWrappers = []any{
 		(*ToolCallInput_ExecuteCode)(nil),
 	}
-	file_agent_tools_v1_notebooks_proto_msgTypes[13].OneofWrappers = []any{
-		(*ToolCallOutput_UpdateCells)(nil),
-		(*ToolCallOutput_ListCells)(nil),
-		(*ToolCallOutput_GetCells)(nil),
-		(*ToolCallOutput_ExecuteCells)(nil),
-		(*ToolCallOutput_TerminateRun)(nil),
-		(*ToolCallOutput_SendSlackMessage)(nil),
+	file_agent_tools_v1_notebooks_proto_msgTypes[5].OneofWrappers = []any{
 		(*ToolCallOutput_ExecuteCode)(nil),
 	}
 	type x struct{}
@@ -1310,7 +686,7 @@ func file_agent_tools_v1_notebooks_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_tools_v1_notebooks_proto_rawDesc), len(file_agent_tools_v1_notebooks_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   17,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

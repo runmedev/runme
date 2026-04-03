@@ -23,3 +23,4 @@ export const InitialConfigStateSchema = /*@__PURE__*/
  */
 export const WebAppConfigSchema = /*@__PURE__*/
   messageDesc(file_agent_v1_webapp, 1);
+

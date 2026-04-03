@@ -260,25 +260,7 @@ func getNotebookTools() ([]responses.ToolUnionParam, error) {
 
 // getAsynchronousTools gets tools used for asynchronous contexts.
 func getAsynchronousTools() ([]responses.ToolUnionParam, error) {
-	nbTools, err := getNotebookTools()
-	if err != nil {
-		return nil, err
-	}
-	tools := make([]responses.ToolUnionParam, 0, len(nbTools)+2)
-	tools = append(tools, nbTools...)
-
-	defs := []mcpruntime.Tool{
-		toolsv1mcp.NotebookService_TerminateRunToolOpenAI,
-		toolsv1mcp.NotebookService_SendSlackMessageToolOpenAI,
-	}
-	for _, t := range defs {
-		tool, err := mcpToolToOpenAITool(runtimeToolToMCPTool(t))
-		if err != nil {
-			return nil, err
-		}
-		tools = append(tools, tool)
-	}
-	return tools, nil
+	return getNotebookTools()
 }
 
 // mcpToolToOpenAITool converts a generated MCP tool into an OpenAI function tool definition.
