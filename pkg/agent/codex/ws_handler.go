@@ -360,14 +360,6 @@ func toolNameFromInput(input *toolsv1.ToolCallInput) string {
 		return ""
 	}
 	switch {
-	case input.GetListCells() != nil:
-		return "ListCells"
-	case input.GetGetCells() != nil:
-		return "GetCells"
-	case input.GetUpdateCells() != nil:
-		return "UpdateCells"
-	case input.GetExecuteCells() != nil:
-		return "ExecuteCells"
 	case input.GetExecuteCode() != nil:
 		return "ExecuteCode"
 	default:

@@ -303,18 +303,15 @@ func file_agent_codex_v1_websockets_proto_rawDescGZIP() []byte {
 	return file_agent_codex_v1_websockets_proto_rawDescData
 }
 
-var (
-	file_agent_codex_v1_websockets_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-	file_agent_codex_v1_websockets_proto_goTypes  = []any{
-		(*NotebookToolCallRequest)(nil),  // 0: agent.codex.v1.NotebookToolCallRequest
-		(*NotebookToolCallResponse)(nil), // 1: agent.codex.v1.NotebookToolCallResponse
-		(*WebsocketRequest)(nil),         // 2: agent.codex.v1.WebsocketRequest
-		(*WebsocketResponse)(nil),        // 3: agent.codex.v1.WebsocketResponse
-		(*v1.ToolCallInput)(nil),         // 4: agent.tools.v1.ToolCallInput
-		(*v1.ToolCallOutput)(nil),        // 5: agent.tools.v1.ToolCallOutput
-	}
-)
-
+var file_agent_codex_v1_websockets_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_agent_codex_v1_websockets_proto_goTypes = []any{
+	(*NotebookToolCallRequest)(nil),  // 0: agent.codex.v1.NotebookToolCallRequest
+	(*NotebookToolCallResponse)(nil), // 1: agent.codex.v1.NotebookToolCallResponse
+	(*WebsocketRequest)(nil),         // 2: agent.codex.v1.WebsocketRequest
+	(*WebsocketResponse)(nil),        // 3: agent.codex.v1.WebsocketResponse
+	(*v1.ToolCallInput)(nil),         // 4: agent.tools.v1.ToolCallInput
+	(*v1.ToolCallOutput)(nil),        // 5: agent.tools.v1.ToolCallOutput
+}
 var file_agent_codex_v1_websockets_proto_depIdxs = []int32{
 	4, // 0: agent.codex.v1.NotebookToolCallRequest.input:type_name -> agent.tools.v1.ToolCallInput
 	5, // 1: agent.codex.v1.NotebookToolCallResponse.output:type_name -> agent.tools.v1.ToolCallOutput

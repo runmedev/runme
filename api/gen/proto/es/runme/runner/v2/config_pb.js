@@ -35,3 +35,4 @@ export const CommandModeSchema = /*@__PURE__*/
  */
 export const CommandMode = /*@__PURE__*/
   tsEnum(CommandModeSchema);
+

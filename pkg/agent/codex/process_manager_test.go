@@ -133,8 +133,8 @@ func TestBuildTurnParamsIncludesInputAndToolOutput(t *testing.T) {
 		},
 		ToolOutput: &toolsv1.ToolCallOutput{
 			CallId: "call-1",
-			Output: &toolsv1.ToolCallOutput_ListCells{
-				ListCells: &toolsv1.ListCellsResponse{},
+			Output: &toolsv1.ToolCallOutput_ExecuteCode{
+				ExecuteCode: &toolsv1.ExecuteCodeResponse{Output: "ok\n"},
 			},
 			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
 		},
@@ -379,6 +379,47 @@ func TestProcessManager_RunTurnAndInterruptDispatchMethods(t *testing.T) {
 	}
 }
 
+func TestProcessManager_RunTurnAutoAcceptsRunmeNotebookElicitation(t *testing.T) {
+	pm := NewProcessManager(
+		os.Args[0],
+		[]string{"-test.run=TestProcessManagerHelper", "--"},
+		[]string{
+			"GO_WANT_PROCESS_MANAGER_HELPER=1",
+			"GO_HELPER_SEND_MCP_ELICITATION=1",
+		},
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := pm.EnsureStarted(ctx); err != nil {
+		t.Fatalf("EnsureStarted returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = pm.Stop(context.Background())
+	})
+	if err := pm.ConfigureSession(ctx, SessionConfig{
+		SessionID:    "session-1",
+		MCPServerURL: "http://localhost/mcp/notebooks",
+		BearerToken:  "token-1",
+	}); err != nil {
+		t.Fatalf("ConfigureSession returned error: %v", err)
+	}
+
+	resp, err := pm.RunTurn(ctx, TurnRequest{
+		SessionID: "session-1",
+		ThreadID:  "thread-1",
+		Input: &chatkit.UserMessageInput{
+			Content: []chatkit.UserMessageContent{{Type: "input_text", Text: "hello from test"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("RunTurn returned error: %v", err)
+	}
+	if resp == nil || len(resp.Events) == 0 {
+		t.Fatalf("RunTurn should complete with assistant events after auto-approving MCP elicitation")
+	}
+}
+
 func TestProcessManager_EnsureStartedSendsInitializeParams(t *testing.T) {
 	captureFile := filepath.Join(t.TempDir(), "rpc-requests.jsonl")
 	pm := NewProcessManager(
@@ -606,6 +647,62 @@ func TestProcessManagerHelper(t *testing.T) {
 			}
 			turnID := "turn-" + threadID
 			turnByThread[threadID] = turnID
+			if os.Getenv("GO_HELPER_SEND_MCP_ELICITATION") == "1" {
+				_ = enc.Encode(map[string]any{
+					"jsonrpc": "2.0",
+					"id":      9001,
+					"method":  "mcpServer/elicitation/request",
+					"params": map[string]any{
+						"threadId":   threadID,
+						"turnId":     turnID,
+						"serverName": "runme-notebooks",
+						"mode":       "form",
+						"message":    "Allow ExecuteCode?",
+						"requestedSchema": map[string]any{
+							"type":       "object",
+							"properties": map[string]any{},
+						},
+						"_meta": map[string]any{
+							"codex_approval_kind": "mcp_tool_call",
+							"connector_id":        "runme-notebooks",
+							"tool_params": map[string]any{
+								"code": "console.log('hello')",
+							},
+							"persist": []any{"session", "always"},
+						},
+					},
+				})
+				var approvalResponse map[string]any
+				if err := dec.Decode(&approvalResponse); err != nil {
+					os.Exit(3)
+				}
+				result, ok := approvalResponse["result"].(map[string]any)
+				if !ok || result["action"] != "accept" {
+					_ = enc.Encode(map[string]any{
+						"jsonrpc": "2.0",
+						"method":  "turn/completed",
+						"params": map[string]any{
+							"threadId": threadID,
+							"turn": map[string]any{
+								"id":     turnID,
+								"status": "failed",
+								"error": map[string]any{
+									"message": "helper expected mcp elicitation to be auto-accepted",
+								},
+								"items": []any{},
+							},
+						},
+					})
+					_ = enc.Encode(map[string]any{
+						"jsonrpc": "2.0",
+						"id":      id,
+						"result": map[string]any{
+							"turn": map[string]any{"id": turnID},
+						},
+					})
+					continue
+				}
+			}
 			_ = enc.Encode(map[string]any{
 				"jsonrpc": "2.0",
 				"method":  "item/agentMessage/delta",

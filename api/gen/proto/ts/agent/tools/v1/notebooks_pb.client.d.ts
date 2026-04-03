@@ -5,20 +5,8 @@
 // @ts-nocheck
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
-import type { SendSlackMessageResponse } from "./notebooks_pb";
-import type { SendSlackMessageRequest } from "./notebooks_pb";
-import type { TerminateRunResponse } from "./notebooks_pb";
-import type { TerminateRunRequest } from "./notebooks_pb";
 import type { ExecuteCodeResponse } from "./notebooks_pb";
 import type { ExecuteCodeRequest } from "./notebooks_pb";
-import type { NotebookServiceExecuteCellsResponse } from "./notebooks_pb";
-import type { NotebookServiceExecuteCellsRequest } from "./notebooks_pb";
-import type { ListCellsResponse } from "./notebooks_pb";
-import type { ListCellsRequest } from "./notebooks_pb";
-import type { GetCellsResponse } from "./notebooks_pb";
-import type { GetCellsRequest } from "./notebooks_pb";
-import type { UpdateCellsResponse } from "./notebooks_pb";
-import type { UpdateCellsRequest } from "./notebooks_pb";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
 /**
@@ -30,87 +18,27 @@ import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
  *
  * It looks like only comments on the method get translated into the description.
  *
- * TODO(jlewi): We should make it UpdateCells to allow the model to update multiple cells in a
- * single call.
- *
  * @generated from protobuf service agent.tools.v1.NotebookService
  */
 export interface INotebookServiceClient {
     /**
-     * UpdateCell updates a cell in the document.
-     * Cell is the cell to create or update. To update
-     * an existing cell specify the ID of that cell in the ref_id field.
-     * To create a new cell leave ref_id blank.
+     * ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
+     * stdout/stderr string.
      *
-     * You can use cell.metadata["agent/summary"] to include a short summary or description of the
-     * cell. You should set the description so that its useful for deciding what cells you should read
-     * to answer the user's queries.
+     * Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
+     * tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
+     *   - await help() to inspect the top-level helper API.
+     *   - await notebooks.help() or await notebooks.help("<method>") to inspect notebook APIs.
+     *   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
+     *     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
+     *   - use console.log(...) to return concise status and requested values to the user.
      *
-     * UpdateCellResponse will include cell id and metadata of the updated cells.
-     *
-     * @generated from protobuf rpc: UpdateCells
-     */
-    updateCells(input: UpdateCellsRequest, options?: RpcOptions): UnaryCall<UpdateCellsRequest, UpdateCellsResponse>;
-    /**
-     * GetCells fetches the cells with the given ref_ids.
-     * Use this to read the contents of cells in the notebook.
-     *
-     * @generated from protobuf rpc: GetCells
-     */
-    getCells(input: GetCellsRequest, options?: RpcOptions): UnaryCall<GetCellsRequest, GetCellsResponse>;
-    /**
-     * ListCells lists the cells in a notebook.
-     * Important: Only the ref_id and metadata will be populated. You should use that to decide
-     * which cells to read.
-     *
-     * @generated from protobuf rpc: ListCells
-     */
-    listCells(input: ListCellsRequest, options?: RpcOptions): UnaryCall<ListCellsRequest, ListCellsResponse>;
-    /**
-     * ExecuteCells executes the cells with the given ids in a notebook.
-     * Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
-     * cells. The response will contain the cell including the outputs of execution.
-     *
-     * @generated from protobuf rpc: ExecuteCells
-     */
-    executeCells(input: NotebookServiceExecuteCellsRequest, options?: RpcOptions): UnaryCall<NotebookServiceExecuteCellsRequest, NotebookServiceExecuteCellsResponse>;
-    /**
-     * ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+     * Prefer small, precise JS snippets and use top-level await for async helper calls so the command
+     * finishes only after notebook operations and executions complete.
      *
      * @generated from protobuf rpc: ExecuteCode
      */
     executeCode(input: ExecuteCodeRequest, options?: RpcOptions): UnaryCall<ExecuteCodeRequest, ExecuteCodeResponse>;
-    /**
-     * TerminateRun terminates the run. Call this when no further processing is necessary to handle
-     * the user request.
-     *
-     * @generated from protobuf rpc: TerminateRun
-     */
-    terminateRun(input: TerminateRunRequest, options?: RpcOptions): UnaryCall<TerminateRunRequest, TerminateRunResponse>;
-    /**
-     * TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-     *
-     * SlackMessageRequest sends a slack message to the user.
-     * Channel is The channel to send the message to e.g. "C09DF7PL6K0".
-     * Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
-     * If no slack channel was included in the request, do not invoke this tool.
-     *
-     * timestamp it the (unique identifier) of the slack thread you want to post into e.g.
-     * 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
-     * "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
-     * request, you may omit this property which will start a new thread.`,
-     *
-     * text is the message that the user will see in slack.
-     *  A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
-     *  ```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
-     *  @channel in this message.",
-     *
-     * fileIDs optionally send files generated as part of the investigation to the user in slack
-     * (often images). e.g. ["call_ABC", "call_DEF"]`,
-     *
-     * @generated from protobuf rpc: SendSlackMessage
-     */
-    sendSlackMessage(input: SendSlackMessageRequest, options?: RpcOptions): UnaryCall<SendSlackMessageRequest, SendSlackMessageResponse>;
 }
 /**
  * NotebookService defines methods the AI can use to interact with the notebook.
@@ -121,9 +49,6 @@ export interface INotebookServiceClient {
  *
  * It looks like only comments on the method get translated into the description.
  *
- * TODO(jlewi): We should make it UpdateCells to allow the model to update multiple cells in a
- * single call.
- *
  * @generated from protobuf service agent.tools.v1.NotebookService
  */
 export declare class NotebookServiceClient implements INotebookServiceClient, ServiceInfo {
@@ -133,78 +58,21 @@ export declare class NotebookServiceClient implements INotebookServiceClient, Se
     options: any;
     constructor(_transport: RpcTransport);
     /**
-     * UpdateCell updates a cell in the document.
-     * Cell is the cell to create or update. To update
-     * an existing cell specify the ID of that cell in the ref_id field.
-     * To create a new cell leave ref_id blank.
+     * ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
+     * stdout/stderr string.
      *
-     * You can use cell.metadata["agent/summary"] to include a short summary or description of the
-     * cell. You should set the description so that its useful for deciding what cells you should read
-     * to answer the user's queries.
+     * Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
+     * tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
+     *   - await help() to inspect the top-level helper API.
+     *   - await notebooks.help() or await notebooks.help("<method>") to inspect notebook APIs.
+     *   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
+     *     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
+     *   - use console.log(...) to return concise status and requested values to the user.
      *
-     * UpdateCellResponse will include cell id and metadata of the updated cells.
-     *
-     * @generated from protobuf rpc: UpdateCells
-     */
-    updateCells(input: UpdateCellsRequest, options?: RpcOptions): UnaryCall<UpdateCellsRequest, UpdateCellsResponse>;
-    /**
-     * GetCells fetches the cells with the given ref_ids.
-     * Use this to read the contents of cells in the notebook.
-     *
-     * @generated from protobuf rpc: GetCells
-     */
-    getCells(input: GetCellsRequest, options?: RpcOptions): UnaryCall<GetCellsRequest, GetCellsResponse>;
-    /**
-     * ListCells lists the cells in a notebook.
-     * Important: Only the ref_id and metadata will be populated. You should use that to decide
-     * which cells to read.
-     *
-     * @generated from protobuf rpc: ListCells
-     */
-    listCells(input: ListCellsRequest, options?: RpcOptions): UnaryCall<ListCellsRequest, ListCellsResponse>;
-    /**
-     * ExecuteCells executes the cells with the given ids in a notebook.
-     * Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
-     * cells. The response will contain the cell including the outputs of execution.
-     *
-     * @generated from protobuf rpc: ExecuteCells
-     */
-    executeCells(input: NotebookServiceExecuteCellsRequest, options?: RpcOptions): UnaryCall<NotebookServiceExecuteCellsRequest, NotebookServiceExecuteCellsResponse>;
-    /**
-     * ExecuteCode executes JavaScript in the AppKernel runtime and returns merged stdout/stderr.
+     * Prefer small, precise JS snippets and use top-level await for async helper calls so the command
+     * finishes only after notebook operations and executions complete.
      *
      * @generated from protobuf rpc: ExecuteCode
      */
     executeCode(input: ExecuteCodeRequest, options?: RpcOptions): UnaryCall<ExecuteCodeRequest, ExecuteCodeResponse>;
-    /**
-     * TerminateRun terminates the run. Call this when no further processing is necessary to handle
-     * the user request.
-     *
-     * @generated from protobuf rpc: TerminateRun
-     */
-    terminateRun(input: TerminateRunRequest, options?: RpcOptions): UnaryCall<TerminateRunRequest, TerminateRunResponse>;
-    /**
-     * TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-     *
-     * SlackMessageRequest sends a slack message to the user.
-     * Channel is The channel to send the message to e.g. "C09DF7PL6K0".
-     * Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
-     * If no slack channel was included in the request, do not invoke this tool.
-     *
-     * timestamp it the (unique identifier) of the slack thread you want to post into e.g.
-     * 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
-     * "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
-     * request, you may omit this property which will start a new thread.`,
-     *
-     * text is the message that the user will see in slack.
-     *  A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
-     *  ```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
-     *  @channel in this message.",
-     *
-     * fileIDs optionally send files generated as part of the investigation to the user in slack
-     * (often images). e.g. ["call_ABC", "call_DEF"]`,
-     *
-     * @generated from protobuf rpc: SendSlackMessage
-     */
-    sendSlackMessage(input: SendSlackMessageRequest, options?: RpcOptions): UnaryCall<SendSlackMessageRequest, SendSlackMessageResponse>;
 }
