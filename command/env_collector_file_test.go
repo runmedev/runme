@@ -27,8 +27,8 @@ func Test_envCollectorFile(t *testing.T) {
 		buf := new(bytes.Buffer)
 		err := collector.SetOnShell(buf)
 		require.NoError(t, err)
-		expected := " env -0 > " + collector.prePath() + "\n" +
-			" __cleanup() {\nrv=$?\nenv -0 > " + collector.postPath() + "\nexit $rv\n}\n" +
+		expected := " " + envDumpCommand + " > " + collector.prePath() + "\n" +
+			" __cleanup() {\nrv=$?\n" + envDumpCommand + " > " + collector.postPath() + "\nexit $rv\n}\n" +
 			" trap -- \"__cleanup\" EXIT\n"
 		require.Equal(t, expected, buf.String())
 	})
