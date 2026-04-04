@@ -4,7 +4,7 @@ module github.com/runmedev/runme/v3
 //   go install github.com/runmedev/runme/v3@latest
 // This ensures you get the latest v3.x.x version, not the old v1.x.x versions.
 
-go 1.25.7
+go 1.26.1
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
@@ -18,7 +18,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
-	github.com/cli/cli/v2 v2.87.3
+	github.com/cli/cli/v2 v2.89.0
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/containerd/console v1.0.5
 	github.com/creack/pty v1.1.24
@@ -62,10 +62,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.42.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/net v0.51.0
+	golang.org/x/net v0.52.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sys v0.42.0
-	golang.org/x/term v0.40.0
+	golang.org/x/term v0.41.0
 	google.golang.org/api v0.270.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171
 	google.golang.org/protobuf v1.36.11
@@ -193,13 +193,12 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
-	golang.org/x/mod v0.33.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
+	golang.org/x/mod v0.34.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260311193753-579e4da9a98c // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/genproto v0.0.0-20260226221140-a57be14db171 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260226221140-a57be14db171 // indirect
-	gotest.tools/v3 v3.5.1 // indirect
 	gvisor.dev/gvisor v0.0.0-20250318191406-9e676ea1de20 // indirect
 	honnef.co/go/tools v0.6.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260304202019-5b3e3fdb0acf // indirect
@@ -235,9 +234,9 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
-	golang.org/x/tools v0.42.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
