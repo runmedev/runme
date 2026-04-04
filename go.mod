@@ -65,7 +65,7 @@ require (
 	golang.org/x/net v0.51.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sys v0.42.0
-	golang.org/x/term v0.40.0
+	golang.org/x/term v0.41.0
 	google.golang.org/api v0.270.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171
 	google.golang.org/protobuf v1.36.11
@@ -235,8 +235,8 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1
@@ -248,7 +248,7 @@ require (
 	github.com/elliotchance/orderedmap v1.8.0
 	github.com/go-git/go-git/v5 v5.17.0
 	github.com/go-playground/assert/v2 v2.2.0
-	github.com/go-playground/validator/v10 v10.30.1
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
