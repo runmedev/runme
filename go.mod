@@ -199,7 +199,7 @@ require (
 	google.golang.org/genproto v0.0.0-20260406154035-8fb7ec149431 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260406154035-8fb7ec149431 // indirect
 	gvisor.dev/gvisor v0.0.0-20250318191406-9e676ea1de20 // indirect
-	honnef.co/go/tools v0.6.0 // indirect
+	honnef.co/go/tools v0.7.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260330154417-16be699c7b31 // indirect
 	mvdan.cc/gofumpt v0.7.0 // indirect
 )
