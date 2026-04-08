@@ -167,13 +167,13 @@ loop:
 		}
 
 		switch {
-		case r0 == '+':
+		case r0 == '+' && ahead[0] == '+' && ahead[1] == '+':
 			return parseRawFrontmatter(l, byte(r0))
 		case r0 == '-' && ahead[0] == '-' && ahead[1] == '8' && ahead[2] == '<':
 			// skip scissor syntax
 			l.backup(r0)
 			break loop
-		case r0 == '-':
+		case r0 == '-' && ahead[0] == '-' && ahead[1] == '-':
 			return parseRawFrontmatter(l, byte(r0))
 		case r0 == '{' && ahead[0] == '{':
 			// skip markdown templates
