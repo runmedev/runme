@@ -70,7 +70,7 @@ require (
 	google.golang.org/api v0.274.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260406154035-8fb7ec149431
 	google.golang.org/protobuf v1.36.11
-	mvdan.cc/sh/v3 v3.13.0
+	mvdan.cc/sh/v3 v3.13.1
 	oras.land/oras-go/v2 v2.6.0
 	sigs.k8s.io/kustomize/kyaml v0.21.1
 )
