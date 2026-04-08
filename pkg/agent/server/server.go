@@ -54,7 +54,6 @@ type codexComponents struct {
 	proxy        http.Handler
 	bridge       *codex.ToolBridge
 	tokenManager *codex.SessionTokenManager
-	approvals    *codex.ExecuteApprovalManager
 	mcpHandler   http.Handler
 	process      *codex.ProcessManager
 }
@@ -358,12 +357,10 @@ func (s *Server) registerServices() error {
 			}
 			codexBridge := codex.NewToolBridge(codexAuth)
 			codexTokenManager := codex.NewSessionTokenManager(0)
-			codexApprovals := codex.NewExecuteApprovalManager(0)
-			codexMCPHandler, err := codex.NewStreamableMCPHandler(codexBridge, codexTokenManager, codexApprovals)
+			codexMCPHandler, err := codex.NewStreamableMCPHandler(codexBridge, codexTokenManager)
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize codex notebook MCP handler")
 			}
-			codexApprovalHandler := codex.NewExecuteApprovalHTTPHandler(codexApprovals)
 			codexProcess := codex.NewProcessManager("", nil, nil)
 			codexProxy, err := codex.NewAppServerProxyHandler(codexProcess, codexTokenManager, codexAuth)
 			if err != nil {
@@ -374,14 +371,12 @@ func (s *Server) registerServices() error {
 				proxy:        codexProxy,
 				bridge:       codexBridge,
 				tokenManager: codexTokenManager,
-				approvals:    codexApprovals,
 				mcpHandler:   codexMCPHandler,
 				process:      codexProcess,
 			}
 
 			mux.Handle("/codex/app-server/ws", otelhttp.NewHandler(codexProxy, "/codex/app-server/ws"))
 			mux.Handle("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"))
-			mux.HandleProtected("/codex/execute-approvals", otelhttp.NewHandler(codexApprovalHandler, "/codex/execute-approvals"), s.checker, api.AgentUserRole)
 			// This endpoint is intended for local codex app-server access and is protected by app-server bearer tokens.
 			mux.Handle("/mcp/notebooks", otelhttp.NewHandler(codexMCPHandler, "/mcp/notebooks"))
 		} else {

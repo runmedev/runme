@@ -130,18 +130,10 @@ func toolCallOutcome(output *toolsv1.ToolCallOutput, err error) string {
 	if output.GetClientError() != "" {
 		return toolOutcomeToolErr
 	}
-	switch {
-	case output.GetListCells() != nil:
+	if output.GetExecuteCode() != nil {
 		return toolOutcomeSuccess
-	case output.GetGetCells() != nil:
-		return toolOutcomeSuccess
-	case output.GetUpdateCells() != nil:
-		return toolOutcomeSuccess
-	case output.GetExecuteCells() != nil:
-		return toolOutcomeSuccess
-	default:
-		return toolOutcomeNoPayload
 	}
+	return toolOutcomeNoPayload
 }
 
 func setObserverForTest(o observer) func() {

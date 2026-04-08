@@ -115,20 +115,20 @@ func TestNotebookMCPBridge_ObservesToolCallOutcome(t *testing.T) {
 	bridge := &fakeBridge{
 		nextOutput: &toolsv1.ToolCallOutput{
 			Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
-			Output: &toolsv1.ToolCallOutput_ListCells{
-				ListCells: &toolsv1.ListCellsResponse{},
+			Output: &toolsv1.ToolCallOutput_ExecuteCode{
+				ExecuteCode: &toolsv1.ExecuteCodeResponse{Output: "ok\n"},
 			},
 		},
 	}
 	nb := NewNotebookMCPBridge(bridge)
-	if _, err := nb.handleListCells(context.Background(), mcp.CallToolRequest{}, listCellsArgs{}); err != nil {
-		t.Fatalf("handleListCells returned error: %v", err)
+	if _, err := nb.handleExecuteCode(context.Background(), mcp.CallToolRequest{}, executeCodeArgs{Code: "console.log('ok')"}); err != nil { //nolint:forbidigo
+		t.Fatalf("handleExecuteCode returned error: %v", err)
 	}
 	if len(obs.toolCalls) != 1 {
 		t.Fatalf("tool call events = %d, want 1", len(obs.toolCalls))
 	}
-	if obs.toolCalls[0].tool != "ListCells" {
-		t.Fatalf("tool = %q, want ListCells", obs.toolCalls[0].tool)
+	if obs.toolCalls[0].tool != "ExecuteCode" {
+		t.Fatalf("tool = %q, want ExecuteCode", obs.toolCalls[0].tool)
 	}
 	if obs.toolCalls[0].outcome != toolOutcomeSuccess {
 		t.Fatalf("tool outcome = %q, want %q", obs.toolCalls[0].outcome, toolOutcomeSuccess)

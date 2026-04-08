@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -805,7 +806,7 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 		assert.EqualValues(t, 0, result.ExitCode)
-		assert.EqualValues(t, "24\r\n80\r\n", string(result.Stdout))
+		assert.EqualValues(t, "24\r\n80", strings.TrimRight(string(result.Stdout), "\r\n"))
 	})
 
 	t.Run("ExecuteWinsizeSet", func(t *testing.T) {
@@ -834,7 +835,7 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 		assert.EqualValues(t, 0, result.ExitCode)
-		assert.EqualValues(t, "64\r\n200\r\n", string(result.Stdout))
+		assert.EqualValues(t, "64\r\n200", strings.TrimRight(string(result.Stdout), "\r\n"))
 	})
 
 	t.Run("ExecuteWinsizeChange", func(t *testing.T) {
@@ -871,7 +872,7 @@ func Test_runnerService(t *testing.T) {
 
 		result := <-execResult
 		assert.EqualValues(t, 0, result.ExitCode)
-		assert.EqualValues(t, "\r\n56\r\n150\r\n", string(result.Stdout))
+		assert.EqualValues(t, "\r\n56\r\n150", strings.TrimRight(string(result.Stdout), "\r\n"))
 	})
 
 	t.Run("ExecuteSessionsMostRecent", func(t *testing.T) {

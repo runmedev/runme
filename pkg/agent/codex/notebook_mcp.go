@@ -3,20 +3,18 @@ package codex
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
+	mcpruntime "github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
 	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1/toolsv1mcp"
-	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/obs"
 )
@@ -29,41 +27,19 @@ type bridgeCaller interface {
 	Call(ctx context.Context, input *toolsv1.ToolCallInput) (*toolsv1.ToolCallOutput, error)
 }
 
-type executeApprover interface {
-	AllowExecute(ctx context.Context, refIDs []string) error
-}
-
 type NotebookMCPBridge struct {
 	bridge      bridgeCaller
-	approver    executeApprover
 	callTimeout time.Duration
 }
 
-type listCellsArgs struct{}
-
-type getCellsArgs struct {
-	RefIDs []string `json:"ref_ids,omitempty"`
-}
-
-type updateCellsArgs struct {
-	Cells []*parserv1.Cell `json:"cells,omitempty"`
-}
-
-type executeCellsArgs struct {
-	RefIDs []string `json:"ref_ids,omitempty"`
+type executeCodeArgs struct {
+	Code string `json:"code,omitempty"`
 }
 
 func NewNotebookMCPBridge(bridge bridgeCaller) *NotebookMCPBridge {
 	return &NotebookMCPBridge{
 		bridge:      bridge,
 		callTimeout: defaultBridgeCallTimeout,
-		approver:    denyExecuteApprover{},
-	}
-}
-
-func (b *NotebookMCPBridge) SetExecuteApprover(approver executeApprover) {
-	if approver != nil {
-		b.approver = approver
 	}
 }
 
@@ -81,95 +57,36 @@ func (b *NotebookMCPBridge) NewServer() *mcpserver.MCPServer {
 	)
 
 	server.AddTool(
-		toolsv1mcp.NotebookService_ListCellsToolOpenAI,
-		mcp.NewTypedToolHandler(b.handleListCells),
-	)
-	server.AddTool(
-		toolsv1mcp.NotebookService_GetCellsToolOpenAI,
-		mcp.NewTypedToolHandler(b.handleGetCells),
-	)
-	server.AddTool(
-		toolsv1mcp.NotebookService_UpdateCellsToolOpenAI,
-		mcp.NewTypedToolHandler(b.handleUpdateCells),
-	)
-	server.AddTool(
-		toolsv1mcp.NotebookService_ExecuteCellsToolOpenAI,
-		mcp.NewTypedToolHandler(b.handleExecuteCells),
+		toMCPTool(toolsv1mcp.NotebookService_ExecuteCodeToolOpenAI),
+		mcp.NewTypedToolHandler(b.handleExecuteCode),
 	)
 	return server
 }
 
-func (b *NotebookMCPBridge) handleListCells(ctx context.Context, _ mcp.CallToolRequest, _ listCellsArgs) (*mcp.CallToolResult, error) {
-	logger := loggerForToolCall(ctx, "ListCells")
-	input := &toolsv1.ToolCallInput{
-		Input: &toolsv1.ToolCallInput_ListCells{
-			ListCells: &toolsv1.ListCellsRequest{},
-		},
+func toMCPTool(tool mcpruntime.Tool) mcp.Tool {
+	return mcp.Tool{
+		Name:           tool.Name,
+		Description:    tool.Description,
+		RawInputSchema: tool.RawInputSchema,
 	}
-	output, err := b.callBridgeForTool(ctx, "ListCells", input)
-	if err != nil {
-		logger.Error(err, "failed to dispatch tool call")
-		return mcp.NewToolResultErrorFromErr("failed to dispatch ListCells over codex bridge", err), nil
-	}
-	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
-	return toolOutputToResult(output.GetListCells(), output)
 }
 
-func (b *NotebookMCPBridge) handleGetCells(ctx context.Context, _ mcp.CallToolRequest, args getCellsArgs) (*mcp.CallToolResult, error) {
-	logger := loggerForToolCall(ctx, "GetCells")
+func (b *NotebookMCPBridge) handleExecuteCode(ctx context.Context, _ mcp.CallToolRequest, args executeCodeArgs) (*mcp.CallToolResult, error) {
+	logger := loggerForToolCall(ctx, "ExecuteCode")
 	input := &toolsv1.ToolCallInput{
-		Input: &toolsv1.ToolCallInput_GetCells{
-			GetCells: &toolsv1.GetCellsRequest{RefIds: args.RefIDs},
-		},
-	}
-	output, err := b.callBridgeForTool(ctx, "GetCells", input)
-	if err != nil {
-		logger.Error(err, "failed to dispatch tool call")
-		return mcp.NewToolResultErrorFromErr("failed to dispatch GetCells over codex bridge", err), nil
-	}
-	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
-	return toolOutputToResult(output.GetGetCells(), output)
-}
-
-func (b *NotebookMCPBridge) handleUpdateCells(ctx context.Context, _ mcp.CallToolRequest, args updateCellsArgs) (*mcp.CallToolResult, error) {
-	logger := loggerForToolCall(ctx, "UpdateCells")
-	input := &toolsv1.ToolCallInput{
-		Input: &toolsv1.ToolCallInput_UpdateCells{
-			UpdateCells: &toolsv1.UpdateCellsRequest{
-				Cells: args.Cells,
+		Input: &toolsv1.ToolCallInput_ExecuteCode{
+			ExecuteCode: &toolsv1.ExecuteCodeRequest{
+				Code: args.Code,
 			},
 		},
 	}
-	output, err := b.callBridgeForTool(ctx, "UpdateCells", input)
+	output, err := b.callBridgeForTool(ctx, "ExecuteCode", input)
 	if err != nil {
 		logger.Error(err, "failed to dispatch tool call")
-		return mcp.NewToolResultErrorFromErr("failed to dispatch UpdateCells over codex bridge", err), nil
+		return mcp.NewToolResultErrorFromErr("failed to dispatch ExecuteCode over codex bridge", err), nil
 	}
 	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
-	return toolOutputToResult(output.GetUpdateCells(), output)
-}
-
-func (b *NotebookMCPBridge) handleExecuteCells(ctx context.Context, _ mcp.CallToolRequest, args executeCellsArgs) (*mcp.CallToolResult, error) {
-	logger := loggerForToolCall(ctx, "ExecuteCells")
-	if err := b.approver.AllowExecute(ctx, args.RefIDs); err != nil {
-		logger.Error(err, "tool call denied by execute approval gate")
-		observeMCPToolCall("ExecuteCells", 0, toolOutcomeToolErr)
-		return mcp.NewToolResultErrorFromErr("ExecuteCells requires explicit user approval", err), nil
-	}
-	input := &toolsv1.ToolCallInput{
-		Input: &toolsv1.ToolCallInput_ExecuteCells{
-			ExecuteCells: &toolsv1.NotebookServiceExecuteCellsRequest{
-				RefIds: args.RefIDs,
-			},
-		},
-	}
-	output, err := b.callBridgeForTool(ctx, "ExecuteCells", input)
-	if err != nil {
-		logger.Error(err, "failed to dispatch tool call")
-		return mcp.NewToolResultErrorFromErr("failed to dispatch ExecuteCells over codex bridge", err), nil
-	}
-	logger.Info("completed tool call", "callID", output.GetCallId(), "status", output.GetStatus().String())
-	return toolOutputToResult(output.GetExecuteCells(), output)
+	return toolOutputToResult(output.GetExecuteCode(), output)
 }
 
 func (b *NotebookMCPBridge) callBridge(ctx context.Context, input *toolsv1.ToolCallInput) (*toolsv1.ToolCallOutput, error) {
@@ -200,30 +117,6 @@ func loggerForToolCall(ctx context.Context, tool string) logr.Logger {
 		logger = logger.WithValues("principal", principal)
 	}
 	return logger
-}
-
-type denyExecuteApprover struct{}
-
-func (denyExecuteApprover) AllowExecute(_ context.Context, _ []string) error {
-	return errors.New("no execute approval has been granted")
-}
-
-type contextExecuteApprover struct{}
-
-func (contextExecuteApprover) AllowExecute(ctx context.Context, refIDs []string) error {
-	approved := approvedRefIDsFromContext(ctx)
-	if len(approved) == 0 {
-		return errors.New("missing execute approvals")
-	}
-	for _, id := range refIDs {
-		if id == "" {
-			continue
-		}
-		if !slices.Contains(approved, id) {
-			return fmt.Errorf("cell %q is not approved for execution", id)
-		}
-	}
-	return nil
 }
 
 func toolOutputToResult(payload proto.Message, output *toolsv1.ToolCallOutput) (*mcp.CallToolResult, error) {

@@ -4,7 +4,6 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
-import type { Cell, CellJson } from "../../../runme/parser/v1/parser_pb";
 
 /**
  * Describes the file agent/tools/v1/notebooks.proto.
@@ -12,222 +11,60 @@ import type { Cell, CellJson } from "../../../runme/parser/v1/parser_pb";
 export declare const file_agent_tools_v1_notebooks: GenFile;
 
 /**
- * @generated from message agent.tools.v1.ListCellsRequest
+ * @generated from message agent.tools.v1.ExecuteCodeRequest
  */
-export declare type ListCellsRequest = Message<"agent.tools.v1.ListCellsRequest"> & {
-};
-
-/**
- * @generated from message agent.tools.v1.ListCellsRequest
- */
-export declare type ListCellsRequestJson = {
-};
-
-/**
- * Describes the message agent.tools.v1.ListCellsRequest.
- * Use `create(ListCellsRequestSchema)` to create a new message.
- */
-export declare const ListCellsRequestSchema: GenMessage<ListCellsRequest, {jsonType: ListCellsRequestJson}>;
-
-/**
- * @generated from message agent.tools.v1.ListCellsResponse
- */
-export declare type ListCellsResponse = Message<"agent.tools.v1.ListCellsResponse"> & {
+export declare type ExecuteCodeRequest = Message<"agent.tools.v1.ExecuteCodeRequest"> & {
   /**
-   * @generated from field: repeated runme.parser.v1.Cell cells = 2;
+   * @generated from field: string code = 1;
    */
-  cells: Cell[];
+  code: string;
 };
 
 /**
- * @generated from message agent.tools.v1.ListCellsResponse
+ * @generated from message agent.tools.v1.ExecuteCodeRequest
  */
-export declare type ListCellsResponseJson = {
+export declare type ExecuteCodeRequestJson = {
   /**
-   * @generated from field: repeated runme.parser.v1.Cell cells = 2;
+   * @generated from field: string code = 1;
    */
-  cells?: CellJson[];
+  code?: string;
 };
 
 /**
- * Describes the message agent.tools.v1.ListCellsResponse.
- * Use `create(ListCellsResponseSchema)` to create a new message.
+ * Describes the message agent.tools.v1.ExecuteCodeRequest.
+ * Use `create(ExecuteCodeRequestSchema)` to create a new message.
  */
-export declare const ListCellsResponseSchema: GenMessage<ListCellsResponse, {jsonType: ListCellsResponseJson}>;
+export declare const ExecuteCodeRequestSchema: GenMessage<ExecuteCodeRequest, {jsonType: ExecuteCodeRequestJson}>;
 
 /**
- * @generated from message agent.tools.v1.GetCellsRequest
+ * @generated from message agent.tools.v1.ExecuteCodeResponse
  */
-export declare type GetCellsRequest = Message<"agent.tools.v1.GetCellsRequest"> & {
+export declare type ExecuteCodeResponse = Message<"agent.tools.v1.ExecuteCodeResponse"> & {
   /**
-   * @generated from field: repeated string ref_ids = 1;
-   */
-  refIds: string[];
-};
-
-/**
- * @generated from message agent.tools.v1.GetCellsRequest
- */
-export declare type GetCellsRequestJson = {
-  /**
-   * @generated from field: repeated string ref_ids = 1;
-   */
-  refIds?: string[];
-};
-
-/**
- * Describes the message agent.tools.v1.GetCellsRequest.
- * Use `create(GetCellsRequestSchema)` to create a new message.
- */
-export declare const GetCellsRequestSchema: GenMessage<GetCellsRequest, {jsonType: GetCellsRequestJson}>;
-
-/**
- * @generated from message agent.tools.v1.GetCellsResponse
- */
-export declare type GetCellsResponse = Message<"agent.tools.v1.GetCellsResponse"> & {
-  /**
-   * @generated from field: repeated runme.parser.v1.Cell cells = 1;
-   */
-  cells: Cell[];
-};
-
-/**
- * @generated from message agent.tools.v1.GetCellsResponse
- */
-export declare type GetCellsResponseJson = {
-  /**
-   * @generated from field: repeated runme.parser.v1.Cell cells = 1;
-   */
-  cells?: CellJson[];
-};
-
-/**
- * Describes the message agent.tools.v1.GetCellsResponse.
- * Use `create(GetCellsResponseSchema)` to create a new message.
- */
-export declare const GetCellsResponseSchema: GenMessage<GetCellsResponse, {jsonType: GetCellsResponseJson}>;
-
-/**
- * @generated from message agent.tools.v1.UpdateCellsRequest
- */
-export declare type UpdateCellsRequest = Message<"agent.tools.v1.UpdateCellsRequest"> & {
-  /**
-   * @generated from field: repeated runme.parser.v1.Cell cells = 1;
-   */
-  cells: Cell[];
-};
-
-/**
- * @generated from message agent.tools.v1.UpdateCellsRequest
- */
-export declare type UpdateCellsRequestJson = {
-  /**
-   * @generated from field: repeated runme.parser.v1.Cell cells = 1;
-   */
-  cells?: CellJson[];
-};
-
-/**
- * Describes the message agent.tools.v1.UpdateCellsRequest.
- * Use `create(UpdateCellsRequestSchema)` to create a new message.
- */
-export declare const UpdateCellsRequestSchema: GenMessage<UpdateCellsRequest, {jsonType: UpdateCellsRequestJson}>;
-
-/**
- * @generated from message agent.tools.v1.UpdateCellsResponse
- */
-export declare type UpdateCellsResponse = Message<"agent.tools.v1.UpdateCellsResponse"> & {
-  /**
-   * We want to provide the updated cells to the AI because the cells might have been modified by
-   * the agent (e.g. ref_ids) might have been generated.
+   * output contains merged stdout/stderr in execution order.
    *
-   * @generated from field: repeated runme.parser.v1.Cell cells = 1;
+   * @generated from field: string output = 1;
    */
-  cells: Cell[];
+  output: string;
 };
 
 /**
- * @generated from message agent.tools.v1.UpdateCellsResponse
+ * @generated from message agent.tools.v1.ExecuteCodeResponse
  */
-export declare type UpdateCellsResponseJson = {
+export declare type ExecuteCodeResponseJson = {
   /**
-   * We want to provide the updated cells to the AI because the cells might have been modified by
-   * the agent (e.g. ref_ids) might have been generated.
+   * output contains merged stdout/stderr in execution order.
    *
-   * @generated from field: repeated runme.parser.v1.Cell cells = 1;
+   * @generated from field: string output = 1;
    */
-  cells?: CellJson[];
+  output?: string;
 };
 
 /**
- * Describes the message agent.tools.v1.UpdateCellsResponse.
- * Use `create(UpdateCellsResponseSchema)` to create a new message.
+ * Describes the message agent.tools.v1.ExecuteCodeResponse.
+ * Use `create(ExecuteCodeResponseSchema)` to create a new message.
  */
-export declare const UpdateCellsResponseSchema: GenMessage<UpdateCellsResponse, {jsonType: UpdateCellsResponseJson}>;
-
-/**
- * @generated from message agent.tools.v1.NotebookServiceExecuteCellsRequest
- */
-export declare type NotebookServiceExecuteCellsRequest = Message<"agent.tools.v1.NotebookServiceExecuteCellsRequest"> & {
-  /**
-   * TODO(jlewi): Right now you the AI has to specify the IDs of the cells to execute. This means it
-   * needs to use separate Update calls to set the code to execute. In the future, we may want to
-   * allow the AISRE to issue a single execute request to update and execute.
-   *
-   * @generated from field: repeated string ref_ids = 1;
-   */
-  refIds: string[];
-};
-
-/**
- * @generated from message agent.tools.v1.NotebookServiceExecuteCellsRequest
- */
-export declare type NotebookServiceExecuteCellsRequestJson = {
-  /**
-   * TODO(jlewi): Right now you the AI has to specify the IDs of the cells to execute. This means it
-   * needs to use separate Update calls to set the code to execute. In the future, we may want to
-   * allow the AISRE to issue a single execute request to update and execute.
-   *
-   * @generated from field: repeated string ref_ids = 1;
-   */
-  refIds?: string[];
-};
-
-/**
- * Describes the message agent.tools.v1.NotebookServiceExecuteCellsRequest.
- * Use `create(NotebookServiceExecuteCellsRequestSchema)` to create a new message.
- */
-export declare const NotebookServiceExecuteCellsRequestSchema: GenMessage<NotebookServiceExecuteCellsRequest, {jsonType: NotebookServiceExecuteCellsRequestJson}>;
-
-/**
- * @generated from message agent.tools.v1.NotebookServiceExecuteCellsResponse
- */
-export declare type NotebookServiceExecuteCellsResponse = Message<"agent.tools.v1.NotebookServiceExecuteCellsResponse"> & {
-  /**
-   * Cells contains the cells that were executed
-   *
-   * @generated from field: repeated runme.parser.v1.Cell cells = 1;
-   */
-  cells: Cell[];
-};
-
-/**
- * @generated from message agent.tools.v1.NotebookServiceExecuteCellsResponse
- */
-export declare type NotebookServiceExecuteCellsResponseJson = {
-  /**
-   * Cells contains the cells that were executed
-   *
-   * @generated from field: repeated runme.parser.v1.Cell cells = 1;
-   */
-  cells?: CellJson[];
-};
-
-/**
- * Describes the message agent.tools.v1.NotebookServiceExecuteCellsResponse.
- * Use `create(NotebookServiceExecuteCellsResponseSchema)` to create a new message.
- */
-export declare const NotebookServiceExecuteCellsResponseSchema: GenMessage<NotebookServiceExecuteCellsResponse, {jsonType: NotebookServiceExecuteCellsResponseJson}>;
+export declare const ExecuteCodeResponseSchema: GenMessage<ExecuteCodeResponse, {jsonType: ExecuteCodeResponseJson}>;
 
 /**
  * @generated from message agent.tools.v1.TerminateRunRequest
@@ -291,40 +128,10 @@ export declare type ToolCallInput = Message<"agent.tools.v1.ToolCallInput"> & {
    */
   input: {
     /**
-     * @generated from field: agent.tools.v1.UpdateCellsRequest update_cells = 3;
+     * @generated from field: agent.tools.v1.ExecuteCodeRequest execute_code = 9;
      */
-    value: UpdateCellsRequest;
-    case: "updateCells";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.ListCellsRequest list_cells = 4;
-     */
-    value: ListCellsRequest;
-    case: "listCells";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.GetCellsRequest get_cells = 5;
-     */
-    value: GetCellsRequest;
-    case: "getCells";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.NotebookServiceExecuteCellsRequest execute_cells = 6;
-     */
-    value: NotebookServiceExecuteCellsRequest;
-    case: "executeCells";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.TerminateRunRequest terminate_run = 7;
-     */
-    value: TerminateRunRequest;
-    case: "terminateRun";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.SendSlackMessageRequest send_slack_message = 8;
-     */
-    value: SendSlackMessageRequest;
-    case: "sendSlackMessage";
+    value: ExecuteCodeRequest;
+    case: "executeCode";
   } | { case: undefined; value?: undefined };
 };
 
@@ -350,34 +157,9 @@ export declare type ToolCallInputJson = {
   previousResponseId?: string;
 
   /**
-   * @generated from field: agent.tools.v1.UpdateCellsRequest update_cells = 3;
+   * @generated from field: agent.tools.v1.ExecuteCodeRequest execute_code = 9;
    */
-  updateCells?: UpdateCellsRequestJson;
-
-  /**
-   * @generated from field: agent.tools.v1.ListCellsRequest list_cells = 4;
-   */
-  listCells?: ListCellsRequestJson;
-
-  /**
-   * @generated from field: agent.tools.v1.GetCellsRequest get_cells = 5;
-   */
-  getCells?: GetCellsRequestJson;
-
-  /**
-   * @generated from field: agent.tools.v1.NotebookServiceExecuteCellsRequest execute_cells = 6;
-   */
-  executeCells?: NotebookServiceExecuteCellsRequestJson;
-
-  /**
-   * @generated from field: agent.tools.v1.TerminateRunRequest terminate_run = 7;
-   */
-  terminateRun?: TerminateRunRequestJson;
-
-  /**
-   * @generated from field: agent.tools.v1.SendSlackMessageRequest send_slack_message = 8;
-   */
-  sendSlackMessage?: SendSlackMessageRequestJson;
+  executeCode?: ExecuteCodeRequestJson;
 };
 
 /**
@@ -405,40 +187,10 @@ export declare type ToolCallOutput = Message<"agent.tools.v1.ToolCallOutput"> & 
    */
   output: {
     /**
-     * @generated from field: agent.tools.v1.UpdateCellsResponse update_cells = 3;
+     * @generated from field: agent.tools.v1.ExecuteCodeResponse execute_code = 11;
      */
-    value: UpdateCellsResponse;
-    case: "updateCells";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.ListCellsResponse list_cells = 4;
-     */
-    value: ListCellsResponse;
-    case: "listCells";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.GetCellsResponse get_cells = 5;
-     */
-    value: GetCellsResponse;
-    case: "getCells";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.NotebookServiceExecuteCellsResponse execute_cells = 8;
-     */
-    value: NotebookServiceExecuteCellsResponse;
-    case: "executeCells";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.TerminateRunResponse terminate_run = 9;
-     */
-    value: TerminateRunResponse;
-    case: "terminateRun";
-  } | {
-    /**
-     * @generated from field: agent.tools.v1.SendSlackMessageResponse send_slack_message = 10;
-     */
-    value: SendSlackMessageResponse;
-    case: "sendSlackMessage";
+    value: ExecuteCodeResponse;
+    case: "executeCode";
   } | { case: undefined; value?: undefined };
 
   /**
@@ -469,34 +221,9 @@ export declare type ToolCallOutputJson = {
   previousResponseId?: string;
 
   /**
-   * @generated from field: agent.tools.v1.UpdateCellsResponse update_cells = 3;
+   * @generated from field: agent.tools.v1.ExecuteCodeResponse execute_code = 11;
    */
-  updateCells?: UpdateCellsResponseJson;
-
-  /**
-   * @generated from field: agent.tools.v1.ListCellsResponse list_cells = 4;
-   */
-  listCells?: ListCellsResponseJson;
-
-  /**
-   * @generated from field: agent.tools.v1.GetCellsResponse get_cells = 5;
-   */
-  getCells?: GetCellsResponseJson;
-
-  /**
-   * @generated from field: agent.tools.v1.NotebookServiceExecuteCellsResponse execute_cells = 8;
-   */
-  executeCells?: NotebookServiceExecuteCellsResponseJson;
-
-  /**
-   * @generated from field: agent.tools.v1.TerminateRunResponse terminate_run = 9;
-   */
-  terminateRun?: TerminateRunResponseJson;
-
-  /**
-   * @generated from field: agent.tools.v1.SendSlackMessageResponse send_slack_message = 10;
-   */
-  sendSlackMessage?: SendSlackMessageResponseJson;
+  executeCode?: ExecuteCodeResponseJson;
 
   /**
    * @generated from field: agent.tools.v1.ToolCallOutput.Status status = 6;
@@ -684,103 +411,29 @@ export declare const SendSlackMessageResponseSchema: GenMessage<SendSlackMessage
  *
  * It looks like only comments on the method get translated into the description.
  *
- * TODO(jlewi): We should make it UpdateCells to allow the model to update multiple cells in a
- * single call.
- *
  * @generated from service agent.tools.v1.NotebookService
  */
 export declare const NotebookService: GenService<{
   /**
-   * UpdateCell updates a cell in the document.
-   * Cell is the cell to create or update. To update
-   * an existing cell specify the ID of that cell in the ref_id field.
-   * To create a new cell leave ref_id blank.
+   * ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
+   * stdout/stderr string.
    *
-   * You can use cell.metadata["agent/summary"] to include a short summary or description of the
-   * cell. You should set the description so that its useful for deciding what cells you should read
-   * to answer the user's queries.
+   * Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
+   * tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
+   *   - await help() to inspect the top-level helper API.
+   *   - await notebooks.help() or await notebooks.help("<method>") to inspect notebook APIs.
+   *   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
+   *     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
+   *   - use console.log(...) to return concise status and requested values to the user.
    *
-   * UpdateCellResponse will include cell id and metadata of the updated cells.
+   * Prefer small, precise JS snippets and use top-level await for async helper calls so the command
+   * finishes only after notebook operations and executions complete.
    *
-   * @generated from rpc agent.tools.v1.NotebookService.UpdateCells
+   * @generated from rpc agent.tools.v1.NotebookService.ExecuteCode
    */
-  updateCells: {
+  executeCode: {
     methodKind: "unary";
-    input: typeof UpdateCellsRequestSchema;
-    output: typeof UpdateCellsResponseSchema;
-  },
-  /**
-   * GetCells fetches the cells with the given ref_ids.
-   * Use this to read the contents of cells in the notebook.
-   *
-   * @generated from rpc agent.tools.v1.NotebookService.GetCells
-   */
-  getCells: {
-    methodKind: "unary";
-    input: typeof GetCellsRequestSchema;
-    output: typeof GetCellsResponseSchema;
-  },
-  /**
-   * ListCells lists the cells in a notebook.
-   * Important: Only the ref_id and metadata will be populated. You should use that to decide
-   * which cells to read.
-   *
-   * @generated from rpc agent.tools.v1.NotebookService.ListCells
-   */
-  listCells: {
-    methodKind: "unary";
-    input: typeof ListCellsRequestSchema;
-    output: typeof ListCellsResponseSchema;
-  },
-  /**
-   * ExecuteCells executes the cells with the given ids in a notebook.
-   * Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
-   * cells. The response will contain the cell including the outputs of execution.
-   *
-   * @generated from rpc agent.tools.v1.NotebookService.ExecuteCells
-   */
-  executeCells: {
-    methodKind: "unary";
-    input: typeof NotebookServiceExecuteCellsRequestSchema;
-    output: typeof NotebookServiceExecuteCellsResponseSchema;
-  },
-  /**
-   * TerminateRun terminates the run. Call this when no further processing is necessary to handle
-   * the user request.
-   *
-   * @generated from rpc agent.tools.v1.NotebookService.TerminateRun
-   */
-  terminateRun: {
-    methodKind: "unary";
-    input: typeof TerminateRunRequestSchema;
-    output: typeof TerminateRunResponseSchema;
-  },
-  /**
-   * TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-   *
-   * SlackMessageRequest sends a slack message to the user.
-   * Channel is The channel to send the message to e.g. "C09DF7PL6K0".
-   * Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
-   * If no slack channel was included in the request, do not invoke this tool.
-   *
-   * timestamp it the (unique identifier) of the slack thread you want to post into e.g.
-   * 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
-   * "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
-   * request, you may omit this property which will start a new thread.`,
-   *
-   * text is the message that the user will see in slack.
-   *  A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
-   *  ```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
-   *  @channel in this message.",
-   *
-   * fileIDs optionally send files generated as part of the investigation to the user in slack
-   * (often images). e.g. ["call_ABC", "call_DEF"]`,
-   *
-   * @generated from rpc agent.tools.v1.NotebookService.SendSlackMessage
-   */
-  sendSlackMessage: {
-    methodKind: "unary";
-    input: typeof SendSlackMessageRequestSchema;
-    output: typeof SendSlackMessageResponseSchema;
+    input: typeof ExecuteCodeRequestSchema;
+    output: typeof ExecuteCodeResponseSchema;
   },
 }>;

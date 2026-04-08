@@ -35,74 +35,27 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// NotebookServiceUpdateCellsProcedure is the fully-qualified name of the NotebookService's
-	// UpdateCells RPC.
-	NotebookServiceUpdateCellsProcedure = "/agent.tools.v1.NotebookService/UpdateCells"
-	// NotebookServiceGetCellsProcedure is the fully-qualified name of the NotebookService's GetCells
-	// RPC.
-	NotebookServiceGetCellsProcedure = "/agent.tools.v1.NotebookService/GetCells"
-	// NotebookServiceListCellsProcedure is the fully-qualified name of the NotebookService's ListCells
-	// RPC.
-	NotebookServiceListCellsProcedure = "/agent.tools.v1.NotebookService/ListCells"
-	// NotebookServiceExecuteCellsProcedure is the fully-qualified name of the NotebookService's
-	// ExecuteCells RPC.
-	NotebookServiceExecuteCellsProcedure = "/agent.tools.v1.NotebookService/ExecuteCells"
-	// NotebookServiceTerminateRunProcedure is the fully-qualified name of the NotebookService's
-	// TerminateRun RPC.
-	NotebookServiceTerminateRunProcedure = "/agent.tools.v1.NotebookService/TerminateRun"
-	// NotebookServiceSendSlackMessageProcedure is the fully-qualified name of the NotebookService's
-	// SendSlackMessage RPC.
-	NotebookServiceSendSlackMessageProcedure = "/agent.tools.v1.NotebookService/SendSlackMessage"
+	// NotebookServiceExecuteCodeProcedure is the fully-qualified name of the NotebookService's
+	// ExecuteCode RPC.
+	NotebookServiceExecuteCodeProcedure = "/agent.tools.v1.NotebookService/ExecuteCode"
 )
 
 // NotebookServiceClient is a client for the agent.tools.v1.NotebookService service.
 type NotebookServiceClient interface {
-	// UpdateCell updates a cell in the document.
-	// Cell is the cell to create or update. To update
-	// an existing cell specify the ID of that cell in the ref_id field.
-	// To create a new cell leave ref_id blank.
+	// ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
+	// stdout/stderr string.
 	//
-	// You can use cell.metadata["agent/summary"] to include a short summary or description of the
-	// cell. You should set the description so that its useful for deciding what cells you should read
-	// to answer the user's queries.
+	// Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
+	// tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
+	//   - await help() to inspect the top-level helper API.
+	//   - await notebooks.help() or await notebooks.help("<method>") to inspect notebook APIs.
+	//   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
+	//     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
+	//   - use console.log(...) to return concise status and requested values to the user.
 	//
-	// UpdateCellResponse will include cell id and metadata of the updated cells.
-	UpdateCells(context.Context, *connect.Request[v1.UpdateCellsRequest]) (*connect.Response[v1.UpdateCellsResponse], error)
-	// GetCells fetches the cells with the given ref_ids.
-	// Use this to read the contents of cells in the notebook.
-	GetCells(context.Context, *connect.Request[v1.GetCellsRequest]) (*connect.Response[v1.GetCellsResponse], error)
-	// ListCells lists the cells in a notebook.
-	// Important: Only the ref_id and metadata will be populated. You should use that to decide
-	// which cells to read.
-	ListCells(context.Context, *connect.Request[v1.ListCellsRequest]) (*connect.Response[v1.ListCellsResponse], error)
-	// ExecuteCells executes the cells with the given ids in a notebook.
-	// Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
-	// cells. The response will contain the cell including the outputs of execution.
-	ExecuteCells(context.Context, *connect.Request[v1.NotebookServiceExecuteCellsRequest]) (*connect.Response[v1.NotebookServiceExecuteCellsResponse], error)
-	// TerminateRun terminates the run. Call this when no further processing is necessary to handle
-	// the user request.
-	TerminateRun(context.Context, *connect.Request[v1.TerminateRunRequest]) (*connect.Response[v1.TerminateRunResponse], error)
-	// TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-	//
-	// SlackMessageRequest sends a slack message to the user.
-	// Channel is The channel to send the message to e.g. "C09DF7PL6K0".
-	// Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
-	// If no slack channel was included in the request, do not invoke this tool.
-	//
-	// timestamp it the (unique identifier) of the slack thread you want to post into e.g.
-	// 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
-	// "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
-	// request, you may omit this property which will start a new thread.`,
-	//
-	// text is the message that the user will see in slack.
-	//
-	//	A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
-	//	```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
-	//	@channel in this message.",
-	//
-	// fileIDs optionally send files generated as part of the investigation to the user in slack
-	// (often images). e.g. ["call_ABC", "call_DEF"]`,
-	SendSlackMessage(context.Context, *connect.Request[v1.SendSlackMessageRequest]) (*connect.Response[v1.SendSlackMessageResponse], error)
+	// Prefer small, precise JS snippets and use top-level await for async helper calls so the command
+	// finishes only after notebook operations and executions complete.
+	ExecuteCode(context.Context, *connect.Request[v1.ExecuteCodeRequest]) (*connect.Response[v1.ExecuteCodeResponse], error)
 }
 
 // NewNotebookServiceClient constructs a client for the agent.tools.v1.NotebookService service. By
@@ -116,40 +69,10 @@ func NewNotebookServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 	baseURL = strings.TrimRight(baseURL, "/")
 	notebookServiceMethods := v1.File_agent_tools_v1_notebooks_proto.Services().ByName("NotebookService").Methods()
 	return &notebookServiceClient{
-		updateCells: connect.NewClient[v1.UpdateCellsRequest, v1.UpdateCellsResponse](
+		executeCode: connect.NewClient[v1.ExecuteCodeRequest, v1.ExecuteCodeResponse](
 			httpClient,
-			baseURL+NotebookServiceUpdateCellsProcedure,
-			connect.WithSchema(notebookServiceMethods.ByName("UpdateCells")),
-			connect.WithClientOptions(opts...),
-		),
-		getCells: connect.NewClient[v1.GetCellsRequest, v1.GetCellsResponse](
-			httpClient,
-			baseURL+NotebookServiceGetCellsProcedure,
-			connect.WithSchema(notebookServiceMethods.ByName("GetCells")),
-			connect.WithClientOptions(opts...),
-		),
-		listCells: connect.NewClient[v1.ListCellsRequest, v1.ListCellsResponse](
-			httpClient,
-			baseURL+NotebookServiceListCellsProcedure,
-			connect.WithSchema(notebookServiceMethods.ByName("ListCells")),
-			connect.WithClientOptions(opts...),
-		),
-		executeCells: connect.NewClient[v1.NotebookServiceExecuteCellsRequest, v1.NotebookServiceExecuteCellsResponse](
-			httpClient,
-			baseURL+NotebookServiceExecuteCellsProcedure,
-			connect.WithSchema(notebookServiceMethods.ByName("ExecuteCells")),
-			connect.WithClientOptions(opts...),
-		),
-		terminateRun: connect.NewClient[v1.TerminateRunRequest, v1.TerminateRunResponse](
-			httpClient,
-			baseURL+NotebookServiceTerminateRunProcedure,
-			connect.WithSchema(notebookServiceMethods.ByName("TerminateRun")),
-			connect.WithClientOptions(opts...),
-		),
-		sendSlackMessage: connect.NewClient[v1.SendSlackMessageRequest, v1.SendSlackMessageResponse](
-			httpClient,
-			baseURL+NotebookServiceSendSlackMessageProcedure,
-			connect.WithSchema(notebookServiceMethods.ByName("SendSlackMessage")),
+			baseURL+NotebookServiceExecuteCodeProcedure,
+			connect.WithSchema(notebookServiceMethods.ByName("ExecuteCode")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -157,92 +80,30 @@ func NewNotebookServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // notebookServiceClient implements NotebookServiceClient.
 type notebookServiceClient struct {
-	updateCells      *connect.Client[v1.UpdateCellsRequest, v1.UpdateCellsResponse]
-	getCells         *connect.Client[v1.GetCellsRequest, v1.GetCellsResponse]
-	listCells        *connect.Client[v1.ListCellsRequest, v1.ListCellsResponse]
-	executeCells     *connect.Client[v1.NotebookServiceExecuteCellsRequest, v1.NotebookServiceExecuteCellsResponse]
-	terminateRun     *connect.Client[v1.TerminateRunRequest, v1.TerminateRunResponse]
-	sendSlackMessage *connect.Client[v1.SendSlackMessageRequest, v1.SendSlackMessageResponse]
+	executeCode *connect.Client[v1.ExecuteCodeRequest, v1.ExecuteCodeResponse]
 }
 
-// UpdateCells calls agent.tools.v1.NotebookService.UpdateCells.
-func (c *notebookServiceClient) UpdateCells(ctx context.Context, req *connect.Request[v1.UpdateCellsRequest]) (*connect.Response[v1.UpdateCellsResponse], error) {
-	return c.updateCells.CallUnary(ctx, req)
-}
-
-// GetCells calls agent.tools.v1.NotebookService.GetCells.
-func (c *notebookServiceClient) GetCells(ctx context.Context, req *connect.Request[v1.GetCellsRequest]) (*connect.Response[v1.GetCellsResponse], error) {
-	return c.getCells.CallUnary(ctx, req)
-}
-
-// ListCells calls agent.tools.v1.NotebookService.ListCells.
-func (c *notebookServiceClient) ListCells(ctx context.Context, req *connect.Request[v1.ListCellsRequest]) (*connect.Response[v1.ListCellsResponse], error) {
-	return c.listCells.CallUnary(ctx, req)
-}
-
-// ExecuteCells calls agent.tools.v1.NotebookService.ExecuteCells.
-func (c *notebookServiceClient) ExecuteCells(ctx context.Context, req *connect.Request[v1.NotebookServiceExecuteCellsRequest]) (*connect.Response[v1.NotebookServiceExecuteCellsResponse], error) {
-	return c.executeCells.CallUnary(ctx, req)
-}
-
-// TerminateRun calls agent.tools.v1.NotebookService.TerminateRun.
-func (c *notebookServiceClient) TerminateRun(ctx context.Context, req *connect.Request[v1.TerminateRunRequest]) (*connect.Response[v1.TerminateRunResponse], error) {
-	return c.terminateRun.CallUnary(ctx, req)
-}
-
-// SendSlackMessage calls agent.tools.v1.NotebookService.SendSlackMessage.
-func (c *notebookServiceClient) SendSlackMessage(ctx context.Context, req *connect.Request[v1.SendSlackMessageRequest]) (*connect.Response[v1.SendSlackMessageResponse], error) {
-	return c.sendSlackMessage.CallUnary(ctx, req)
+// ExecuteCode calls agent.tools.v1.NotebookService.ExecuteCode.
+func (c *notebookServiceClient) ExecuteCode(ctx context.Context, req *connect.Request[v1.ExecuteCodeRequest]) (*connect.Response[v1.ExecuteCodeResponse], error) {
+	return c.executeCode.CallUnary(ctx, req)
 }
 
 // NotebookServiceHandler is an implementation of the agent.tools.v1.NotebookService service.
 type NotebookServiceHandler interface {
-	// UpdateCell updates a cell in the document.
-	// Cell is the cell to create or update. To update
-	// an existing cell specify the ID of that cell in the ref_id field.
-	// To create a new cell leave ref_id blank.
+	// ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
+	// stdout/stderr string.
 	//
-	// You can use cell.metadata["agent/summary"] to include a short summary or description of the
-	// cell. You should set the description so that its useful for deciding what cells you should read
-	// to answer the user's queries.
+	// Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
+	// tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
+	//   - await help() to inspect the top-level helper API.
+	//   - await notebooks.help() or await notebooks.help("<method>") to inspect notebook APIs.
+	//   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
+	//     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
+	//   - use console.log(...) to return concise status and requested values to the user.
 	//
-	// UpdateCellResponse will include cell id and metadata of the updated cells.
-	UpdateCells(context.Context, *connect.Request[v1.UpdateCellsRequest]) (*connect.Response[v1.UpdateCellsResponse], error)
-	// GetCells fetches the cells with the given ref_ids.
-	// Use this to read the contents of cells in the notebook.
-	GetCells(context.Context, *connect.Request[v1.GetCellsRequest]) (*connect.Response[v1.GetCellsResponse], error)
-	// ListCells lists the cells in a notebook.
-	// Important: Only the ref_id and metadata will be populated. You should use that to decide
-	// which cells to read.
-	ListCells(context.Context, *connect.Request[v1.ListCellsRequest]) (*connect.Response[v1.ListCellsResponse], error)
-	// ExecuteCells executes the cells with the given ids in a notebook.
-	// Use UpdateCells to write commands you want to execute then call ExecuteCells to execute the
-	// cells. The response will contain the cell including the outputs of execution.
-	ExecuteCells(context.Context, *connect.Request[v1.NotebookServiceExecuteCellsRequest]) (*connect.Response[v1.NotebookServiceExecuteCellsResponse], error)
-	// TerminateRun terminates the run. Call this when no further processing is necessary to handle
-	// the user request.
-	TerminateRun(context.Context, *connect.Request[v1.TerminateRunRequest]) (*connect.Response[v1.TerminateRunResponse], error)
-	// TODO(jlewi): Don't think this is actually supported; maybe get rid of it.
-	//
-	// SlackMessageRequest sends a slack message to the user.
-	// Channel is The channel to send the message to e.g. "C09DF7PL6K0".
-	// Typically found in the user request denoted by "Slack channel:", "slack_channel" etc.
-	// If no slack channel was included in the request, do not invoke this tool.
-	//
-	// timestamp it the (unique identifier) of the slack thread you want to post into e.g.
-	// 1757095962.288039 (may be an int or float). Typically found in the user request denoted by
-	// "Slack thread timestamp:" or "slack_thread_ts" etc, If no thread timestamp was included in the
-	// request, you may omit this property which will start a new thread.`,
-	//
-	// text is the message that the user will see in slack.
-	//
-	//	A subset of markdown is supported: `-` for bullets, *bold*, _italic_, ~strike~, `inline code`,
-	//	```multiline\ncode```, > blockquote, `<http://www.example.com|hyperlink>`. DO NOT tag @here or
-	//	@channel in this message.",
-	//
-	// fileIDs optionally send files generated as part of the investigation to the user in slack
-	// (often images). e.g. ["call_ABC", "call_DEF"]`,
-	SendSlackMessage(context.Context, *connect.Request[v1.SendSlackMessageRequest]) (*connect.Response[v1.SendSlackMessageResponse], error)
+	// Prefer small, precise JS snippets and use top-level await for async helper calls so the command
+	// finishes only after notebook operations and executions complete.
+	ExecuteCode(context.Context, *connect.Request[v1.ExecuteCodeRequest]) (*connect.Response[v1.ExecuteCodeResponse], error)
 }
 
 // NewNotebookServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -252,56 +113,16 @@ type NotebookServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewNotebookServiceHandler(svc NotebookServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	notebookServiceMethods := v1.File_agent_tools_v1_notebooks_proto.Services().ByName("NotebookService").Methods()
-	notebookServiceUpdateCellsHandler := connect.NewUnaryHandler(
-		NotebookServiceUpdateCellsProcedure,
-		svc.UpdateCells,
-		connect.WithSchema(notebookServiceMethods.ByName("UpdateCells")),
-		connect.WithHandlerOptions(opts...),
-	)
-	notebookServiceGetCellsHandler := connect.NewUnaryHandler(
-		NotebookServiceGetCellsProcedure,
-		svc.GetCells,
-		connect.WithSchema(notebookServiceMethods.ByName("GetCells")),
-		connect.WithHandlerOptions(opts...),
-	)
-	notebookServiceListCellsHandler := connect.NewUnaryHandler(
-		NotebookServiceListCellsProcedure,
-		svc.ListCells,
-		connect.WithSchema(notebookServiceMethods.ByName("ListCells")),
-		connect.WithHandlerOptions(opts...),
-	)
-	notebookServiceExecuteCellsHandler := connect.NewUnaryHandler(
-		NotebookServiceExecuteCellsProcedure,
-		svc.ExecuteCells,
-		connect.WithSchema(notebookServiceMethods.ByName("ExecuteCells")),
-		connect.WithHandlerOptions(opts...),
-	)
-	notebookServiceTerminateRunHandler := connect.NewUnaryHandler(
-		NotebookServiceTerminateRunProcedure,
-		svc.TerminateRun,
-		connect.WithSchema(notebookServiceMethods.ByName("TerminateRun")),
-		connect.WithHandlerOptions(opts...),
-	)
-	notebookServiceSendSlackMessageHandler := connect.NewUnaryHandler(
-		NotebookServiceSendSlackMessageProcedure,
-		svc.SendSlackMessage,
-		connect.WithSchema(notebookServiceMethods.ByName("SendSlackMessage")),
+	notebookServiceExecuteCodeHandler := connect.NewUnaryHandler(
+		NotebookServiceExecuteCodeProcedure,
+		svc.ExecuteCode,
+		connect.WithSchema(notebookServiceMethods.ByName("ExecuteCode")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/agent.tools.v1.NotebookService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case NotebookServiceUpdateCellsProcedure:
-			notebookServiceUpdateCellsHandler.ServeHTTP(w, r)
-		case NotebookServiceGetCellsProcedure:
-			notebookServiceGetCellsHandler.ServeHTTP(w, r)
-		case NotebookServiceListCellsProcedure:
-			notebookServiceListCellsHandler.ServeHTTP(w, r)
-		case NotebookServiceExecuteCellsProcedure:
-			notebookServiceExecuteCellsHandler.ServeHTTP(w, r)
-		case NotebookServiceTerminateRunProcedure:
-			notebookServiceTerminateRunHandler.ServeHTTP(w, r)
-		case NotebookServiceSendSlackMessageProcedure:
-			notebookServiceSendSlackMessageHandler.ServeHTTP(w, r)
+		case NotebookServiceExecuteCodeProcedure:
+			notebookServiceExecuteCodeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -311,26 +132,6 @@ func NewNotebookServiceHandler(svc NotebookServiceHandler, opts ...connect.Handl
 // UnimplementedNotebookServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedNotebookServiceHandler struct{}
 
-func (UnimplementedNotebookServiceHandler) UpdateCells(context.Context, *connect.Request[v1.UpdateCellsRequest]) (*connect.Response[v1.UpdateCellsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.UpdateCells is not implemented"))
-}
-
-func (UnimplementedNotebookServiceHandler) GetCells(context.Context, *connect.Request[v1.GetCellsRequest]) (*connect.Response[v1.GetCellsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.GetCells is not implemented"))
-}
-
-func (UnimplementedNotebookServiceHandler) ListCells(context.Context, *connect.Request[v1.ListCellsRequest]) (*connect.Response[v1.ListCellsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.ListCells is not implemented"))
-}
-
-func (UnimplementedNotebookServiceHandler) ExecuteCells(context.Context, *connect.Request[v1.NotebookServiceExecuteCellsRequest]) (*connect.Response[v1.NotebookServiceExecuteCellsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.ExecuteCells is not implemented"))
-}
-
-func (UnimplementedNotebookServiceHandler) TerminateRun(context.Context, *connect.Request[v1.TerminateRunRequest]) (*connect.Response[v1.TerminateRunResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.TerminateRun is not implemented"))
-}
-
-func (UnimplementedNotebookServiceHandler) SendSlackMessage(context.Context, *connect.Request[v1.SendSlackMessageRequest]) (*connect.Response[v1.SendSlackMessageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.SendSlackMessage is not implemented"))
+func (UnimplementedNotebookServiceHandler) ExecuteCode(context.Context, *connect.Request[v1.ExecuteCodeRequest]) (*connect.Response[v1.ExecuteCodeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.tools.v1.NotebookService.ExecuteCode is not implemented"))
 }

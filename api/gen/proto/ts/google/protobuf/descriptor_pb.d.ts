@@ -1211,6 +1211,13 @@ export interface FieldOptions_FeatureSupport {
      * @generated from protobuf field: optional google.protobuf.Edition edition_removed = 4
      */
     editionRemoved?: Edition;
+    /**
+     * The removal error text if this feature is used after the edition it was
+     * removed in.
+     *
+     * @generated from protobuf field: optional string removal_error = 5
+     */
+    removalError?: string;
 }
 /**
  * @generated from protobuf enum google.protobuf.FieldOptions.CType

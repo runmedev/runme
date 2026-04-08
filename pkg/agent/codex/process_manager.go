@@ -38,7 +38,7 @@ const (
 	defaultInitializeClientVersion   = "dev"
 )
 
-const defaultThreadDeveloperInstructions = "You are working inside a Runme notebook. When asked to inspect or modify the notebook, use the runme-notebooks MCP tools (ListCells, GetCells, UpdateCells) instead of only describing the change. Use ListCells first to inspect the current notebook before editing cells."
+const defaultThreadDeveloperInstructions = "You are working inside a Runme notebook. Use the runme-notebooks MCP tool ExecuteCode for all notebook work. ExecuteCode runs JavaScript with AppKernel helpers (runme, notebooks, help) and already wraps your code in an async function that is awaited by the host, so write top-level await statements directly and do not hide async work inside an unawaited `(async () => { ... })()` call. Start by calling await help() and await notebooks.help() (or await notebooks.help('update'|'get'|'execute')) to inspect the runtime contracts. Read notebook state with const doc = await notebooks.get(); where omitted target means the notebook currently selected in the UI. notebooks.get(target?) returns { summary, handle, notebook }; read cells from doc.notebook.cells, use doc.summary.uri for the notebook URI, and use doc.handle.revision when passing expectedRevision. Apply edits with await notebooks.update({ target: { handle: doc.handle }, expectedRevision: doc.handle.revision, operations: [...] }) and use only op=\"insert\" | \"update\" | \"remove\" mutations (append with op=\"insert\", at: { index: -1 }, cells: [{ kind: \"code\", languageId: \"python\", value: \"print(\\\"hello\\\")\" }]). Run only requested cells with await notebooks.execute({ target: { handle: doc.handle }, refIds: [...] }). notebooks.update, notebooks.execute, and notebooks.delete require an explicit target. Use console.log for concise progress output."
 
 type SessionConfig struct {
 	SessionID    string
@@ -157,6 +157,7 @@ func (p *ProcessManager) EnsureStarted(ctx context.Context) error {
 	p.stdout = stdout
 	p.stderr = stderr
 	p.client = NewClient(stdout, stdin)
+	p.client.SetServerRequestHandler(handleAppServerRequest)
 	client := p.client
 	initializeMethod := p.initializeMethod
 	initializeParams := p.initializeParams
@@ -436,6 +437,56 @@ func buildThreadStartParams(cfg SessionConfig, includeConfig bool) map[string]an
 		params["config"] = buildSessionConfigParams(cfg)
 	}
 	return params
+}
+
+func handleAppServerRequest(req jsonRPCServerRequest) (any, error) {
+	switch req.Method {
+	case "mcpServer/elicitation/request":
+		return handleMCPServerElicitationRequest(req.Params)
+	default:
+		return nil, fmt.Errorf("unsupported app-server request method %q", req.Method)
+	}
+}
+
+func handleMCPServerElicitationRequest(params json.RawMessage) (map[string]any, error) {
+	request := struct {
+		ServerName string         `json:"serverName"`
+		Mode       string         `json:"mode"`
+		Meta       map[string]any `json:"_meta"`
+	}{
+		Meta: map[string]any{},
+	}
+	if err := json.Unmarshal(params, &request); err != nil {
+		return nil, fmt.Errorf("decode mcpServer/elicitation/request params: %w", err)
+	}
+	if request.ServerName != "runme-notebooks" {
+		return map[string]any{
+			"action":  "decline",
+			"content": nil,
+			"_meta":   nil,
+		}, nil
+	}
+	if request.Mode != "form" {
+		return map[string]any{
+			"action":  "decline",
+			"content": nil,
+			"_meta":   nil,
+		}, nil
+	}
+	if request.Meta["codex_approval_kind"] != "mcp_tool_call" {
+		return map[string]any{
+			"action":  "decline",
+			"content": nil,
+			"_meta":   nil,
+		}, nil
+	}
+	return map[string]any{
+		"action":  "accept",
+		"content": map[string]any{},
+		"_meta": map[string]any{
+			"persist": "session",
+		},
+	}, nil
 }
 
 func buildTurnParams(req TurnRequest, threadID string) map[string]any {

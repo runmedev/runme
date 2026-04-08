@@ -17,6 +17,13 @@ type jsonRPCRequest struct {
 	Params  any    `json:"params,omitempty"`
 }
 
+type jsonRPCResponse struct {
+	JSONRPC string        `json:"jsonrpc"`
+	ID      int64         `json:"id"`
+	Result  any           `json:"result,omitempty"`
+	Error   *jsonRPCError `json:"error,omitempty"`
+}
+
 type jsonRPCMessage struct {
 	JSONRPC string          `json:"jsonrpc"`
 	ID      *int64          `json:"id,omitempty"`
@@ -30,6 +37,14 @@ type jsonRPCNotification struct {
 	Method string
 	Params json.RawMessage
 }
+
+type jsonRPCServerRequest struct {
+	ID     int64
+	Method string
+	Params json.RawMessage
+}
+
+type jsonRPCServerRequestHandler func(jsonRPCServerRequest) (any, error)
 
 type jsonRPCError struct {
 	Code    int    `json:"code"`
@@ -46,10 +61,11 @@ func (e *jsonRPCError) Error() string {
 // Client is a minimal JSON-RPC 2.0 client over io.Reader/io.Writer.
 // It serializes calls to preserve request/response ordering on plain stdio streams.
 type Client struct {
-	mu      sync.Mutex
-	enc     *json.Encoder
-	dec     *json.Decoder
-	nextReq atomic.Int64
+	mu                   sync.Mutex
+	enc                  *json.Encoder
+	dec                  *json.Decoder
+	nextReq              atomic.Int64
+	serverRequestHandler jsonRPCServerRequestHandler
 }
 
 func NewClient(reader io.Reader, writer io.Writer) *Client {
@@ -59,6 +75,12 @@ func NewClient(reader io.Reader, writer io.Writer) *Client {
 	}
 	c.nextReq.Store(1)
 	return c
+}
+
+func (c *Client) SetServerRequestHandler(handler jsonRPCServerRequestHandler) {
+	c.mu.Lock()
+	c.serverRequestHandler = handler
+	c.mu.Unlock()
 }
 
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
@@ -128,6 +150,16 @@ func (c *Client) CallUntil(
 			continue
 		}
 
+		if msg.Method != "" && msg.ID != nil {
+			if err := c.handleServerRequest(*msg.ID, msg.Method, msg.Params); err != nil {
+				return err
+			}
+			if responseSeen && (isDone == nil || isDone()) {
+				return nil
+			}
+			continue
+		}
+
 		// Ignore unrelated messages while waiting for our response.
 		if msg.ID == nil || *msg.ID != reqID {
 			continue
@@ -153,4 +185,39 @@ func (c *Client) CallUntil(
 			return nil
 		}
 	}
+}
+
+func (c *Client) handleServerRequest(id int64, method string, params json.RawMessage) error {
+	handler := c.serverRequestHandler
+	if handler == nil {
+		return c.enc.Encode(jsonRPCResponse{
+			JSONRPC: "2.0",
+			ID:      id,
+			Error: &jsonRPCError{
+				Code:    -32601,
+				Message: fmt.Sprintf("unsupported server request method %q", method),
+			},
+		})
+	}
+
+	result, err := handler(jsonRPCServerRequest{
+		ID:     id,
+		Method: method,
+		Params: params,
+	})
+	if err != nil {
+		return c.enc.Encode(jsonRPCResponse{
+			JSONRPC: "2.0",
+			ID:      id,
+			Error: &jsonRPCError{
+				Code:    -32000,
+				Message: err.Error(),
+			},
+		})
+	}
+	return c.enc.Encode(jsonRPCResponse{
+		JSONRPC: "2.0",
+		ID:      id,
+		Result:  result,
+	})
 }

@@ -48,6 +48,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
+	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260323112146-887f275039cd
 	github.com/rogpeppe/go-internal v1.14.1
 	github.com/rs/cors v1.11.1
 	github.com/spf13/viper v1.21.0
@@ -75,6 +76,7 @@ require (
 )
 
 require (
+	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.34.2-20240917150400-3f349e63f44a.2 // indirect
 	cel.dev/expr v0.25.1 // indirect
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/ai v0.8.0 // indirect
@@ -167,6 +169,7 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
+	github.com/redpanda-data/common-go/api v0.0.0-20250801174835-9eea07f1ea06 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/sanity-io/litter v1.5.5 // indirect
 	github.com/securego/gosec/v2 v2.22.1 // indirect
@@ -196,7 +199,7 @@ require (
 	google.golang.org/genproto v0.0.0-20260406154035-8fb7ec149431 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260406154035-8fb7ec149431 // indirect
 	gvisor.dev/gvisor v0.0.0-20250318191406-9e676ea1de20 // indirect
-	honnef.co/go/tools v0.6.0 // indirect
+	honnef.co/go/tools v0.7.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260330154417-16be699c7b31 // indirect
 	mvdan.cc/gofumpt v0.7.0 // indirect
 )

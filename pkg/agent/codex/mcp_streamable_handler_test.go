@@ -4,15 +4,13 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 )
 
 func TestStreamableMCPHandler_RequiresBearerToken(t *testing.T) {
 	bridge := NewToolBridge(nil)
 	tokens := NewSessionTokenManager(0)
-	approvals := NewExecuteApprovalManager(0)
-	handler, err := NewStreamableMCPHandler(bridge, tokens, approvals)
+	handler, err := NewStreamableMCPHandler(bridge, tokens)
 	if err != nil {
 		t.Fatalf("NewStreamableMCPHandler returned error: %v", err)
 	}
@@ -31,8 +29,7 @@ func TestStreamableMCPHandler_RequiresBearerToken(t *testing.T) {
 func TestStreamableMCPHandler_AllowsAuthorizedInitialize(t *testing.T) {
 	bridge := NewToolBridge(nil)
 	tokens := NewSessionTokenManager(0)
-	approvals := NewExecuteApprovalManager(0)
-	handler, err := NewStreamableMCPHandler(bridge, tokens, approvals)
+	handler, err := NewStreamableMCPHandler(bridge, tokens)
 	if err != nil {
 		t.Fatalf("NewStreamableMCPHandler returned error: %v", err)
 	}
@@ -68,8 +65,7 @@ func TestStreamableMCPHandler_AllowsAuthorizedInitialize(t *testing.T) {
 func TestStreamableMCPHandler_AllowsQueryTokenInitialize(t *testing.T) {
 	bridge := NewToolBridge(nil)
 	tokens := NewSessionTokenManager(0)
-	approvals := NewExecuteApprovalManager(0)
-	handler, err := NewStreamableMCPHandler(bridge, tokens, approvals)
+	handler, err := NewStreamableMCPHandler(bridge, tokens)
 	if err != nil {
 		t.Fatalf("NewStreamableMCPHandler returned error: %v", err)
 	}
@@ -101,30 +97,9 @@ func TestStreamableMCPHandler_AllowsQueryTokenInitialize(t *testing.T) {
 	}
 }
 
-func TestParseApprovedRefIDs(t *testing.T) {
-	tests := []struct {
-		name string
-		in   string
-		want []string
-	}{
-		{name: "empty", in: "", want: nil},
-		{name: "single", in: "cell-1", want: []string{"cell-1"}},
-		{name: "csv with spaces", in: "cell-1, cell-2 , ,cell-3", want: []string{"cell-1", "cell-2", "cell-3"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := parseApprovedRefIDs(tt.in)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Fatalf("parseApprovedRefIDs(%q) = %#v, want %#v", tt.in, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestNewStreamableMCPHandler_RequiresApprovalManager(t *testing.T) {
+func TestNewStreamableMCPHandler_RequiresTokenManager(t *testing.T) {
 	bridge := NewToolBridge(nil)
-	tokens := NewSessionTokenManager(0)
-	if _, err := NewStreamableMCPHandler(bridge, tokens, nil); err == nil {
-		t.Fatalf("NewStreamableMCPHandler should require an approval manager")
+	if _, err := NewStreamableMCPHandler(bridge, nil); err == nil {
+		t.Fatalf("NewStreamableMCPHandler should require a token manager")
 	}
 }
