@@ -842,6 +842,39 @@ A paragraph
 			string(result),
 		)
 	})
+
+	t.Run("FencedCodeBlockAfterListItemParagraph", func(t *testing.T) {
+		bulletMD := []byte(`- After approving the network permission prompt, retry the request with certificate verification disabled so the site can be contacted despite the untrusted chain.
+` + "```" + `bash
+curl -k -i https://hello.visr.dev
+` + "```" + `
+`)
+
+		notebook, err := Deserialize(bulletMD, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		require.GreaterOrEqual(t, len(notebook.Cells), 2)
+
+		foundCodeCell := false
+		for _, cell := range notebook.Cells {
+			if cell.Kind == CodeKind && cell.LanguageID == "bash" {
+				foundCodeCell = true
+				require.Contains(t, cell.Value, "curl -k -i https://hello.visr.dev")
+			}
+		}
+		require.True(t, foundCodeCell, "expected a bash code cell from fenced block")
+
+		result, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+
+		expected := `- After approving the network permission prompt, retry the request with certificate verification disabled so the site can be contacted despite the untrusted chain.
+
+` + "```" + `bash
+curl -k -i https://hello.visr.dev
+` + "```" + `
+`
+		assert.Equal(t, expected, string(result))
+	})
 }
 
 func TestEditor_AttributeFormat(t *testing.T) {
