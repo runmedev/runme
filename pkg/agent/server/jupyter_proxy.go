@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -185,30 +186,34 @@ func (h *jupyterProxyHandler) forwardHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	upstreamURL, err := buildUpstreamURL(server.BaseURL, upstreamPath, r.URL.RawQuery)
+	requestBody, err := readProxyRequestBody(r)
 	if err != nil {
-		writeHTTPError(w, http.StatusInternalServerError, "failed to construct upstream url")
+		log.Error(err, "failed to read jupyter proxy request body", "server", serverName)
+		writeHTTPError(w, http.StatusBadRequest, "failed to read request body")
 		return
 	}
-	setUpstreamAuthToken(upstreamURL, server.Token)
 
-	var body io.Reader
-	if r.Body != nil {
-		body = r.Body
-	}
-	upstreamReq, err := http.NewRequestWithContext(ctx, r.Method, upstreamURL.String(), body)
+	resp, err := h.doJupyterHTTPRequest(ctx, r, server, upstreamPath, requestBody)
 	if err != nil {
-		writeHTTPError(w, http.StatusInternalServerError, "failed to build upstream request")
-		return
-	}
-	copyProxyRequestHeaders(upstreamReq.Header, r.Header)
-	upstreamReq.Header.Set("Authorization", "token "+server.Token)
-
-	resp, err := h.httpClient.Do(upstreamReq)
-	if err != nil {
-		log.Error(err, "Jupyter upstream request failed", "server", serverName, "url", upstreamURL.String())
+		log.Error(err, "Jupyter upstream request failed", "server", serverName)
 		writeHTTPError(w, http.StatusBadGateway, "failed to contact jupyter server")
 		return
+	}
+
+	if resp.StatusCode == http.StatusForbidden {
+		refreshedServer, refreshErr := h.registry.ResolveRefreshed(serverName)
+		if refreshErr != nil {
+			log.Error(refreshErr, "failed to refresh jupyter server config after forbidden response", "server", serverName)
+		} else if shouldRetryJupyterRequestWithRefreshedToken(server, refreshedServer) {
+			log.Info("retrying jupyter request with refreshed token", "server", serverName, "method", r.Method)
+			resp.Body.Close()
+			resp, err = h.doJupyterHTTPRequest(ctx, r, refreshedServer, upstreamPath, requestBody)
+			if err != nil {
+				log.Error(err, "Jupyter upstream retry failed", "server", serverName)
+				writeHTTPError(w, http.StatusBadGateway, "failed to contact jupyter server")
+				return
+			}
+		}
 	}
 	defer resp.Body.Close()
 
@@ -217,6 +222,44 @@ func (h *jupyterProxyHandler) forwardHTTP(w http.ResponseWriter, r *http.Request
 	if _, err := io.Copy(w, resp.Body); err != nil {
 		log.Error(err, "failed to copy jupyter response body")
 	}
+}
+
+func (h *jupyterProxyHandler) doJupyterHTTPRequest(ctx context.Context, r *http.Request, server jupyterServerRecord, upstreamPath string, requestBody []byte) (*http.Response, error) {
+	upstreamURL, err := buildUpstreamURL(server.BaseURL, upstreamPath, r.URL.RawQuery)
+	if err != nil {
+		return nil, errors.New("failed to construct upstream url")
+	}
+	setUpstreamAuthToken(upstreamURL, server.Token)
+
+	var body io.Reader
+	if len(requestBody) > 0 {
+		body = bytes.NewReader(requestBody)
+	}
+	upstreamReq, err := http.NewRequestWithContext(ctx, r.Method, upstreamURL.String(), body)
+	if err != nil {
+		return nil, errors.New("failed to build upstream request")
+	}
+	copyProxyRequestHeaders(upstreamReq.Header, r.Header)
+	upstreamReq.Header.Set("Authorization", "token "+server.Token)
+
+	resp, err := h.httpClient.Do(upstreamReq)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func readProxyRequestBody(r *http.Request) ([]byte, error) {
+	if r.Body == nil {
+		return nil, nil
+	}
+	return io.ReadAll(r.Body)
+}
+
+func shouldRetryJupyterRequestWithRefreshedToken(oldServer, newServer jupyterServerRecord) bool {
+	oldToken := strings.TrimSpace(oldServer.Token)
+	newToken := strings.TrimSpace(newServer.Token)
+	return newToken != "" && newToken != oldToken
 }
 
 func (h *jupyterProxyHandler) forwardChannelsWebSocket(w http.ResponseWriter, r *http.Request, serverName, kernelID string) {
@@ -371,6 +414,23 @@ func (r *jupyterServerRegistry) Resolve(name string) (jupyterServerRecord, error
 
 	r.mu.RLock()
 	server, ok = r.servers[name]
+	r.mu.RUnlock()
+	if !ok {
+		return jupyterServerRecord{}, fmt.Errorf("jupyter server %q not found", name)
+	}
+	return server, nil
+}
+
+func (r *jupyterServerRegistry) ResolveRefreshed(name string) (jupyterServerRecord, error) {
+	if strings.TrimSpace(name) == "" {
+		return jupyterServerRecord{}, errors.New("server name is required")
+	}
+	if err := r.reload(); err != nil {
+		return jupyterServerRecord{}, err
+	}
+
+	r.mu.RLock()
+	server, ok := r.servers[name]
 	r.mu.RUnlock()
 	if !ok {
 		return jupyterServerRecord{}, fmt.Errorf("jupyter server %q not found", name)

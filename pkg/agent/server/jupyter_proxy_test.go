@@ -1,8 +1,15 @@
 package server
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -113,5 +120,90 @@ func TestSanitizeClientQueryForUpstream_InvalidQueryPassthrough(t *testing.T) {
 	const raw = "%zz=1"
 	if got := sanitizeClientQueryForUpstream(raw); got != raw {
 		t.Fatalf("expected invalid query to pass through, got %q", got)
+	}
+}
+
+func TestForwardHTTP_ReloadsTokenAfterForbidden(t *testing.T) {
+	var tokens []string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.URL.Query().Get("token")
+		tokens = append(tokens, token)
+
+		if got := r.Header.Get("Authorization"); got != "token "+token {
+			t.Errorf("Authorization header = %q, want %q", got, "token "+token)
+		}
+		if token == "old-token" {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		if token != "new-token" {
+			t.Errorf("unexpected token %q", token)
+			http.Error(w, "unexpected token", http.StatusBadRequest)
+			return
+		}
+		if got := r.URL.Path; got != "/api/kernels" {
+			t.Errorf("upstream path = %q, want /api/kernels", got)
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("failed to read upstream request body: %v", err)
+		}
+		if got := strings.TrimSpace(string(body)); got != `{"name":"python3"}` {
+			t.Errorf("upstream request body = %q, want %q", got, `{"name":"python3"}`)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"kernel-1","name":"python3"}`))
+	}))
+	defer upstream.Close()
+
+	configDir := t.TempDir()
+	writeJupyterServerConfig(t, configDir, "port-8890", upstream.URL, "old-token")
+	handler, err := newJupyterProxyHandler(configDir)
+	if err != nil {
+		t.Fatalf("newJupyterProxyHandler failed: %v", err)
+	}
+	writeJupyterServerConfig(t, configDir, "port-8890", upstream.URL, "new-token")
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/jupyter/servers/port-8890/kernels",
+		strings.NewReader(`{"name":"python3"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusCreated, rec.Body.String())
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != `{"id":"kernel-1","name":"python3"}` {
+		t.Fatalf("body = %q, want created kernel JSON", got)
+	}
+	wantTokens := []string{"old-token", "new-token"}
+	if !reflect.DeepEqual(tokens, wantTokens) {
+		t.Fatalf("upstream tokens = %v, want %v", tokens, wantTokens)
+	}
+}
+
+func writeJupyterServerConfig(t *testing.T, configDir, name, baseURL, token string) {
+	t.Helper()
+	jupyterDir := filepath.Join(configDir, jupyterConfigDir)
+	if err := os.MkdirAll(jupyterDir, 0o755); err != nil {
+		t.Fatalf("failed to create jupyter config dir: %v", err)
+	}
+	payload := map[string]string{
+		"base_url": baseURL,
+		"token":    token,
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal jupyter config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(jupyterDir, name+".json"), raw, 0o600); err != nil {
+		t.Fatalf("failed to write jupyter config: %v", err)
 	}
 }
