@@ -33,6 +33,9 @@ type WebSocketHandler struct {
 	// tapFactory creates a StreamTap per run. May be nil (no recording).
 	tapFactory TapFactory
 
+	// preprocessor transforms initial ExecuteRequests before execution. May be nil.
+	preprocessor RequestPreprocessor
+
 	mu   sync.Mutex
 	runs map[string]*Multiplexer
 }
@@ -51,6 +54,15 @@ func (h *WebSocketHandler) SetTapFactory(factory TapFactory) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.tapFactory = factory
+}
+
+// SetRequestPreprocessor configures a function that transforms initial
+// ExecuteRequests (those with Config) before they reach the runner.
+// If preprocessor is nil, requests pass through unchanged.
+func (h *WebSocketHandler) SetRequestPreprocessor(preprocessor RequestPreprocessor) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.preprocessor = preprocessor
 }
 
 // Handler is the main handler mounted in a mux to handle websocket connection upgrades.
@@ -120,7 +132,7 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 		if h.tapFactory != nil {
 			tap = h.tapFactory(runID)
 		}
-		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner, tap)
+		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner, tap, h.preprocessor)
 		h.runs[runID] = multiplex
 	}
 
