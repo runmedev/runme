@@ -45,6 +45,9 @@ type Multiplexer struct {
 	// tap receives session lifecycle and data events. Never nil (uses noopTap as default).
 	tap StreamTap
 
+	// preprocessor transforms initial ExecuteRequests before they reach the runner. May be nil.
+	preprocessor RequestPreprocessor
+
 	// authedWebsocketRequests is a channel that receives socket requests from authenticated clients.
 	authedWebsocketRequests chan *streamv1.WebsocketRequest
 
@@ -55,7 +58,8 @@ type Multiplexer struct {
 
 // NewMultiplexer creates a new Multiplexer (see description above).
 // tap may be nil, in which case recording is disabled.
-func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, runner *runme.Runner, tap StreamTap) *Multiplexer {
+// preprocessor may be nil, in which case requests pass through unchanged.
+func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, runner *runme.Runner, tap StreamTap, preprocessor RequestPreprocessor) *Multiplexer {
 	if tap == nil {
 		tap = noopTap{}
 	}
@@ -64,10 +68,11 @@ func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, ru
 		ctx:    ctx,
 		cancel: cancel,
 
-		runID:  runID,
-		auth:   auth,
-		runner: runner,
-		tap:    tap,
+		runID:        runID,
+		auth:         auth,
+		runner:       runner,
+		tap:          tap,
+		preprocessor: preprocessor,
 	}
 
 	m.authedWebsocketRequests = make(chan *streamv1.WebsocketRequest, 100)
@@ -235,6 +240,16 @@ func (m *Multiplexer) process() (wait bool) {
 			// Record winsize changes.
 			if ws := execReq.GetWinsize(); ws != nil {
 				m.tap.Resize(ws.GetCols(), ws.GetRows())
+			}
+
+			// Preprocess the initial request (Config present) before recording and execution.
+			if cfg := execReq.GetConfig(); cfg != nil && m.preprocessor != nil {
+				modified, ppErr := m.preprocessor(execReq)
+				if ppErr != nil {
+					log.Error(ppErr, "Request preprocessor failed, passing original request")
+				} else {
+					execReq = modified
+				}
 			}
 
 			// Record command start when a Config is present (first request).

@@ -1,5 +1,9 @@
 package stream
 
+import (
+	v2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
+)
+
 // StreamTap receives lifecycle and data events from the multiplexer.
 // Implementations must be safe for concurrent use.
 //
@@ -48,6 +52,14 @@ type StreamTap interface {
 // TapFactory creates a StreamTap for a given runID.
 // If nil is returned, recording is disabled for that run.
 type TapFactory func(runID string) StreamTap
+
+// RequestPreprocessor transforms an ExecuteRequest before it reaches
+// the runner. Only the initial request (Config != nil) is preprocessed;
+// subsequent input-only requests pass through unchanged.
+//
+// Implementations may modify the request in place and return it, or
+// return a new request. Returning an error aborts the request.
+type RequestPreprocessor func(req *v2.ExecuteRequest) (*v2.ExecuteRequest, error)
 
 // noopTap is a StreamTap that discards all events.
 type noopTap struct{}
