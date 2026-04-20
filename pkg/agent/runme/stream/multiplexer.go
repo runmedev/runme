@@ -21,6 +21,14 @@ import (
 // Stream client grace period (package-level, for testability).
 var ClientGracePeriod = 30 * time.Second
 
+// MultiplexerOptions configures runtime behavior for a Multiplexer.
+type MultiplexerOptions struct {
+	// ClientGracePeriod is how long to wait in close() before force-closing
+	// websocket streams, giving clients a chance to close first.
+	// If <= 0, defaults to ClientGracePeriod.
+	ClientGracePeriod time.Duration
+}
+
 // Multiplexer timeout and interval for inactivity (package-level, for testability).
 var (
 	MultiplexerTimeout  = 20 * time.Minute
@@ -51,6 +59,9 @@ type Multiplexer struct {
 	// authedWebsocketRequests is a channel that receives socket requests from authenticated clients.
 	authedWebsocketRequests chan *streamv1.WebsocketRequest
 
+	// clientGracePeriod controls the close grace period for websocket clients.
+	clientGracePeriod time.Duration
+
 	mu sync.Mutex
 	// p is the processor that is currently processing messages. If p is nil then no run against runme.Runner is currently processing
 	p *Processor
@@ -59,20 +70,26 @@ type Multiplexer struct {
 // NewMultiplexer creates a new Multiplexer (see description above).
 // tap may be nil, in which case recording is disabled.
 // preprocessor may be nil, in which case requests pass through unchanged.
-func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, runner *runme.Runner, tap StreamTap, preprocessor RequestPreprocessor) *Multiplexer {
+func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, runner *runme.Runner, tap StreamTap, preprocessor RequestPreprocessor, options *MultiplexerOptions) *Multiplexer {
 	if tap == nil {
 		tap = noopTap{}
 	}
+	clientGracePeriod := ClientGracePeriod
+	if options != nil && options.ClientGracePeriod > 0 {
+		clientGracePeriod = options.ClientGracePeriod
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	m := &Multiplexer{
 		ctx:    ctx,
 		cancel: cancel,
 
-		runID:        runID,
-		auth:         auth,
-		runner:       runner,
-		tap:          tap,
-		preprocessor: preprocessor,
+		runID:             runID,
+		auth:              auth,
+		runner:            runner,
+		tap:               tap,
+		preprocessor:      preprocessor,
+		clientGracePeriod: clientGracePeriod,
 	}
 
 	m.authedWebsocketRequests = make(chan *streamv1.WebsocketRequest, 100)
@@ -166,7 +183,7 @@ func (m *Multiplexer) close() {
 	}
 	m.setInflight(nil)
 	// Wait for the client grace period to give the client a chance to close the connection.
-	time.Sleep(ClientGracePeriod)
+	time.Sleep(m.clientGracePeriod)
 	// With Runme's execution finished we can close all websocket connections.
 	m.streams.close(m.ctx)
 

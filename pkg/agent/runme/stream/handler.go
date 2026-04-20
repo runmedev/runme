@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -36,6 +37,10 @@ type WebSocketHandler struct {
 	// preprocessor transforms initial ExecuteRequests before execution. May be nil.
 	preprocessor RequestPreprocessor
 
+	// clientGracePeriod, when > 0, overrides the default multiplexer client
+	// close grace period.
+	clientGracePeriod time.Duration
+
 	mu   sync.Mutex
 	runs map[string]*Multiplexer
 }
@@ -63,6 +68,14 @@ func (h *WebSocketHandler) SetRequestPreprocessor(preprocessor RequestPreprocess
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.preprocessor = preprocessor
+}
+
+// SetClientGracePeriod overrides the multiplexer client close grace period.
+// If d <= 0, the multiplexer default (ClientGracePeriod) is used.
+func (h *WebSocketHandler) SetClientGracePeriod(d time.Duration) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.clientGracePeriod = d
 }
 
 // Handler is the main handler mounted in a mux to handle websocket connection upgrades.
@@ -132,7 +145,12 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 		if h.tapFactory != nil {
 			tap = h.tapFactory(runID)
 		}
-		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner, tap, h.preprocessor)
+		var options *MultiplexerOptions
+		if h.clientGracePeriod > 0 {
+			options = &MultiplexerOptions{ClientGracePeriod: h.clientGracePeriod}
+		}
+
+		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner, tap, h.preprocessor, options)
 		h.runs[runID] = multiplex
 	}
 
