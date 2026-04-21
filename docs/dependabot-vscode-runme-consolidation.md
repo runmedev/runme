@@ -1,8 +1,8 @@
-# Consolidation plan for runmedev/vscode-runme Dependabot PRs
+# Consolidation execution for runmedev/vscode-runme Dependabot PRs
 
-Date audited: 2026-04-21
+Date executed: 2026-04-21
 
-## Passing Dependabot PRs detected
+## Passing Dependabot PRs audited
 
 - #2269 `axios` 1.13.6 → 1.15.0
 - #2268 `basic-ftp` 5.2.0 → 5.2.2
@@ -16,21 +16,42 @@ Date audited: 2026-04-21
 - #2192 `@connectrpc/connect-node` 1.6.1 → 1.7.0
 - #2140 `eslint-import-resolver-typescript` 3.8.5 → 4.4.4
 
-## Suggested single-branch consolidation workflow
+## Execution log
+
+I executed the merge workflow in a fresh local clone of `runmedev/vscode-runme` on branch `chore/consolidate-passing-dependabot`.
+
+Merged cleanly:
+- #2269
+- #2268
+- #2266
+- #2264
+
+Blocked by merge conflict:
+- #2255 (`ajv`)
+- conflict file: `package-lock.json`
+
+Conflict observed:
+
+```text
+Auto-merging package-lock.json
+CONFLICT (content): Merge conflict in package-lock.json
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+## Command sequence used
 
 ```bash
-# in a local clone of runmedev/vscode-runme
-git checkout main
-git pull --ff-only
-git checkout -b chore/consolidate-passing-dependabot
+git reset --hard origin/main
+git clean -fd
+git checkout -B chore/consolidate-passing-dependabot
 
 for pr in 2269 2268 2266 2264 2255 2247 2246 2243 2236 2192 2140; do
   git fetch origin pull/$pr/head:pr-$pr
-  git merge --no-edit pr-$pr || break
+  git merge --no-edit pr-$pr
+  # stopped at first conflict (PR #2255)
 done
-
-npm ci
-npm test
 ```
 
-If lockfile conflicts occur, resolve by re-running `npm install` for the requested package versions, then re-run test/CI.
+## Next step to finish consolidation
+
+Resolve `package-lock.json` for PR #2255, commit, then continue merging the remaining passing PR branches (#2247, #2246, #2243, #2236, #2192, #2140).
