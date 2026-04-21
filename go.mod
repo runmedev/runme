@@ -56,7 +56,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.32
 	github.com/xo/dburl v0.24.2
 	github.com/yuin/goldmark v1.8.2
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.43.0
 	go.opentelemetry.io/otel/sdk v1.43.0
