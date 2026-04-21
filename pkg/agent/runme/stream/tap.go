@@ -58,7 +58,11 @@ type TapFactory func(runID string) StreamTap
 // subsequent input-only requests pass through unchanged.
 //
 // Implementations may modify the request in place and return it, or
-// return a new request. Returning an error aborts the request.
+// return a new request. If an error is returned, the multiplexer logs
+// the failure and falls back to the original request.
+//
+// Returning a nil request is invalid and is treated as a preprocessor
+// failure; the original request is used.
 type RequestPreprocessor func(req *v2.ExecuteRequest) (*v2.ExecuteRequest, error)
 
 // noopTap is a StreamTap that discards all events.

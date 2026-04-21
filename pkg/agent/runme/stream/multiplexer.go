@@ -183,6 +183,8 @@ func (m *Multiplexer) close() {
 	}
 	m.setInflight(nil)
 	// Wait for the client grace period to give the client a chance to close the connection.
+	// Intentionally do not short-circuit on m.ctx.Done(); this grace period gives
+	// clients a chance to receive disconnect signaling triggered by cancellation.
 	time.Sleep(m.clientGracePeriod)
 	// With Runme's execution finished we can close all websocket connections.
 	m.streams.close(m.ctx)
@@ -264,6 +266,8 @@ func (m *Multiplexer) process() (wait bool) {
 				modified, ppErr := m.preprocessor(execReq)
 				if ppErr != nil {
 					log.Error(ppErr, "Request preprocessor failed, passing original request")
+				} else if modified == nil {
+					log.Error(errors.New("request preprocessor returned nil request"), "Passing original request")
 				} else {
 					execReq = modified
 				}
