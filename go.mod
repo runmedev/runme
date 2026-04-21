@@ -7,9 +7,9 @@ module github.com/runmedev/runme/v3
 go 1.26.1
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
 	buf.build/go/protovalidate v1.1.3
-	cloud.google.com/go/secretmanager v1.17.0
+	cloud.google.com/go/secretmanager v1.19.0
 	connectrpc.com/connect v1.19.1
 	connectrpc.com/cors v0.1.0
 	connectrpc.com/grpchealth v1.4.0
@@ -39,8 +39,8 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jhump/protoreflect v1.18.0
 	github.com/jlewi/monogo v0.0.0-20241216141120-2e83e825aa81
-	github.com/mark3labs/mcp-go v0.47.0
-	github.com/mattn/go-isatty v0.0.20
+	github.com/mark3labs/mcp-go v0.48.0
+	github.com/mattn/go-isatty v0.0.21
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
 	github.com/oklog/ulid/v2 v2.1.1
@@ -65,8 +65,8 @@ require (
 	go.uber.org/multierr v1.11.0
 	golang.org/x/net v0.52.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sys v0.42.0
-	golang.org/x/term v0.41.0
+	golang.org/x/sys v0.43.0
+	golang.org/x/term v0.42.0
 	google.golang.org/api v0.274.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260406154035-8fb7ec149431
 	google.golang.org/protobuf v1.36.11
@@ -244,7 +244,7 @@ require (
 	github.com/Khan/genqlient v0.8.1
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/elliotchance/orderedmap v1.8.0
-	github.com/go-git/go-git/v5 v5.17.2
+	github.com/go-git/go-git/v5 v5.18.0
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/golang-jwt/jwt/v4 v4.5.2
