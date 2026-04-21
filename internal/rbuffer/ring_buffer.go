@@ -9,33 +9,43 @@ import (
 
 var ErrClosed = errors.New("buffer closed")
 
+// RingBuffer is a bounded, concurrent-safe byte buffer that applies
+// backpressure on Write when full instead of overwriting unread data.
+//
+// Semantics:
+//   - Write blocks until all bytes in p have been written, or until
+//     Close is called (in which case it returns ErrClosed with the count
+//     written so far). It never discards unread data.
+//   - Read blocks until at least one byte is available or the buffer is
+//     closed and drained (in which case it returns io.EOF).
+//   - Close wakes all blocked readers and writers; subsequent Writes
+//     return ErrClosed, Reads return any remaining data then io.EOF.
 type RingBuffer struct {
-	mu         sync.Mutex
-	buf        []byte
-	size       int
-	r          int // next position to read
-	w          int // next position to write
-	isFull     bool
-	writeTrims *atomic.Int64
-	closed     *atomic.Bool
-	close      chan struct{}
-	more       chan struct{}
+	mu     sync.Mutex
+	cond   *sync.Cond // signals data-available, space-available, or closed
+	buf    []byte
+	size   int
+	r      int // next position to read
+	w      int // next position to write
+	isFull bool
+	closed *atomic.Bool
 }
 
 func NewRingBuffer(size int) *RingBuffer {
-	return &RingBuffer{
-		buf:        make([]byte, size),
-		size:       size,
-		writeTrims: &atomic.Int64{},
-		closed:     &atomic.Bool{},
-		close:      make(chan struct{}),
-		more:       make(chan struct{}),
+	b := &RingBuffer{
+		buf:    make([]byte, size),
+		size:   size,
+		closed: &atomic.Bool{},
 	}
+	b.cond = sync.NewCond(&b.mu)
+	return b
 }
 
 func (b *RingBuffer) Close() error {
 	if b.closed.CompareAndSwap(false, true) {
-		close(b.close)
+		b.mu.Lock()
+		b.cond.Broadcast()
+		b.mu.Unlock()
 	}
 	return nil
 }
@@ -44,66 +54,77 @@ func (b *RingBuffer) Reset() {
 	b.mu.Lock()
 	b.r = 0
 	b.w = 0
+	b.isFull = false
+	b.cond.Broadcast()
 	b.mu.Unlock()
 }
 
-func (b *RingBuffer) Read(p []byte) (n int, err error) {
+// Read blocks until at least one byte is available, the buffer is
+// closed and drained, or p is empty.
+func (b *RingBuffer) Read(p []byte) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
 
 	b.mu.Lock()
-	n, err = b.read(p)
-	b.mu.Unlock()
+	defer b.mu.Unlock()
 
-	if err != nil && errors.Is(err, io.EOF) && !b.closed.Load() {
-		select {
-		case <-b.more:
-		case <-b.close:
+	for {
+		if b.w != b.r || b.isFull {
+			return b.readLocked(p), nil
+		}
+		if b.closed.Load() {
 			return 0, io.EOF
 		}
-		return n, nil
+		b.cond.Wait()
 	}
-
-	return n, err
 }
 
-func (b *RingBuffer) read(p []byte) (n int, err error) {
+// read is the internal non-blocking read used by tests. It returns
+// io.EOF when the buffer is empty.
+func (b *RingBuffer) read(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	if b.w == b.r && !b.isFull {
 		return 0, io.EOF
 	}
+	return b.readLocked(p), nil
+}
 
+// readLocked copies up to len(p) bytes into p and advances r. Caller
+// must hold b.mu and ensure data is available.
+func (b *RingBuffer) readLocked(p []byte) int {
+	var n int
 	if b.w > b.r {
 		n = b.w - b.r
 		if n > len(p) {
 			n = len(p)
 		}
 		copy(p, b.buf[b.r:b.r+n])
-		b.r = (b.r + n) % b.size
-		b.isFull = false
-		return
-	}
-
-	n = b.size - b.r + b.w
-	if n > len(p) {
-		n = len(p)
-	}
-
-	if b.r+n <= b.size {
-		copy(p, b.buf[b.r:b.r+n])
 	} else {
-		copy(p, b.buf[b.r:b.size])
-		c1 := b.size - b.r
-		c2 := n - c1
-		copy(p[c1:], b.buf[0:c2])
+		n = b.size - b.r + b.w
+		if n > len(p) {
+			n = len(p)
+		}
+		if b.r+n <= b.size {
+			copy(p, b.buf[b.r:b.r+n])
+		} else {
+			c1 := b.size - b.r
+			copy(p, b.buf[b.r:b.size])
+			copy(p[c1:], b.buf[0:n-c1])
+		}
 	}
 	b.r = (b.r + n) % b.size
 	b.isFull = false
-
-	return n, err
+	b.cond.Broadcast()
+	return n
 }
 
-func (b *RingBuffer) Write(p []byte) (n int, err error) {
+// Write blocks until all of p has been written, applying backpressure
+// when the buffer is full instead of discarding unread data. If Close
+// is called while Write is blocked, it returns ErrClosed along with
+// the number of bytes successfully written so far.
+func (b *RingBuffer) Write(p []byte) (int, error) {
 	if b.closed.Load() {
 		return 0, ErrClosed
 	}
@@ -112,67 +133,55 @@ func (b *RingBuffer) Write(p []byte) (n int, err error) {
 	}
 
 	b.mu.Lock()
-	n, err = b.write(p)
-	b.mu.Unlock()
+	defer b.mu.Unlock()
 
-	select {
-	case b.more <- struct{}{}:
-	default:
-	}
-
-	return n, err
-}
-
-func (b *RingBuffer) write(p []byte) (n int, err error) {
-	if len(p) > b.size {
-		p = p[len(p)-b.size:]
-		b.writeTrims.Add(1)
-	}
-
-	var avail int
-	if b.w >= b.r {
-		avail = b.size - b.w + b.r
-	} else {
-		avail = b.r - b.w
-	}
-
-	n = len(p)
-
-	if len(p) >= avail {
-		b.isFull = true
-		b.writeTrims.Add(1)
-		b.r = b.w
-		c := copy(b.buf[b.w:], p)
-		b.w = copy(b.buf[0:], p[c:])
-		return n, nil
-	}
-
-	if b.w >= b.r {
-		c1 := b.size - b.w
-		if c1 >= n {
-			copy(b.buf[b.w:], p)
-			b.w += n
-		} else {
-			copy(b.buf[b.w:], p[:c1])
-			c2 := n - c1
-			copy(b.buf[0:], p[c1:])
-			b.w = c2
+	total := 0
+	for len(p) > 0 {
+		if b.closed.Load() {
+			return total, ErrClosed
 		}
-	} else {
-		copy(b.buf[b.w:], p)
-		b.w += n
-	}
 
-	if b.w == b.size {
-		b.isFull = true
-		b.w = 0
-	} else {
-		b.isFull = false
-	}
+		avail := b.availableLocked()
+		if avail == 0 {
+			b.cond.Wait()
+			continue
+		}
 
-	return n, err
+		k := len(p)
+		if k > avail {
+			k = avail
+		}
+
+		if b.w+k <= b.size {
+			copy(b.buf[b.w:], p[:k])
+			b.w += k
+			if b.w == b.size {
+				b.w = 0
+			}
+		} else {
+			c1 := b.size - b.w
+			copy(b.buf[b.w:], p[:c1])
+			copy(b.buf[0:], p[c1:k])
+			b.w = k - c1
+		}
+		if b.w == b.r {
+			b.isFull = true
+		}
+
+		total += k
+		p = p[k:]
+		b.cond.Broadcast()
+	}
+	return total, nil
 }
 
-func (b *RingBuffer) Trims() int64 {
-	return b.writeTrims.Load()
+// availableLocked returns free space in the buffer. Caller must hold b.mu.
+func (b *RingBuffer) availableLocked() int {
+	if b.isFull {
+		return 0
+	}
+	if b.w >= b.r {
+		return b.size - (b.w - b.r)
+	}
+	return b.r - b.w
 }

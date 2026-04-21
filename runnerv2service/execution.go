@@ -17,7 +17,6 @@ import (
 
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	"github.com/runmedev/runme/v3/command"
-	"github.com/runmedev/runme/v3/internal/rbuffer"
 	"github.com/runmedev/runme/v3/project"
 	"github.com/runmedev/runme/v3/session"
 )
@@ -101,13 +100,7 @@ func (e *execution) closeIO() {
 	e.logger.Info("closed stderr writer", zap.Error(err))
 }
 
-func (e *execution) storeOutputInEnv(ctx context.Context, r io.Reader) {
-	b, err := io.ReadAll(r)
-	if err != nil {
-		e.logger.Warn("failed to read last output", zap.Error(err))
-		return
-	}
-
+func (e *execution) storeOutputInEnv(ctx context.Context, b []byte) {
 	sanitized := bytes.ReplaceAll(b, []byte{'\000'}, nil)
 	env := command.CreateEnv(command.StoreStdoutEnvName, string(sanitized))
 	if err := e.session.SetEnv(ctx, env); err != nil {
@@ -124,12 +117,9 @@ func (e *execution) storeOutputInEnv(ctx context.Context, r io.Reader) {
 func (e *execution) Wait(ctx context.Context, srv runnerv2.RunnerService_ExecuteServer) (int, error) {
 	envStdout := io.Discard
 	if e.storeStdoutInEnv {
-		b := rbuffer.NewRingBuffer(session.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1)
-		defer func() {
-			_ = b.Close()
-			e.storeOutputInEnv(ctx, b)
-		}()
-		envStdout = b
+		w := &tailCapWriter{cap: session.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1}
+		defer func() { e.storeOutputInEnv(ctx, w.Bytes()) }()
+		envStdout = w
 	}
 
 	readSendDone := make(chan error, 2)
