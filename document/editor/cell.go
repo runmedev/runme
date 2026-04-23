@@ -450,21 +450,26 @@ func serializeCellOutputsText(w io.Writer, cell *Cell) {
 				continue
 			}
 			if cell.ExecutionSummary != nil {
-				startTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.StartTime)
-				endTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.EndTime)
-
-				execDuration := endTimestamp.Sub(startTimestamp)
-
-				// todo(sebastian): consider using tpl for this
-				_, _ = buf.WriteString("\n# Ran on ")
-				_, _ = buf.WriteString(prettyTime(startTimestamp))
-				_, _ = buf.WriteString(" for ")
-				_, _ = buf.WriteString(prettyDuration(execDuration))
-				if output.ProcessInfo != nil && output.ProcessInfo.ExitReason.Type == "exit" {
-					_, _ = buf.WriteString(" exited with ")
-					_, _ = buf.WriteString(fmt.Sprintf("%d", output.ProcessInfo.ExitReason.Code))
+				var parts []string
+				if cell.ExecutionSummary.Timing != nil {
+					startTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.StartTime)
+					endTimestamp := time.UnixMilli(cell.ExecutionSummary.Timing.EndTime)
+					execDuration := endTimestamp.Sub(startTimestamp)
+					parts = append(parts, "Ran on "+prettyTime(startTimestamp)+" for "+prettyDuration(execDuration))
 				}
-				_, _ = buf.WriteString("\n")
+				if output.ProcessInfo != nil && output.ProcessInfo.ExitReason.Type == "exit" {
+					verb := "exited with "
+					if len(parts) == 0 {
+						verb = "Exited with "
+					}
+					parts = append(parts, verb+fmt.Sprintf("%d", output.ProcessInfo.ExitReason.Code))
+				}
+				if len(parts) > 0 {
+					// todo(sebastian): consider using tpl for this
+					_, _ = buf.WriteString("\n# " + strings.Join(parts, " ") + "\n")
+				} else {
+					_ = buf.WriteByte('\n')
+				}
 			} else {
 				_ = buf.WriteByte('\n')
 			}

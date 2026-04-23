@@ -414,6 +414,45 @@ func Test_serializeOutputs(t *testing.T) {
 		assert.Equal(t, "\n# Ran on 2023-11-29 17:58:19Z for 2.296s exited with 16\n", buf.String())
 	})
 
+	t.Run("Summary without timing, with exit", func(t *testing.T) {
+		testCell := &Cell{
+			Kind: CodeKind,
+			Outputs: []*CellOutput{
+				{
+					Items: []*CellOutputItem{
+						{Value: "hello\n", Mime: "application/vnd.code.notebook.stdout"},
+					},
+					ProcessInfo: &CellOutputProcessInfo{
+						ExitReason: &ProcessInfoExitReason{Type: "exit", Code: 0},
+					},
+				},
+			},
+			ExecutionSummary: &CellExecutionSummary{Success: true},
+		}
+
+		var buf bytes.Buffer
+		serializeCellOutputsText(&buf, testCell)
+		assert.Equal(t, "\n# Exited with 0\nhello\n\n", buf.String())
+	})
+
+	t.Run("Summary without timing and without exit", func(t *testing.T) {
+		testCell := &Cell{
+			Kind: CodeKind,
+			Outputs: []*CellOutput{
+				{
+					Items: []*CellOutputItem{
+						{Value: "hello\n", Mime: "application/vnd.code.notebook.stdout"},
+					},
+				},
+			},
+			ExecutionSummary: &CellExecutionSummary{Success: true},
+		}
+
+		var buf bytes.Buffer
+		serializeCellOutputsText(&buf, testCell)
+		assert.Equal(t, "\nhello\n\n", buf.String())
+	})
+
 	t.Run("Image", func(t *testing.T) {
 		var testCell Cell
 		json.Unmarshal(testDataOutputsImage, &testCell)
