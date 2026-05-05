@@ -39,7 +39,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jhump/protoreflect v1.18.0
 	github.com/jlewi/monogo v0.0.0-20241216141120-2e83e825aa81
-	github.com/mark3labs/mcp-go v0.49.0
+	github.com/mark3labs/mcp-go v0.52.0
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
@@ -172,6 +172,7 @@ require (
 	github.com/redpanda-data/common-go/api v0.0.0-20260423145113-f56efc4bf824 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/sanity-io/litter v1.5.5 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/securego/gosec/v2 v2.22.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
