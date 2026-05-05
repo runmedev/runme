@@ -9,7 +9,7 @@ go 1.26.1
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
 	buf.build/go/protovalidate v1.2.0
-	cloud.google.com/go/secretmanager v1.19.0
+	cloud.google.com/go/secretmanager v1.20.0
 	connectrpc.com/connect v1.19.2
 	connectrpc.com/cors v0.1.0
 	connectrpc.com/grpchealth v1.4.0
