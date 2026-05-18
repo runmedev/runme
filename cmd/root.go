@@ -134,7 +134,7 @@ func Root() *cobra.Command {
 func getUsageTemplate(cmd cobra.Command) string {
 	return cmd.UsageTemplate() + `
 Feedback:
-  For issues and questions join the Runme community at https://discord.gg/runme
+  For issues and questions join the Runme community at https://discord.gg/jFy92yxT
 `
 }
 
