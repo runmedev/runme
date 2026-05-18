@@ -17,7 +17,7 @@ func disableEcho(fd uintptr) error {
 	return errors.New("Error: Environment not supported! " +
 		"Runme currently doesn't support PowerShell. " +
 		"Please go to https://github.com/runmedev/runme/issues/173 to follow progress on this " +
-		"and join our Discord server at https://discord.gg/runme if you have further questions!")
+		"and join our Discord server at https://discord.gg/jFy92yxT if you have further questions!")
 }
 
 func signalPgid(pid int, sig os.Signal) error { return errors.New("unsupported") }

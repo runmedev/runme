@@ -1,6 +1,6 @@
 [![Runme](./.github/images/github-header.png)](https://runme.dev)
 
-# Runme runs Markdown [![ci](https://github.com/runmedev/runme/actions/workflows/ci.yml/badge.svg)](https://github.com/runmedev/runme/actions/workflows/ci.yml) [![Join us on Discord](https://img.shields.io/discord/1102639988832735374?color=5b39df&label=Join%20us%20on%20Discord)](https://discord.gg/runme)
+# Runme runs Markdown [![ci](https://github.com/runmedev/runme/actions/workflows/ci.yml/badge.svg)](https://github.com/runmedev/runme/actions/workflows/ci.yml) [![Join us on Discord](https://img.shields.io/discord/1102639988832735374?color=5b39df&label=Join%20us%20on%20Discord)](https://discord.gg/jFy92yxT)
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/11778/badge)](https://www.bestpractices.dev/projects/11778)
 
@@ -112,13 +112,13 @@ Check out the full documentation available at [Runme](https://docs.runme.dev).
 
 ## Feedback
 
-Let us know what you think via [GitHub issues](https://github.com/runmedev/runme/issues/new) or submit a PR. Join the conversation [on Discord](https://discord.gg/runme). We're looking forward to hearing from you.
+Let us know what you think via [GitHub issues](https://github.com/runmedev/runme/issues/new) or submit a PR. Join the conversation [on Discord](https://discord.gg/jFy92yxT). We're looking forward to hearing from you.
 
 ## Community
 
 The Runme community is growing, join us!
 
-- Ask questions and be curious with us [on Discord](https://discord.gg/runme)
+- Ask questions and be curious with us [on Discord](https://discord.gg/jFy92yxT)
 - Read about real live Runme examples and use cases in [our blog](https://runme.dev/blog)
 - Subscribe for updates to [our newsletter](https://runme.dev/list)
 
