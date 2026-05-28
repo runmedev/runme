@@ -2,6 +2,7 @@ package stream
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -161,14 +162,23 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 	return multiplex, nil
 }
 
-// Shutdown cancels all active multiplexers, which propagates context
-// cancellation to running commands.
-func (h *WebSocketHandler) Shutdown() {
+// Shutdown cancels all active multiplexers and waits until each one completes
+// its close path or ctx expires.
+func (h *WebSocketHandler) Shutdown(ctx context.Context) error {
 	h.mu.Lock()
-	defer h.mu.Unlock()
+	multiplexers := make([]*Multiplexer, 0, len(h.runs))
 	for _, m := range h.runs {
+		multiplexers = append(multiplexers, m)
 		m.cancel()
 	}
+	h.mu.Unlock()
+
+	for _, m := range multiplexers {
+		if err := m.Wait(ctx); err != nil {
+			return fmt.Errorf("wait for run %s finalization: %w", m.runID, err)
+		}
+	}
+	return nil
 }
 
 // removeRun removes a run from the handler. It is called when the processor is done.

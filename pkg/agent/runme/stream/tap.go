@@ -15,8 +15,7 @@ type StreamTap interface {
 	RunStart(runID string)
 
 	// RunEnd is called when the multiplexer run completes.
-	// exitCode is the final process exit code (or -1 if unknown).
-	RunEnd(exitCode int)
+	RunEnd()
 
 	// Output records terminal stdout data from an ExecuteResponse.
 	Output(data []byte)
@@ -69,7 +68,7 @@ type RequestPreprocessor func(req *v2.ExecuteRequest) (*v2.ExecuteRequest, error
 type noopTap struct{}
 
 func (noopTap) RunStart(string)             {}
-func (noopTap) RunEnd(int)                  {}
+func (noopTap) RunEnd()                     {}
 func (noopTap) Output([]byte)               {}
 func (noopTap) Stderr([]byte)               {}
 func (noopTap) Input([]byte)                {}

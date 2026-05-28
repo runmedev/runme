@@ -492,8 +492,12 @@ func (s *Server) shutdown() {
 	// and invisible to hServer.Shutdown, so we must cancel their contexts
 	// explicitly. This propagates to running commands via cmd.Cancel.
 	if s.wsHandler != nil {
-		s.wsHandler.Shutdown()
-		log.Info("Cancelled active runs")
+		ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
+		defer cancel()
+		if err := s.wsHandler.Shutdown(ctx); err != nil {
+			log.Error(err, "Error shutting down websocket handler")
+		}
+		log.Info("WebSocket handler shutdown complete")
 	}
 	if s.codex.bridge != nil {
 		s.codex.bridge.Shutdown()
