@@ -43,6 +43,7 @@ var (
 type Multiplexer struct {
 	ctx    context.Context
 	cancel context.CancelFunc
+	done   chan struct{}
 
 	runID string
 
@@ -83,6 +84,7 @@ func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, ru
 	m := &Multiplexer{
 		ctx:    ctx,
 		cancel: cancel,
+		done:   make(chan struct{}),
 
 		runID:             runID,
 		auth:              auth,
@@ -177,6 +179,8 @@ func (m *Multiplexer) startInactivityTimeout(timeout time.Duration, interval tim
 
 // close shuts down the RunmeMultiplexer. We wait for 30s to give the client a chance to close the connection (preferred).
 func (m *Multiplexer) close() {
+	defer close(m.done)
+
 	p := m.getInflight()
 	if p != nil {
 		p.close()
@@ -190,8 +194,20 @@ func (m *Multiplexer) close() {
 	m.streams.close(m.ctx)
 
 	// Finalize the recording after all streams are closed.
-	m.tap.RunEnd(-1)
+	m.tap.RunEnd()
 	_ = m.tap.Close()
+}
+
+// Wait blocks until the multiplexer has finished its close path, including
+// tap finalization. Shutdown callers should use this after canceling the
+// multiplexer when they need RunEnd/Close delivery to complete.
+func (m *Multiplexer) Wait(ctx context.Context) error {
+	select {
+	case <-m.done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // process manages request processing for a runID. Returns false if a run is already in flight.

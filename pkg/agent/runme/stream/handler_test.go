@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +24,45 @@ import (
 	v2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
 	streamv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1"
 )
+
+type lifecycleTap struct {
+	startOnce  sync.Once
+	runEndOnce sync.Once
+	closeOnce  sync.Once
+	started    chan struct{}
+	runEnded   chan struct{}
+	closed     chan struct{}
+}
+
+func newLifecycleTap() *lifecycleTap {
+	return &lifecycleTap{
+		started:  make(chan struct{}),
+		runEnded: make(chan struct{}),
+		closed:   make(chan struct{}),
+	}
+}
+
+func (t *lifecycleTap) RunStart(string) {
+	t.startOnce.Do(func() { close(t.started) })
+}
+
+func (t *lifecycleTap) RunEnd() {
+	t.runEndOnce.Do(func() { close(t.runEnded) })
+}
+
+func (t *lifecycleTap) Output([]byte)               {}
+func (t *lifecycleTap) Stderr([]byte)               {}
+func (t *lifecycleTap) Input([]byte)                {}
+func (t *lifecycleTap) Resize(uint32, uint32)       {}
+func (t *lifecycleTap) CommandStart(string, string) {}
+func (t *lifecycleTap) CommandEnd(int)              {}
+func (t *lifecycleTap) ClientConnect(string)        {}
+func (t *lifecycleTap) ClientDisconnect(string)     {}
+
+func (t *lifecycleTap) Close() error {
+	t.closeOnce.Do(func() { close(t.closed) })
+	return nil
+}
 
 // dialWebSocket dials a websocket URL with a random id for testing and returns the connection, response, and error.
 func dialWebSocket(ts *httptest.Server, runID string) (*Connection, *http.Response, error) {
@@ -59,6 +99,88 @@ func TestWebSocketHandler_Handler_SwitchingProtocols(t *testing.T) {
 	err = sc.Close()
 	if err != nil {
 		t.Errorf("Failed to close websocket: %v", err)
+	}
+}
+
+func TestWebSocketHandler_ShutdownAndWaitWaitsForTapFinalization(t *testing.T) {
+	tap := newLifecycleTap()
+	h := NewWebSocketHandler(
+		&runme.Runner{Server: newMockRunmeServer()},
+		&iam.AuthContext{Checker: &iam.AllowAllChecker{}},
+	)
+	m := NewMultiplexer(
+		context.Background(),
+		ulid.GenerateID(),
+		h.auth,
+		h.runner,
+		tap,
+		nil,
+		&MultiplexerOptions{ClientGracePeriod: time.Millisecond},
+	)
+
+	h.mu.Lock()
+	h.runs[m.runID] = m
+	h.mu.Unlock()
+
+	processDone := make(chan struct{})
+	go func() {
+		m.process()
+		close(processDone)
+	}()
+
+	select {
+	case <-tap.started:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for run start")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := h.ShutdownAndWait(ctx); err != nil {
+		t.Fatalf("ShutdownAndWait() error = %v", err)
+	}
+
+	select {
+	case <-tap.runEnded:
+	default:
+		t.Fatal("ShutdownAndWait returned before RunEnd")
+	}
+	select {
+	case <-tap.closed:
+	default:
+		t.Fatal("ShutdownAndWait returned before tap Close")
+	}
+	select {
+	case <-processDone:
+	default:
+		t.Fatal("ShutdownAndWait returned before multiplexer process exited")
+	}
+}
+
+func TestWebSocketHandler_ShutdownAndWaitReturnsContextError(t *testing.T) {
+	tap := newLifecycleTap()
+	h := NewWebSocketHandler(
+		&runme.Runner{Server: newMockRunmeServer()},
+		&iam.AuthContext{Checker: &iam.AllowAllChecker{}},
+	)
+	m := NewMultiplexer(
+		context.Background(),
+		ulid.GenerateID(),
+		h.auth,
+		h.runner,
+		tap,
+		nil,
+		&MultiplexerOptions{ClientGracePeriod: time.Millisecond},
+	)
+
+	h.mu.Lock()
+	h.runs[m.runID] = m
+	h.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+	if err := h.ShutdownAndWait(ctx); err == nil {
+		t.Fatal("ShutdownAndWait() error = nil, want context timeout")
 	}
 }
 
