@@ -4,12 +4,12 @@ module github.com/runmedev/runme/v3
 //   go install github.com/runmedev/runme/v3@latest
 // This ensures you get the latest v3.x.x version, not the old v1.x.x versions.
 
-go 1.26.1
+go 1.26.3
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
 	buf.build/go/protovalidate v1.2.0
-	cloud.google.com/go/secretmanager v1.19.0
+	cloud.google.com/go/secretmanager v1.20.0
 	connectrpc.com/connect v1.19.2
 	connectrpc.com/cors v0.1.0
 	connectrpc.com/grpchealth v1.4.0
@@ -39,7 +39,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jhump/protoreflect v1.18.0
 	github.com/jlewi/monogo v0.0.0-20241216141120-2e83e825aa81
-	github.com/mark3labs/mcp-go v0.49.0
+	github.com/mark3labs/mcp-go v0.54.0
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
@@ -63,12 +63,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/net v0.53.0
+	golang.org/x/net v0.54.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sys v0.43.0
-	golang.org/x/term v0.42.0
-	google.golang.org/api v0.277.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260427160629-7cedc36a6bc4
+	golang.org/x/sys v0.44.0
+	golang.org/x/term v0.43.0
+	google.golang.org/api v0.280.0
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260511170946-3700d4141b60
 	google.golang.org/protobuf v1.36.11
 	mvdan.cc/sh/v3 v3.13.1
 	oras.land/oras-go/v2 v2.6.0
@@ -172,6 +172,7 @@ require (
 	github.com/redpanda-data/common-go/api v0.0.0-20260423145113-f56efc4bf824 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/sanity-io/litter v1.5.5 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/securego/gosec/v2 v2.22.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
@@ -233,8 +234,8 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.50.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1
@@ -252,7 +253,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/henvic/httpretty v0.1.4
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.3.0
+	github.com/pelletier/go-toml/v2 v2.3.1
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
@@ -261,7 +262,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.28.0
 	golang.org/x/sync v0.20.0
-	google.golang.org/grpc v1.80.0
+	google.golang.org/grpc v1.81.1
 )
 
 tool (
