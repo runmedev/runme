@@ -25,7 +25,7 @@ var ClientGracePeriod = 30 * time.Second
 type MultiplexerOptions struct {
 	// ClientGracePeriod is how long to wait in close() before force-closing
 	// websocket streams, giving clients a chance to close first.
-	// If <= 0, defaults to ClientGracePeriod.
+	// If options are nil, defaults to ClientGracePeriod.
 	ClientGracePeriod time.Duration
 }
 
@@ -76,7 +76,7 @@ func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, ru
 		tap = noopTap{}
 	}
 	clientGracePeriod := ClientGracePeriod
-	if options != nil && options.ClientGracePeriod > 0 {
+	if options != nil {
 		clientGracePeriod = options.ClientGracePeriod
 	}
 

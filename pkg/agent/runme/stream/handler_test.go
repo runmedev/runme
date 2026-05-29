@@ -194,6 +194,37 @@ func TestMultiplexerCloseFinalizesTapBeforeClientGracePeriod(t *testing.T) {
 	}
 }
 
+func TestMultiplexerOptionsCanDisableClientGracePeriod(t *testing.T) {
+	m := NewMultiplexer(
+		context.Background(),
+		ulid.GenerateID(),
+		&iam.AuthContext{Checker: &iam.AllowAllChecker{}},
+		&runme.Runner{Server: newMockRunmeServer()},
+		nil,
+		nil,
+		&MultiplexerOptions{ClientGracePeriod: 0},
+	)
+
+	if m.clientGracePeriod != 0 {
+		t.Fatalf("clientGracePeriod = %s, want 0s", m.clientGracePeriod)
+	}
+}
+
+func TestWebSocketHandlerWithClientGracePeriodAllowsZero(t *testing.T) {
+	h := NewWebSocketHandler(
+		&runme.Runner{Server: newMockRunmeServer()},
+		&iam.AuthContext{Checker: &iam.AllowAllChecker{}},
+		WithClientGracePeriod(0),
+	)
+
+	if h.clientGracePeriod == nil {
+		t.Fatal("clientGracePeriod = nil, want explicit 0s")
+	}
+	if *h.clientGracePeriod != 0 {
+		t.Fatalf("clientGracePeriod = %s, want 0s", *h.clientGracePeriod)
+	}
+}
+
 func TestWebSocketHandler_ShutdownReturnsContextError(t *testing.T) {
 	tap := newLifecycleTap()
 	h := NewWebSocketHandler(
