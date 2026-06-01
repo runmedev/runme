@@ -63,12 +63,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/net v0.54.0
+	golang.org/x/net v0.55.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.45.0
 	golang.org/x/term v0.43.0
-	google.golang.org/api v0.280.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260511170946-3700d4141b60
+	google.golang.org/api v0.282.0
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260523011958-0a33c5d7ca68
 	google.golang.org/protobuf v1.36.11
 	mvdan.cc/sh/v3 v3.13.1
 	oras.land/oras-go/v2 v2.6.0
@@ -144,7 +144,7 @@ require (
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.15 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.16 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
