@@ -63,9 +63,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0
 	go.uber.org/dig v1.19.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/net v0.54.0
+	golang.org/x/net v0.55.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.45.0
 	golang.org/x/term v0.43.0
 	google.golang.org/api v0.280.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260511170946-3700d4141b60
