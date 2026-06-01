@@ -14,7 +14,7 @@ require (
 	connectrpc.com/cors v0.1.0
 	connectrpc.com/grpchealth v1.4.0
 	connectrpc.com/otelconnect v0.9.0
-	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
