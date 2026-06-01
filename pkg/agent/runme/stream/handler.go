@@ -2,6 +2,7 @@ package stream
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -37,20 +38,32 @@ type WebSocketHandler struct {
 	// preprocessor transforms initial ExecuteRequests before execution. May be nil.
 	preprocessor RequestPreprocessor
 
-	// clientGracePeriod, when > 0, overrides the default multiplexer client
-	// close grace period.
-	clientGracePeriod time.Duration
+	// clientGracePeriod overrides the default multiplexer client close grace
+	// period when set. A zero value disables the grace period.
+	clientGracePeriod *time.Duration
 
 	mu   sync.Mutex
 	runs map[string]*Multiplexer
 }
 
-func NewWebSocketHandler(runner *runme.Runner, auth *iam.AuthContext) *WebSocketHandler {
-	return &WebSocketHandler{
+type WebSocketHandlerOption func(*WebSocketHandler)
+
+func WithClientGracePeriod(d time.Duration) WebSocketHandlerOption {
+	return func(h *WebSocketHandler) {
+		h.clientGracePeriod = &d
+	}
+}
+
+func NewWebSocketHandler(runner *runme.Runner, auth *iam.AuthContext, options ...WebSocketHandlerOption) *WebSocketHandler {
+	h := &WebSocketHandler{
 		auth:   auth,
 		runner: runner,
 		runs:   make(map[string]*Multiplexer),
 	}
+	for _, option := range options {
+		option(h)
+	}
+	return h
 }
 
 // SetTapFactory configures a factory that creates a StreamTap for each new run.
@@ -68,14 +81,6 @@ func (h *WebSocketHandler) SetRequestPreprocessor(preprocessor RequestPreprocess
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.preprocessor = preprocessor
-}
-
-// SetClientGracePeriod overrides the multiplexer client close grace period.
-// If d <= 0, the multiplexer default (ClientGracePeriod) is used.
-func (h *WebSocketHandler) SetClientGracePeriod(d time.Duration) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.clientGracePeriod = d
 }
 
 // Handler is the main handler mounted in a mux to handle websocket connection upgrades.
@@ -146,8 +151,8 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 			tap = h.tapFactory(runID)
 		}
 		var options *MultiplexerOptions
-		if h.clientGracePeriod > 0 {
-			options = &MultiplexerOptions{ClientGracePeriod: h.clientGracePeriod}
+		if h.clientGracePeriod != nil {
+			options = &MultiplexerOptions{ClientGracePeriod: *h.clientGracePeriod}
 		}
 
 		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner, tap, h.preprocessor, options)
@@ -161,14 +166,23 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 	return multiplex, nil
 }
 
-// Shutdown cancels all active multiplexers, which propagates context
-// cancellation to running commands.
-func (h *WebSocketHandler) Shutdown() {
+// Shutdown cancels all active multiplexers and waits until each one completes
+// its close path or ctx expires.
+func (h *WebSocketHandler) Shutdown(ctx context.Context) error {
 	h.mu.Lock()
-	defer h.mu.Unlock()
+	multiplexers := make([]*Multiplexer, 0, len(h.runs))
 	for _, m := range h.runs {
+		multiplexers = append(multiplexers, m)
 		m.cancel()
 	}
+	h.mu.Unlock()
+
+	for _, m := range multiplexers {
+		if err := m.Wait(ctx); err != nil {
+			return fmt.Errorf("wait for run %s finalization: %w", m.runID, err)
+		}
+	}
+	return nil
 }
 
 // removeRun removes a run from the handler. It is called when the processor is done.
