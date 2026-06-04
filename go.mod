@@ -49,7 +49,7 @@ require (
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260323112146-887f275039cd
-	github.com/rogpeppe/go-internal v1.14.1
+	github.com/rogpeppe/go-internal v1.15.0
 	github.com/rs/cors v1.11.1
 	github.com/spf13/viper v1.21.0
 	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915
