@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -27,7 +26,7 @@ func harborStdioCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return server.ServeStdio(context.Background(), os.Stdin, os.Stdout)
+			return server.ServeStdio(cmd.Context(), os.Stdin, os.Stdout)
 		},
 	}
 }
