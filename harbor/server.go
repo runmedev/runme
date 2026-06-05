@@ -269,7 +269,7 @@ func (s *Server) execute(ctx context.Context, runID, command, cwd string, env []
 			ProgramName: "bash",
 			Arguments:   []string{"-c", command},
 			Directory:   cwd,
-			Env:         append(baseEnv, env...),
+			Env:         mergeEnv(os.Environ(), baseEnv, env),
 			LanguageId:  "sh",
 			Interactive: false,
 			Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
@@ -448,6 +448,25 @@ func fileMode(mode uint32) os.FileMode {
 		return 0o644
 	}
 	return os.FileMode(mode).Perm()
+}
+
+func mergeEnv(groups ...[]string) []string {
+	values := make(map[string]string)
+	for _, group := range groups {
+		for _, entry := range group {
+			key, value, ok := strings.Cut(entry, "=")
+			if !ok {
+				continue
+			}
+			values[key] = value
+		}
+	}
+
+	merged := make([]string, 0, len(values))
+	for key, value := range values {
+		merged = append(merged, key+"="+value)
+	}
+	return merged
 }
 
 func errorResponse(id, code, message string) *harborv1.Response {

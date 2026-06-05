@@ -138,6 +138,38 @@ func TestExecCapturesStdoutStderrAndExitCode(t *testing.T) {
 	}
 }
 
+func TestExecMergesHostStartAndRequestEnvironment(t *testing.T) {
+	t.Setenv("RUNME_HARBOR_HOST_ENV", "host")
+
+	server, err := NewServer(Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	server.Handle(context.Background(), &harborv1.Request{
+		Id: "start",
+		Payload: &harborv1.Request_Start{Start: &harborv1.StartRequest{
+			Root: root,
+			Env:  []string{"RUNME_HARBOR_START_ENV=start", "RUNME_HARBOR_OVERRIDE=start"},
+		}},
+	})
+
+	resp := server.Handle(context.Background(), &harborv1.Request{
+		Id: "exec",
+		Payload: &harborv1.Request_Exec{Exec: &harborv1.ExecRequest{
+			Command: `printf '%s:%s:%s' "$RUNME_HARBOR_HOST_ENV" "$RUNME_HARBOR_START_ENV" "$RUNME_HARBOR_OVERRIDE"`,
+			Cwd:     ".",
+			Env:     []string{"RUNME_HARBOR_OVERRIDE=request"},
+		}},
+	})
+	if resp.GetError() != nil {
+		t.Fatalf("exec error: %+v", resp.GetError())
+	}
+	if got := string(resp.GetExec().GetStdout()); got != "host:start:request" {
+		t.Fatalf("stdout = %q, want host:start:request", got)
+	}
+}
+
 func TestFileTransferAndPathMapping(t *testing.T) {
 	server, err := NewServer(Options{})
 	if err != nil {
