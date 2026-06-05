@@ -2,8 +2,9 @@
 name = "runme-harbor"
 version = "0.1.0"
 description = "Runme Harbor environment adapter"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
+  "harbor>=0.13.1",
   "protobuf>=6.0",
 ]
 
