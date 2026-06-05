@@ -74,3 +74,27 @@ runner/.runme-script-*
 
 # Local build caches created during sandboxed test runs
 .cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.eggs/
+build/
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.tox/
+.nox/
+.venv/
+venv/
+env/
+.uv-cache/
+uv-cache/
+.ipynb_checkpoints/
