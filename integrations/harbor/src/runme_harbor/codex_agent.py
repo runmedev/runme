@@ -45,7 +45,7 @@ class RunmeCodexAgent(Codex):
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
 
-        auth_json_path = self._resolve_auth_json_path()
+        auth_json_path = self._resolve_preferred_auth_json_path()
         remote_codex_home = self._REMOTE_CODEX_HOME.as_posix()
         remote_secrets_dir = self._REMOTE_CODEX_SECRETS_DIR.as_posix()
         remote_auth_path = (self._REMOTE_CODEX_SECRETS_DIR / "auth.json").as_posix()
@@ -154,3 +154,11 @@ class RunmeCodexAgent(Codex):
                 pass
 
             self.populate_context_post_run(context)
+
+    def _resolve_preferred_auth_json_path(self) -> Path | None:
+        if auth_json_path := self._resolve_auth_json_path():
+            return auth_json_path
+        local_auth_json_path = Path.home() / ".codex" / "auth.json"
+        if local_auth_json_path.is_file():
+            return local_auth_json_path
+        return None
