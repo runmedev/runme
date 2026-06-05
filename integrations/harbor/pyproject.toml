@@ -3,7 +3,9 @@ name = "runme-harbor"
 version = "0.1.0"
 description = "Runme Harbor environment adapter"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "protobuf>=6.0",
+]
 
 [build-system]
 requires = ["hatchling"]

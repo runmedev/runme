@@ -1,11 +1,27 @@
 from __future__ import annotations
 
 import itertools
-import json
 import subprocess
+import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, TextIO
+
+from google.protobuf import json_format
+
+
+def _load_harbor_pb2():
+    try:
+        from runme.harbor.v1 import harbor_pb2
+    except ModuleNotFoundError:
+        repo_proto_path = Path(__file__).resolve().parents[4] / "api" / "gen" / "proto" / "python"
+        if repo_proto_path.exists():
+            sys.path.insert(0, str(repo_proto_path))
+        from runme.harbor.v1 import harbor_pb2
+    return harbor_pb2
+
+
+harbor_pb2 = _load_harbor_pb2()
 
 
 class HarborProtocolError(RuntimeError):
@@ -78,26 +94,40 @@ class RunmeEnvironment:
     def request(self, payload: Mapping[str, Any], request_id: str | None = None) -> dict[str, Any]:
         self.start()
         rid = request_id or str(next(self._ids))
-        message = {"id": rid, **payload}
+        request = harbor_pb2.Request()
+        json_format.ParseDict({"id": rid, **payload}, request)
+
         stdin = _required_stream(self.process.stdin, "stdin")
         stdout = _required_stream(self.process.stdout, "stdout")
 
-        stdin.write(json.dumps(message, separators=(",", ":")) + "\n")
+        stdin.write(_message_to_line(request))
         stdin.flush()
 
         line = stdout.readline()
         if line == "":
             raise RuntimeError("runme harbor stdio closed stdout")
-        response = json.loads(line)
-        if response.get("id") != rid:
+        response = harbor_pb2.Response()
+        json_format.Parse(line, response)
+
+        if response.id != rid:
             raise HarborProtocolError(
                 "request_id_mismatch",
-                f"expected response id {rid!r}, got {response.get('id')!r}",
+                f"expected response id {rid!r}, got {response.id!r}",
             )
-        error = response.get("error")
-        if error:
-            raise HarborProtocolError(error.get("code", "unknown"), error.get("message", ""))
-        return response
+        if response.HasField("error"):
+            raise HarborProtocolError(response.error.code or "unknown", response.error.message)
+        return json_format.MessageToDict(response, preserving_proto_field_name=True)
+
+
+def _message_to_line(message: Any) -> str:
+    return (
+        json_format.MessageToJson(
+            message,
+            preserving_proto_field_name=True,
+            indent=None,
+        )
+        + "\n"
+    )
 
 
 def _required_stream(stream: TextIO | None, name: str) -> TextIO:
