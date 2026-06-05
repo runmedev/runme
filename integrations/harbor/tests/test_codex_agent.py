@@ -1,42 +1,45 @@
+import asyncio
 from pathlib import Path
+from typing import Any
 
 from runme_harbor.codex_agent import RunmeCodexAgent
 
 
-def test_codex_agent_prefers_default_auth_json_over_openai_api_key(
+class FakeEnvironment:
+    def __init__(self) -> None:
+        self.uploads: list[tuple[Path | str, str]] = []
+
+    async def upload_file(self, source_path: Path | str, target_path: str) -> None:
+        self.uploads.append((source_path, target_path))
+
+
+def test_codex_agent_uses_ambient_user_auth(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    home = tmp_path / "home"
-    auth_json = home / ".codex" / "auth.json"
-    auth_json.parent.mkdir(parents=True)
-    auth_json.write_text("{}")
-
-    monkeypatch.setenv("HOME", str(home))
-    monkeypatch.setenv("OPENAI_API_KEY", "ignored")
+    monkeypatch.setenv("OPENAI_API_KEY", "ambient-key")
+    monkeypatch.delenv("CODEX_HOME", raising=False)
     monkeypatch.delenv("CODEX_AUTH_JSON_PATH", raising=False)
     monkeypatch.delenv("CODEX_FORCE_AUTH_JSON", raising=False)
 
+    environment = FakeEnvironment()
     agent = RunmeCodexAgent(logs_dir=tmp_path)
+    calls: list[tuple[str, dict[str, str] | None]] = []
 
-    assert agent._resolve_preferred_auth_json_path() == auth_json
+    async def fake_exec_as_agent(
+        _environment: Any,
+        command: str,
+        env: dict[str, str] | None = None,
+    ) -> None:
+        calls.append((command, env))
 
+    agent.exec_as_agent = fake_exec_as_agent
+    agent.populate_context_post_run = lambda _context: None
 
-def test_codex_agent_explicit_auth_json_wins(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    home_auth_json = tmp_path / "home" / ".codex" / "auth.json"
-    explicit_auth_json = tmp_path / "explicit" / "auth.json"
-    home_auth_json.parent.mkdir(parents=True)
-    explicit_auth_json.parent.mkdir(parents=True)
-    home_auth_json.write_text("{}")
-    explicit_auth_json.write_text("{}")
+    asyncio.run(agent.run("write result.txt", environment, object()))
 
-    monkeypatch.setenv("HOME", str(tmp_path / "home"))
-    monkeypatch.setenv("CODEX_AUTH_JSON_PATH", str(explicit_auth_json))
-    monkeypatch.setenv("OPENAI_API_KEY", "ignored")
-
-    agent = RunmeCodexAgent(logs_dir=tmp_path)
-
-    assert agent._resolve_preferred_auth_json_path() == explicit_auth_json
+    assert environment.uploads == []
+    assert calls[0][0].startswith("codex exec ")
+    assert all("CODEX_HOME" not in (env or {}) for _, env in calls)
+    assert all("OPENAI_API_KEY" not in (env or {}) for _, env in calls)
+    assert all("register" not in command for command, _ in calls)
