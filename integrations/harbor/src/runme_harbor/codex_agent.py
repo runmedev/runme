@@ -22,7 +22,7 @@ class RunmeCodexAgent(Codex):
 
     @staticmethod
     def name() -> str:
-        return "runme-codex"
+        return "codex"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
