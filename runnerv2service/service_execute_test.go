@@ -831,7 +831,7 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 		require.NoError(t, err)
 
 		time.Sleep(time.Millisecond * 500)
-		err = execStream.Send(&runnerv2.ExecuteRequest{InputData: []byte("sleep 30")})
+		err = execStream.Send(&runnerv2.ExecuteRequest{InputData: []byte("sleep 30\n")})
 		assert.NoError(t, err)
 
 		// cancel sleep
