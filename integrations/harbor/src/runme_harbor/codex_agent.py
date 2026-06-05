@@ -1,4 +1,7 @@
+import os
 import shlex
+import shutil
+from pathlib import Path
 
 from harbor.agents.installed.base import with_prompt_template
 from harbor.agents.installed.codex import Codex
@@ -27,6 +30,38 @@ class RunmeCodexAgent(Codex):
     async def setup(self, environment: BaseEnvironment) -> None:
         return None
 
+    @staticmethod
+    def _codex_sessions_dir() -> Path:
+        codex_home = os.environ.get("CODEX_HOME")
+        if codex_home:
+            return Path(codex_home).expanduser() / "sessions"
+        return Path.home() / ".codex" / "sessions"
+
+    def _snapshot_session_files(self) -> set[Path]:
+        sessions_dir = self._codex_sessions_dir()
+        if not sessions_dir.exists():
+            return set()
+        return {path for path in sessions_dir.rglob("*.jsonl") if path.is_file()}
+
+    def _collect_new_sessions(self, before: set[Path]) -> None:
+        sessions_dir = self._codex_sessions_dir()
+        if not sessions_dir.exists():
+            return
+
+        after = {path for path in sessions_dir.rglob("*.jsonl") if path.is_file()}
+        new_sessions = after - before
+        if not new_sessions:
+            return
+
+        target_dir = self.logs_dir / "sessions"
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+
+        for session_file in new_sessions:
+            target = target_dir / session_file.relative_to(sessions_dir)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(session_file, target)
+
     @with_prompt_template
     async def run(
         self,
@@ -40,11 +75,13 @@ class RunmeCodexAgent(Codex):
 
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
+        session_files_before = self._snapshot_session_files()
 
         try:
             await self.exec_as_agent(
                 environment,
                 command=(
+                    "set -o pipefail\n"
                     "codex exec "
                     "--dangerously-bypass-approvals-and-sandbox "
                     "--skip-git-repo-check "
@@ -60,19 +97,7 @@ class RunmeCodexAgent(Codex):
             )
         finally:
             try:
-                await self.exec_as_agent(
-                    environment,
-                    command=(
-                        f"mkdir -p {EnvironmentPaths.agent_dir.as_posix()}\n"
-                        'codex_home="${CODEX_HOME:-$HOME/.codex}"\n'
-                        'if [ -d "$codex_home/sessions" ]; then\n'
-                        f"  rm -rf "
-                        f"{(EnvironmentPaths.agent_dir / 'sessions').as_posix()}\n"
-                        f'  cp -R "$codex_home/sessions" '
-                        f"{(EnvironmentPaths.agent_dir / 'sessions').as_posix()}\n"
-                        "fi"
-                    ),
-                )
+                self._collect_new_sessions(session_files_before)
             except Exception:
                 pass
 
