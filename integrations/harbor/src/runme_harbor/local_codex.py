@@ -10,12 +10,12 @@ from harbor.models.agent.context import AgentContext
 from harbor.models.trial.paths import EnvironmentPaths
 
 
-class RunmeCodexAgent(Codex):
-    """Codex-backed Runme agent without container bootstrap.
+class LocalCodex(Codex):
+    """Codex-backed local agent without container bootstrap.
 
     Harbor's installed Codex agent assumes a disposable container and mutates
     that environment during setup by installing system packages, Node, and the
-    Codex CLI. Runme Harbor executes against a local Runme runtime, so this
+    Codex CLI. Runme Harbor executes against a local runtime, so this
     wrapper expects `codex` to already be available and skips setup-time
     environment changes.
     """
@@ -82,6 +82,7 @@ class RunmeCodexAgent(Codex):
                 environment,
                 command=(
                     "set -o pipefail\n"
+                    "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi\n"
                     "codex exec "
                     "--dangerously-bypass-approvals-and-sandbox "
                     "--skip-git-repo-check "
