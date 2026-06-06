@@ -55,6 +55,7 @@ def _response(payload: dict[str, Any]):
 
 
 def _make_env(tmp_path: Path, **kwargs: Any) -> RunmeEnvironment:
+    workspace_root = kwargs.pop("workspace_root", tmp_path)
     trial_paths = TrialPaths(tmp_path / "trial")
     return RunmeEnvironment(
         environment_dir=tmp_path / "environment",
@@ -62,6 +63,7 @@ def _make_env(tmp_path: Path, **kwargs: Any) -> RunmeEnvironment:
         session_id="trial-1",
         trial_paths=trial_paths,
         task_env_config=EnvironmentConfig(workdir="/app", env={"TASK_ENV": "yes"}),
+        workspace_root=str(workspace_root),
         **kwargs,
     )
 
@@ -86,13 +88,13 @@ def test_environment_starts_runme_harbor_stdio(
     assert client.command == ["runme", "harbor", "stdio"]
     assert client.requests[0] == {
         "start": {
-            "root": str(tmp_path / "trial"),
+            "root": str(tmp_path),
             "env": ["TASK_ENV=yes"],
         }
     }
 
 
-def test_exec_rewrites_harbor_paths(
+def test_exec_uses_workspace_root_when_workdir_is_not_uploaded(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -110,11 +112,65 @@ def test_exec_rewrites_harbor_paths(
 
     client = FakeClient.instances[0]
     request = client.requests[-1]["exec"]
-    assert request["cwd"] == "app"
-    assert str(tmp_path / "trial" / "app") in request["command"]
+    assert request["cwd"] == "."
+    assert f"{env_module._shell_quote(str(tmp_path))}/result.txt" in request["command"]
     assert str(tmp_path / "trial" / "verifier") in request["command"]
     assert result.stdout == "ok\n"
     assert result.return_code == 0
+
+
+def test_upload_to_app_switches_to_trial_workdir(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "setup.sh").write_text("printf setup\n")
+
+    environment = _make_env(tmp_path)
+    asyncio.run(environment.start(force_build=False))
+    asyncio.run(environment.upload_dir(source, "/app"))
+    asyncio.run(environment.exec("printf ok > /app/result.txt", cwd="/app"))
+
+    client = FakeClient.instances[0]
+    upload_request = client.requests[-2]["upload_directory"]
+    exec_request = client.requests[-1]["exec"]
+    assert upload_request["path"] == "trial/app"
+    assert exec_request["cwd"] == "trial/app"
+    assert (
+        f"{env_module._shell_quote(str(tmp_path / 'trial' / 'app'))}/result.txt"
+        in exec_request["command"]
+    )
+
+
+def test_upload_to_discovered_workspace_cwd_switches_to_trial_workdir(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "setup.sh").write_text("printf setup\n")
+
+    environment = _make_env(tmp_path)
+    asyncio.run(environment.start(force_build=False))
+    asyncio.run(environment.upload_dir(source, str(tmp_path)))
+    asyncio.run(environment.exec(f"bash {tmp_path / 'setup.sh'}", cwd="/app"))
+
+    client = FakeClient.instances[0]
+    upload_request = client.requests[-2]["upload_directory"]
+    exec_request = client.requests[-1]["exec"]
+    assert upload_request["path"] == "trial/app"
+    assert exec_request["cwd"] == "trial/app"
+    assert (
+        f"{env_module._shell_quote(str(tmp_path / 'trial' / 'app'))}/setup.sh"
+        in exec_request["command"]
+    )
 
 
 def test_upload_dir_rewrites_shell_scripts(
@@ -133,10 +189,36 @@ def test_upload_dir_rewrites_shell_scripts(
     asyncio.run(environment.upload_dir(source, "/tests"))
 
     request = FakeClient.instances[0].requests[-1]["upload_directory"]
-    assert request["path"] == "tests"
+    assert request["path"] == "trial/tests"
     decoded = env_module.base64.b64decode(request["files"][0]["data"]).decode()
     assert str(tmp_path / "trial" / "verifier") in decoded
     assert "/logs/verifier" not in decoded
+
+
+def test_upload_dir_rewrites_python_verifier_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "llm_judge.py").write_text(
+        'poem = Path("/app/poem.txt").read_text()\n'
+        'Path("/logs/verifier/reward.json").write_text("{}")\n'
+    )
+
+    environment = _make_env(tmp_path)
+    asyncio.run(environment.start(force_build=False))
+    asyncio.run(environment.upload_dir(source, "/tests"))
+
+    request = FakeClient.instances[0].requests[-1]["upload_directory"]
+    decoded = env_module.base64.b64decode(request["files"][0]["data"]).decode()
+    assert str(tmp_path / "poem.txt") in decoded
+    assert str(tmp_path / "trial" / "verifier" / "reward.json") in decoded
+    assert 'Path("/app/poem.txt")' not in decoded
+    assert 'Path("/logs/verifier/reward.json")' not in decoded
 
 
 def test_protocol_error_raises_runtime_error() -> None:

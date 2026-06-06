@@ -57,14 +57,16 @@ class RunmeEnvironment(BaseEnvironment):
         **kwargs: Any,
     ) -> None:
         self._workspace_root = (
-            str(Path(workspace_root).expanduser()) if workspace_root else None
-        )
+            Path(workspace_root).expanduser() if workspace_root else Path.cwd()
+        ).resolve()
         self._runme_bin = runme_bin or os.environ.get("RUNME_BIN") or "runme"
         self._runme_args = _parse_runme_args(runme_args)
         self._command = list(command) if command is not None else None
         self._client: _StdioClient | None = None
         self._root = trial_paths.trial_dir.resolve().absolute()
         self._workdir = self._root / "app"
+        self._protocol_root = _common_root(self._workspace_root, self._root)
+        self._use_workspace_app = True
 
         super().__init__(
             environment_dir=environment_dir,
@@ -131,12 +133,14 @@ class RunmeEnvironment(BaseEnvironment):
         ):
             path.mkdir(parents=True, exist_ok=True)
 
-        client = _StdioClient(self._command or [self._runme_bin, *self._runme_args, "harbor", "stdio"])
+        client = _StdioClient(
+            self._command or [self._runme_bin, *self._runme_args, "harbor", "stdio"]
+        )
         await client.start()
         self._client = client
         env = _env_map_to_list(self._persistent_env, self.task_env_config.env)
         await self._request(
-            {"start": {"root": str(self._root), "env": env}},
+            {"start": {"root": str(self._protocol_root), "env": env}},
         )
 
     async def stop(self, delete: bool) -> None:
@@ -153,9 +157,8 @@ class RunmeEnvironment(BaseEnvironment):
 
     async def upload_file(self, source_path: Path | str, target_path: str) -> None:
         source = Path(source_path)
-        data = source.read_bytes()
-        if source.suffix == ".sh":
-            data = self._rewrite_shell_bytes(data)
+        self._activate_trial_workdir_if_needed(target_path)
+        data = self._rewrite_uploaded_bytes(source, source.read_bytes())
         await self._request(
             {
                 "upload_file": {
@@ -168,13 +171,12 @@ class RunmeEnvironment(BaseEnvironment):
 
     async def upload_dir(self, source_dir: Path | str, target_dir: str) -> None:
         source = Path(source_dir)
+        self._activate_trial_workdir_if_needed(target_dir)
         files: list[dict[str, Any]] = []
         for path in sorted(source.rglob("*")):
             if not path.is_file():
                 continue
-            data = path.read_bytes()
-            if path.suffix == ".sh":
-                data = self._rewrite_shell_bytes(data)
+            data = self._rewrite_uploaded_bytes(path, path.read_bytes())
             files.append(
                 {
                     "path": path.relative_to(source).as_posix(),
@@ -258,13 +260,18 @@ class RunmeEnvironment(BaseEnvironment):
 
     def _map_protocol_path(self, path: str | PurePosixPath | None) -> str:
         mapped = self._map_remote_path(path)
-        return str(mapped.relative_to(self._root))
+        try:
+            return str(mapped.relative_to(self._protocol_root))
+        except ValueError as exc:
+            raise ValueError(
+                f"path {mapped} escapes Runme Harbor root {self._protocol_root}"
+            ) from exc
 
     def _map_remote_path(self, path: str | PurePosixPath | None) -> Path:
         if path is None or str(path).strip() == "":
-            return self._workdir
+            return self._app_path()
         remote = PurePosixPath(str(path))
-        mappings = self._path_mappings()
+        mappings = self._protocol_path_mappings()
         for prefix, target in mappings:
             if remote == prefix:
                 return target
@@ -274,12 +281,38 @@ class RunmeEnvironment(BaseEnvironment):
                 continue
             return target / Path(rel.as_posix())
         if remote.is_absolute():
+            host_path = Path(str(remote)).resolve()
+            if (
+                not self._use_workspace_app
+                and _is_relative_to(host_path, self._workspace_root)
+                and not _is_relative_to(host_path, self._root)
+            ):
+                rel = host_path.relative_to(self._workspace_root)
+                return self._workdir / rel
+            if _is_relative_to(host_path, self._protocol_root):
+                return host_path
             raise ValueError(f"unsupported absolute Harbor path: {path}")
-        return self._workdir / Path(remote.as_posix())
+        return self._app_path() / Path(remote.as_posix())
 
     def _path_mappings(self) -> list[tuple[PurePosixPath, Path]]:
+        mappings: list[tuple[PurePosixPath, Path]] = []
+        if not self._use_workspace_app:
+            mappings.append((PurePosixPath(str(self._workspace_root)), self._workdir))
+        mappings.extend(
+            [
+                (PurePosixPath("/app"), self._app_path()),
+                (EnvironmentPaths.tests_dir, self._root / "tests"),
+                (EnvironmentPaths.solution_dir, self._root / "solution"),
+                (EnvironmentPaths.agent_dir, self._root / "agent"),
+                (EnvironmentPaths.verifier_dir, self._root / "verifier"),
+                (EnvironmentPaths.artifacts_dir, self._root / "artifacts"),
+            ]
+        )
+        return mappings
+
+    def _protocol_path_mappings(self) -> list[tuple[PurePosixPath, Path]]:
         return [
-            (PurePosixPath("/app"), self._workdir),
+            (PurePosixPath("/app"), self._app_path()),
             (EnvironmentPaths.tests_dir, self._root / "tests"),
             (EnvironmentPaths.solution_dir, self._root / "solution"),
             (EnvironmentPaths.agent_dir, self._root / "agent"),
@@ -287,19 +320,54 @@ class RunmeEnvironment(BaseEnvironment):
             (EnvironmentPaths.artifacts_dir, self._root / "artifacts"),
         ]
 
+    def _app_path(self) -> Path:
+        if self._use_workspace_app:
+            return self._workspace_root
+        return self._workdir
+
+    def _activate_trial_workdir_if_needed(self, target_path: str) -> None:
+        if self._targets_app_path(target_path):
+            self._use_workspace_app = False
+            self._workdir.mkdir(parents=True, exist_ok=True)
+
+    def _targets_app_path(self, path: str | PurePosixPath | None) -> bool:
+        if path is None or str(path).strip() == "":
+            return True
+        remote = PurePosixPath(str(path))
+        if not remote.is_absolute():
+            return True
+        try:
+            remote.relative_to(PurePosixPath("/app"))
+            return True
+        except ValueError:
+            pass
+        host_path = Path(str(remote)).resolve()
+        return _is_relative_to(host_path, self._workspace_root)
+
     def _rewrite_command(self, command: str) -> str:
         rewritten = command
         for remote, host in self._path_mappings():
-            rewritten = _replace_remote_path_tokens(rewritten, remote.as_posix(), _shell_quote(str(host)))
+            rewritten = _replace_remote_path_tokens(
+                rewritten, remote.as_posix(), _shell_quote(str(host))
+            )
         return rewritten
 
-    def _rewrite_shell_bytes(self, data: bytes) -> bytes:
+    def _rewrite_uploaded_bytes(self, path: Path, data: bytes) -> bytes:
         try:
             text = data.decode()
         except UnicodeDecodeError:
             return data
-        rewritten = self._rewrite_command(text)
+        if path.suffix == ".sh":
+            rewritten = self._rewrite_command(text)
+        else:
+            rewritten = self._rewrite_text_paths(text)
         return rewritten.encode()
+
+    def _rewrite_text_paths(self, text: str) -> str:
+        rewritten = text
+        for remote, host in self._path_mappings():
+            rewritten = _replace_remote_path_tokens(rewritten, remote.as_posix(), str(host))
+        return rewritten
 
 
 class _StdioClient:
@@ -412,6 +480,18 @@ def _file_mode(path: Path) -> int:
         return stat.S_IMODE(path.stat().st_mode)
     except OSError:
         return 0o644
+
+
+def _common_root(*paths: Path) -> Path:
+    return Path(os.path.commonpath([str(path) for path in paths]))
+
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
 
 
 def _replace_remote_path_tokens(command: str, remote: str, replacement: str) -> str:
