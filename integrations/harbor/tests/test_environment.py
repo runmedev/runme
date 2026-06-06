@@ -119,7 +119,7 @@ def test_exec_uses_workspace_root_when_workdir_is_not_uploaded(
     assert result.return_code == 0
 
 
-def test_upload_to_app_switches_to_trial_workdir(
+def test_upload_to_app_uses_workspace_root(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -138,15 +138,12 @@ def test_upload_to_app_switches_to_trial_workdir(
     client = FakeClient.instances[0]
     upload_request = client.requests[-2]["upload_directory"]
     exec_request = client.requests[-1]["exec"]
-    assert upload_request["path"] == "trial/app"
-    assert exec_request["cwd"] == "trial/app"
-    assert (
-        f"{env_module._shell_quote(str(tmp_path / 'trial' / 'app'))}/result.txt"
-        in exec_request["command"]
-    )
+    assert upload_request["path"] == "."
+    assert exec_request["cwd"] == "."
+    assert f"{env_module._shell_quote(str(tmp_path))}/result.txt" in exec_request["command"]
 
 
-def test_upload_to_discovered_workspace_cwd_switches_to_trial_workdir(
+def test_relative_upload_uses_workspace_root(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -159,18 +156,15 @@ def test_upload_to_discovered_workspace_cwd_switches_to_trial_workdir(
 
     environment = _make_env(tmp_path)
     asyncio.run(environment.start(force_build=False))
-    asyncio.run(environment.upload_dir(source, str(tmp_path)))
-    asyncio.run(environment.exec(f"bash {tmp_path / 'setup.sh'}", cwd="/app"))
+    asyncio.run(environment.upload_dir(source, "workdir"))
+    asyncio.run(environment.exec("bash workdir/setup.sh", cwd="/app"))
 
     client = FakeClient.instances[0]
     upload_request = client.requests[-2]["upload_directory"]
     exec_request = client.requests[-1]["exec"]
-    assert upload_request["path"] == "trial/app"
-    assert exec_request["cwd"] == "trial/app"
-    assert (
-        f"{env_module._shell_quote(str(tmp_path / 'trial' / 'app'))}/setup.sh"
-        in exec_request["command"]
-    )
+    assert upload_request["path"] == "workdir"
+    assert exec_request["cwd"] == "."
+    assert exec_request["command"] == "bash workdir/setup.sh"
 
 
 def test_upload_dir_rewrites_shell_scripts(

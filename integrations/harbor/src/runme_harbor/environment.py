@@ -64,9 +64,7 @@ class RunmeEnvironment(BaseEnvironment):
         self._command = list(command) if command is not None else None
         self._client: _StdioClient | None = None
         self._root = trial_paths.trial_dir.resolve().absolute()
-        self._workdir = self._root / "app"
         self._protocol_root = _common_root(self._workspace_root, self._root)
-        self._use_workspace_app = True
 
         super().__init__(
             environment_dir=environment_dir,
@@ -123,7 +121,6 @@ class RunmeEnvironment(BaseEnvironment):
 
     async def start(self, force_build: bool) -> None:
         self.trial_paths.mkdir()
-        self._workdir.mkdir(parents=True, exist_ok=True)
         for path in (
             self._root / "agent",
             self._root / "verifier",
@@ -151,13 +148,11 @@ class RunmeEnvironment(BaseEnvironment):
         finally:
             await self._close_client()
             if delete:
-                shutil.rmtree(self._workdir, ignore_errors=True)
                 shutil.rmtree(self._root / "tests", ignore_errors=True)
                 shutil.rmtree(self._root / "solution", ignore_errors=True)
 
     async def upload_file(self, source_path: Path | str, target_path: str) -> None:
         source = Path(source_path)
-        self._activate_trial_workdir_if_needed(target_path)
         data = self._rewrite_uploaded_bytes(source, source.read_bytes())
         await self._request(
             {
@@ -171,7 +166,6 @@ class RunmeEnvironment(BaseEnvironment):
 
     async def upload_dir(self, source_dir: Path | str, target_dir: str) -> None:
         source = Path(source_dir)
-        self._activate_trial_workdir_if_needed(target_dir)
         files: list[dict[str, Any]] = []
         for path in sorted(source.rglob("*")):
             if not path.is_file():
@@ -269,9 +263,9 @@ class RunmeEnvironment(BaseEnvironment):
 
     def _map_remote_path(self, path: str | PurePosixPath | None) -> Path:
         if path is None or str(path).strip() == "":
-            return self._app_path()
+            return self._workspace_root
         remote = PurePosixPath(str(path))
-        mappings = self._protocol_path_mappings()
+        mappings = self._path_mappings()
         for prefix, target in mappings:
             if remote == prefix:
                 return target
@@ -282,67 +276,20 @@ class RunmeEnvironment(BaseEnvironment):
             return target / Path(rel.as_posix())
         if remote.is_absolute():
             host_path = Path(str(remote)).resolve()
-            if (
-                not self._use_workspace_app
-                and _is_relative_to(host_path, self._workspace_root)
-                and not _is_relative_to(host_path, self._root)
-            ):
-                rel = host_path.relative_to(self._workspace_root)
-                return self._workdir / rel
             if _is_relative_to(host_path, self._protocol_root):
                 return host_path
             raise ValueError(f"unsupported absolute Harbor path: {path}")
-        return self._app_path() / Path(remote.as_posix())
+        return self._workspace_root / Path(remote.as_posix())
 
     def _path_mappings(self) -> list[tuple[PurePosixPath, Path]]:
-        mappings: list[tuple[PurePosixPath, Path]] = []
-        if not self._use_workspace_app:
-            mappings.append((PurePosixPath(str(self._workspace_root)), self._workdir))
-        mappings.extend(
-            [
-                (PurePosixPath("/app"), self._app_path()),
-                (EnvironmentPaths.tests_dir, self._root / "tests"),
-                (EnvironmentPaths.solution_dir, self._root / "solution"),
-                (EnvironmentPaths.agent_dir, self._root / "agent"),
-                (EnvironmentPaths.verifier_dir, self._root / "verifier"),
-                (EnvironmentPaths.artifacts_dir, self._root / "artifacts"),
-            ]
-        )
-        return mappings
-
-    def _protocol_path_mappings(self) -> list[tuple[PurePosixPath, Path]]:
         return [
-            (PurePosixPath("/app"), self._app_path()),
+            (PurePosixPath("/app"), self._workspace_root),
             (EnvironmentPaths.tests_dir, self._root / "tests"),
             (EnvironmentPaths.solution_dir, self._root / "solution"),
             (EnvironmentPaths.agent_dir, self._root / "agent"),
             (EnvironmentPaths.verifier_dir, self._root / "verifier"),
             (EnvironmentPaths.artifacts_dir, self._root / "artifacts"),
         ]
-
-    def _app_path(self) -> Path:
-        if self._use_workspace_app:
-            return self._workspace_root
-        return self._workdir
-
-    def _activate_trial_workdir_if_needed(self, target_path: str) -> None:
-        if self._targets_app_path(target_path):
-            self._use_workspace_app = False
-            self._workdir.mkdir(parents=True, exist_ok=True)
-
-    def _targets_app_path(self, path: str | PurePosixPath | None) -> bool:
-        if path is None or str(path).strip() == "":
-            return True
-        remote = PurePosixPath(str(path))
-        if not remote.is_absolute():
-            return True
-        try:
-            remote.relative_to(PurePosixPath("/app"))
-            return True
-        except ValueError:
-            pass
-        host_path = Path(str(remote)).resolve()
-        return _is_relative_to(host_path, self._workspace_root)
 
     def _rewrite_command(self, command: str) -> str:
         rewritten = command
