@@ -2,20 +2,20 @@
 
 These examples exercise Runme through Harbor's custom environment interface.
 
-Run the oracle smoke, which uses the known-good solution:
+Run the smoke task with the oracle, which uses the known-good solution:
 
 ```sh
 RUNME_BIN="$PWD/runme" \
   uv run --project integrations/harbor \
     harbor run \
       --path examples/harbor/datasets/runme-integration \
-      --include-task-name local-oracle \
+      --include-task-name local-agent \
       --agent oracle \
       --jobs-dir .runme/harbor/jobs \
       --environment-import-path runme_harbor.environment:RunmeEnvironment
 ```
 
-Run a local Codex smoke through Runme's Harbor adapter:
+Run the same smoke task with local Codex through Runme's Harbor adapter:
 
 ```sh
 RUNME_BIN="$PWD/runme" \

@@ -59,7 +59,7 @@ def _make_env(tmp_path: Path, **kwargs: Any) -> RunmeEnvironment:
     trial_paths = TrialPaths(tmp_path / "trial")
     return RunmeEnvironment(
         environment_dir=tmp_path / "environment",
-        environment_name="local-oracle",
+        environment_name="local-agent",
         session_id="trial-1",
         trial_paths=trial_paths,
         task_env_config=EnvironmentConfig(workdir="/app", env={"TASK_ENV": "yes"}),
