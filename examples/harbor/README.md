@@ -36,7 +36,7 @@ RUNME_BIN="$PWD/runme" \
     harbor run \
       --path examples/harbor/datasets/runme-integration \
       --include-task-name local-agent \
-      --agent-import-path runme_harbor.local_codex:LocalCodex \
+      --agent-import-path runme_harbor.local_agents:LocalCodex \
       --jobs-dir .runme/harbor/jobs \
       --environment-import-path runme_harbor.environment:RunmeEnvironment \
       -y

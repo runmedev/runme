@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from runme_harbor.local_codex import LocalCodex
+from runme_harbor.local_agents import LocalCodex
 
 
 class FakeEnvironment:
