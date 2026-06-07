@@ -1374,29 +1374,32 @@ func file_runme_harbor_v1_harbor_proto_rawDescGZIP() []byte {
 	return file_runme_harbor_v1_harbor_proto_rawDescData
 }
 
-var file_runme_harbor_v1_harbor_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
-var file_runme_harbor_v1_harbor_proto_goTypes = []any{
-	(*Error)(nil),                     // 0: runme.harbor.v1.Error
-	(*Request)(nil),                   // 1: runme.harbor.v1.Request
-	(*Response)(nil),                  // 2: runme.harbor.v1.Response
-	(*PreflightRequest)(nil),          // 3: runme.harbor.v1.PreflightRequest
-	(*PreflightResponse)(nil),         // 4: runme.harbor.v1.PreflightResponse
-	(*StartRequest)(nil),              // 5: runme.harbor.v1.StartRequest
-	(*StartResponse)(nil),             // 6: runme.harbor.v1.StartResponse
-	(*StopRequest)(nil),               // 7: runme.harbor.v1.StopRequest
-	(*StopResponse)(nil),              // 8: runme.harbor.v1.StopResponse
-	(*ExecRequest)(nil),               // 9: runme.harbor.v1.ExecRequest
-	(*ExecResponse)(nil),              // 10: runme.harbor.v1.ExecResponse
-	(*FileEntry)(nil),                 // 11: runme.harbor.v1.FileEntry
-	(*UploadFileRequest)(nil),         // 12: runme.harbor.v1.UploadFileRequest
-	(*UploadFileResponse)(nil),        // 13: runme.harbor.v1.UploadFileResponse
-	(*DownloadFileRequest)(nil),       // 14: runme.harbor.v1.DownloadFileRequest
-	(*DownloadFileResponse)(nil),      // 15: runme.harbor.v1.DownloadFileResponse
-	(*UploadDirectoryRequest)(nil),    // 16: runme.harbor.v1.UploadDirectoryRequest
-	(*UploadDirectoryResponse)(nil),   // 17: runme.harbor.v1.UploadDirectoryResponse
-	(*DownloadDirectoryRequest)(nil),  // 18: runme.harbor.v1.DownloadDirectoryRequest
-	(*DownloadDirectoryResponse)(nil), // 19: runme.harbor.v1.DownloadDirectoryResponse
-}
+var (
+	file_runme_harbor_v1_harbor_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+	file_runme_harbor_v1_harbor_proto_goTypes  = []any{
+		(*Error)(nil),                     // 0: runme.harbor.v1.Error
+		(*Request)(nil),                   // 1: runme.harbor.v1.Request
+		(*Response)(nil),                  // 2: runme.harbor.v1.Response
+		(*PreflightRequest)(nil),          // 3: runme.harbor.v1.PreflightRequest
+		(*PreflightResponse)(nil),         // 4: runme.harbor.v1.PreflightResponse
+		(*StartRequest)(nil),              // 5: runme.harbor.v1.StartRequest
+		(*StartResponse)(nil),             // 6: runme.harbor.v1.StartResponse
+		(*StopRequest)(nil),               // 7: runme.harbor.v1.StopRequest
+		(*StopResponse)(nil),              // 8: runme.harbor.v1.StopResponse
+		(*ExecRequest)(nil),               // 9: runme.harbor.v1.ExecRequest
+		(*ExecResponse)(nil),              // 10: runme.harbor.v1.ExecResponse
+		(*FileEntry)(nil),                 // 11: runme.harbor.v1.FileEntry
+		(*UploadFileRequest)(nil),         // 12: runme.harbor.v1.UploadFileRequest
+		(*UploadFileResponse)(nil),        // 13: runme.harbor.v1.UploadFileResponse
+		(*DownloadFileRequest)(nil),       // 14: runme.harbor.v1.DownloadFileRequest
+		(*DownloadFileResponse)(nil),      // 15: runme.harbor.v1.DownloadFileResponse
+		(*UploadDirectoryRequest)(nil),    // 16: runme.harbor.v1.UploadDirectoryRequest
+		(*UploadDirectoryResponse)(nil),   // 17: runme.harbor.v1.UploadDirectoryResponse
+		(*DownloadDirectoryRequest)(nil),  // 18: runme.harbor.v1.DownloadDirectoryRequest
+		(*DownloadDirectoryResponse)(nil), // 19: runme.harbor.v1.DownloadDirectoryResponse
+	}
+)
+
 var file_runme_harbor_v1_harbor_proto_depIdxs = []int32{
 	3,  // 0: runme.harbor.v1.Request.preflight:type_name -> runme.harbor.v1.PreflightRequest
 	5,  // 1: runme.harbor.v1.Request.start:type_name -> runme.harbor.v1.StartRequest

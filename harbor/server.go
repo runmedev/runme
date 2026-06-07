@@ -169,7 +169,7 @@ func (s *Server) handleStart(id string, req *harborv1.StartRequest) *harborv1.Re
 			return errorResponse(id, "invalid_argument", err.Error())
 		}
 		root = abs
-		if err := os.MkdirAll(root, 0o755); err != nil {
+		if err := os.MkdirAll(root, 0o750); err != nil {
 			return errorResponse(id, "internal", err.Error())
 		}
 	}
@@ -297,7 +297,7 @@ func (s *Server) handleUploadFile(id string, req *harborv1.UploadFileRequest) *h
 	if err != nil {
 		return errorResponse(id, "invalid_argument", err.Error())
 	}
-	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
 		return errorResponse(id, "internal", err.Error())
 	}
 	mode := fileMode(req.GetMode())
@@ -346,7 +346,7 @@ func (s *Server) handleUploadDirectory(id string, req *harborv1.UploadDirectoryR
 		if err != nil {
 			return errorResponse(id, "invalid_argument", err.Error())
 		}
-		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
 			return errorResponse(id, "internal", err.Error())
 		}
 		if err := os.WriteFile(target, file.GetData(), fileMode(file.GetMode())); err != nil {
