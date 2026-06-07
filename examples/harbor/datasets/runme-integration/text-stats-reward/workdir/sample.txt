@@ -1,3 +1,1 @@
-the quick brown fox jumps over the lazy dog
-the dog barked at the fox
-the fox ran away quickly
+../environment/sample.txt
