@@ -30,6 +30,7 @@ def _load_harbor_pb2():
 
 
 harbor_pb2 = _load_harbor_pb2()
+_STDIO_LINE_LIMIT_BYTES = 32 * 1024 * 1024
 
 
 class HarborProtocolError(RuntimeError):
@@ -282,7 +283,7 @@ class RunmeEnvironment(BaseEnvironment):
         return self._workspace_root / Path(remote.as_posix())
 
     def _path_mappings(self) -> list[tuple[PurePosixPath, Path]]:
-        return [
+        mappings = [
             (PurePosixPath("/app"), self._workspace_root),
             (EnvironmentPaths.tests_dir, self._root / "tests"),
             (EnvironmentPaths.solution_dir, self._root / "solution"),
@@ -290,6 +291,7 @@ class RunmeEnvironment(BaseEnvironment):
             (EnvironmentPaths.verifier_dir, self._root / "verifier"),
             (EnvironmentPaths.artifacts_dir, self._root / "artifacts"),
         ]
+        return sorted(mappings, key=lambda item: len(item[0].parts), reverse=True)
 
     def _rewrite_command(self, command: str) -> str:
         rewritten = command
@@ -328,6 +330,7 @@ class _StdioClient:
             return
         self._process = await asyncio.create_subprocess_exec(
             *self.command,
+            limit=_STDIO_LINE_LIMIT_BYTES,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

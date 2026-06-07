@@ -94,6 +94,35 @@ def test_environment_starts_runme_harbor_stdio(
     }
 
 
+def test_stdio_client_allows_large_protojson_lines(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    async def create_subprocess_exec(*command: str, **kwargs: Any):
+        captured["command"] = command
+        captured["kwargs"] = kwargs
+        return object()
+
+    monkeypatch.setattr(
+        env_module.asyncio,
+        "create_subprocess_exec",
+        create_subprocess_exec,
+    )
+
+    client = env_module._StdioClient(["runme", "harbor", "stdio"])
+    asyncio.run(client.start())
+
+    assert captured["command"] == ("runme", "harbor", "stdio")
+    assert captured["kwargs"]["limit"] == 32 * 1024 * 1024
+
+
+def test_path_mappings_are_most_specific_first(tmp_path: Path) -> None:
+    environment = _make_env(tmp_path)
+
+    remote_paths = [remote.as_posix() for remote, _ in environment._path_mappings()]
+
+    assert remote_paths.index("/logs/verifier") < remote_paths.index("/app")
+
+
 def test_exec_uses_workspace_root_when_workdir_is_not_uploaded(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
