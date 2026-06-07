@@ -841,4 +841,3 @@ export declare type DownloadDirectoryResponseJson = {
  * Use `create(DownloadDirectoryResponseSchema)` to create a new message.
  */
 export declare const DownloadDirectoryResponseSchema: GenMessage<DownloadDirectoryResponse, {jsonType: DownloadDirectoryResponseJson}>;
-
