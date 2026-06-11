@@ -179,7 +179,8 @@ type executeResponseStreamSender struct {
 	done      chan struct{}
 	closeOnce sync.Once
 	errMu     sync.Mutex
-	err       error
+	// +checklocks:errMu
+	err error
 }
 
 func newExecuteResponseStreamSender(
