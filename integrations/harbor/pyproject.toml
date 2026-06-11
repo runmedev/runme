@@ -1,6 +1,6 @@
 [project]
 name = "runme-harbor"
-version = "0.1.0"
+version = "0.0.1"
 description = "Runme Harbor environment adapter"
 requires-python = ">=3.12"
 dependencies = [
