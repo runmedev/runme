@@ -16,6 +16,11 @@ CODEX_IMPORT_PATH = "runme_harbor.local_agents:LocalCodex"
 CLAUDE_IMPORT_PATH = "runme_harbor.local_agents:LocalClaudeCode"
 MIN_HARBOR_VERSION = (0, 13, 1)
 MAX_HARBOR_VERSION = (0, 14, 0)
+AGENT_ARGUMENTS = {
+    "oracle": ("--agent", "oracle"),
+    "codex": ("--agent-import-path", CODEX_IMPORT_PATH),
+    "claude-code": ("--agent-import-path", CLAUDE_IMPORT_PATH),
+}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -52,14 +57,11 @@ def build_harbor_command(args: argparse.Namespace) -> list[str]:
         ENVIRONMENT_IMPORT_PATH,
     ]
 
-    if args.agent == "oracle":
-        command.extend(["--agent", "oracle"])
-    elif args.agent == "codex":
-        command.extend(["--agent-import-path", CODEX_IMPORT_PATH])
-    elif args.agent == "claude":
-        command.extend(["--agent-import-path", CLAUDE_IMPORT_PATH])
-    else:
-        raise SystemExit(f"invalid --agent {args.agent!r}: expected oracle, codex, or claude")
+    try:
+        command.extend(AGENT_ARGUMENTS[args.agent])
+    except KeyError as exc:
+        valid_agents = ", ".join(AGENT_ARGUMENTS)
+        raise SystemExit(f"invalid --agent {args.agent!r}: expected {valid_agents}") from exc
 
     if args.task:
         command.extend(["--include-task-name", args.task])
@@ -78,7 +80,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("path")
-    run_parser.add_argument("--agent", choices=("oracle", "codex", "claude"), default="oracle")
+    run_parser.add_argument("--agent", choices=tuple(AGENT_ARGUMENTS), default="oracle")
     run_parser.add_argument("--task")
     run_parser.add_argument("--jobs-dir", default=".runme/harbor/jobs")
     run_parser.add_argument("-y", "--yes", action="store_true")
@@ -110,8 +112,8 @@ def _preflight(agent: str) -> None:
 
     if agent == "codex" and not shutil.which("codex"):
         raise SystemExit("`--agent codex` requires the `codex` CLI on PATH.")
-    if agent == "claude" and not shutil.which("claude"):
-        raise SystemExit("`--agent claude` requires the `claude` CLI on PATH.")
+    if agent == "claude-code" and not shutil.which("claude"):
+        raise SystemExit("`--agent claude-code` requires the `claude` CLI on PATH.")
 
 
 def _contains_concurrency_flag(args: list[str]) -> bool:

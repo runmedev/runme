@@ -41,7 +41,7 @@ def test_build_harbor_command_codex(tmp_path: Path) -> None:
 
 
 def test_build_harbor_command_claude(tmp_path: Path) -> None:
-    args = parse(["run", str(tmp_path), "--agent", "claude"])
+    args = parse(["run", str(tmp_path), "--agent", "claude-code"])
 
     command = cli.build_harbor_command(args)
 
@@ -115,7 +115,7 @@ def test_main_runs_harbor_and_prints_debug(
     ("agent", "missing", "message"),
     [
         ("codex", "codex", "`--agent codex` requires the `codex` CLI"),
-        ("claude", "claude", "`--agent claude` requires the `claude` CLI"),
+        ("claude-code", "claude", "`--agent claude-code` requires the `claude` CLI"),
     ],
 )
 def test_preflight_requires_local_agent_cli(
@@ -130,4 +130,3 @@ def test_preflight_requires_local_agent_cli(
 
     with pytest.raises(SystemExit, match=message):
         cli._preflight(agent)
-

@@ -18,6 +18,12 @@ const defaultHarborJobsDir = ".runme/harbor/jobs"
 
 var errRunmeHarborMissing = errors.New("runme-harbor missing")
 
+var evalAgents = map[string]struct{}{
+	"oracle":      {},
+	"codex":       {},
+	"claude-code": {},
+}
+
 type evalOptions struct {
 	agent       string
 	task        string
@@ -62,7 +68,7 @@ func evalCmd() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&opts.agent, "agent", "oracle", "Harbor agent to use: oracle, codex, or claude")
+	flags.StringVar(&opts.agent, "agent", "oracle", "Harbor agent to use: oracle, codex, or claude-code")
 	flags.StringVar(&opts.task, "task", "", "Harbor task name to include")
 	flags.StringVar(&opts.jobsDir, "jobs-dir", defaultHarborJobsDir, "Harbor jobs directory")
 	flags.BoolVarP(&opts.yes, "yes", "y", false, "Confirm Harbor prompts")
@@ -138,12 +144,10 @@ func runEval(opts evalOptions, args []string) error {
 }
 
 func validateEvalAgent(agent string) error {
-	switch agent {
-	case "oracle", "codex", "claude":
+	if _, ok := evalAgents[agent]; ok {
 		return nil
-	default:
-		return fmt.Errorf("invalid --agent %q: expected oracle, codex, or claude", agent)
 	}
+	return fmt.Errorf("invalid --agent %q: expected oracle, codex, or claude-code", agent)
 }
 
 func resolveRunmeHarbor(opts evalOptions) (string, error) {

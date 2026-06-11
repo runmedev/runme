@@ -82,7 +82,7 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 		agent string
 	}{
 		{name: "codex", agent: "codex"},
-		{name: "claude", agent: "claude"},
+		{name: "claude-code", agent: "claude-code"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			path := t.TempDir()
