@@ -1,11 +1,13 @@
 import os
 import shlex
 import shutil
+from hashlib import sha256
 from pathlib import Path
 
-from harbor.agents.installed.base import with_prompt_template
+from harbor.agents.installed.base import CliFlag, with_prompt_template
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
+from harbor.agents.installed.openclaw import OpenClaw
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 from harbor.models.trial.paths import EnvironmentPaths
@@ -217,6 +219,126 @@ class LocalCodex(Codex):
         finally:
             try:
                 self._collect_new_sessions(session_files_before)
+            except Exception:
+                pass
+
+            self.populate_context_post_run(context)
+
+
+class LocalOpenClaw(OpenClaw):
+    """OpenClaw-backed local agent without container bootstrap.
+
+    Harbor's installed OpenClaw agent installs Node/OpenClaw in a disposable
+    container and writes container-local config before execution. Runme Harbor
+    executes against a local runtime, so this wrapper expects `openclaw` to
+    already be available and configured.
+    """
+
+    CLI_FLAGS = [
+        *OpenClaw.CLI_FLAGS,
+        CliFlag("session_id", cli="--session-id", type="str"),
+        CliFlag("session_key", cli="--session-key", type="str"),
+    ]
+
+    @staticmethod
+    def name() -> str:
+        return "openclaw"
+
+    async def install(self, environment: BaseEnvironment) -> None:
+        return None
+
+    async def setup(self, environment: BaseEnvironment) -> None:
+        return None
+
+    def _runtime_env(self) -> dict[str, str]:
+        if not self.model_name:
+            return {}
+
+        if "/" not in self.model_name:
+            raise ValueError("Model name must be in the format provider/model_name")
+
+        provider, _ = self.model_name.split("/", 1)
+        self._validate_provider(provider)
+
+        env: dict[str, str] = {}
+        for key in self._provider_env_keys(provider):
+            val = self._get_env(key)
+            if val:
+                env[key] = val
+        return env
+
+    def _collect_session_file(self) -> None:
+        envelope = self._parse_stdout()
+        if not envelope:
+            return
+
+        meta = envelope.get("meta")
+        if not isinstance(meta, dict):
+            return
+        agent_meta = meta.get("agentMeta")
+        if not isinstance(agent_meta, dict):
+            return
+        session_file = agent_meta.get("sessionFile")
+        if not isinstance(session_file, str) or not session_file.strip():
+            return
+
+        source = Path(session_file).expanduser()
+        if not source.is_file():
+            return
+
+        target = self.logs_dir / "openclaw.session.jsonl"
+        shutil.copy2(source, target)
+
+    def _session_key_arg(self) -> str:
+        if self._resolved_flags.get("session_id") or self._resolved_flags.get(
+            "session_key"
+        ):
+            return ""
+
+        digest = sha256(str(self.logs_dir.resolve()).encode()).hexdigest()[:16]
+        return f"--session-key runme-harbor-{digest} "
+
+    @with_prompt_template
+    async def run(
+        self,
+        instruction: str,
+        environment: BaseEnvironment,
+        context: AgentContext,
+    ) -> None:
+        escaped_instruction = shlex.quote(instruction)
+        env = self._runtime_env()
+
+        try:
+            instruction_path = self.logs_dir / "instruction.txt"
+            instruction_path.write_text(instruction)
+        except OSError:
+            pass
+
+        cli_flags = self.build_cli_flags()
+        cli_flags_arg = f"{cli_flags} " if cli_flags else ""
+        session_key_arg = self._session_key_arg()
+        model_arg = (
+            f"--model {shlex.quote(self.model_name)} " if self.model_name else ""
+        )
+
+        try:
+            await self.exec_as_agent(
+                environment,
+                command=(
+                    "set -o pipefail\n"
+                    "openclaw agent --local --json "
+                    f"{cli_flags_arg}"
+                    f"{session_key_arg}"
+                    f"{model_arg}"
+                    f"--message {escaped_instruction} "
+                    f"2>&1 </dev/null | tee "
+                    f"{EnvironmentPaths.agent_dir / 'openclaw.txt'}"
+                ),
+                env=env,
+            )
+        finally:
+            try:
+                self._collect_session_file()
             except Exception:
                 pass
 

@@ -50,6 +50,16 @@ def test_build_harbor_command_claude(tmp_path: Path) -> None:
     assert "--agent" not in command
 
 
+def test_build_harbor_command_openclaw(tmp_path: Path) -> None:
+    args = parse(["run", str(tmp_path), "--agent", "openclaw"])
+
+    command = cli.build_harbor_command(args)
+
+    assert "--agent-import-path" in command
+    assert "runme_harbor.local_agents:LocalOpenClaw" in command
+    assert "--agent" not in command
+
+
 def test_build_harbor_command_task_yes_jobs_and_passthrough(tmp_path: Path) -> None:
     args = parse(
         [
@@ -116,6 +126,7 @@ def test_main_runs_harbor_and_prints_debug(
     [
         ("codex", "codex", "`--agent codex` requires the `codex` CLI"),
         ("claude-code", "claude", "`--agent claude-code` requires the `claude` CLI"),
+        ("openclaw", "openclaw", "`--agent openclaw` requires the `openclaw` CLI"),
     ],
 )
 def test_preflight_requires_local_agent_cli(
