@@ -27,7 +27,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/fullstorydev/grpcurl v1.9.3
 	github.com/gabriel-vasile/mimetype v1.4.13
-	github.com/go-git/go-billy/v5 v5.8.0
+	github.com/go-git/go-billy/v5 v5.9.0
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/gobwas/glob v0.2.3
@@ -227,7 +227,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
-	github.com/pjbgf/sha1cd v0.5.0 // indirect
+	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
@@ -245,7 +245,7 @@ require (
 	github.com/Khan/genqlient v0.8.1
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/elliotchance/orderedmap v1.8.0
-	github.com/go-git/go-git/v5 v5.18.0
+	github.com/go-git/go-git/v5 v5.19.0
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/golang-jwt/jwt/v4 v4.5.2
