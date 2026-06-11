@@ -1,10 +1,14 @@
+---
+cwd: ../..
+---
+
 # Harbor Examples
 
 These examples exercise Runme through Harbor's custom environment interface.
 
 Run the smoke task with the oracle, which uses the known-good solution:
 
-```sh
+```sh {"name":"smoke-oracle"}
 RUNME_BIN="$PWD/runme" \
   uv run --project integrations/harbor \
     harbor run \
@@ -17,7 +21,7 @@ RUNME_BIN="$PWD/runme" \
 
 Run a deterministic weighted-scoring task with the oracle:
 
-```sh
+```sh {"name":"scoring-oracle"}
 RUNME_BIN="$PWD/runme" \
   uv run --project integrations/harbor \
     harbor run \
@@ -30,7 +34,7 @@ RUNME_BIN="$PWD/runme" \
 
 Run the same smoke task with local Codex through Runme's Harbor adapter:
 
-```sh
+```sh {"name":"smoke-local"}
 RUNME_BIN="$PWD/runme" \
   uv run --project integrations/harbor \
     harbor run \
