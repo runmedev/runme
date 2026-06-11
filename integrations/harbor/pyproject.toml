@@ -4,9 +4,12 @@ version = "0.0.1"
 description = "Runme Harbor environment adapter"
 requires-python = ">=3.12"
 dependencies = [
-  "harbor>=0.13.1",
+  "harbor>=0.13.1,<0.14",
   "protobuf>=6.0",
 ]
+
+[project.scripts]
+runme-harbor = "runme_harbor.cli:main"
 
 [build-system]
 requires = ["hatchling"]

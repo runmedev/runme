@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -21,7 +22,12 @@ func root() (status int) {
 	rootWithCPUProfile(func() {
 		if err := root.Execute(); err != nil {
 			logf("could not execute command: %v\n", err)
-			status = 1
+			var exitErr cmd.ExitCodeError
+			if errors.As(err, &exitErr) {
+				status = exitErr.Code
+			} else {
+				status = 1
+			}
 		}
 	})
 

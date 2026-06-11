@@ -1,0 +1,147 @@
+from __future__ import annotations
+
+import argparse
+import importlib
+import importlib.metadata
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Sequence
+
+
+ENVIRONMENT_IMPORT_PATH = "runme_harbor.environment:RunmeEnvironment"
+CODEX_IMPORT_PATH = "runme_harbor.local_agents:LocalCodex"
+CLAUDE_IMPORT_PATH = "runme_harbor.local_agents:LocalClaudeCode"
+MIN_HARBOR_VERSION = (0, 13, 1)
+MAX_HARBOR_VERSION = (0, 14, 0)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    try:
+        args = _parse_args(list(argv) if argv is not None else sys.argv[1:])
+        if args.command == "run":
+            return run(args)
+    except SystemExit as exc:
+        if isinstance(exc.code, int):
+            return exc.code
+        print(exc.code, file=sys.stderr)
+        return 1
+    return 1
+
+
+def run(args: argparse.Namespace) -> int:
+    _preflight(args.agent)
+    command = build_harbor_command(args)
+    if args.debug:
+        print(_command_string(command), file=sys.stderr)
+    return subprocess.call(command)
+
+
+def build_harbor_command(args: argparse.Namespace) -> list[str]:
+    path = str(Path(args.path).expanduser().resolve())
+    command = [
+        "harbor",
+        "run",
+        "--path",
+        path,
+        "--jobs-dir",
+        args.jobs_dir,
+        "--environment-import-path",
+        ENVIRONMENT_IMPORT_PATH,
+    ]
+
+    if args.agent == "oracle":
+        command.extend(["--agent", "oracle"])
+    elif args.agent == "codex":
+        command.extend(["--agent-import-path", CODEX_IMPORT_PATH])
+    elif args.agent == "claude":
+        command.extend(["--agent-import-path", CLAUDE_IMPORT_PATH])
+    else:
+        raise SystemExit(f"invalid --agent {args.agent!r}: expected oracle, codex, or claude")
+
+    if args.task:
+        command.extend(["--include-task-name", args.task])
+    if args.yes:
+        command.append("-y")
+    passthrough = list(args.passthrough)
+    if not _contains_concurrency_flag(passthrough):
+        command.extend(["--n-concurrent", "1"])
+    command.extend(passthrough)
+    return command
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="runme-harbor")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    run_parser = subparsers.add_parser("run")
+    run_parser.add_argument("path")
+    run_parser.add_argument("--agent", choices=("oracle", "codex", "claude"), default="oracle")
+    run_parser.add_argument("--task")
+    run_parser.add_argument("--jobs-dir", default=".runme/harbor/jobs")
+    run_parser.add_argument("-y", "--yes", action="store_true")
+    run_parser.add_argument("--debug", action="store_true")
+
+    args, passthrough = parser.parse_known_args(argv)
+    if passthrough and passthrough[0] == "--":
+        passthrough = passthrough[1:]
+    args.passthrough = passthrough
+    return args
+
+
+def _preflight(agent: str) -> None:
+    try:
+        importlib.import_module("harbor")
+    except ModuleNotFoundError as exc:
+        raise SystemExit("Runme Harbor requires the `harbor` Python package.") from exc
+    if not shutil.which("harbor"):
+        raise SystemExit("Runme Harbor requires the `harbor` CLI on PATH.")
+
+    version = _version_tuple(importlib.metadata.version("harbor"))
+    if version < MIN_HARBOR_VERSION or version >= MAX_HARBOR_VERSION:
+        raise SystemExit("Runme Harbor requires harbor>=0.13.1,<0.14.")
+
+    try:
+        importlib.import_module("runme_harbor")
+    except ModuleNotFoundError as exc:
+        raise SystemExit("Runme Harbor could not import `runme_harbor`.") from exc
+
+    if agent == "codex" and not shutil.which("codex"):
+        raise SystemExit("`--agent codex` requires the `codex` CLI on PATH.")
+    if agent == "claude" and not shutil.which("claude"):
+        raise SystemExit("`--agent claude` requires the `claude` CLI on PATH.")
+
+
+def _contains_concurrency_flag(args: list[str]) -> bool:
+    for index, arg in enumerate(args):
+        if arg == "-n" or arg == "--n-concurrent":
+            return True
+        if arg.startswith("--n-concurrent="):
+            return True
+        if arg.startswith("-n") and len(arg) > 2:
+            return True
+        if index > 0 and args[index - 1] in {"-n", "--n-concurrent"}:
+            continue
+    return False
+
+
+def _version_tuple(value: str) -> tuple[int, int, int]:
+    parts = []
+    for part in value.split(".")[:3]:
+        match = re.match(r"\d+", part)
+        parts.append(int(match.group(0)) if match else 0)
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts)  # type: ignore[return-value]
+
+
+def _command_string(command: list[str]) -> str:
+    import shlex
+
+    return shlex.join(command)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
