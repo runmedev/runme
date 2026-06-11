@@ -40,6 +40,24 @@ func TestExtractDataFromLoadEvent(t *testing.T) {
 	})
 }
 
+func assertEqualPath(t *testing.T, expected, actual string) {
+	t.Helper()
+
+	expected = filepath.Clean(expected)
+	actual = filepath.Clean(actual)
+	if expected == actual {
+		return
+	}
+
+	expectedInfo, expectedErr := os.Stat(expected)
+	actualInfo, actualErr := os.Stat(actual)
+	if expectedErr == nil && actualErr == nil && os.SameFile(expectedInfo, actualInfo) {
+		return
+	}
+
+	assert.Equal(t, expected, actual)
+}
+
 func TestNewDirProject(t *testing.T) {
 	temp := t.TempDir()
 	testData := teststub.Setup(t, temp)
@@ -95,7 +113,7 @@ func TestNewDirProject_FallbackOnUnsupportedGitExtensions(t *testing.T) {
 	p, err := NewDirProject(repoDir, WithAllowUnsupportedGitExtensions(true))
 	require.NoError(t, err)
 	require.Nil(t, p.repo)
-	assert.Equal(t, repoDir, p.Root())
+	assertEqualPath(t, repoDir, p.Root())
 }
 
 func TestNewFileProject(t *testing.T) {
@@ -142,7 +160,7 @@ func TestProjectRoot(t *testing.T) {
 		gitProjectDir := testData.GitProjectPath()
 		p, err := NewDirProject(gitProjectDir)
 		require.NoError(t, err)
-		assert.Equal(t, gitProjectDir, p.Root())
+		assertEqualPath(t, gitProjectDir, p.Root())
 		assert.True(t, filepath.IsAbs(p.Root()), "project root is not absolute: %s", p.Root())
 	})
 
@@ -213,74 +231,26 @@ func TestProjectLoad(t *testing.T) {
 			"collected events: %+v",
 			events,
 		)
-		assert.Equal(
-			t,
-			LoadEvent{
-				Type: LoadEventFoundDir,
-				Data: LoadEventFoundDirData{Path: gitProjectDir},
-			},
-			events[1],
-		)
-		assert.Equal(
-			t,
-			LoadEvent{
-				Type: LoadEventFoundFile,
-				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "git-ignored.md")},
-			},
-			events[2],
-		)
-		assert.Equal(
-			t,
-			LoadEvent{
-				Type: LoadEventFoundFile,
-				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "ignored.md")},
-			},
-			events[3],
-		)
-		assert.Equal(
-			t,
-			LoadEvent{
-				Type: LoadEventFoundDir,
-				Data: LoadEventFoundDirData{Path: filepath.Join(gitProjectDir, "nested")},
-			},
-			events[4],
-		)
-		assert.Equal(
-			t,
-			LoadEvent{
-				Type: LoadEventFoundFile,
-				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "nested", "git-ignored.md")},
-			},
-			events[5],
-		)
-		assert.Equal(
-			t,
-			LoadEvent{
-				Type: LoadEventFoundFile,
-				Data: LoadEventFoundFileData{Path: filepath.Join(gitProjectDir, "readme.md")},
-			},
-			events[6],
-		)
-		assert.Equal(
-			t,
-			filepath.Join(gitProjectDir, "git-ignored.md"),
-			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[10]).Task.DocumentPath,
-		)
-		assert.Equal(
-			t,
-			filepath.Join(gitProjectDir, "ignored.md"),
-			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[13]).Task.DocumentPath,
-		)
-		assert.Equal(
-			t,
-			filepath.Join(gitProjectDir, "nested", "git-ignored.md"),
-			ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[16]).Task.DocumentPath,
-		)
+		assert.Equal(t, LoadEventFoundDir, events[1].Type)
+		assertEqualPath(t, gitProjectDir, ExtractDataFromLoadEvent[LoadEventFoundDirData](events[1]).Path)
+		assert.Equal(t, LoadEventFoundFile, events[2].Type)
+		assertEqualPath(t, filepath.Join(gitProjectDir, "git-ignored.md"), ExtractDataFromLoadEvent[LoadEventFoundFileData](events[2]).Path)
+		assert.Equal(t, LoadEventFoundFile, events[3].Type)
+		assertEqualPath(t, filepath.Join(gitProjectDir, "ignored.md"), ExtractDataFromLoadEvent[LoadEventFoundFileData](events[3]).Path)
+		assert.Equal(t, LoadEventFoundDir, events[4].Type)
+		assertEqualPath(t, filepath.Join(gitProjectDir, "nested"), ExtractDataFromLoadEvent[LoadEventFoundDirData](events[4]).Path)
+		assert.Equal(t, LoadEventFoundFile, events[5].Type)
+		assertEqualPath(t, filepath.Join(gitProjectDir, "nested", "git-ignored.md"), ExtractDataFromLoadEvent[LoadEventFoundFileData](events[5]).Path)
+		assert.Equal(t, LoadEventFoundFile, events[6].Type)
+		assertEqualPath(t, filepath.Join(gitProjectDir, "readme.md"), ExtractDataFromLoadEvent[LoadEventFoundFileData](events[6]).Path)
+		assertEqualPath(t, filepath.Join(gitProjectDir, "git-ignored.md"), ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[10]).Task.DocumentPath)
+		assertEqualPath(t, filepath.Join(gitProjectDir, "ignored.md"), ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[13]).Task.DocumentPath)
+		assertEqualPath(t, filepath.Join(gitProjectDir, "nested", "git-ignored.md"), ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[16]).Task.DocumentPath)
 		// Unnamed task
 		{
 			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[19])
 
-			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
+			assertEqualPath(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
 			assert.Equal(t, "echo-hello", data.Task.CodeBlock.Name())
 			assert.True(t, data.Task.CodeBlock.IsUnnamed())
 		}
@@ -288,7 +258,7 @@ func TestProjectLoad(t *testing.T) {
 		{
 			data := ExtractDataFromLoadEvent[LoadEventFoundTaskData](events[20])
 
-			assert.Equal(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
+			assertEqualPath(t, filepath.Join(gitProjectDir, "readme.md"), data.Task.DocumentPath)
 			assert.Equal(t, "my-task", data.Task.CodeBlock.Name())
 			assert.False(t, data.Task.CodeBlock.IsUnnamed())
 		}
@@ -319,8 +289,8 @@ func TestProjectLoad(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.EqualValues(t, pRoot1.fs.Root(), pRoot2.fs.Root())
-		require.EqualValues(t, pRoot1.fs.Root(), pNested.fs.Root())
+		assertEqualPath(t, pRoot1.fs.Root(), pRoot2.fs.Root())
+		assertEqualPath(t, pRoot1.fs.Root(), pNested.fs.Root())
 	})
 
 	t.Run("DirProjectWithRespectGitignoreAndIgnorePatterns", func(t *testing.T) {

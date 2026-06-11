@@ -405,14 +405,21 @@ func (p *Project) loadFromDirectory(
 	p.send(ctx, eventc, LoadEvent{Type: LoadEventStartedWalk})
 
 	err := util.Walk(p.fs, ".", func(path string, info fs.FileInfo, err error) error {
+		isDir := info != nil && info.IsDir()
 		ignored := ignoreMatcher.Match(
 			strings.Split(path, string(filepath.Separator)),
-			info.IsDir(),
+			isDir,
 		)
 
-		switch err.(type) {
-		case nil:
-		case *os.PathError:
+		var pathErr *os.PathError
+		switch {
+		case err == nil:
+			if info == nil {
+				return errors.Errorf("missing file info for path %q", path)
+			}
+		case ignored:
+			return filepath.SkipDir
+		case errors.As(err, &pathErr):
 			if !ignored {
 				p.logger.Warn("path error", zap.String("path", path), zap.Error(err))
 			}
@@ -424,7 +431,7 @@ func (p *Project) loadFromDirectory(
 		if !ignored {
 			absPath := p.fs.Join(p.fs.Root(), path)
 
-			if info.IsDir() {
+			if isDir {
 				p.send(ctx, eventc, LoadEvent{
 					Type: LoadEventFoundDir,
 					Data: LoadEventFoundDirData{Path: absPath},
@@ -437,7 +444,7 @@ func (p *Project) loadFromDirectory(
 
 				onFileFound(absPath)
 			}
-		} else if info.IsDir() {
+		} else if isDir {
 			return filepath.SkipDir
 		}
 
