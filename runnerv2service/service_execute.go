@@ -1,8 +1,10 @@
 package runnerv2service
 
 import (
+	"context"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -79,13 +81,17 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		return err
 	}
 
+	sender := newExecuteResponseStreamSender(srv, logger.Named("responseSender"))
+
 	// Start the command and send the initial response with PID.
 	if err := exec.Cmd.Start(ctx); err != nil {
+		_ = sender.Close()
 		return err
 	}
-	if err := srv.Send(&runnerv2.ExecuteResponse{
+	if err := sender.Send(ctx, &runnerv2.ExecuteResponse{
 		Pid: &wrapperspb.UInt32Value{Value: uint32(exec.Cmd.Pid())},
 	}); err != nil {
+		_ = sender.Close()
 		return err
 	}
 
@@ -133,7 +139,7 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		}
 	}(req)
 
-	exitCode, waitErr := exec.Wait(ctx, srv)
+	exitCode, waitErr := exec.Wait(ctx, sender.Send)
 	logger.Info("command finished", zap.Int("exitCode", exitCode), zap.Error(waitErr))
 
 	var finalExitCode *wrapperspb.UInt32Value
@@ -149,7 +155,7 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 		prevPwd = v
 	}
 
-	if err := srv.Send(&runnerv2.ExecuteResponse{
+	if err := sender.Send(ctx, &runnerv2.ExecuteResponse{
 		ExitCode: finalExitCode,
 		Pwd: &runnerv2.ExecuteResponse_Pwd{
 			Current:  currPwd,
@@ -158,8 +164,79 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	}); err != nil {
 		logger.Info("failed to send exit code", zap.Error(err))
 	}
+	if err := sender.Close(); err != nil {
+		logger.Info("response sender stopped with error", zap.Error(err))
+		if waitErr == nil {
+			waitErr = err
+		}
+	}
 
 	return waitErr
+}
+
+type executeResponseStreamSender struct {
+	responses chan *runnerv2.ExecuteResponse
+	done      chan struct{}
+	closeOnce sync.Once
+	errMu     sync.Mutex
+	err       error
+}
+
+func newExecuteResponseStreamSender(
+	srv runnerv2.RunnerService_ExecuteServer,
+	logger *zap.Logger,
+) *executeResponseStreamSender {
+	s := &executeResponseStreamSender{
+		responses: make(chan *runnerv2.ExecuteResponse),
+		done:      make(chan struct{}),
+	}
+
+	go func() {
+		defer close(s.done)
+		for resp := range s.responses {
+			if err := srv.Send(resp); err != nil {
+				logger.Warn("failed to send response", zap.Error(err))
+				s.setErr(errors.WithStack(err))
+				return
+			}
+		}
+	}()
+
+	return s
+}
+
+func (s *executeResponseStreamSender) Send(ctx context.Context, resp *runnerv2.ExecuteResponse) error {
+	select {
+	case s.responses <- resp:
+		return nil
+	case <-s.done:
+		if err := s.Err(); err != nil {
+			return err
+		}
+		return errors.New("response sender stopped")
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (s *executeResponseStreamSender) Close() error {
+	s.closeOnce.Do(func() {
+		close(s.responses)
+	})
+	<-s.done
+	return s.Err()
+}
+
+func (s *executeResponseStreamSender) setErr(err error) {
+	s.errMu.Lock()
+	defer s.errMu.Unlock()
+	s.err = err
+}
+
+func (s *executeResponseStreamSender) Err() error {
+	s.errMu.Lock()
+	defer s.errMu.Unlock()
+	return s.err
 }
 
 func getExecutionInfoFromExecutionRequest(req *runnerv2.ExecuteRequest) *rcontext.ExecutionInfo {

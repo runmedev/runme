@@ -39,6 +39,8 @@ type execution struct {
 	stdinW, stdoutW, stderrW io.WriteCloser
 }
 
+type executeResponseSender func(context.Context, *runnerv2.ExecuteResponse) error
+
 func newExecution(
 	cfg *command.ProgramConfig,
 	proj *project.Project,
@@ -114,7 +116,7 @@ func (e *execution) storeOutputInEnv(ctx context.Context, b []byte) {
 	}
 }
 
-func (e *execution) Wait(ctx context.Context, srv runnerv2.RunnerService_ExecuteServer) (int, error) {
+func (e *execution) Wait(ctx context.Context, send executeResponseSender) (int, error) {
 	envStdout := io.Discard
 	if e.storeStdoutInEnv {
 		w := &tailCapWriter{cap: session.MaxEnvSizeInBytes - len(command.StoreStdoutEnvName) - 1}
@@ -127,7 +129,8 @@ func (e *execution) Wait(ctx context.Context, srv runnerv2.RunnerService_Execute
 		mimetypeDetected := false
 
 		readSendDone <- e.readSendLoop(
-			srv,
+			ctx,
+			send,
 			e.stdoutR,
 			func(b []byte) *runnerv2.ExecuteResponse {
 				if _, err := envStdout.Write(b); err != nil {
@@ -156,7 +159,8 @@ func (e *execution) Wait(ctx context.Context, srv runnerv2.RunnerService_Execute
 	}()
 	go func() {
 		readSendDone <- e.readSendLoop(
-			srv,
+			ctx,
+			send,
 			e.stderrR,
 			func(b []byte) *runnerv2.ExecuteResponse {
 				return &runnerv2.ExecuteResponse{
@@ -205,7 +209,8 @@ finalWait:
 }
 
 func (e *execution) readSendLoop(
-	srv runnerv2.RunnerService_ExecuteServer,
+	ctx context.Context,
+	send executeResponseSender,
 	src io.Reader,
 	cb func([]byte) *runnerv2.ExecuteResponse,
 	logger *zap.Logger,
@@ -247,9 +252,9 @@ func (e *execution) readSendLoop(
 		}
 
 		readTime := time.Now()
-		response := cb(data[:n])
+		response := cb(bytes.Clone(data[:n]))
 
-		if err := srv.Send(response); err != nil {
+		if err := send(ctx, response); err != nil {
 			logger.Warn("failed to send response", zap.Error(err))
 			return errors.WithStack(err)
 		}
