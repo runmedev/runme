@@ -177,15 +177,24 @@ func TestRunEvalMissingRunmeHarbor(t *testing.T) {
 	}
 }
 
-func TestRunEvalInvalidAgent(t *testing.T) {
+func TestRunEvalDelegatesUnknownAgent(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
 	opts.agent = "bad"
 
 	err := runEval(opts, []string{path})
-	if err == nil || !strings.Contains(err.Error(), "invalid --agent") {
-		t.Fatalf("error = %v", err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "bad",
+		"--jobs-dir", defaultHarborJobsDir,
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
 	}
 }
 
