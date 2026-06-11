@@ -68,8 +68,9 @@ func TestRunEvalDelegatesOracle(t *testing.T) {
 	if !sameCommand(calls[1], wantDelegate) {
 		t.Fatalf("delegate = %#v, want %#v", calls[1], wantDelegate)
 	}
-	if !strings.Contains(stderr.String(), "/bin/runme-harbor run "+mustAbs(t, path)) {
-		t.Fatalf("debug output = %q", stderr.String())
+	wantDebug := shellCommandString(append([]string{wantDelegate.name}, wantDelegate.args...)) + "\n"
+	if stderr.String() != wantDebug {
+		t.Fatalf("debug output = %q, want %q", stderr.String(), wantDebug)
 	}
 	if got := envValue(calls[1].env, "RUNME_BIN"); got != "/bin/runme" {
 		t.Fatalf("RUNME_BIN = %q, want /bin/runme", got)
