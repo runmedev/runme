@@ -1,0 +1,32 @@
+schema_version = "1.1"
+
+[task]
+name = "runme/text-stats-reward"
+description = "Containerless Harbor task with deterministic weighted RewardKit scoring."
+authors = []
+keywords = ["runme", "harbor", "containerless", "rewardkit", "scoring"]
+
+[metadata]
+difficulty = "medium"
+category = "programming"
+tags = ["runme", "harbor", "rewardkit", "programmatic-grading"]
+
+[verifier]
+timeout_sec = 120.0
+
+[agent]
+timeout_sec = 240.0
+
+[environment]
+build_timeout_sec = 60.0
+cpus = 1
+memory_mb = 512
+storage_mb = 1024
+gpus = 0
+workdir = "/app/examples/harbor/datasets/runme-integration/text-stats-reward/workdir"
+
+[environment.env]
+
+[verifier.env]
+
+[solution.env]

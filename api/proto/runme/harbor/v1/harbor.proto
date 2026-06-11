@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package runme.harbor.v1;
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/runme/harbor/v1;harborv1";
+
+message Error {
+  string code = 1;
+  string message = 2;
+}
+
+message Request {
+  string id = 1;
+
+  oneof payload {
+    PreflightRequest preflight = 10;
+    StartRequest start = 11;
+    StopRequest stop = 12;
+    ExecRequest exec = 13;
+    UploadFileRequest upload_file = 14;
+    DownloadFileRequest download_file = 15;
+    UploadDirectoryRequest upload_directory = 16;
+    DownloadDirectoryRequest download_directory = 17;
+  }
+}
+
+message Response {
+  string id = 1;
+  Error error = 2;
+
+  oneof payload {
+    PreflightResponse preflight = 10;
+    StartResponse start = 11;
+    StopResponse stop = 12;
+    ExecResponse exec = 13;
+    UploadFileResponse upload_file = 14;
+    DownloadFileResponse download_file = 15;
+    UploadDirectoryResponse upload_directory = 16;
+    DownloadDirectoryResponse download_directory = 17;
+  }
+}
+
+message PreflightRequest {}
+
+message PreflightResponse {
+  string protocol = 1;
+  string version = 2;
+  repeated string capabilities = 3;
+}
+
+message StartRequest {
+  string root = 1;
+  repeated string env = 2;
+}
+
+message StartResponse {
+  string root = 1;
+}
+
+message StopRequest {}
+
+message StopResponse {}
+
+message ExecRequest {
+  string command = 1;
+  string cwd = 2;
+  repeated string env = 3;
+}
+
+message ExecResponse {
+  bytes stdout = 1;
+  bytes stderr = 2;
+  int32 exit_code = 3;
+}
+
+message FileEntry {
+  string path = 1;
+  bytes data = 2;
+  uint32 mode = 3;
+}
+
+message UploadFileRequest {
+  string path = 1;
+  bytes data = 2;
+  uint32 mode = 3;
+}
+
+message UploadFileResponse {
+  uint64 bytes_written = 1;
+}
+
+message DownloadFileRequest {
+  string path = 1;
+}
+
+message DownloadFileResponse {
+  bytes data = 1;
+  uint32 mode = 2;
+}
+
+message UploadDirectoryRequest {
+  string path = 1;
+  repeated FileEntry files = 2;
+}
+
+message UploadDirectoryResponse {
+  uint32 files_written = 1;
+}
+
+message DownloadDirectoryRequest {
+  string path = 1;
+}
+
+message DownloadDirectoryResponse {
+  repeated FileEntry files = 1;
+}

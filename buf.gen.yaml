@@ -27,6 +27,14 @@ plugins:
     opt: target=js+dts,import_extension=none,json_types=true
     include_imports: true
 
+  # Remote plugin. You can switch to a local one by using "python".
+  - remote: buf.build/protocolbuffers/python
+    out: api/gen/proto/python
+
+  # Remote plugin. You can switch to a local one by using "pyi".
+  - remote: buf.build/protocolbuffers/pyi
+    out: api/gen/proto/python
+
   # Local plugin to generate GQL schema
   - local: protoc-gen-gql
     out: api/gen/proto/gql
