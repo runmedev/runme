@@ -1,6 +1,8 @@
+import json
 import os
 import shlex
 import shutil
+import tempfile
 from hashlib import sha256
 from pathlib import Path
 
@@ -250,6 +252,46 @@ class LocalOpenClaw(OpenClaw):
     async def setup(self, environment: BaseEnvironment) -> None:
         return None
 
+    @staticmethod
+    def _openclaw_config_path() -> Path:
+        config_path = os.environ.get("OPENCLAW_CONFIG_PATH")
+        if config_path:
+            return Path(config_path).expanduser()
+        return Path.home() / ".openclaw" / "openclaw.json"
+
+    @staticmethod
+    def _workspace_path(environment: BaseEnvironment) -> str | None:
+        task_env_config = getattr(environment, "task_env_config", None)
+        workdir = getattr(task_env_config, "workdir", None) or "/app"
+        map_remote_path = getattr(environment, "_map_remote_path", None)
+        if not callable(map_remote_path):
+            return None
+        return str(map_remote_path(workdir))
+
+    def _create_runtime_config(self, environment: BaseEnvironment) -> Path | None:
+        source = self._openclaw_config_path()
+        if not source.is_file():
+            return None
+
+        workspace_path = self._workspace_path(environment)
+        if not workspace_path:
+            return None
+
+        try:
+            config = json.loads(source.read_text())
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"OpenClaw config is not valid JSON: {source}") from exc
+
+        agents = config.setdefault("agents", {})
+        defaults = agents.setdefault("defaults", {})
+        defaults["workspace"] = workspace_path
+
+        config_dir = Path(tempfile.mkdtemp(prefix="runme-harbor-openclaw-"))
+        target = config_dir / "openclaw.json"
+        target.write_text(json.dumps(config, indent=2) + "\n")
+        target.chmod(0o600)
+        return target
+
     def _runtime_env(self) -> dict[str, str]:
         if not self.model_name:
             return {}
@@ -307,6 +349,10 @@ class LocalOpenClaw(OpenClaw):
     ) -> None:
         escaped_instruction = shlex.quote(instruction)
         env = self._runtime_env()
+        runtime_config_path = self._create_runtime_config(environment)
+        if runtime_config_path:
+            env = dict(env)
+            env["OPENCLAW_CONFIG_PATH"] = str(runtime_config_path)
 
         try:
             instruction_path = self.logs_dir / "instruction.txt"
@@ -341,5 +387,7 @@ class LocalOpenClaw(OpenClaw):
                 self._collect_session_file()
             except Exception:
                 pass
+            if runtime_config_path:
+                shutil.rmtree(runtime_config_path.parent, ignore_errors=True)
 
             self.populate_context_post_run(context)
