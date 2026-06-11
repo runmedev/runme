@@ -24,7 +24,7 @@ class LocalClaudeCode(ClaudeCode):
 
     @staticmethod
     def name() -> str:
-        return "claude-code"
+        return "local-claude-code"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -142,7 +142,7 @@ class LocalCodex(Codex):
 
     @staticmethod
     def name() -> str:
-        return "codex"
+        return "local-codex"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -242,7 +242,7 @@ class LocalOpenClaw(OpenClaw):
 
     @staticmethod
     def name() -> str:
-        return "openclaw"
+        return "local-openclaw"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
