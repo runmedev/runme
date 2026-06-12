@@ -72,6 +72,11 @@ runner/.runme-script-*
 # Harbor example job output
 .runme/harbor/
 
+# Local agent tool state
+.agents/
+.claude/
+.openclaw/
+
 # Local build caches created during sandboxed test runs
 .cache/
 
