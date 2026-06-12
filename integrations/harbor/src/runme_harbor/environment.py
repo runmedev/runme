@@ -314,7 +314,7 @@ class RunmeEnvironment(BaseEnvironment):
         shutil.copytree(
             source,
             target,
-            symlinks=True,
+            symlinks=False,
             ignore=_gitignore_filter(self._workspace_root),
         )
         self._staged_workdir_remote = remote

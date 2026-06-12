@@ -166,7 +166,8 @@ def test_nested_configured_workdir_is_staged_per_trial(
 
     staged = tmp_path / "trial" / "workdir"
     assert (staged / ".gitkeep").exists()
-    assert (staged / "sample.txt").is_symlink()
+    assert not (staged / "sample.txt").is_symlink()
+    assert (staged / "sample.txt").read_text() == "sample"
     assert not (staged / "results.json").exists()
     assert not (staged / "__pycache__").exists()
 
