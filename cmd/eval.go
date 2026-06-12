@@ -23,6 +23,7 @@ type evalOptions struct {
 	task        string
 	jobsDir     string
 	yes         bool
+	model       string
 	runmeBin    string
 	runmeArgs   []string
 	runmeHarbor string
@@ -66,6 +67,7 @@ func evalCmd() *cobra.Command {
 	flags.StringVar(&opts.task, "task", "", "Harbor task name to include")
 	flags.StringVar(&opts.jobsDir, "jobs-dir", defaultHarborJobsDir, "Harbor jobs directory")
 	flags.BoolVarP(&opts.yes, "yes", "y", false, "Confirm Harbor prompts")
+	flags.StringVar(&opts.model, "model", "", "Harbor agent model")
 	flags.StringVar(&opts.runmeBin, "runme-bin", "", "Runme binary used by the Harbor environment")
 	flags.StringArrayVar(&opts.runmeArgs, "runme-arg", nil, "Additional Runme argument used by the Harbor environment")
 	flags.StringVar(&opts.runmeHarbor, "runme-harbor-bin", "", "runme-harbor executable")
@@ -84,6 +86,11 @@ func runEval(opts evalOptions, args []string) error {
 			return fmt.Errorf("task path does not exist: %s", args[0])
 		}
 		return err
+	}
+
+	passthrough := args[1:]
+	if opts.model != "" && containsModelFlag(passthrough) {
+		return fmt.Errorf("--model cannot be used together with passthrough --model; use only runme eval --model")
 	}
 
 	runmeHarbor, err := resolveRunmeHarbor(opts)
@@ -113,7 +120,7 @@ func runEval(opts evalOptions, args []string) error {
 		}
 	}
 
-	delegatedArgs := buildRunmeHarborArgs(taskPath, opts, args[1:])
+	delegatedArgs := buildRunmeHarborArgs(taskPath, opts, passthrough)
 	if opts.debug {
 		_, _ = fmt.Fprintf(opts.stderr, "%s\n", shellCommandString(append([]string{runmeHarbor}, delegatedArgs...)))
 	}
@@ -200,11 +207,24 @@ func buildRunmeHarborArgs(path string, opts evalOptions, passthrough []string) [
 	if opts.debug {
 		args = append(args, "--debug")
 	}
-	if len(passthrough) > 0 {
+	delegatedPassthrough := append([]string(nil), passthrough...)
+	if opts.model != "" {
+		delegatedPassthrough = append(delegatedPassthrough, "--model", opts.model)
+	}
+	if len(delegatedPassthrough) > 0 {
 		args = append(args, "--")
-		args = append(args, passthrough...)
+		args = append(args, delegatedPassthrough...)
 	}
 	return args
+}
+
+func containsModelFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == "--model" || strings.HasPrefix(arg, "--model=") {
+			return true
+		}
+	}
+	return false
 }
 
 func runExternalCommand(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {

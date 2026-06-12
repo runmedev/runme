@@ -90,7 +90,7 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 			var calls []recordedCommand
 			opts := testEvalOptions(t, &calls, io.Discard)
 			opts.agent = tt.agent
-			opts.task = "local-agent"
+			opts.task = "simple-agent"
 			opts.jobsDir = "jobs"
 			opts.yes = true
 
@@ -104,11 +104,86 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 				mustAbs(t, path),
 				"--agent", tt.agent,
 				"--jobs-dir", "jobs",
-				"--task", "local-agent",
+				"--task", "simple-agent",
 				"-y",
 			}
 			if !reflect.DeepEqual(calls[1].args, want) {
 				t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+			}
+		})
+	}
+}
+
+func TestRunEvalDelegatesModel(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.model = "haiku"
+
+	err := runEval(opts, []string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultHarborJobsDir,
+		"--",
+		"--model", "haiku",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalPreservesPassthroughModel(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := runEval(opts, []string{path, "--model", "haiku"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultHarborJobsDir,
+		"--",
+		"--model", "haiku",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalRejectsDuplicateModel(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		passthrough []string
+	}{
+		{name: "separate arg", passthrough: []string{"--model", "sonnet"}},
+		{name: "equals arg", passthrough: []string{"--model=sonnet"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			path := t.TempDir()
+			var calls []recordedCommand
+			opts := testEvalOptions(t, &calls, io.Discard)
+			opts.model = "haiku"
+
+			err := runEval(opts, append([]string{path}, tt.passthrough...))
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if !strings.Contains(err.Error(), "--model cannot be used together with passthrough --model") {
+				t.Fatalf("error = %q", err.Error())
+			}
+			if len(calls) != 0 {
+				t.Fatalf("calls = %#v, want none", calls)
 			}
 		})
 	}

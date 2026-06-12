@@ -1,11 +1,11 @@
 import asyncio
-import re
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from runme_harbor.local_agents import LocalOpenClaw
+from runme_harbor.runme_agents import RunmeOpenClaw
 
 
 class FakeEnvironment:
@@ -43,7 +43,11 @@ def write_openclaw_config(home: Path, workspace: Path) -> Path:
     return config_path
 
 
-def test_local_openclaw_uses_ambient_user_config(
+def test_runme_openclaw_name() -> None:
+    assert RunmeOpenClaw.name() == "runme-openclaw"
+
+
+def test_runme_openclaw_uses_ambient_user_config(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -56,7 +60,7 @@ def test_local_openclaw_uses_ambient_user_config(
     monkeypatch.setenv("OPENAI_BASE_URL", "https://example.test/v1")
 
     environment = FakeEnvironment(staged_workspace)
-    agent = LocalOpenClaw(logs_dir=tmp_path, model_name="openai/gpt-5")
+    agent = RunmeOpenClaw(logs_dir=tmp_path, model_name="openai/gpt-5")
     calls: list[tuple[str, dict[str, str] | None]] = []
     runtime_config: dict[str, Any] = {}
     runtime_config_path: Path | None = None
@@ -98,7 +102,7 @@ def test_local_openclaw_uses_ambient_user_config(
     assert all("~/.openclaw/openclaw.json" not in command for command, _ in calls)
 
 
-def test_local_openclaw_can_use_local_config_model(
+def test_runme_openclaw_can_use_local_config_model(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -107,7 +111,7 @@ def test_local_openclaw_can_use_local_config_model(
     monkeypatch.setenv("HOME", str(home))
 
     environment = FakeEnvironment(tmp_path / "trial" / "workdir")
-    agent = LocalOpenClaw(logs_dir=tmp_path, model_name=None)
+    agent = RunmeOpenClaw(logs_dir=tmp_path, model_name=None)
     calls: list[tuple[str, dict[str, str] | None]] = []
 
     async def fake_exec_as_agent(
@@ -128,13 +132,13 @@ def test_local_openclaw_can_use_local_config_model(
     assert "OPENCLAW_CONFIG_PATH" in calls[0][1]
 
 
-def test_local_openclaw_allows_explicit_session_key(
+def test_runme_openclaw_allows_explicit_session_key(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     environment = FakeEnvironment()
-    agent = LocalOpenClaw(
+    agent = RunmeOpenClaw(
         logs_dir=tmp_path,
         model_name=None,
         session_key="agent:ops:incident-42",
@@ -159,13 +163,13 @@ def test_local_openclaw_allows_explicit_session_key(
     assert "runme-harbor-" not in calls[0][0]
 
 
-def test_local_openclaw_allows_explicit_session_id(
+def test_runme_openclaw_allows_explicit_session_id(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     environment = FakeEnvironment()
-    agent = LocalOpenClaw(logs_dir=tmp_path, model_name=None, session_id="1234")
+    agent = RunmeOpenClaw(logs_dir=tmp_path, model_name=None, session_id="1234")
     calls: list[tuple[str, dict[str, str] | None]] = []
 
     async def fake_exec_as_agent(
@@ -184,11 +188,11 @@ def test_local_openclaw_allows_explicit_session_id(
     assert "runme-harbor-" not in calls[0][0]
 
 
-def test_local_openclaw_collects_session_file(tmp_path: Path) -> None:
+def test_runme_openclaw_collects_session_file(tmp_path: Path) -> None:
     session_file = tmp_path / "session.jsonl"
     session_file.write_text('{"type":"message"}\n')
 
-    agent = LocalOpenClaw(logs_dir=tmp_path / "logs", model_name="openai/gpt-5")
+    agent = RunmeOpenClaw(logs_dir=tmp_path / "logs", model_name="openai/gpt-5")
     agent.logs_dir.mkdir()
     (agent.logs_dir / "openclaw.txt").write_text(
         json.dumps(

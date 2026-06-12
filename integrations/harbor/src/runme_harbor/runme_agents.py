@@ -15,18 +15,18 @@ from harbor.models.agent.context import AgentContext
 from harbor.models.trial.paths import EnvironmentPaths
 
 
-class LocalClaudeCode(ClaudeCode):
-    """Claude Code-backed local agent without container bootstrap.
+class RunmeClaudeCode(ClaudeCode):
+    """Claude Code-backed Runme agent without container bootstrap.
 
     Harbor's installed Claude Code agent assumes a disposable container and
     prepares Claude config, credentials, skills, memory, and MCP servers before
-    running. Runme Harbor executes against a local runtime, so this wrapper
+    running. Runme Harbor executes through Runme's runtime, so this wrapper
     expects `claude` to already be available and configured.
     """
 
     @staticmethod
     def name() -> str:
-        return "local-claude-code"
+        return "runme-claude-code"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -132,19 +132,19 @@ class LocalClaudeCode(ClaudeCode):
             self.populate_context_post_run(context)
 
 
-class LocalCodex(Codex):
-    """Codex-backed local agent without container bootstrap.
+class RunmeCodex(Codex):
+    """Codex-backed Runme agent without container bootstrap.
 
     Harbor's installed Codex agent assumes a disposable container and mutates
     that environment during setup by installing system packages, Node, and the
-    Codex CLI. Runme Harbor executes against a local runtime, so this
+    Codex CLI. Runme Harbor executes through Runme's runtime, so this
     wrapper expects `codex` to already be available and skips setup-time
     environment changes.
     """
 
     @staticmethod
     def name() -> str:
-        return "local-codex"
+        return "runme-codex"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -227,12 +227,12 @@ class LocalCodex(Codex):
             self.populate_context_post_run(context)
 
 
-class LocalOpenClaw(OpenClaw):
-    """OpenClaw-backed local agent without container bootstrap.
+class RunmeOpenClaw(OpenClaw):
+    """OpenClaw-backed Runme agent without container bootstrap.
 
     Harbor's installed OpenClaw agent installs Node/OpenClaw in a disposable
     container and writes container-local config before execution. Runme Harbor
-    executes against a local runtime, so this wrapper expects `openclaw` to
+    executes through Runme's runtime, so this wrapper expects `openclaw` to
     already be available and configured.
     """
 
@@ -244,7 +244,7 @@ class LocalOpenClaw(OpenClaw):
 
     @staticmethod
     def name() -> str:
-        return "local-openclaw"
+        return "runme-openclaw"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None

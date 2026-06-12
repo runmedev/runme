@@ -1,8 +1,8 @@
 schema_version = "1.1"
 
 [task]
-name = "runme/local-agent"
-description = "Containerless Harbor smoke task for Runme with local Codex."
+name = "runme/simple-agent"
+description = "Containerless Harbor smoke task for Runme Codex."
 authors = []
 keywords = ["runme", "harbor", "containerless", "agent"]
 

@@ -12,9 +12,9 @@ from typing import Sequence
 
 
 ENVIRONMENT_IMPORT_PATH = "runme_harbor.environment:RunmeEnvironment"
-CODEX_IMPORT_PATH = "runme_harbor.local_agents:LocalCodex"
-CLAUDE_IMPORT_PATH = "runme_harbor.local_agents:LocalClaudeCode"
-OPENCLAW_IMPORT_PATH = "runme_harbor.local_agents:LocalOpenClaw"
+CODEX_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCodex"
+CLAUDE_IMPORT_PATH = "runme_harbor.runme_agents:RunmeClaudeCode"
+OPENCLAW_IMPORT_PATH = "runme_harbor.runme_agents:RunmeOpenClaw"
 MIN_HARBOR_VERSION = (0, 13, 1)
 MAX_HARBOR_VERSION = (0, 14, 0)
 AGENT_ARGUMENTS = {

@@ -36,7 +36,7 @@ def test_build_harbor_command_codex(tmp_path: Path) -> None:
     command = cli.build_harbor_command(args)
 
     assert "--agent-import-path" in command
-    assert "runme_harbor.local_agents:LocalCodex" in command
+    assert "runme_harbor.runme_agents:RunmeCodex" in command
     assert "--agent" not in command
 
 
@@ -46,7 +46,7 @@ def test_build_harbor_command_claude(tmp_path: Path) -> None:
     command = cli.build_harbor_command(args)
 
     assert "--agent-import-path" in command
-    assert "runme_harbor.local_agents:LocalClaudeCode" in command
+    assert "runme_harbor.runme_agents:RunmeClaudeCode" in command
     assert "--agent" not in command
 
 
@@ -56,7 +56,7 @@ def test_build_harbor_command_openclaw(tmp_path: Path) -> None:
     command = cli.build_harbor_command(args)
 
     assert "--agent-import-path" in command
-    assert "runme_harbor.local_agents:LocalOpenClaw" in command
+    assert "runme_harbor.runme_agents:RunmeOpenClaw" in command
     assert "--agent" not in command
 
 
@@ -66,7 +66,7 @@ def test_build_harbor_command_task_yes_jobs_and_passthrough(tmp_path: Path) -> N
             "run",
             str(tmp_path),
             "--task",
-            "local-agent",
+            "simple-agent",
             "--jobs-dir",
             "jobs",
             "-y",
@@ -78,7 +78,7 @@ def test_build_harbor_command_task_yes_jobs_and_passthrough(tmp_path: Path) -> N
 
     command = cli.build_harbor_command(args)
 
-    assert ["--include-task-name", "local-agent"] == command[
+    assert ["--include-task-name", "simple-agent"] == command[
         command.index("--include-task-name") : command.index("--include-task-name") + 2
     ]
     assert ["--jobs-dir", "jobs"] == command[command.index("--jobs-dir") : command.index("--jobs-dir") + 2]
@@ -129,7 +129,7 @@ def test_main_runs_harbor_and_prints_debug(
         ("openclaw", "openclaw", "`--agent openclaw` requires the `openclaw` CLI"),
     ],
 )
-def test_preflight_requires_local_agent_cli(
+def test_preflight_requires_runme_agent_cli(
     monkeypatch: pytest.MonkeyPatch,
     agent: str,
     missing: str,
