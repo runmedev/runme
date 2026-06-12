@@ -4,59 +4,45 @@ cwd: ../..
 
 # Harbor Examples
 
-These examples exercise Runme through Harbor's custom environment interface.
+These examples exercise Runme through Harbor's custom environment interface via
+`runme eval`.
 
 Run the smoke task with the oracle, which uses the known-good solution:
 
 ```sh {"name":"smoke-oracle"}
-RUNME_BIN="$PWD/runme" \
-  uv run --project integrations/harbor \
-    harbor run \
-      --path examples/harbor/datasets/runme-integration \
-      --include-task-name simple-agent \
-      --agent oracle \
-      --jobs-dir .runme/harbor/jobs \
-      --environment-import-path runme_harbor.environment:RunmeEnvironment
+runme eval examples/harbor/datasets/runme-integration \
+  --task simple-agent \
+  --agent oracle
 ```
 
 Run a deterministic weighted-scoring task with the oracle:
 
 ```sh {"name":"scoring-oracle"}
-RUNME_BIN="$PWD/runme" \
-  uv run --project integrations/harbor \
-    harbor run \
-      --path examples/harbor/datasets/runme-integration \
-      --include-task-name text-stats-reward \
-      --agent oracle \
-      --jobs-dir .runme/harbor/jobs \
-      --environment-import-path runme_harbor.environment:RunmeEnvironment
+runme eval examples/harbor/datasets/runme-integration \
+  --task text-stats-reward \
+  --agent oracle
 ```
 
-Run the same smoke task with Runme Codex through Runme's Harbor adapter:
+Run the same smoke task with Codex through Runme's Harbor adapter:
 
-```sh {"name":"smoke-simple"}
-RUNME_BIN="$PWD/runme" \
-  uv run --project integrations/harbor \
-    harbor run \
-      --path examples/harbor/datasets/runme-integration \
-      --include-task-name simple-agent \
-      --agent-import-path runme_harbor.runme_agents:RunmeCodex \
-      --jobs-dir .runme/harbor/jobs \
-      --environment-import-path runme_harbor.environment:RunmeEnvironment \
-      -y
+```sh {"name":"smoke-codex"}
+runme eval examples/harbor/datasets/runme-integration \
+  --task simple-agent \
+  --agent codex \
+  -y
 ```
 
-The dataset root is `examples/harbor/datasets/runme-integration`, which keeps
-Harbor job metadata readable while `--include-task-name` selects an individual
-task directory inside that dataset. Harbor filters by task directory name, so the
-example uses `--include-task-name simple-agent` even though the task is named
-`runme/simple-agent` in `task.toml`. Use `--include-task-name text-stats-reward`
-to run the weighted RewardKit example instead.
+The dataset root is `examples/harbor/datasets/runme-integration`. Each
+`runme eval` creates Harbor job and trial metadata under `.runme/harbor/jobs`.
+The `--task` flag selects a task directory inside the dataset, such as
+`simple-agent` or `text-stats-reward`, even though the public task names in
+`task.toml` are namespaced as `runmedev/simple-agent` and
+`runmedev/text-stats-reward`.
 
-`RunmeCodex` reuses Harbor's Codex execution and ATIF conversion logic, but
-skips Harbor's container bootstrap phase. It expects the local `codex` CLI and
-Codex auth to already be available, then runs Codex through `environment.exec`
-so command execution flows through `runme harbor stdio`.
+`runme eval` delegates to `runme-harbor`, so these examples remain compatible
+with the underlying `harbor run` workflow. The adapter supports `oracle`,
+`codex`, `claude-code`, and `openclaw` agents and runs local agent CLIs through
+`runme harbor stdio`.
 
-Set `RUNME_BIN` to use a specific Runme binary. Set `RUNME_ARGS` or the Harbor
-environment kwarg `runme_args` to pass global Runme flags before `harbor stdio`.
+Set `--runme-bin` to use a specific Runme binary. Set `--runme-arg` one or more
+times to pass global Runme flags before `harbor stdio`.

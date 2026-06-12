@@ -1,4 +1,4 @@
-Create a file named `result.txt` in the current working directory.
+Create a file named `result.txt`.
 
 The file must contain exactly:
 

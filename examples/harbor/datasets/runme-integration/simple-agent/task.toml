@@ -1,8 +1,8 @@
 schema_version = "1.1"
 
 [task]
-name = "runme/simple-agent"
-description = "Containerless Harbor smoke task for Runme Codex."
+name = "runmedev/simple-agent"
+description = "Smoke test that asks an agent to write an expected string to result.txt."
 authors = []
 keywords = ["runme", "harbor", "containerless", "agent"]
 
