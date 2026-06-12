@@ -90,7 +90,7 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 			var calls []recordedCommand
 			opts := testEvalOptions(t, &calls, io.Discard)
 			opts.agent = tt.agent
-			opts.taskName = "simple-agent"
+			opts.taskDir = "simple-agent"
 			opts.jobsDir = "jobs"
 			opts.yes = true
 
@@ -104,7 +104,7 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 				mustAbs(t, path),
 				"--agent", tt.agent,
 				"--jobs-dir", "jobs",
-				"--task-name", "simple-agent",
+				"--task-dir", "simple-agent",
 				"-y",
 			}
 			if !reflect.DeepEqual(calls[1].args, want) {
@@ -125,6 +125,21 @@ func TestEvalCmdRejectsTaskFlag(t *testing.T) {
 		t.Fatal("expected error")
 	}
 	if !strings.Contains(err.Error(), "unknown flag: --task") {
+		t.Fatalf("error = %q", err.Error())
+	}
+}
+
+func TestEvalCmdRejectsTaskNameFlag(t *testing.T) {
+	cmd := evalCmd()
+	cmd.SetArgs([]string{t.TempDir(), "--task-name", "simple-agent"})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "unknown flag: --task-name") {
 		t.Fatalf("error = %q", err.Error())
 	}
 }

@@ -11,7 +11,7 @@ Run the smoke task with the oracle, which uses the known-good solution:
 
 ```sh {"name":"smoke-oracle"}
 runme eval examples/harbor/datasets/runme-integration \
-  --task-name simple-agent \
+  --task-dir simple-agent \
   --agent oracle
 ```
 
@@ -19,7 +19,7 @@ Run a deterministic weighted-scoring task with the oracle:
 
 ```sh {"name":"scoring-oracle"}
 runme eval examples/harbor/datasets/runme-integration \
-  --task-name text-stats-reward \
+  --task-dir text-stats-reward \
   --agent oracle
 ```
 
@@ -27,14 +27,14 @@ Run the same smoke task with Codex through Runme's Harbor adapter:
 
 ```sh {"name":"smoke-codex"}
 runme eval examples/harbor/datasets/runme-integration \
-  --task-name simple-agent \
+  --task-dir simple-agent \
   --agent codex \
   -y
 ```
 
 The dataset root is `examples/harbor/datasets/runme-integration`. Each
 `runme eval` creates Harbor job and trial metadata under `.runme/harbor/jobs`.
-The `--task-name` flag selects a task directory inside the dataset, such as
+The `--task-dir` flag selects a task directory inside the dataset, such as
 `simple-agent` or `text-stats-reward`.
 
 `runme eval` delegates to `runme-harbor`, so these examples remain compatible

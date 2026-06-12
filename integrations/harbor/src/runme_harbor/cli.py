@@ -65,8 +65,8 @@ def build_harbor_command(args: argparse.Namespace) -> list[str]:
         valid_agents = ", ".join(AGENT_ARGUMENTS)
         raise SystemExit(f"invalid --agent {args.agent!r}: expected {valid_agents}") from exc
 
-    if args.task_name:
-        command.extend(["--include-task-name", args.task_name])
+    if args.task_dir:
+        command.extend(["--include-task-name", args.task_dir])
     if args.yes:
         command.append("-y")
     passthrough = list(args.passthrough)
@@ -83,22 +83,30 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     run_parser = subparsers.add_parser("run", allow_abbrev=False)
     run_parser.add_argument("path")
     run_parser.add_argument("--agent", choices=tuple(AGENT_ARGUMENTS), default="oracle")
-    run_parser.add_argument("--task-name")
+    run_parser.add_argument("--task-dir")
     run_parser.add_argument("--jobs-dir", default=".runme/harbor/jobs")
     run_parser.add_argument("-y", "--yes", action="store_true")
     run_parser.add_argument("--debug", action="store_true")
 
     args, passthrough = parser.parse_known_args(argv)
-    if _contains_removed_task_flag(passthrough):
-        parser.error("unrecognized arguments: --task")
+    removed_task_flag = _find_removed_task_flag(passthrough)
+    if removed_task_flag:
+        parser.error(f"unrecognized arguments: {removed_task_flag}")
     if passthrough and passthrough[0] == "--":
         passthrough = passthrough[1:]
     args.passthrough = passthrough
     return args
 
 
-def _contains_removed_task_flag(args: list[str]) -> bool:
-    return any(arg == "--task" or arg.startswith("--task=") for arg in args)
+def _find_removed_task_flag(args: list[str]) -> str | None:
+    for arg in args:
+        if arg in {"--task", "--task-name"}:
+            return arg
+        if arg.startswith("--task="):
+            return "--task"
+        if arg.startswith("--task-name="):
+            return "--task-name"
+    return None
 
 
 def _preflight(agent: str) -> None:

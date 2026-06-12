@@ -65,7 +65,7 @@ def test_build_harbor_command_task_yes_jobs_and_passthrough(tmp_path: Path) -> N
         [
             "run",
             str(tmp_path),
-            "--task-name",
+            "--task-dir",
             "simple-agent",
             "--jobs-dir",
             "jobs",
@@ -86,10 +86,13 @@ def test_build_harbor_command_task_yes_jobs_and_passthrough(tmp_path: Path) -> N
     assert command[-2:] == ["--model", "gpt-5"]
 
 
-@pytest.mark.parametrize("task_flag", ["--task", "--task=simple-agent"])
+@pytest.mark.parametrize(
+    "task_flag",
+    ["--task", "--task=simple-agent", "--task-name", "--task-name=simple-agent"],
+)
 def test_parse_rejects_task_flag(tmp_path: Path, task_flag: str) -> None:
     args = ["run", str(tmp_path), task_flag]
-    if task_flag == "--task":
+    if task_flag in {"--task", "--task-name"}:
         args.append("simple-agent")
 
     with pytest.raises(SystemExit):
