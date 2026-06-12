@@ -14,7 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultHarborJobsDir = ".runme/harbor/jobs"
+const (
+	defaultEvalDatasetPath = "evals/tasks"
+	defaultEvalJobsDir     = ".runme/evals/jobs"
+)
 
 var errRunmeHarborMissing = errors.New("runme-harbor missing")
 
@@ -42,7 +45,7 @@ type commandRunFunc func(name string, args []string, env []string, stdin io.Read
 func evalCmd() *cobra.Command {
 	opts := evalOptions{
 		agent:      "oracle",
-		jobsDir:    defaultHarborJobsDir,
+		jobsDir:    defaultEvalJobsDir,
 		commandRun: runExternalCommand,
 		lookPath:   exec.LookPath,
 		executable: os.Executable,
@@ -52,9 +55,12 @@ func evalCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "eval <dataset-path> [flags] [-- harbor-flags...]",
-		Short: "Run Harbor evals against Runme",
-		Args:  cobra.MinimumNArgs(1),
+		Use:   "eval [dataset-path] [flags] [-- harbor-flags...]",
+		Short: "Run Harbor eval tasks with Runme",
+		Long: fmt.Sprintf(`Run Harbor eval tasks with Runme.
+
+When dataset-path is omitted, runme eval uses ./%s.`, defaultEvalDatasetPath),
+		Args: validateEvalArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.stdout = cmd.OutOrStdout()
 			opts.stderr = cmd.ErrOrStderr()
@@ -65,7 +71,7 @@ func evalCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&opts.agent, "agent", "oracle", "Harbor agent to use")
 	flags.StringVar(&opts.taskDir, "task-dir", "", "Task directory name to include from the Harbor dataset")
-	flags.StringVar(&opts.jobsDir, "jobs-dir", defaultHarborJobsDir, "Harbor jobs directory")
+	flags.StringVar(&opts.jobsDir, "jobs-dir", defaultEvalJobsDir, "Eval jobs directory")
 	flags.BoolVarP(&opts.yes, "yes", "y", false, "Confirm Harbor prompts")
 	flags.StringVar(&opts.model, "model", "", "Harbor agent model")
 	flags.StringVar(&opts.runmeBin, "runme-bin", "", "Runme binary used by the Harbor environment")
@@ -77,18 +83,21 @@ func evalCmd() *cobra.Command {
 }
 
 func runEval(opts evalOptions, args []string) error {
-	datasetPath, err := filepath.Abs(args[0])
+	datasetArg, passthrough := splitEvalDatasetArg(args)
+	datasetPath, err := filepath.Abs(datasetArg)
 	if err != nil {
 		return err
 	}
 	if _, err := os.Stat(datasetPath); err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("dataset path does not exist: %s", args[0])
+			if datasetArg == defaultEvalDatasetPath {
+				return fmt.Errorf("dataset path does not exist: %s; create it or pass a dataset path explicitly", datasetArg)
+			}
+			return fmt.Errorf("dataset path does not exist: %s", datasetArg)
 		}
 		return err
 	}
 
-	passthrough := args[1:]
 	if opts.model != "" && containsModelFlag(passthrough) {
 		return fmt.Errorf("--model cannot be used together with passthrough --model; use only runme eval --model")
 	}
@@ -96,7 +105,7 @@ func runEval(opts evalOptions, args []string) error {
 	runmeHarbor, err := resolveRunmeHarbor(opts)
 	if err != nil {
 		if errors.Is(err, errRunmeHarborMissing) {
-			return fmt.Errorf("`runme eval` requires the optional Python package `runme-harbor`.\n\nInstall it with:\n  uv tool install runme-harbor\n\nThen retry:\n  runme eval <path>")
+			return fmt.Errorf("`runme eval` requires the optional Python package `runme-harbor`.\n\nInstall it with:\n  uv tool install runme-harbor\n\nThen retry:\n  runme eval\n\nOr pass a dataset path explicitly:\n  runme eval <dataset-path>")
 		}
 		return err
 	}
@@ -138,6 +147,26 @@ func runEval(opts evalOptions, args []string) error {
 		return ExitCodeError{Code: codeErr.ExitCode(), Err: err}
 	}
 	return err
+}
+
+func validateEvalArgs(_ *cobra.Command, args []string) error {
+	if len(args) < 2 {
+		return nil
+	}
+	if strings.HasPrefix(args[0], "-") {
+		return nil
+	}
+	if strings.HasPrefix(args[1], "-") {
+		return nil
+	}
+	return fmt.Errorf("accepts at most 1 dataset path, received %d", len(args))
+}
+
+func splitEvalDatasetArg(args []string) (string, []string) {
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+		return defaultEvalDatasetPath, args
+	}
+	return args[0], args[1:]
 }
 
 func resolveRunmeHarbor(opts evalOptions) (string, error) {

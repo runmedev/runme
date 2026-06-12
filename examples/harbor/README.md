@@ -33,7 +33,7 @@ runme eval examples/harbor/datasets/runme-integration \
 ```
 
 The dataset root is `examples/harbor/datasets/runme-integration`. Each
-`runme eval` creates Harbor job and trial metadata under `.runme/harbor/jobs`.
+`runme eval` creates Harbor job and trial metadata under `.runme/evals/jobs`.
 The `--task-dir` flag selects a task directory inside the dataset, such as
 `simple-agent` or `text-stats-reward`.
 

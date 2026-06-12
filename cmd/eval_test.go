@@ -55,7 +55,7 @@ func TestRunEvalDelegatesOracle(t *testing.T) {
 			"run",
 			mustAbs(t, path),
 			"--agent", "oracle",
-			"--jobs-dir", defaultHarborJobsDir,
+			"--jobs-dir", defaultEvalJobsDir,
 			"--debug",
 			"--",
 			"--extra",
@@ -74,6 +74,58 @@ func TestRunEvalDelegatesOracle(t *testing.T) {
 	}
 	if got := envValue(calls[1].env, "RUNME_BIN"); got != "/bin/runme" {
 		t.Fatalf("RUNME_BIN = %q, want /bin/runme", got)
+	}
+}
+
+func TestRunEvalDefaultsDatasetPath(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	if err := os.MkdirAll(defaultEvalDatasetPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := runEval(opts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, defaultEvalDatasetPath),
+		"--agent", "oracle",
+		"--jobs-dir", defaultEvalJobsDir,
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalDefaultsDatasetPathWithPassthrough(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	if err := os.MkdirAll(defaultEvalDatasetPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := runEval(opts, []string{"--model", "haiku"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, defaultEvalDatasetPath),
+		"--agent", "oracle",
+		"--jobs-dir", defaultEvalJobsDir,
+		"--",
+		"--model", "haiku",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
 	}
 }
 
@@ -144,6 +196,22 @@ func TestEvalCmdRejectsTaskNameFlag(t *testing.T) {
 	}
 }
 
+func TestEvalCmdHelpIncludesDefaultDatasetPath(t *testing.T) {
+	cmd := evalCmd()
+	var stdout bytes.Buffer
+	cmd.SetArgs([]string{"--help"})
+	cmd.SetOut(&stdout)
+	cmd.SetErr(io.Discard)
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout.String(), "When dataset-path is omitted, runme eval uses ./evals/tasks.") {
+		t.Fatalf("help output = %q", stdout.String())
+	}
+}
+
 func TestRunEvalDelegatesModel(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
@@ -159,7 +227,7 @@ func TestRunEvalDelegatesModel(t *testing.T) {
 		"run",
 		mustAbs(t, path),
 		"--agent", "oracle",
-		"--jobs-dir", defaultHarborJobsDir,
+		"--jobs-dir", defaultEvalJobsDir,
 		"--",
 		"--model", "haiku",
 	}
@@ -182,7 +250,7 @@ func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 		"run",
 		mustAbs(t, path),
 		"--agent", "oracle",
-		"--jobs-dir", defaultHarborJobsDir,
+		"--jobs-dir", defaultEvalJobsDir,
 		"--",
 		"--model", "haiku",
 	}
@@ -297,7 +365,7 @@ func TestRunEvalDelegatesUnknownAgent(t *testing.T) {
 		"run",
 		mustAbs(t, path),
 		"--agent", "bad",
-		"--jobs-dir", defaultHarborJobsDir,
+		"--jobs-dir", defaultEvalJobsDir,
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -311,6 +379,42 @@ func TestRunEvalMissingPath(t *testing.T) {
 	err := runEval(opts, []string{filepath.Join(t.TempDir(), "missing")})
 	if err == nil || !strings.Contains(err.Error(), "dataset path does not exist") {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestRunEvalMissingDefaultPath(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := runEval(opts, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "dataset path does not exist: evals/tasks") {
+		t.Fatalf("error = %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "pass a dataset path explicitly") {
+		t.Fatalf("error = %q", err.Error())
+	}
+	if len(calls) != 0 {
+		t.Fatalf("calls = %#v, want none", calls)
+	}
+}
+
+func TestEvalCmdRejectsMultipleDatasetPaths(t *testing.T) {
+	cmd := evalCmd()
+	cmd.SetArgs([]string{"first", "second"})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "accepts at most 1 dataset path") {
+		t.Fatalf("error = %q", err.Error())
 	}
 }
 
@@ -340,7 +444,7 @@ func testEvalOptions(t *testing.T, calls *[]recordedCommand, stderr io.Writer) e
 	t.Helper()
 	return evalOptions{
 		agent:       "oracle",
-		jobsDir:     defaultHarborJobsDir,
+		jobsDir:     defaultEvalJobsDir,
 		runmeBin:    "/bin/runme",
 		commandRun:  recordCommand(calls),
 		lookPath:    fakeLookPath,
