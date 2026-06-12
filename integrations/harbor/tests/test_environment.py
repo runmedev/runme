@@ -56,13 +56,17 @@ def _response(payload: dict[str, Any]):
 
 def _make_env(tmp_path: Path, **kwargs: Any) -> RunmeEnvironment:
     workspace_root = kwargs.pop("workspace_root", tmp_path)
+    task_env_config = kwargs.pop(
+        "task_env_config",
+        EnvironmentConfig(workdir="/app", env={"TASK_ENV": "yes"}),
+    )
     trial_paths = TrialPaths(tmp_path / "trial")
     return RunmeEnvironment(
         environment_dir=tmp_path / "environment",
-        environment_name="local-agent",
+        environment_name="simple-agent",
         session_id="trial-1",
         trial_paths=trial_paths,
-        task_env_config=EnvironmentConfig(workdir="/app", env={"TASK_ENV": "yes"}),
+        task_env_config=task_env_config,
         workspace_root=str(workspace_root),
         **kwargs,
     )
@@ -121,6 +125,95 @@ def test_path_mappings_are_most_specific_first(tmp_path: Path) -> None:
     remote_paths = [remote.as_posix() for remote, _ in environment._path_mappings()]
 
     assert remote_paths.index("/logs/verifier") < remote_paths.index("/app")
+
+
+def test_nested_configured_workdir_is_staged_per_trial(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+    monkeypatch.setattr(
+        env_module,
+        "_is_git_ignored",
+        lambda _root, path: path.name in {"__pycache__", "results.json"},
+    )
+
+    workspace = tmp_path / "repo"
+    source = workspace / "examples" / "harbor" / "task" / "workdir"
+    source.mkdir(parents=True)
+    (source / ".gitkeep").write_text("")
+    (source / "results.json").write_text("{}")
+    (source / "__pycache__").mkdir()
+    (source / "__pycache__" / "textstats.pyc").write_bytes(b"cache")
+    sample_target = source.parent / "environment" / "sample.txt"
+    sample_target.parent.mkdir()
+    sample_target.write_text("sample")
+    (source / "sample.txt").symlink_to("../environment/sample.txt")
+
+    configured_workdir = "/app/examples/harbor/task/workdir"
+    environment = _make_env(
+        tmp_path,
+        workspace_root=workspace,
+        task_env_config=EnvironmentConfig(
+            workdir=configured_workdir,
+            env={"TASK_ENV": "yes"},
+        ),
+    )
+
+    asyncio.run(environment.start(force_build=False))
+    asyncio.run(environment.exec("cat /app/examples/harbor/task/workdir/sample.txt"))
+
+    staged = tmp_path / "trial" / "workdir"
+    assert (staged / ".gitkeep").exists()
+    assert not (staged / "sample.txt").is_symlink()
+    assert (staged / "sample.txt").read_text() == "sample"
+    assert not (staged / "results.json").exists()
+    assert not (staged / "__pycache__").exists()
+
+    client = FakeClient.instances[0]
+    assert client.requests[0]["start"]["root"] == str(tmp_path)
+    request = client.requests[-1]["exec"]
+    assert request["cwd"] == "trial/workdir"
+    assert str(staged) in request["command"]
+    assert "/app/examples/harbor/task/workdir" not in request["command"]
+
+
+def test_upload_dir_rewrites_configured_workdir_paths_to_staged_workdir(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    workspace = tmp_path / "repo"
+    source_workdir = workspace / "examples" / "harbor" / "task" / "workdir"
+    source_workdir.mkdir(parents=True)
+    (source_workdir / ".gitkeep").write_text("")
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test.sh").write_text(
+        "rewardkit --workspace /app/examples/harbor/task/workdir\n"
+    )
+
+    environment = _make_env(
+        tmp_path,
+        workspace_root=workspace,
+        task_env_config=EnvironmentConfig(
+            workdir="/app/examples/harbor/task/workdir",
+            env={"TASK_ENV": "yes"},
+        ),
+    )
+
+    asyncio.run(environment.start(force_build=False))
+    asyncio.run(environment.upload_dir(tests, "/tests"))
+
+    request = FakeClient.instances[0].requests[-1]["upload_directory"]
+    decoded = env_module.base64.b64decode(request["files"][0]["data"]).decode()
+    assert "rewardkit --workspace " in decoded
+    assert str(tmp_path / "trial" / "workdir") in decoded
+    assert "/app/examples/harbor/task/workdir" not in decoded
 
 
 def test_exec_uses_workspace_root_when_workdir_is_not_uploaded(

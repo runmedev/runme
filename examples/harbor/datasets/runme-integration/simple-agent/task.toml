@@ -1,8 +1,8 @@
 schema_version = "1.1"
 
 [task]
-name = "runme/local-agent"
-description = "Containerless Harbor smoke task for Runme with local Codex."
+name = "runmedev/simple-agent"
+description = "Smoke test that asks an agent to write an expected string to result.txt."
 authors = []
 keywords = ["runme", "harbor", "containerless", "agent"]
 
@@ -12,10 +12,10 @@ category = "behavior"
 tags = ["runme", "harbor", "agent", "smoke"]
 
 [verifier]
-timeout_sec = 60.0
+timeout_sec = 120.0
 
 [agent]
-timeout_sec = 180.0
+timeout_sec = 240.0
 
 [environment]
 build_timeout_sec = 60.0
@@ -23,7 +23,7 @@ cpus = 1
 memory_mb = 512
 storage_mb = 1024
 gpus = 0
-workdir = "/app"
+workdir = "/app/examples/harbor/datasets/runme-integration/simple-agent/workdir"
 
 [environment.env]
 RUNME_HARBOR_EXPECTED = "hello from a real agent"

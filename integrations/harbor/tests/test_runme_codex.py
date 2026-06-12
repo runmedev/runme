@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from runme_harbor.local_agents import LocalCodex
+from runme_harbor.runme_agents import RunmeCodex
 
 
 class FakeEnvironment:
@@ -13,7 +13,11 @@ class FakeEnvironment:
         self.uploads.append((source_path, target_path))
 
 
-def test_local_codex_uses_ambient_user_auth(
+def test_runme_codex_name() -> None:
+    assert RunmeCodex.name() == "runme-codex"
+
+
+def test_runme_codex_uses_ambient_user_auth(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -23,7 +27,7 @@ def test_local_codex_uses_ambient_user_auth(
     monkeypatch.delenv("CODEX_FORCE_AUTH_JSON", raising=False)
 
     environment = FakeEnvironment()
-    agent = LocalCodex(logs_dir=tmp_path, model_name="openai/gpt-5")
+    agent = RunmeCodex(logs_dir=tmp_path, model_name="openai/gpt-5")
     calls: list[tuple[str, dict[str, str] | None]] = []
 
     async def fake_exec_as_agent(
@@ -47,7 +51,7 @@ def test_local_codex_uses_ambient_user_auth(
     assert all("register" not in command for command, _ in calls)
 
 
-def test_local_codex_collects_only_new_sessions(
+def test_runme_codex_collects_only_new_sessions(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -59,7 +63,7 @@ def test_local_codex_collects_only_new_sessions(
     old_session.write_text('{"type":"old"}\n')
     monkeypatch.setenv("CODEX_HOME", str(codex_home))
 
-    agent = LocalCodex(logs_dir=tmp_path / "logs")
+    agent = RunmeCodex(logs_dir=tmp_path / "logs")
     before = agent._snapshot_session_files()
 
     new_session.parent.mkdir(parents=True)

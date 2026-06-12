@@ -1,8 +1,8 @@
 schema_version = "1.1"
 
 [task]
-name = "runme/text-stats-reward"
-description = "Containerless Harbor task with deterministic weighted RewardKit scoring."
+name = "runmedev/text-stats-reward"
+description = "Python text-statistics task graded with weighted RewardKit criteria."
 authors = []
 keywords = ["runme", "harbor", "containerless", "rewardkit", "scoring"]
 

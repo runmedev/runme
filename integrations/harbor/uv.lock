@@ -2063,7 +2063,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "harbor", specifier = ">=0.13.1" },
+    { name = "harbor", specifier = ">=0.13.1,<0.14" },
     { name = "protobuf", specifier = ">=6.0" },
 ]
 

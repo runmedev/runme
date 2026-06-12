@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from runme_harbor.local_agents import LocalClaudeCode
+from runme_harbor.runme_agents import RunmeClaudeCode
 
 
 class FakeEnvironment:
@@ -13,7 +13,11 @@ class FakeEnvironment:
         self.uploads.append((source_path, target_path))
 
 
-def test_local_claude_code_uses_ambient_user_config(
+def test_runme_claude_code_name() -> None:
+    assert RunmeClaudeCode.name() == "runme-claude-code"
+
+
+def test_runme_claude_code_uses_ambient_user_config(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -24,7 +28,7 @@ def test_local_claude_code_uses_ambient_user_config(
     monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
 
     environment = FakeEnvironment()
-    agent = LocalClaudeCode(logs_dir=tmp_path, model_name="anthropic/haiku")
+    agent = RunmeClaudeCode(logs_dir=tmp_path, model_name="anthropic/haiku")
     calls: list[tuple[str, dict[str, str] | None]] = []
 
     async def fake_exec_as_agent(
@@ -58,18 +62,18 @@ def test_local_claude_code_uses_ambient_user_config(
     assert all("register" not in command for command, _ in calls)
 
 
-def test_local_claude_code_preserves_model_name_with_custom_base_url(
+def test_runme_claude_code_preserves_model_name_with_custom_base_url(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://example.test")
 
-    agent = LocalClaudeCode(logs_dir=tmp_path, model_name="openrouter/anthropic/haiku")
+    agent = RunmeClaudeCode(logs_dir=tmp_path, model_name="openrouter/anthropic/haiku")
 
     assert agent._model_arg() == "--model openrouter/anthropic/haiku "
 
 
-def test_local_claude_code_collects_only_new_sessions(
+def test_runme_claude_code_collects_only_new_sessions(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -81,7 +85,7 @@ def test_local_claude_code_collects_only_new_sessions(
     old_session.write_text('{"type":"old"}\n')
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(claude_config_dir))
 
-    agent = LocalClaudeCode(logs_dir=tmp_path / "logs")
+    agent = RunmeClaudeCode(logs_dir=tmp_path / "logs")
     before = agent._snapshot_session_files()
 
     new_session.write_text('{"type":"new"}\n')

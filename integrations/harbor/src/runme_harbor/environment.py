@@ -66,6 +66,8 @@ class RunmeEnvironment(BaseEnvironment):
         self._client: _StdioClient | None = None
         self._root = trial_paths.trial_dir.resolve().absolute()
         self._protocol_root = _common_root(self._workspace_root, self._root)
+        self._staged_workdir_remote: PurePosixPath | None = None
+        self._staged_workdir_host: Path | None = None
 
         super().__init__(
             environment_dir=environment_dir,
@@ -130,6 +132,8 @@ class RunmeEnvironment(BaseEnvironment):
             self._root / "solution",
         ):
             path.mkdir(parents=True, exist_ok=True)
+
+        self._stage_configured_workdir()
 
         client = _StdioClient(
             self._command or [self._runme_bin, *self._runme_args, "harbor", "stdio"]
@@ -291,7 +295,50 @@ class RunmeEnvironment(BaseEnvironment):
             (EnvironmentPaths.verifier_dir, self._root / "verifier"),
             (EnvironmentPaths.artifacts_dir, self._root / "artifacts"),
         ]
+        if self._staged_workdir_remote and self._staged_workdir_host:
+            mappings.append((self._staged_workdir_remote, self._staged_workdir_host))
         return sorted(mappings, key=lambda item: len(item[0].parts), reverse=True)
+
+    def _stage_configured_workdir(self) -> None:
+        remote = self._configured_workdir_remote()
+        if remote is None:
+            return
+
+        source = self._workspace_path_for_app_path(remote)
+        if source is None or not source.is_dir():
+            return
+
+        target = self._root / "workdir"
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.copytree(
+            source,
+            target,
+            symlinks=False,
+            ignore=_gitignore_filter(self._workspace_root),
+        )
+        self._staged_workdir_remote = remote
+        self._staged_workdir_host = target
+
+    def _configured_workdir_remote(self) -> PurePosixPath | None:
+        workdir = self.task_env_config.workdir
+        if not workdir:
+            return None
+        remote = PurePosixPath(str(workdir))
+        if not remote.is_absolute() or remote == PurePosixPath("/app"):
+            return None
+        try:
+            remote.relative_to(PurePosixPath("/app"))
+        except ValueError:
+            return None
+        return remote
+
+    def _workspace_path_for_app_path(self, remote: PurePosixPath) -> Path | None:
+        try:
+            rel = remote.relative_to(PurePosixPath("/app"))
+        except ValueError:
+            return None
+        return self._workspace_root / Path(rel.as_posix())
 
     def _rewrite_command(self, command: str) -> str:
         rewritten = command
@@ -423,6 +470,36 @@ def _env_map_to_list(*maps: dict[str, str] | None) -> list[str]:
         if values:
             env.update({str(key): str(value) for key, value in values.items()})
     return [f"{key}={value}" for key, value in sorted(env.items())]
+
+
+def _gitignore_filter(workspace_root: Path):
+    def ignore(dir_path: str, names: list[str]) -> set[str]:
+        ignored = set()
+        base = Path(dir_path)
+        for name in names:
+            if _is_git_ignored(workspace_root, base / name):
+                ignored.add(name)
+        return ignored
+
+    return ignore
+
+
+def _is_git_ignored(workspace_root: Path, path: Path) -> bool:
+    try:
+        rel = path.absolute().relative_to(workspace_root)
+    except ValueError:
+        return False
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(workspace_root), "check-ignore", "--quiet", "--", rel.as_posix()],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0
 
 
 def _file_mode(path: Path) -> int:

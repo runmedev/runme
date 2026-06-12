@@ -1,28 +1,32 @@
+import json
 import os
 import shlex
 import shutil
+import tempfile
+from hashlib import sha256
 from pathlib import Path
 
-from harbor.agents.installed.base import with_prompt_template
+from harbor.agents.installed.base import CliFlag, with_prompt_template
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
+from harbor.agents.installed.openclaw import OpenClaw
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 from harbor.models.trial.paths import EnvironmentPaths
 
 
-class LocalClaudeCode(ClaudeCode):
-    """Claude Code-backed local agent without container bootstrap.
+class RunmeClaudeCode(ClaudeCode):
+    """Claude Code-backed Runme agent without container bootstrap.
 
     Harbor's installed Claude Code agent assumes a disposable container and
     prepares Claude config, credentials, skills, memory, and MCP servers before
-    running. Runme Harbor executes against a local runtime, so this wrapper
+    running. Runme Harbor executes through Runme's runtime, so this wrapper
     expects `claude` to already be available and configured.
     """
 
     @staticmethod
     def name() -> str:
-        return "claude-code"
+        return "runme-claude-code"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -128,19 +132,19 @@ class LocalClaudeCode(ClaudeCode):
             self.populate_context_post_run(context)
 
 
-class LocalCodex(Codex):
-    """Codex-backed local agent without container bootstrap.
+class RunmeCodex(Codex):
+    """Codex-backed Runme agent without container bootstrap.
 
     Harbor's installed Codex agent assumes a disposable container and mutates
     that environment during setup by installing system packages, Node, and the
-    Codex CLI. Runme Harbor executes against a local runtime, so this
+    Codex CLI. Runme Harbor executes through Runme's runtime, so this
     wrapper expects `codex` to already be available and skips setup-time
     environment changes.
     """
 
     @staticmethod
     def name() -> str:
-        return "codex"
+        return "runme-codex"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -219,5 +223,171 @@ class LocalCodex(Codex):
                 self._collect_new_sessions(session_files_before)
             except Exception:
                 pass
+
+            self.populate_context_post_run(context)
+
+
+class RunmeOpenClaw(OpenClaw):
+    """OpenClaw-backed Runme agent without container bootstrap.
+
+    Harbor's installed OpenClaw agent installs Node/OpenClaw in a disposable
+    container and writes container-local config before execution. Runme Harbor
+    executes through Runme's runtime, so this wrapper expects `openclaw` to
+    already be available and configured.
+    """
+
+    CLI_FLAGS = [
+        *OpenClaw.CLI_FLAGS,
+        CliFlag("session_id", cli="--session-id", type="str"),
+        CliFlag("session_key", cli="--session-key", type="str"),
+    ]
+
+    @staticmethod
+    def name() -> str:
+        return "runme-openclaw"
+
+    async def install(self, environment: BaseEnvironment) -> None:
+        return None
+
+    async def setup(self, environment: BaseEnvironment) -> None:
+        return None
+
+    @staticmethod
+    def _openclaw_config_path() -> Path:
+        config_path = os.environ.get("OPENCLAW_CONFIG_PATH")
+        if config_path:
+            return Path(config_path).expanduser()
+        return Path.home() / ".openclaw" / "openclaw.json"
+
+    @staticmethod
+    def _workspace_path(environment: BaseEnvironment) -> str | None:
+        task_env_config = getattr(environment, "task_env_config", None)
+        workdir = getattr(task_env_config, "workdir", None) or "/app"
+        map_remote_path = getattr(environment, "_map_remote_path", None)
+        if not callable(map_remote_path):
+            return None
+        return str(map_remote_path(workdir))
+
+    def _create_runtime_config(self, environment: BaseEnvironment) -> Path | None:
+        source = self._openclaw_config_path()
+        if not source.is_file():
+            return None
+
+        workspace_path = self._workspace_path(environment)
+        if not workspace_path:
+            return None
+
+        try:
+            config = json.loads(source.read_text())
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"OpenClaw config is not valid JSON: {source}") from exc
+
+        agents = config.setdefault("agents", {})
+        defaults = agents.setdefault("defaults", {})
+        defaults["workspace"] = workspace_path
+
+        config_dir = Path(tempfile.mkdtemp(prefix="runme-harbor-openclaw-"))
+        target = config_dir / "openclaw.json"
+        target.write_text(json.dumps(config, indent=2) + "\n")
+        target.chmod(0o600)
+        return target
+
+    def _runtime_env(self) -> dict[str, str]:
+        if not self.model_name:
+            return {}
+
+        if "/" not in self.model_name:
+            raise ValueError("Model name must be in the format provider/model_name")
+
+        provider, _ = self.model_name.split("/", 1)
+        self._validate_provider(provider)
+
+        env: dict[str, str] = {}
+        for key in self._provider_env_keys(provider):
+            val = self._get_env(key)
+            if val:
+                env[key] = val
+        return env
+
+    def _collect_session_file(self) -> None:
+        envelope = self._parse_stdout()
+        if not envelope:
+            return
+
+        meta = envelope.get("meta")
+        if not isinstance(meta, dict):
+            return
+        agent_meta = meta.get("agentMeta")
+        if not isinstance(agent_meta, dict):
+            return
+        session_file = agent_meta.get("sessionFile")
+        if not isinstance(session_file, str) or not session_file.strip():
+            return
+
+        source = Path(session_file).expanduser()
+        if not source.is_file():
+            return
+
+        target = self.logs_dir / "openclaw.session.jsonl"
+        shutil.copy2(source, target)
+
+    def _session_key_arg(self) -> str:
+        if self._resolved_flags.get("session_id") or self._resolved_flags.get(
+            "session_key"
+        ):
+            return ""
+
+        digest = sha256(str(self.logs_dir.resolve()).encode()).hexdigest()[:16]
+        return f"--session-key runme-harbor-{digest} "
+
+    @with_prompt_template
+    async def run(
+        self,
+        instruction: str,
+        environment: BaseEnvironment,
+        context: AgentContext,
+    ) -> None:
+        escaped_instruction = shlex.quote(instruction)
+        env = self._runtime_env()
+        runtime_config_path = self._create_runtime_config(environment)
+        if runtime_config_path:
+            env = dict(env)
+            env["OPENCLAW_CONFIG_PATH"] = str(runtime_config_path)
+
+        try:
+            instruction_path = self.logs_dir / "instruction.txt"
+            instruction_path.write_text(instruction)
+        except OSError:
+            pass
+
+        cli_flags = self.build_cli_flags()
+        cli_flags_arg = f"{cli_flags} " if cli_flags else ""
+        session_key_arg = self._session_key_arg()
+        model_arg = (
+            f"--model {shlex.quote(self.model_name)} " if self.model_name else ""
+        )
+
+        try:
+            await self.exec_as_agent(
+                environment,
+                command=(
+                    "set -o pipefail\n"
+                    "openclaw agent --local --json "
+                    f"{cli_flags_arg}"
+                    f"{session_key_arg}"
+                    f"{model_arg}"
+                    f"--message {escaped_instruction} "
+                    f"2>&1 </dev/null | tee "
+                    f"{EnvironmentPaths.agent_dir / 'openclaw.txt'}"
+                ),
+                env=env,
+            )
+        finally:
+            try:
+                self._collect_session_file()
+            except Exception:
+                pass
+            if runtime_config_path:
+                shutil.rmtree(runtime_config_path.parent, ignore_errors=True)
 
             self.populate_context_post_run(context)
