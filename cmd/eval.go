@@ -20,7 +20,7 @@ var errRunmeHarborMissing = errors.New("runme-harbor missing")
 
 type evalOptions struct {
 	agent       string
-	task        string
+	taskName    string
 	jobsDir     string
 	yes         bool
 	model       string
@@ -64,7 +64,7 @@ func evalCmd() *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVar(&opts.agent, "agent", "oracle", "Harbor agent to use")
-	flags.StringVar(&opts.task, "task", "", "Harbor task name to include")
+	flags.StringVar(&opts.taskName, "task-name", "", "Harbor task name to include")
 	flags.StringVar(&opts.jobsDir, "jobs-dir", defaultHarborJobsDir, "Harbor jobs directory")
 	flags.BoolVarP(&opts.yes, "yes", "y", false, "Confirm Harbor prompts")
 	flags.StringVar(&opts.model, "model", "", "Harbor agent model")
@@ -198,8 +198,8 @@ func buildRunmeHarborArgs(path string, opts evalOptions, passthrough []string) [
 		"--agent", opts.agent,
 		"--jobs-dir", opts.jobsDir,
 	}
-	if opts.task != "" {
-		args = append(args, "--task", opts.task)
+	if opts.taskName != "" {
+		args = append(args, "--task-name", opts.taskName)
 	}
 	if opts.yes {
 		args = append(args, "-y")

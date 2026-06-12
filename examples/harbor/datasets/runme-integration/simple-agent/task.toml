@@ -12,10 +12,10 @@ category = "behavior"
 tags = ["runme", "harbor", "agent", "smoke"]
 
 [verifier]
-timeout_sec = 60.0
+timeout_sec = 120.0
 
 [agent]
-timeout_sec = 180.0
+timeout_sec = 240.0
 
 [environment]
 build_timeout_sec = 60.0
