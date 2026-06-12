@@ -1,0 +1,33 @@
+schema_version = "1.1"
+
+[task]
+name = "runmedev/update-minor-deps-end-to-end"
+description = "Evaluate the update-minor-deps skill end to end against the Runme checkout."
+authors = []
+keywords = ["runme", "harbor", "skills", "dependencies", "go"]
+
+[metadata]
+difficulty = "medium"
+category = "software-engineering"
+tags = ["runme", "harbor", "skills", "dependency-update", "go"]
+
+[verifier]
+timeout_sec = 180.0
+
+[agent]
+timeout_sec = 3600.0
+
+[environment]
+build_timeout_sec = 60.0
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+gpus = 0
+workdir = "/app"
+skills_dir = "/app/.agents/skills"
+
+[environment.env]
+
+[verifier.env]
+
+[solution.env]
