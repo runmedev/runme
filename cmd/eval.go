@@ -52,7 +52,7 @@ func evalCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "eval <path> [flags] [-- harbor-flags...]",
+		Use:   "eval <dataset-path> [flags] [-- harbor-flags...]",
 		Short: "Run Harbor evals against Runme",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,13 +77,13 @@ func evalCmd() *cobra.Command {
 }
 
 func runEval(opts evalOptions, args []string) error {
-	taskPath, err := filepath.Abs(args[0])
+	datasetPath, err := filepath.Abs(args[0])
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(taskPath); err != nil {
+	if _, err := os.Stat(datasetPath); err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("task path does not exist: %s", args[0])
+			return fmt.Errorf("dataset path does not exist: %s", args[0])
 		}
 		return err
 	}
@@ -120,7 +120,7 @@ func runEval(opts evalOptions, args []string) error {
 		}
 	}
 
-	delegatedArgs := buildRunmeHarborArgs(taskPath, opts, passthrough)
+	delegatedArgs := buildRunmeHarborArgs(datasetPath, opts, passthrough)
 	if opts.debug {
 		_, _ = fmt.Fprintf(opts.stderr, "%s\n", shellCommandString(append([]string{runmeHarbor}, delegatedArgs...)))
 	}
@@ -191,10 +191,10 @@ func resolveExecutable(name string, lookPath func(string) (string, error)) (stri
 	return lookPath(name)
 }
 
-func buildRunmeHarborArgs(path string, opts evalOptions, passthrough []string) []string {
+func buildRunmeHarborArgs(datasetPath string, opts evalOptions, passthrough []string) []string {
 	args := []string{
 		"run",
-		path,
+		datasetPath,
 		"--agent", opts.agent,
 		"--jobs-dir", opts.jobsDir,
 	}

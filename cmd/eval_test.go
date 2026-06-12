@@ -309,7 +309,7 @@ func TestRunEvalMissingPath(t *testing.T) {
 	opts := testEvalOptions(t, &calls, io.Discard)
 
 	err := runEval(opts, []string{filepath.Join(t.TempDir(), "missing")})
-	if err == nil || !strings.Contains(err.Error(), "task path does not exist") {
+	if err == nil || !strings.Contains(err.Error(), "dataset path does not exist") {
 		t.Fatalf("error = %v", err)
 	}
 }

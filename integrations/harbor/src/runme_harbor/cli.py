@@ -47,12 +47,12 @@ def run(args: argparse.Namespace) -> int:
 
 
 def build_harbor_command(args: argparse.Namespace) -> list[str]:
-    path = str(Path(args.path).expanduser().resolve())
+    dataset_path = str(Path(args.dataset_path).expanduser().resolve())
     command = [
         "harbor",
         "run",
         "--path",
-        path,
+        dataset_path,
         "--jobs-dir",
         args.jobs_dir,
         "--environment-import-path",
@@ -81,7 +81,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser("run", allow_abbrev=False)
-    run_parser.add_argument("path")
+    run_parser.add_argument("dataset_path", metavar="dataset-path")
     run_parser.add_argument("--agent", choices=tuple(AGENT_ARGUMENTS), default="oracle")
     run_parser.add_argument("--task-dir")
     run_parser.add_argument("--jobs-dir", default=".runme/harbor/jobs")
