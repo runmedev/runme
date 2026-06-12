@@ -1,5 +1,3 @@
-SHELL := /bin/bash
-
 GO_ROOT := $(shell go env GOROOT)
 GIT_SHA := $(shell git rev-parse HEAD)
 GIT_SHA_SHORT := $(shell git rev-parse --short HEAD)

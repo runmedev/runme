@@ -1,9 +1,7 @@
-env SHELL=/bin/bash
 exec runme fmt --write
 cmp README-FORMATTED.md README.md
 ! stderr .
 
-env SHELL=/bin/bash
 exec runme fmt reset --write
 cmp LCID-all.md LCID-none.md
 ! stderr .
