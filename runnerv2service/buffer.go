@@ -67,18 +67,22 @@ func (b *buffer) Close() error {
 }
 
 func (b *buffer) Read(p []byte) (int, error) {
-	b.mu.Lock()
-	n, err := b.b.Read(p)
-	b.mu.Unlock()
+	for {
+		b.mu.Lock()
+		n, err := b.b.Read(p)
+		b.mu.Unlock()
 
-	if err != nil && errors.Is(err, io.EOF) && !b.closed.Load() {
+		if n > 0 || err == nil || !errors.Is(err, io.EOF) {
+			return n, err
+		}
+
+		if b.closed.Load() {
+			return n, io.EOF
+		}
+
 		select {
 		case <-b.more:
 		case <-b.close:
-			return n, io.EOF
 		}
-		return n, nil
 	}
-
-	return n, err
 }

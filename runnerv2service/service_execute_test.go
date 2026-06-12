@@ -5,6 +5,7 @@ package runnerv2service
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -155,6 +156,47 @@ func TestRunnerServiceServerExecute_Response(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(0), resp.GetExitCode().GetValue())
 	assert.Nil(t, resp.GetPid())
+}
+
+func TestRunnerServiceServerExecute_MixedOutputShortProcess(t *testing.T) {
+	_, _, lis, stop := startRunnerServiceServer(t)
+	t.Cleanup(stop)
+
+	_, client := testutils.NewGRPCClientWithT(t, lis, runnerv2.NewRunnerServiceClient)
+
+	for i := range 10 {
+		stream, err := client.Execute(context.Background())
+		require.NoError(t, err)
+
+		resultC := make(chan executeResult)
+		go getExecuteResult(stream, resultC)
+
+		stdout := fmt.Sprintf("stdout-%02d", i)
+		stderr := fmt.Sprintf("stderr-%02d", i)
+		err = stream.Send(
+			&runnerv2.ExecuteRequest{
+				Config: &runnerv2.ProgramConfig{
+					ProgramName: "bash",
+					Source: &runnerv2.ProgramConfig_Commands{
+						Commands: &runnerv2.ProgramConfig_CommandList{
+							Items: []string{
+								fmt.Sprintf("printf %q", stdout),
+								fmt.Sprintf("printf %q >&2", stderr),
+							},
+						},
+					},
+					Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
+				},
+			},
+		)
+		require.NoError(t, err)
+
+		result := <-resultC
+		require.NoError(t, result.Err)
+		require.Equal(t, 0, result.ExitCode)
+		require.Equal(t, stdout, string(result.Stdout))
+		require.Equal(t, stderr, string(result.Stderr))
+	}
 }
 
 func TestRunnerServiceServerExecute_StoreLastStdout(t *testing.T) {
