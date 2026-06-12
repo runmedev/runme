@@ -28,6 +28,31 @@ jobs:
       - uses: actions/setup-python@v3
       - uses: pre-commit/action@v3.0.1
 
+  harbor-python:
+    runs-on: ubuntu-latest
+    name: Test Harbor integration
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.12"
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v8.2.0
+        with:
+          version: "0.11.21"
+          enable-cache: true
+          cache-dependency-glob: integrations/harbor/uv.lock
+      - name: Install dependencies
+        working-directory: integrations/harbor
+        run: uv sync --locked --all-extras --dev
+      - name: Run Ruff
+        working-directory: integrations/harbor
+        run: uv run ruff check .
+      - name: Run tests
+        working-directory: integrations/harbor
+        run: uv run pytest
+
   build-and-test:
     # Don't use make here as this job needs to be cross-platform.
     runs-on: ${{ matrix.os }}
