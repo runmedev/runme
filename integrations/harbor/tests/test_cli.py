@@ -20,7 +20,7 @@ def test_build_harbor_command_oracle_defaults(tmp_path: Path) -> None:
         "--path",
         str(tmp_path.resolve()),
         "--jobs-dir",
-        ".runme/harbor/jobs",
+        ".runme/evals/jobs",
         "--environment-import-path",
         "runme_harbor.environment:RunmeEnvironment",
         "--agent",

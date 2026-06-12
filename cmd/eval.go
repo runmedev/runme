@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -304,5 +303,5 @@ func shellQuote(value string) string {
 	}) == -1 {
 		return value
 	}
-	return strconv.Quote(value)
+	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }

@@ -84,7 +84,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     run_parser.add_argument("dataset_path", metavar="dataset-path")
     run_parser.add_argument("--agent", choices=tuple(AGENT_ARGUMENTS), default="oracle")
     run_parser.add_argument("--task-dir")
-    run_parser.add_argument("--jobs-dir", default=".runme/harbor/jobs")
+    run_parser.add_argument("--jobs-dir", default=".runme/evals/jobs")
     run_parser.add_argument("-y", "--yes", action="store_true")
     run_parser.add_argument("--debug", action="store_true")
 

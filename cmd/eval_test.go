@@ -297,7 +297,7 @@ func TestRunEvalUsesEnvAndRunmeArgs(t *testing.T) {
 	opts := testEvalOptions(t, &calls, io.Discard)
 	opts.runmeHarbor = flagHarbor
 	opts.runmeBin = "/flag/runme"
-	opts.runmeArgs = []string{"--chdir", "/tmp/with space"}
+	opts.runmeArgs = []string{"--chdir", "/tmp/with space", "--label=can't-$expand`this`\\path"}
 
 	err := runEval(opts, []string{path})
 	if err != nil {
@@ -310,7 +310,7 @@ func TestRunEvalUsesEnvAndRunmeArgs(t *testing.T) {
 	if got := envValue(calls[1].env, "RUNME_BIN"); got != "/flag/runme" {
 		t.Fatalf("RUNME_BIN = %q, want /flag/runme", got)
 	}
-	if got := envValue(calls[1].env, "RUNME_ARGS"); got != `--chdir "/tmp/with space"` {
+	if got := envValue(calls[1].env, "RUNME_ARGS"); got != "--chdir '/tmp/with space' '--label=can'\\''t-$expand`this`\\path'" {
 		t.Fatalf("RUNME_ARGS = %q", got)
 	}
 }
