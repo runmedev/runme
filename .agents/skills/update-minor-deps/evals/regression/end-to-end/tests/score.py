@@ -103,7 +103,7 @@ def score_scoped_changes(files: list[str]) -> float:
             continue
         if file.endswith(".go"):
             continue
-        if file.startswith(".agents/skills/update-minor-deps/evals/tasks/"):
+        if file.startswith(".agents/skills/update-minor-deps/evals/regression/"):
             continue
         if file in forbidden_names or file.startswith(forbidden_prefixes):
             unrelated.append(file)
