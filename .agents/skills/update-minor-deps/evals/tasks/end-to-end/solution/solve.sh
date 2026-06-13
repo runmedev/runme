@@ -2,6 +2,7 @@
 set -eu
 
 cd /app
+current_date="$(date +%F)"
 
 git status --short
 sed -n '1,180p' CONTRIBUTING.md >/tmp/update-minor-deps-contributing.txt
@@ -11,9 +12,9 @@ sed -n '1,180p' CONTRIBUTING.md >/tmp/update-minor-deps-contributing.txt
 if git diff --quiet -- go.mod go.sum; then
   runme run lint test
   mkdir -p /logs/artifacts
-  cat > /logs/artifacts/pr.md <<'PR'
-# chore: update minor and patch dependencies
-
+  {
+    printf '# chore: update minor and patch dependencies (%s)\n\n' "$current_date"
+    cat <<'PR'
 ## Summary
 - Ran `.agents/skills/update-minor-deps/scripts/update-go-deps.sh`.
 - No root `go.mod` or `go.sum` updates were available.
@@ -23,6 +24,7 @@ if git diff --quiet -- go.mod go.sum; then
 - Focused tests: not needed because no dependency files changed.
 - Final validation: `runme run lint test`
 PR
+  } > /logs/artifacts/pr.md
   exit 0
 fi
 
@@ -37,9 +39,9 @@ fi
 runme run lint test
 
 mkdir -p /logs/artifacts
-cat > /logs/artifacts/pr.md <<'PR'
-# chore: update minor and patch dependencies
-
+{
+  printf '# chore: update minor and patch dependencies (%s)\n\n' "$current_date"
+  cat <<'PR'
 ## Summary
 - Ran `.agents/skills/update-minor-deps/scripts/update-go-deps.sh`.
 - Updated root dependency files: `go.mod` and `go.sum`.
@@ -49,3 +51,4 @@ cat > /logs/artifacts/pr.md <<'PR'
 - Focused tests: `go test ./...`
 - Final validation: `runme run lint test`
 PR
+} > /logs/artifacts/pr.md

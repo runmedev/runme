@@ -13,6 +13,9 @@ ARTIFACTS_DIR = Path("/logs/artifacts")
 VERIFIER_DIR = Path("/logs/verifier")
 PR_DRAFT = ARTIFACTS_DIR / "pr.md"
 REWARD_PATH = VERIFIER_DIR / "reward.json"
+PR_TITLE_WITH_DATE_RE = re.compile(
+    r"chore:\s*update minor and patch dependencies.*\b\d{4}-\d{2}-\d{2}\b"
+)
 
 
 def run_git(*args: str) -> str:
@@ -153,6 +156,7 @@ def score_pr_draft() -> float:
 
     checks = [
         "chore: update minor and patch dependencies" in text,
+        bool(PR_TITLE_WITH_DATE_RE.search(text)),
         "update-go-deps.sh" in text or "go get -t -u ./..." in text,
         "go.mod" in text,
         "go.sum" in text,

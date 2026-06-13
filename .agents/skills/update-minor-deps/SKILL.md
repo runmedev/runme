@@ -41,10 +41,11 @@ If integration dependencies are unavailable locally, try `runme run test-docker`
 
 ## PR Shape
 
-Use a concise commit and PR title:
+Use a concise commit title. Use the same base title for the PR, plus the current date in `YYYY-MM-DD` format so recurring dependency PRs are easy to identify in lists:
 
 ```text
 chore: update minor and patch dependencies
+chore: update minor and patch dependencies (YYYY-MM-DD)
 ```
 
 Commit with DCO signoff as required by this repo:
