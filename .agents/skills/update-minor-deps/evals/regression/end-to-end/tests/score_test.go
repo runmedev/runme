@@ -196,38 +196,129 @@ func TestIsModuleOnlyChange(t *testing.T) {
 	}
 }
 
-func TestCommandFromCodexLogLine(t *testing.T) {
+func TestCommandsFromATIF(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
-		line string
-		want string
+		data string
+		want []string
 	}{
 		{
-			name: "legacy command execution event",
-			line: `{"type":"item.completed","item":{"type":"command_execution","command":"runme run lint test"}}`,
-			want: "runme run lint test",
+			name: "codex style cmd argument",
+			data: `{
+				"schema_version": "1.5",
+				"steps": [
+					{
+						"tool_calls": [
+							{
+								"function_name": "exec_command",
+								"arguments": {
+									"cmd": "runme run lint test",
+									"workdir": "/repo"
+								}
+							}
+						]
+					}
+				]
+			}`,
+			want: []string{"runme run lint test"},
 		},
 		{
-			name: "current response item function call event",
-			line: `{"type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"runme run lint test\",\"workdir\":\"/repo\"}"}}`,
-			want: "runme run lint test",
+			name: "claude style command argument",
+			data: `{
+				"schema_version": "1.2",
+				"steps": [
+					{
+						"tool_calls": [
+							{
+								"function_name": "Bash",
+								"arguments": {
+									"command": "runme run test"
+								}
+							}
+						]
+					}
+				]
+			}`,
+			want: []string{"runme run test"},
 		},
 		{
-			name: "object arguments are accepted",
-			line: `{"type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":{"cmd":"go test ./document"}}}`,
-			want: "go test ./document",
-		},
-		{
-			name: "non-command function call ignored",
-			line: `{"type":"response_item","payload":{"type":"function_call","name":"write_stdin","arguments":"{\"chars\":\"\"}"}}`,
-			want: "",
+			name: "mixed tool calls collect commands in order",
+			data: `{
+				"schema_version": "1.5",
+				"steps": [
+					{
+						"tool_calls": [
+							{
+								"function_name": "Read",
+								"arguments": {
+									"file_path": "CONTRIBUTING.md"
+								}
+							},
+							{
+								"function_name": "exec_command",
+								"arguments": {
+									"cmd": "git status --short"
+								}
+							}
+						]
+					},
+					{
+						"tool_calls": [
+							{
+								"function_name": "write_stdin",
+								"arguments": {
+									"chars": ""
+								}
+							},
+							{
+								"function_name": "Bash",
+								"arguments": {
+									"command": "go test ./runner"
+								}
+							},
+							{
+								"function_name": "Skill",
+								"arguments": {
+									"name": "update-minor-deps"
+								}
+							}
+						]
+					}
+				]
+			}`,
+			want: []string{"git status --short", "go test ./runner"},
 		},
 		{
 			name: "malformed json ignored",
-			line: `not-json`,
-			want: "",
+			data: `not-json`,
+			want: nil,
+		},
+		{
+			name: "no extractable command calls",
+			data: `{
+				"schema_version": "1.5",
+				"steps": [
+					{
+						"tool_calls": [
+							{
+								"function_name": "apply_patch",
+								"arguments": {
+									"patch": "*** Begin Patch"
+								}
+							},
+							{
+								"function_name": "exec_command",
+								"arguments": {
+									"cmd": "   "
+								}
+							}
+						]
+					}
+				]
+			}`,
+			want: nil,
 		},
 	}
 
@@ -235,46 +326,27 @@ func TestCommandFromCodexLogLine(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := commandFromCodexLogLine([]byte(tt.line)); got != tt.want {
-				t.Fatalf("commandFromCodexLogLine() = %q, want %q", got, tt.want)
+			got := commandsFromATIF([]byte(tt.data))
+			if strings.Join(got, "\n") != strings.Join(tt.want, "\n") {
+				t.Fatalf("commandsFromATIF() = %#v, want %#v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestCommandFromAgentLogLine(t *testing.T) {
+func TestCollectAgentCommandsFromFile(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		line string
-		want string
-	}{
-		{
-			name: "codex command",
-			line: `{"type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"runme run lint test\",\"workdir\":\"/repo\"}"}}`,
-			want: "runme run lint test",
-		},
-		{
-			name: "claude bash tool call",
-			line: `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"runme run test"}}]}}`,
-			want: "runme run test",
-		},
-		{
-			name: "claude non-bash tool call ignored",
-			line: `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"CONTRIBUTING.md"}}]}}`,
-			want: "",
-		},
+	if got := collectAgentCommandsFromFile(filepath.Join(t.TempDir(), "missing.json")); got != "" {
+		t.Fatalf("collectAgentCommandsFromFile(missing) = %q, want empty string", got)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := commandFromAgentLogLine([]byte(tt.line)); got != tt.want {
-				t.Fatalf("commandFromAgentLogLine() = %q, want %q", got, tt.want)
-			}
-		})
+	path := filepath.Join(t.TempDir(), "trajectory.json")
+	if err := os.WriteFile(path, []byte(`{"schema_version":"1.5","steps":[{"tool_calls":[{"function_name":"exec_command","arguments":{"cmd":"Runme Run Lint Test"}}]}]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := collectAgentCommandsFromFile(path); got != "runme run lint test" {
+		t.Fatalf("collectAgentCommandsFromFile() = %q, want %q", got, "runme run lint test")
 	}
 }
 
@@ -447,10 +519,10 @@ func TestNegativeControlSourceChangeFinalOnlyFixture(t *testing.T) {
 
 	fixture := filepath.Join("fixtures", "source-change-final-only")
 	files := readFixtureLines(t, filepath.Join(fixture, "changed_files.txt"))
-	agentLog := readFixture(t, filepath.Join(fixture, "agent.jsonl"))
+	trajectory := readFixture(t, filepath.Join(fixture, "trajectory.json"))
 	prDraft := readFixture(t, filepath.Join(fixture, "pr.md"))
-	commands := commandsFromFixtureLog(agentLog)
-	text := strings.ToLower(agentLog + "\n" + prDraft)
+	commands := strings.ToLower(strings.Join(commandsFromATIF([]byte(trajectory)), "\n"))
+	text := strings.ToLower(trajectory + "\n" + prDraft)
 
 	scores := scoreRewards(files, text, commands, prDraft)
 	if scores.ValidationEvidence != 0.6 {
@@ -495,18 +567,4 @@ func readFixtureLines(t *testing.T, path string) []string {
 		}
 	}
 	return lines
-}
-
-func commandsFromFixtureLog(log string) string {
-	var commands []string
-	for _, line := range strings.Split(log, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		if command := commandFromAgentLogLine([]byte(line)); command != "" {
-			commands = append(commands, command)
-		}
-	}
-	return strings.ToLower(strings.Join(commands, "\n"))
 }

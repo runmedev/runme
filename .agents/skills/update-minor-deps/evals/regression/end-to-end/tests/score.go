@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -140,129 +139,65 @@ func collectAgentText() string {
 	return strings.ToLower(strings.Join(chunks, "\n"))
 }
 
-type codexLogLine struct {
-	Type string `json:"type"`
-	Item struct {
-		Type    string `json:"type"`
-		Command string `json:"command"`
-	} `json:"item"`
-	Payload struct {
-		Type      string          `json:"type"`
-		Name      string          `json:"name"`
-		Arguments json.RawMessage `json:"arguments"`
-	} `json:"payload"`
+type atifTrajectory struct {
+	SchemaVersion string     `json:"schema_version"`
+	Steps         []atifStep `json:"steps"`
 }
 
-type claudeLogLine struct {
-	Type    string `json:"type"`
-	Message struct {
-		Content []struct {
-			Type  string `json:"type"`
-			Name  string `json:"name"`
-			Input struct {
-				Command string `json:"command"`
-			} `json:"input"`
-		} `json:"content"`
-	} `json:"message"`
+type atifStep struct {
+	ToolCalls []atifToolCall `json:"tool_calls"`
 }
 
-func commandFromAgentLogLine(line []byte) string {
-	if command := commandFromCodexLogLine(line); command != "" {
-		return command
-	}
-	return commandFromClaudeLogLine(line)
+type atifToolCall struct {
+	FunctionName string                     `json:"function_name"`
+	Arguments    map[string]json.RawMessage `json:"arguments"`
 }
 
-func commandFromCodexLogLine(line []byte) string {
-	var event codexLogLine
-	if err := json.Unmarshal(line, &event); err != nil {
-		return ""
+func commandsFromATIF(data []byte) []string {
+	var trajectory atifTrajectory
+	if err := json.Unmarshal(data, &trajectory); err != nil {
+		return nil
 	}
-	if event.Type == "item.completed" &&
-		event.Item.Type == "command_execution" &&
-		event.Item.Command != "" {
-		return event.Item.Command
+
+	var commands []string
+	for _, step := range trajectory.Steps {
+		for _, toolCall := range step.ToolCalls {
+			if command := commandFromATIFArguments(toolCall.Arguments); command != "" {
+				commands = append(commands, command)
+			}
+		}
 	}
-	if event.Type != "response_item" ||
-		event.Payload.Type != "function_call" ||
-		event.Payload.Name != "exec_command" {
-		return ""
-	}
-	return execCommandFromArguments(event.Payload.Arguments)
+	return commands
 }
 
-func commandFromClaudeLogLine(line []byte) string {
-	var event claudeLogLine
-	if err := json.Unmarshal(line, &event); err != nil {
-		return ""
-	}
-	if event.Type != "assistant" {
-		return ""
-	}
-	for _, content := range event.Message.Content {
-		if content.Type == "tool_use" &&
-			content.Name == "Bash" &&
-			content.Input.Command != "" {
-			return content.Input.Command
+func commandFromATIFArguments(arguments map[string]json.RawMessage) string {
+	for _, key := range []string{"command", "cmd"} {
+		raw, ok := arguments[key]
+		if !ok {
+			continue
+		}
+		var command string
+		if err := json.Unmarshal(raw, &command); err != nil {
+			continue
+		}
+		if strings.TrimSpace(command) != "" {
+			return command
 		}
 	}
 	return ""
 }
 
-func execCommandFromArguments(raw json.RawMessage) string {
-	if len(raw) == 0 {
-		return ""
-	}
-
-	var arguments string
-	if err := json.Unmarshal(raw, &arguments); err == nil {
-		raw = json.RawMessage(arguments)
-	}
-
-	var parsed struct {
-		Cmd string `json:"cmd"`
-	}
-	if err := json.Unmarshal(raw, &parsed); err != nil {
-		return ""
-	}
-	return parsed.Cmd
+func collectAgentCommands() string {
+	return collectAgentCommandsFromFile(filepath.Join(agentLogDir, "trajectory.json"))
 }
 
-func collectAgentCommands() string {
-	var commands []string
-	info, err := os.Stat(agentLogDir)
-	if err != nil || !info.IsDir() {
+func collectAgentCommandsFromFile(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
 		return ""
 	}
 
-	var paths []string
-	_ = filepath.WalkDir(agentLogDir, func(path string, entry os.DirEntry, err error) error {
-		if err != nil || entry.IsDir() {
-			return nil
-		}
-		paths = append(paths, path)
-		return nil
-	})
-	sort.Strings(paths)
-
-	for _, path := range paths {
-		file, err := os.Open(path)
-		if err != nil {
-			continue
-		}
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			if len(line) == 0 || line[0] != '{' {
-				continue
-			}
-			if command := commandFromAgentLogLine(line); command != "" {
-				commands = append(commands, command)
-			}
-		}
-		_ = file.Close()
-	}
-
+	commands := commandsFromATIF(data)
 	return strings.ToLower(strings.Join(commands, "\n"))
 }
 

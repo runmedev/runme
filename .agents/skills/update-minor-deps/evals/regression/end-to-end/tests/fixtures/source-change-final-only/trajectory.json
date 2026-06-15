@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.5",
+  "steps": [
+    {
+      "tool_calls": [
+        {
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "git status --short",
+            "workdir": "/app"
+          }
+        },
+        {
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "sed -n '1,260p' CONTRIBUTING.md",
+            "workdir": "/app"
+          }
+        },
+        {
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": ".agents/skills/update-minor-deps/scripts/update-go-deps.sh",
+            "workdir": "/app"
+          }
+        },
+        {
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "runme run lint test",
+            "workdir": "/app"
+          }
+        }
+      ]
+    }
+  ]
+}

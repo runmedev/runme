@@ -29,6 +29,8 @@ Perform the maintenance task that updates minor and patch dependencies, then fix
 runme run lint test
 ```
 
+Use this exact Runme command for final validation, even if `CONTRIBUTING.md`, `Makefile`, or other project docs mention equivalent `make` targets. Do not substitute `make lint`, `make test`, `make fmt`, or other Make targets for the final validation step.
+
 If integration dependencies are unavailable locally, try `runme run test-docker` and report exactly what could not be validated.
 
 ## Investigation Rules
