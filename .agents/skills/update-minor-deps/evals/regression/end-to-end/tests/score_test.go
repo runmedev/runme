@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -378,4 +381,73 @@ Final validation: runme run lint test.
 			}
 		})
 	}
+}
+
+func TestNegativeControlSourceChangeFinalOnlyFixture(t *testing.T) {
+	t.Parallel()
+
+	fixture := filepath.Join("fixtures", "source-change-final-only")
+	files := readFixtureLines(t, filepath.Join(fixture, "changed_files.txt"))
+	agentLog := readFixture(t, filepath.Join(fixture, "agent.jsonl"))
+	prDraft := readFixture(t, filepath.Join(fixture, "pr.md"))
+	commands := commandsFromFixtureLog(agentLog)
+	text := strings.ToLower(agentLog + "\n" + prDraft)
+
+	scores := scoreRewards(files, text, commands, prDraft)
+	if scores.ValidationEvidence != 0.6 {
+		t.Fatalf("ValidationEvidence = %v, want 0.6", scores.ValidationEvidence)
+	}
+	if scores.PRDraftQuality != 0.875 {
+		t.Fatalf("PRDraftQuality = %v, want 0.875", scores.PRDraftQuality)
+	}
+
+	fullCreditChecks := map[string]float64{
+		"DependencyUpdate":        scores.DependencyUpdate,
+		"ScopedChanges":           scores.ScopedChanges,
+		"SkillActivationEvidence": scores.SkillActivationEvidence,
+		"WorkflowEvidence":        scores.WorkflowEvidence,
+		"NoRealPROrCommit":        scores.NoRealPROrCommit,
+	}
+	for name, got := range fullCreditChecks {
+		if got != 1.0 {
+			t.Fatalf("%s = %v, want 1.0", name, got)
+		}
+	}
+}
+
+func readFixture(t *testing.T, path string) string {
+	t.Helper()
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
+func readFixtureLines(t *testing.T, path string) []string {
+	t.Helper()
+
+	var lines []string
+	for _, line := range strings.Split(readFixture(t, path), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return lines
+}
+
+func commandsFromFixtureLog(log string) string {
+	var commands []string
+	for _, line := range strings.Split(log, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if command := commandFromCodexLogLine([]byte(line)); command != "" {
+			commands = append(commands, command)
+		}
+	}
+	return strings.ToLower(strings.Join(commands, "\n"))
 }

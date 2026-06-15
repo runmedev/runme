@@ -388,6 +388,18 @@ func scoreNoRealPROrCommit(text string) float64 {
 	return 1.0
 }
 
+func scoreRewards(files []string, text string, commands string, prDraftText string) rewardScores {
+	return rewardScores{
+		DependencyUpdate:        scoreDependencyUpdate(files, text),
+		ScopedChanges:           scoreScopedChanges(files),
+		SkillActivationEvidence: scoreSkillActivationEvidence(text),
+		WorkflowEvidence:        scoreWorkflowEvidence(text),
+		ValidationEvidence:      scoreValidationEvidence(commands, files),
+		PRDraftQuality:          scorePRDraftText(prDraftText, files),
+		NoRealPROrCommit:        scoreNoRealPROrCommit(commands),
+	}
+}
+
 func scoreChecks(checks []bool) float64 {
 	var passed int
 	for _, check := range checks {
@@ -450,15 +462,7 @@ func run() error {
 	}
 	text := collectAgentText()
 	commands := collectAgentCommands()
-	scores := rewardScores{
-		DependencyUpdate:        scoreDependencyUpdate(files, text),
-		ScopedChanges:           scoreScopedChanges(files),
-		SkillActivationEvidence: scoreSkillActivationEvidence(text),
-		WorkflowEvidence:        scoreWorkflowEvidence(text),
-		ValidationEvidence:      scoreValidationEvidence(commands, files),
-		PRDraftQuality:          scorePRDraft(files),
-		NoRealPROrCommit:        scoreNoRealPROrCommit(commands),
-	}
+	scores := scoreRewards(files, text, commands, readText(prDraft))
 
 	diagnostics := map[string]any{
 		"changed_files": files,
