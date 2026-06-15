@@ -76,7 +76,7 @@ runner/.runme-script-*
 .runme/harbor/
 
 # Local agent tool state
-.agents/
+.agents/skills/dad-jokes
 .claude/
 .openclaw/
 
