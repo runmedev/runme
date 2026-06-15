@@ -311,6 +311,30 @@ def test_upload_dir_rewrites_shell_scripts(
     assert "/logs/verifier" not in decoded
 
 
+def test_upload_dir_rewrites_artifact_paths_in_shell_scripts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "test.sh").write_text(
+        "mkdir -p /logs/artifacts\n"
+        "cp results.json /logs/artifacts/results.json\n"
+    )
+
+    environment = _make_env(tmp_path)
+    asyncio.run(environment.start(force_build=False))
+    asyncio.run(environment.upload_dir(source, "/tests"))
+
+    request = FakeClient.instances[0].requests[-1]["upload_directory"]
+    decoded = env_module.base64.b64decode(request["files"][0]["data"]).decode()
+    assert str(tmp_path / "trial" / "artifacts") in decoded
+    assert "/logs/artifacts" not in decoded
+
+
 def test_upload_dir_rewrites_python_verifier_paths(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -335,6 +359,29 @@ def test_upload_dir_rewrites_python_verifier_paths(
     assert str(tmp_path / "trial" / "verifier" / "reward.json") in decoded
     assert 'Path("/app/poem.txt")' not in decoded
     assert 'Path("/logs/verifier/reward.json")' not in decoded
+
+
+def test_upload_dir_rewrites_python_artifact_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "artifact.py").write_text(
+        'Path("/logs/artifacts/results.json").write_text("{}")\n'
+    )
+
+    environment = _make_env(tmp_path)
+    asyncio.run(environment.start(force_build=False))
+    asyncio.run(environment.upload_dir(source, "/tests"))
+
+    request = FakeClient.instances[0].requests[-1]["upload_directory"]
+    decoded = env_module.base64.b64decode(request["files"][0]["data"]).decode()
+    assert str(tmp_path / "trial" / "artifacts" / "results.json") in decoded
+    assert 'Path("/logs/artifacts/results.json")' not in decoded
 
 
 def test_protocol_error_raises_runtime_error() -> None:
