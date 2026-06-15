@@ -153,6 +153,26 @@ type codexLogLine struct {
 	} `json:"payload"`
 }
 
+type claudeLogLine struct {
+	Type    string `json:"type"`
+	Message struct {
+		Content []struct {
+			Type  string `json:"type"`
+			Name  string `json:"name"`
+			Input struct {
+				Command string `json:"command"`
+			} `json:"input"`
+		} `json:"content"`
+	} `json:"message"`
+}
+
+func commandFromAgentLogLine(line []byte) string {
+	if command := commandFromCodexLogLine(line); command != "" {
+		return command
+	}
+	return commandFromClaudeLogLine(line)
+}
+
 func commandFromCodexLogLine(line []byte) string {
 	var event codexLogLine
 	if err := json.Unmarshal(line, &event); err != nil {
@@ -169,6 +189,24 @@ func commandFromCodexLogLine(line []byte) string {
 		return ""
 	}
 	return execCommandFromArguments(event.Payload.Arguments)
+}
+
+func commandFromClaudeLogLine(line []byte) string {
+	var event claudeLogLine
+	if err := json.Unmarshal(line, &event); err != nil {
+		return ""
+	}
+	if event.Type != "assistant" {
+		return ""
+	}
+	for _, content := range event.Message.Content {
+		if content.Type == "tool_use" &&
+			content.Name == "Bash" &&
+			content.Input.Command != "" {
+			return content.Input.Command
+		}
+	}
+	return ""
 }
 
 func execCommandFromArguments(raw json.RawMessage) string {
@@ -218,7 +256,7 @@ func collectAgentCommands() string {
 			if len(line) == 0 || line[0] != '{' {
 				continue
 			}
-			if command := commandFromCodexLogLine(line); command != "" {
+			if command := commandFromAgentLogLine(line); command != "" {
 				commands = append(commands, command)
 			}
 		}
@@ -330,7 +368,7 @@ func scoreSkillActivationEvidence(text string) float64 {
 func scoreValidationEvidence(text string, files []string) float64 {
 	commands := text
 	focused := goTestRE.MatchString(commands)
-	final := strings.Contains(commands, "runme run lint test")
+	final := finalValidationRan(commands)
 	moduleOnly := isModuleOnlyChange(files)
 	switch {
 	case final && (focused || moduleOnly):
@@ -342,6 +380,11 @@ func scoreValidationEvidence(text string, files []string) float64 {
 	default:
 		return 0.0
 	}
+}
+
+func finalValidationRan(commands string) bool {
+	return strings.Contains(commands, "runme run lint test") ||
+		(strings.Contains(commands, "runme run lint") && strings.Contains(commands, "runme run test"))
 }
 
 func scorePRDraft(files []string) float64 {
@@ -366,7 +409,7 @@ func scorePRDraftText(text string, files []string) float64 {
 		strings.Contains(text, "go.sum"),
 		strings.Contains(text, "compat") || strings.Contains(text, "fix") || strings.Contains(text, "none"),
 		focusedValidation,
-		strings.Contains(text, "runme run lint test"),
+		finalValidationRan(text),
 	}
 	return scoreChecks(checks)
 }

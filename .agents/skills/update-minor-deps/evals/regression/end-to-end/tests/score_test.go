@@ -242,6 +242,42 @@ func TestCommandFromCodexLogLine(t *testing.T) {
 	}
 }
 
+func TestCommandFromAgentLogLine(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		line string
+		want string
+	}{
+		{
+			name: "codex command",
+			line: `{"type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"runme run lint test\",\"workdir\":\"/repo\"}"}}`,
+			want: "runme run lint test",
+		},
+		{
+			name: "claude bash tool call",
+			line: `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"runme run test"}}]}}`,
+			want: "runme run test",
+		},
+		{
+			name: "claude non-bash tool call ignored",
+			line: `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"CONTRIBUTING.md"}}]}}`,
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := commandFromAgentLogLine([]byte(tt.line)); got != tt.want {
+				t.Fatalf("commandFromAgentLogLine() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestEvidenceScores(t *testing.T) {
 	t.Parallel()
 
@@ -268,6 +304,11 @@ func TestEvidenceScores(t *testing.T) {
 			want: 1.0,
 		},
 		{
+			name: "module-only split runme validation",
+			got:  scoreValidationEvidence("runme run lint\nrunme run test", []string{"go.mod", "go.sum"}),
+			want: 1.0,
+		},
+		{
 			name: "module-only focused only",
 			got:  scoreValidationEvidence("go test ./...", []string{"go.mod", "go.sum"}),
 			want: 0.4,
@@ -289,6 +330,11 @@ func TestEvidenceScores(t *testing.T) {
 			name: "source change focused and final",
 			got:  scoreValidationEvidence("go test ./runner runme run lint test", []string{"go.mod", "go.sum", "runner/session.go"}),
 			want: 1.0,
+		},
+		{
+			name: "make lint test does not count as required runme validation",
+			got:  scoreValidationEvidence("make lint test", []string{"go.mod", "go.sum"}),
+			want: 0.0,
 		},
 		{
 			name: "no forbidden commands",
@@ -336,6 +382,13 @@ Updated go.mod and go.sum.
 No compatibility code or test fixes required.
 Final validation: runme run lint test.
 `
+	splitValidationDraft := `# chore: update minor and patch dependencies (2026-06-15)
+
+Ran .agents/skills/update-minor-deps/scripts/update-go-deps.sh.
+Updated go.mod and go.sum.
+No compatibility code or test fixes required.
+Validation: runme run lint and runme run test.
+`
 
 	tests := []struct {
 		name  string
@@ -356,6 +409,12 @@ Final validation: runme run lint test.
 		{
 			name:  "module-only draft without focused tests",
 			text:  moduleOnlyDraft,
+			files: []string{"go.mod", "go.sum"},
+			want:  1.0,
+		},
+		{
+			name:  "module-only draft with split runme validation",
+			text:  splitValidationDraft,
 			files: []string{"go.mod", "go.sum"},
 			want:  1.0,
 		},
@@ -445,7 +504,7 @@ func commandsFromFixtureLog(log string) string {
 		if line == "" {
 			continue
 		}
-		if command := commandFromCodexLogLine([]byte(line)); command != "" {
+		if command := commandFromAgentLogLine([]byte(line)); command != "" {
 			commands = append(commands, command)
 		}
 	}
