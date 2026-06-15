@@ -63,7 +63,7 @@ runme run lint test || final_status=$?
 - Ran `.agents/skills/update-minor-deps/scripts/update-go-deps.sh`.
 - Updated root dependency files: `go.mod` and `go.sum`.
 PR
-  if [ "$focused_status" -eq 0 ] && [ "$final_status" -eq 0 ]; then
+  if [ "$final_status" -eq 0 ]; then
     printf -- '- No compatibility or test fixes were needed beyond the dependency refresh.\n'
   else
     printf -- '- Compatibility/test fixes may be needed; validation reported failures after the dependency refresh.\n'

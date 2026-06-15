@@ -350,6 +350,49 @@ func TestCollectAgentCommandsFromFile(t *testing.T) {
 	}
 }
 
+func TestCollectAgentShellTraceCommands(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "oracle.txt"), []byte(`Using update-minor-deps skill workflow
++ git status --short
++ .agents/skills/update-minor-deps/scripts/update-go-deps.sh
++ runme run lint test
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	want := strings.Join([]string{
+		"git status --short",
+		".agents/skills/update-minor-deps/scripts/update-go-deps.sh",
+		"runme run lint test",
+	}, "\n")
+	if got := collectAgentShellTraceCommandsFromFile(filepath.Join(dir, "oracle.txt")); got != want {
+		t.Fatalf("collectAgentShellTraceCommandsFromFile() = %q, want %q", got, want)
+	}
+}
+
+func TestCollectAgentCommandsRequiresOracleForShellTraceFallback(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+
+	trace := []byte("+ runme run lint test\n")
+	if err := os.WriteFile(filepath.Join(dir, "agent.txt"), trace, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := collectAgentCommandsFromDir(dir); got != "" {
+		t.Fatalf("collectAgentCommandsFromDir() = %q, want empty string without oracle log", got)
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, "oracle.txt"), trace, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := collectAgentCommandsFromDir(dir); got != "runme run lint test" {
+		t.Fatalf("collectAgentCommandsFromDir() = %q, want %q", got, "runme run lint test")
+	}
+}
+
 func TestEvidenceScores(t *testing.T) {
 	t.Parallel()
 

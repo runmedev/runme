@@ -188,7 +188,19 @@ func commandFromATIFArguments(arguments map[string]json.RawMessage) string {
 }
 
 func collectAgentCommands() string {
-	return collectAgentCommandsFromFile(filepath.Join(agentLogDir, "trajectory.json"))
+	return collectAgentCommandsFromDir(agentLogDir)
+}
+
+func collectAgentCommandsFromDir(dir string) string {
+	commands := collectAgentCommandsFromFile(filepath.Join(dir, "trajectory.json"))
+	if commands != "" {
+		return commands
+	}
+	oracleLogPath := filepath.Join(dir, "oracle.txt")
+	if _, err := os.Stat(oracleLogPath); err != nil {
+		return ""
+	}
+	return collectAgentShellTraceCommandsFromFile(oracleLogPath)
 }
 
 func collectAgentCommandsFromFile(path string) string {
@@ -198,6 +210,25 @@ func collectAgentCommandsFromFile(path string) string {
 	}
 
 	commands := commandsFromATIF(data)
+	return strings.ToLower(strings.Join(commands, "\n"))
+}
+
+func collectAgentShellTraceCommandsFromFile(path string) string {
+	text := readText(path)
+	if text == "" {
+		return ""
+	}
+
+	var commands []string
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		if command, ok := strings.CutPrefix(line, "+ "); ok {
+			command = strings.TrimSpace(command)
+			if command != "" {
+				commands = append(commands, command)
+			}
+		}
+	}
 	return strings.ToLower(strings.Join(commands, "\n"))
 }
 
