@@ -2,7 +2,7 @@
 
 Run this task from the repository root.
 
-Perform Runme's normal minor and patch dependency maintenance cycle. Refresh non-breaking dependencies, handle any small regressions caused by the update, and validate the result.
+Our Go dependencies are behind. Do the usual Runme maintenance update and leave me with a PR-ready summary of what changed and how you validated it.
 
 Stay on the starting branch. Do not create a branch, switch branches, stage files, commit, push, or open a real pull request. Leave the workspace changes unstaged so the verifier can inspect them.
 
