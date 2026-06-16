@@ -60,7 +60,7 @@ jobs:
       matrix:
         go: ["1.26.3"]
         os: [ubuntu-latest, windows-latest]
-    name: Build and test with Go ${{ matrix.go }} on ${{ matrix.os }}
+    name: Build and test with Go on ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
