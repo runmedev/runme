@@ -119,16 +119,16 @@ func (h *WebSocketHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	sc := NewConnection(conn)
 
-	multiplex, err := h.handleConnection(ctx, runID, streamID, sc)
+	multiplex, created, err := h.handleConnection(ctx, runID, streamID, sc)
 	if err != nil {
 		log.Error(err, "Could not handle websocket connection")
 		_ = sc.Error("Could not handle websocket connection")
 		return
 	}
 
-	// If the processor was celling, we remove the run from the handler.
-	wait := multiplex.process()
-	if wait {
+	wait := false
+	if created {
+		wait = multiplex.process()
 		h.removeRun(ctx, runID)
 	}
 
@@ -136,7 +136,7 @@ func (h *WebSocketHandler) Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleConnection accepts a websocket connection as a stream into a multiplexer.
-func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, streamID string, sc *Connection) (*Multiplexer, error) {
+func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, streamID string, sc *Connection) (*Multiplexer, bool, error) {
 	log := logs.FromContextWithTrace(ctx)
 	log.Info("WebSocketHandler.handleConnection", "runID", runID, "streamID", streamID)
 
@@ -144,6 +144,7 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 	defer h.mu.Unlock()
 
 	// If we already have a run, accept the connection on the existing multiplexer.
+	created := false
 	multiplex, ok := h.runs[runID]
 	if !ok {
 		var tap StreamTap
@@ -157,13 +158,17 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 
 		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner, tap, h.preprocessor, options)
 		h.runs[runID] = multiplex
+		created = true
 	}
 
 	if err := multiplex.acceptConnection(streamID, sc); err != nil {
-		return nil, errors.Wrap(err, "could not accept connection")
+		if created {
+			delete(h.runs, runID)
+		}
+		return nil, false, errors.Wrap(err, "could not accept connection")
 	}
 
-	return multiplex, nil
+	return multiplex, created, nil
 }
 
 // Shutdown cancels all active multiplexers and waits until each one completes

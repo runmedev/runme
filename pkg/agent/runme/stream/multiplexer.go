@@ -65,7 +65,8 @@ type Multiplexer struct {
 
 	mu sync.Mutex
 	// p is the processor that is currently processing messages. If p is nil then no run against runme.Runner is currently processing
-	p *Processor
+	p         *Processor
+	closeOnce sync.Once
 }
 
 // NewMultiplexer creates a new Multiplexer (see description above).
@@ -179,25 +180,27 @@ func (m *Multiplexer) startInactivityTimeout(timeout time.Duration, interval tim
 
 // close shuts down the RunmeMultiplexer.
 func (m *Multiplexer) close() {
-	defer close(m.done)
+	m.closeOnce.Do(func() {
+		defer close(m.done)
 
-	p := m.getInflight()
-	if p != nil {
-		p.close()
-	}
-	m.setInflight(nil)
+		p := m.getInflight()
+		if p != nil {
+			p.close()
+		}
+		m.setInflight(nil)
 
-	// Finalize the recording before client grace. Client grace is about
-	// disconnect/reconnect semantics and should not delay RunEnd delivery.
-	m.tap.RunEnd()
-	_ = m.tap.Close()
+		// Finalize the recording before client grace. Client grace is about
+		// disconnect/reconnect semantics and should not delay RunEnd delivery.
+		m.tap.RunEnd()
+		_ = m.tap.Close()
 
-	// Wait for the client grace period to give the client a chance to close the connection.
-	// Intentionally do not short-circuit on m.ctx.Done(); this grace period gives
-	// clients a chance to receive disconnect signaling triggered by cancellation.
-	time.Sleep(m.clientGracePeriod)
-	// With Runme's execution finished we can close all websocket connections.
-	m.streams.close(m.ctx)
+		// Wait for the client grace period to give the client a chance to close the connection.
+		// Intentionally do not short-circuit on m.ctx.Done(); this grace period gives
+		// clients a chance to receive disconnect signaling triggered by cancellation.
+		time.Sleep(m.clientGracePeriod)
+		// With Runme's execution finished we can close all websocket connections.
+		m.streams.close(m.ctx)
+	})
 }
 
 // Wait blocks until the multiplexer has finished its close path, including
@@ -226,14 +229,12 @@ func (m *Multiplexer) process() (wait bool) {
 
 	// todo(sebastian): Still have to decide what to do if a user tries to send a new request
 	// before the current's done as below. The cleanest solution might be to SIGINT the run in runme.Runner.
-	p := m.getInflight()
-	if p != nil {
+	p, ok := m.startInflight(ctx)
+	if !ok {
 		log.Info("Already have a run in flight", "runID", m.runID)
 		wait = false
 		return
 	}
-	p = NewProcessor(ctx, m.runID)
-	m.setInflight(p)
 
 	m.tap.RunStart(m.runID)
 
@@ -317,6 +318,16 @@ func (m *Multiplexer) setInflight(p *Processor) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.p = p
+}
+
+func (m *Multiplexer) startInflight(ctx context.Context) (*Processor, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.p != nil {
+		return m.p, false
+	}
+	m.p = NewProcessor(ctx, m.runID)
+	return m.p, true
 }
 
 // execute invokes the Runme runner to execute the request.

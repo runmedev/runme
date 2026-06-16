@@ -713,6 +713,30 @@ func TestRunmeHandler_MutliClient(t *testing.T) {
 	}
 
 	knownID := ulid.GenerateID()
+	for i, sc := range connections {
+		ts := timestamppb.Now().AsTime().UnixMilli()
+		pingReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
+			RunId:   runID,
+			KnownId: knownID,
+			Ping: &streamv1.Ping{
+				Timestamp: ts,
+			},
+		})
+		if err != nil {
+			t.Fatalf("Failed to marshal readiness ping: %v", err)
+		}
+		if err := sc.WriteMessage(websocket.TextMessage, pingReq); err != nil {
+			t.Fatalf("Failed to write readiness ping on socket %d: %v", i+1, err)
+		}
+		resp, err := sc.ReadWebsocketResponse(context.Background())
+		if err != nil {
+			t.Fatalf("Failed to read readiness pong on socket %d: %v", i+1, err)
+		}
+		if resp.GetPong() == nil || resp.GetPong().GetTimestamp() != ts {
+			t.Fatalf("Expected readiness pong on socket %d", i+1)
+		}
+	}
+
 	dummyReq, err := protojson.Marshal(&streamv1.WebsocketRequest{
 		RunId:   runID,
 		KnownId: knownID,
