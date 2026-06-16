@@ -285,6 +285,7 @@ class RunmeOpenClaw(OpenClaw):
         agents = config.setdefault("agents", {})
         defaults = agents.setdefault("defaults", {})
         defaults["workspace"] = workspace_path
+        defaults["skipBootstrap"] = True
 
         config_dir = Path(tempfile.mkdtemp(prefix="runme-harbor-openclaw-"))
         target = config_dir / "openclaw.json"

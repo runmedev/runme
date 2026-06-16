@@ -93,9 +93,12 @@ def test_runme_openclaw_uses_ambient_user_config(
         "OPENAI_BASE_URL": "https://example.test/v1",
     }
     assert runtime_config["agents"]["defaults"]["workspace"] == str(staged_workspace)
-    assert json.loads((home / ".openclaw" / "openclaw.json").read_text())["agents"][
-        "defaults"
-    ]["workspace"] == str(original_workspace)
+    assert runtime_config["agents"]["defaults"]["skipBootstrap"] is True
+    ambient_defaults = json.loads((home / ".openclaw" / "openclaw.json").read_text())[
+        "agents"
+    ]["defaults"]
+    assert ambient_defaults["workspace"] == str(original_workspace)
+    assert "skipBootstrap" not in ambient_defaults
     assert runtime_config_path is not None
     assert not runtime_config_path.exists()
     assert all("openclaw setup" not in command for command, _ in calls)
