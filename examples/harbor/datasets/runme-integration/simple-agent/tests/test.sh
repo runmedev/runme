@@ -12,6 +12,8 @@ fi
 actual="$(cat result.txt)"
 
 if [ "$actual" = "$expected" ]; then
+  mkdir -p /logs/artifacts
+  cp result.txt /logs/artifacts/result.txt
   printf '1.0' > /logs/verifier/reward.txt
 else
   printf 'expected %s, got %s\n' "$expected" "$actual" >&2
