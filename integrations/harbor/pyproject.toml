@@ -2,11 +2,32 @@
 name = "runme-harbor"
 version = "0.0.1"
 description = "Runme Harbor environment adapter"
+readme = "README.md"
 requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [{ name = "The Runme Authors" }]
+keywords = ["runme", "harbor", "evals", "agents"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Testing",
+  "Topic :: System :: Shells",
+]
 dependencies = [
   "harbor>=0.13.1,<0.14",
-  "protobuf>=6.0",
+  "protobuf>=7.35.1",
 ]
+license-files = ["LICENSE", "NOTICE"]
+
+[project.urls]
+Homepage = "https://runme.dev"
+Documentation = "https://docs.runme.dev"
+Repository = "https://github.com/runmedev/runme"
+Issues = "https://github.com/runmedev/runme/issues"
 
 [project.scripts]
 runme-harbor = "runme_harbor.cli:main"
