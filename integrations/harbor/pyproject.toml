@@ -21,7 +21,7 @@ dependencies = [
   "harbor>=0.13.1,<0.14",
   "protobuf>=7.35.1",
 ]
-license-files = ["NOTICE"]
+license-files = ["LICENSE", "NOTICE"]
 
 [project.urls]
 Homepage = "https://runme.dev"
