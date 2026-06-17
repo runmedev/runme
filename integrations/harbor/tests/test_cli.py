@@ -31,6 +31,55 @@ def test_build_harbor_command_oracle_defaults(tmp_path: Path) -> None:
     ]
 
 
+def test_build_harbor_command_runme_env_alias(tmp_path: Path) -> None:
+    args = parse(["run", str(tmp_path), "--env", "runme"])
+
+    assert cli.build_harbor_command(args) == [
+        "harbor",
+        "run",
+        "--path",
+        str(tmp_path.resolve()),
+        "--jobs-dir",
+        ".runme/evals/jobs",
+        "--environment-import-path",
+        "runme_harbor.environment:RunmeEnvironment",
+        "--agent",
+        "oracle",
+        "--n-concurrent",
+        "1",
+    ]
+
+
+def test_build_harbor_command_builtin_env_uses_harbor_agent(tmp_path: Path) -> None:
+    args = parse(["run", str(tmp_path), "--env", "docker", "--agent", "codex"])
+
+    command = cli.build_harbor_command(args)
+
+    assert command == [
+        "harbor",
+        "run",
+        "--path",
+        str(tmp_path.resolve()),
+        "--jobs-dir",
+        ".runme/evals/jobs",
+        "--env",
+        "docker",
+        "--agent",
+        "codex",
+        "--n-concurrent",
+        "1",
+    ]
+
+
+def test_build_harbor_command_builtin_env_accepts_unknown_agent(tmp_path: Path) -> None:
+    args = parse(["run", str(tmp_path), "-e", "docker", "--agent", "goose"])
+
+    command = cli.build_harbor_command(args)
+
+    assert command[command.index("--env") : command.index("--env") + 2] == ["--env", "docker"]
+    assert command[command.index("--agent") : command.index("--agent") + 2] == ["--agent", "goose"]
+
+
 def test_build_harbor_command_codex(tmp_path: Path) -> None:
     args = parse(["run", str(tmp_path), "--agent", "codex"])
 
@@ -61,6 +110,13 @@ def test_build_harbor_command_openclaw(tmp_path: Path) -> None:
     assert "--agent" not in command
 
 
+def test_build_harbor_command_runme_env_rejects_unknown_agent(tmp_path: Path) -> None:
+    args = parse(["run", str(tmp_path), "--agent", "goose"])
+
+    with pytest.raises(SystemExit, match="invalid --agent 'goose'"):
+        cli.build_harbor_command(args)
+
+
 def test_build_harbor_command_task_yes_jobs_and_passthrough(tmp_path: Path) -> None:
     args = parse(
         [
@@ -82,7 +138,9 @@ def test_build_harbor_command_task_yes_jobs_and_passthrough(tmp_path: Path) -> N
     assert ["--include-task-name", "simple-agent"] == command[
         command.index("--include-task-name") : command.index("--include-task-name") + 2
     ]
-    assert ["--jobs-dir", "jobs"] == command[command.index("--jobs-dir") : command.index("--jobs-dir") + 2]
+    assert ["--jobs-dir", "jobs"] == command[
+        command.index("--jobs-dir") : command.index("--jobs-dir") + 2
+    ]
     assert "-y" in command
     assert command[-2:] == ["--model", "gpt-5"]
 
@@ -118,6 +176,27 @@ def test_build_harbor_command_does_not_duplicate_concurrency(
     command = cli.build_harbor_command(args)
 
     assert command.count("--n-concurrent") == passthrough.count("--n-concurrent")
+
+
+@pytest.mark.parametrize(
+    "passthrough",
+    [
+        ["--", "--env", "docker"],
+        ["--", "--env=docker"],
+        ["--", "-e", "docker"],
+        ["--", "-edocker"],
+        ["--", "--environment-import-path", "pkg:Env"],
+        ["--", "--environment-import-path=pkg:Env"],
+    ],
+)
+def test_build_harbor_command_rejects_environment_passthrough(
+    tmp_path: Path,
+    passthrough: list[str],
+) -> None:
+    args = parse(["run", str(tmp_path), *passthrough])
+
+    with pytest.raises(SystemExit, match="use runme-harbor run --env"):
+        cli.build_harbor_command(args)
 
 
 def test_main_runs_harbor_and_prints_debug(
@@ -225,7 +304,9 @@ def test_preflight_requires_runme_agent_cli(
 ) -> None:
     monkeypatch.setattr(cli.importlib, "import_module", lambda _name: object())
     monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.13.1")
-    monkeypatch.setattr(cli.shutil, "which", lambda name: None if name == missing else f"/bin/{name}")
+    monkeypatch.setattr(
+        cli.shutil, "which", lambda name: None if name == missing else f"/bin/{name}"
+    )
 
     with pytest.raises(SystemExit, match=message):
         cli._preflight(agent)

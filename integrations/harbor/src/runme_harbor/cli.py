@@ -77,21 +77,29 @@ def build_harbor_command(args: argparse.Namespace) -> list[str]:
         dataset_path,
         "--jobs-dir",
         args.jobs_dir,
-        "--environment-import-path",
-        ENVIRONMENT_IMPORT_PATH,
     ]
 
-    try:
-        command.extend(AGENT_ARGUMENTS[args.agent])
-    except KeyError as exc:
-        valid_agents = ", ".join(AGENT_ARGUMENTS)
-        raise SystemExit(f"invalid --agent {args.agent!r}: expected {valid_agents}") from exc
+    if _uses_runme_environment(args.env):
+        command.extend(["--environment-import-path", ENVIRONMENT_IMPORT_PATH])
+        try:
+            command.extend(AGENT_ARGUMENTS[args.agent])
+        except KeyError as exc:
+            valid_agents = ", ".join(AGENT_ARGUMENTS)
+            raise SystemExit(f"invalid --agent {args.agent!r}: expected {valid_agents}") from exc
+    else:
+        command.extend(["--env", args.env])
+        command.extend(["--agent", args.agent])
 
     if args.task_dir:
         command.extend(["--include-task-name", args.task_dir])
     if args.yes:
         command.append("-y")
     passthrough = list(args.passthrough)
+    env_flag = _find_environment_flag(passthrough)
+    if env_flag:
+        raise SystemExit(
+            f"use runme-harbor run --env instead of passing Harbor environment flag {env_flag!r} after --"
+        )
     if not _contains_concurrency_flag(passthrough):
         command.extend(["--n-concurrent", "1"])
     command.extend(passthrough)
@@ -104,7 +112,8 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 
     run_parser = subparsers.add_parser("run", allow_abbrev=False)
     run_parser.add_argument("dataset_path", metavar="dataset-path")
-    run_parser.add_argument("--agent", choices=tuple(AGENT_ARGUMENTS), default="oracle")
+    run_parser.add_argument("--agent", default="oracle")
+    run_parser.add_argument("-e", "--env")
     run_parser.add_argument("--task-dir")
     run_parser.add_argument("--jobs-dir", default=".runme/evals/jobs")
     run_parser.add_argument("-y", "--yes", action="store_true")
@@ -132,6 +141,23 @@ def _find_removed_task_flag(args: list[str]) -> str | None:
         if arg.startswith("--task-name="):
             return "--task-name"
     return None
+
+
+def _find_environment_flag(args: list[str]) -> str | None:
+    for arg in args:
+        if arg in {"--env", "-e", "--environment-import-path"}:
+            return arg
+        if arg.startswith("--env="):
+            return "--env"
+        if arg.startswith("-e") and len(arg) > 2:
+            return "-e"
+        if arg.startswith("--environment-import-path="):
+            return "--environment-import-path"
+    return None
+
+
+def _uses_runme_environment(env: str | None) -> bool:
+    return env in {None, "", "runme"}
 
 
 def _preflight(agent: str) -> None:

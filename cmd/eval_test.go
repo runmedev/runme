@@ -210,6 +210,12 @@ func TestEvalCmdHelpIncludesDefaultDatasetPath(t *testing.T) {
 	if !strings.Contains(stdout.String(), "When dataset-path is omitted, runme eval uses ./evals/tasks.") {
 		t.Fatalf("help output = %q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), `-e, --env string`) {
+		t.Fatalf("help output = %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `Defaults to "runme"`) {
+		t.Fatalf("help output = %q", stdout.String())
+	}
 }
 
 func TestRunEvalDelegatesModel(t *testing.T) {
@@ -278,6 +284,94 @@ func TestRunEvalRejectsDuplicateModel(t *testing.T) {
 				t.Fatal("expected error")
 			}
 			if !strings.Contains(err.Error(), "--model cannot be used together with passthrough --model") {
+				t.Fatalf("error = %q", err.Error())
+			}
+			if len(calls) != 0 {
+				t.Fatalf("calls = %#v, want none", calls)
+			}
+		})
+	}
+}
+
+func TestRunEvalDelegatesRunmeEnvAlias(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.env = "runme"
+
+	err := runEval(opts, []string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantPreflight := recordedCommand{
+		name: "/bin/runme",
+		args: []string{"harbor", "stdio"},
+	}
+	wantDelegate := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultEvalJobsDir,
+		"--env", "runme",
+	}
+	if !sameCommand(calls[0], wantPreflight) {
+		t.Fatalf("preflight = %#v, want %#v", calls[0], wantPreflight)
+	}
+	if !reflect.DeepEqual(calls[1].args, wantDelegate) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, wantDelegate)
+	}
+}
+
+func TestRunEvalDelegatesNonRunmeEnvWithoutPreflight(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.env = "docker"
+	opts.agent = "codex"
+
+	err := runEval(opts, []string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "codex",
+		"--jobs-dir", defaultEvalJobsDir,
+		"--env", "docker",
+	}
+	if len(calls) != 1 {
+		t.Fatalf("calls = %#v, want delegate only", calls)
+	}
+	if !reflect.DeepEqual(calls[0].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[0].args, want)
+	}
+}
+
+func TestRunEvalRejectsPassthroughEnvironmentFlags(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		passthrough []string
+	}{
+		{name: "env separate", passthrough: []string{"--env", "docker"}},
+		{name: "env equals", passthrough: []string{"--env=docker"}},
+		{name: "env shorthand separate", passthrough: []string{"-e", "docker"}},
+		{name: "env shorthand joined", passthrough: []string{"-edocker"}},
+		{name: "import path separate", passthrough: []string{"--environment-import-path", "pkg:Env"}},
+		{name: "import path equals", passthrough: []string{"--environment-import-path=pkg:Env"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			path := t.TempDir()
+			var calls []recordedCommand
+			opts := testEvalOptions(t, &calls, io.Discard)
+
+			err := runEval(opts, append([]string{path}, tt.passthrough...))
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if !strings.Contains(err.Error(), "use runme eval --env") {
 				t.Fatalf("error = %q", err.Error())
 			}
 			if len(calls) != 0 {

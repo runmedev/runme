@@ -26,6 +26,7 @@ type evalOptions struct {
 	jobsDir     string
 	yes         bool
 	model       string
+	env         string
 	runmeBin    string
 	runmeArgs   []string
 	runmeHarbor string
@@ -73,6 +74,7 @@ When dataset-path is omitted, runme eval uses ./%s.`, defaultEvalDatasetPath),
 	flags.StringVar(&opts.jobsDir, "jobs-dir", defaultEvalJobsDir, "Eval jobs directory")
 	flags.BoolVarP(&opts.yes, "yes", "y", false, "Confirm Harbor prompts")
 	flags.StringVar(&opts.model, "model", "", "Harbor agent model")
+	flags.StringVarP(&opts.env, "env", "e", "", `Harbor environment to use. Defaults to "runme"`)
 	flags.StringVar(&opts.runmeBin, "runme-bin", "", "Runme binary used by the Harbor environment")
 	flags.StringArrayVar(&opts.runmeArgs, "runme-arg", nil, "Additional Runme argument used by the Harbor environment")
 	flags.StringVar(&opts.runmeHarbor, "runme-harbor-bin", "", "runme-harbor executable")
@@ -100,6 +102,9 @@ func runEval(opts evalOptions, args []string) error {
 	if opts.model != "" && containsModelFlag(passthrough) {
 		return fmt.Errorf("--model cannot be used together with passthrough --model; use only runme eval --model")
 	}
+	if containsEnvironmentFlag(passthrough) {
+		return fmt.Errorf("use runme eval --env instead of passing Harbor environment flags after --")
+	}
 
 	runmeHarbor, err := resolveRunmeHarbor(opts)
 	if err != nil {
@@ -121,7 +126,7 @@ func runEval(opts evalOptions, args []string) error {
 	}
 	env = append(env, opts.extraEnv...)
 
-	if opts.preflight {
+	if opts.preflight && usesRunmeEnvironment(opts.env) {
 		request := strings.NewReader("{\"id\":\"preflight\",\"preflight\":{}}\n")
 		if err := opts.commandRun(runmeBin, []string{"harbor", "stdio"}, env, request, io.Discard, opts.stderr); err != nil {
 			return fmt.Errorf("runme harbor stdio preflight failed: %w", err)
@@ -235,6 +240,9 @@ func buildRunmeHarborArgs(datasetPath string, opts evalOptions, passthrough []st
 	if opts.debug {
 		args = append(args, "--debug")
 	}
+	if opts.env != "" {
+		args = append(args, "--env", opts.env)
+	}
 	delegatedPassthrough := append([]string(nil), passthrough...)
 	if opts.model != "" {
 		delegatedPassthrough = append(delegatedPassthrough, "--model", opts.model)
@@ -253,6 +261,25 @@ func containsModelFlag(args []string) bool {
 		}
 	}
 	return false
+}
+
+func containsEnvironmentFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == "--env" || arg == "-e" || arg == "--environment-import-path" {
+			return true
+		}
+		if strings.HasPrefix(arg, "--env=") || strings.HasPrefix(arg, "-e") && len(arg) > 2 {
+			return true
+		}
+		if strings.HasPrefix(arg, "--environment-import-path=") {
+			return true
+		}
+	}
+	return false
+}
+
+func usesRunmeEnvironment(env string) bool {
+	return env == "" || env == "runme"
 }
 
 func runExternalCommand(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
