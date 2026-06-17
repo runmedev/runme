@@ -36,16 +36,8 @@ uv run pytest
 
 uv build
 
-tmp_venv="$(mktemp -d)"
-cleanup() {
-  rm -rf "$tmp_venv"
-}
-trap cleanup EXIT
-
-python3 -m venv "$tmp_venv"
-"$tmp_venv/bin/pip" install -q dist/*.whl
-"$tmp_venv/bin/python" -c "import runme_harbor"
-"$tmp_venv/bin/runme-harbor" --help >/dev/null
+uv run --with dist/*.whl python -c "import runme_harbor"
+uv tool run --from dist/*.whl runme-harbor --help >/dev/null
 ```
 
 Publishing is intentionally not part of `build-harbor`. Release automation runs
