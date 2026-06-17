@@ -5,6 +5,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,6 +28,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
+	"github.com/runmedev/runme/v3/internal/owl"
 	"github.com/runmedev/runme/v3/internal/testutils"
 	"github.com/runmedev/runme/v3/internal/testutils/log"
 	"github.com/runmedev/runme/v3/internal/ulid"
@@ -1255,4 +1258,43 @@ func Test_runnerConformsOpinionatedEnvVarNaming(t *testing.T) {
 		assert.False(t, runnerConformsOpinionatedEnvVarNaming("&^%$"))
 		assert.False(t, runnerConformsOpinionatedEnvVarNaming("A@#$%"))
 	})
+}
+
+func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T) {
+	var snapshot owl.SetVarItems
+	require.NoError(t, json.Unmarshal([]byte(`[
+		{
+			"var": {
+				"key": "FOO",
+				"origin": "test",
+				"created": "2026-06-17T18:46:21Z"
+			},
+			"value": {
+				"original": "bar",
+				"resolved": "bar",
+				"status": "LITERAL"
+			},
+			"spec": {
+				"name": "Plain",
+				"required": true,
+				"description": "desc"
+			}
+		}
+	]`), &snapshot))
+
+	core, observedLogs := observer.New(zap.WarnLevel)
+	msg := &runnerv1.MonitorEnvStoreResponse{}
+
+	require.NoError(t, convertToMonitorEnvStoreResponse(zap.New(core), msg, snapshot))
+
+	envs := msg.GetSnapshot().GetEnvs()
+	require.Len(t, envs, 1)
+	assert.Equal(t, "2026-06-17T18:46:21Z", envs[0].CreateTime)
+	assert.Empty(t, envs[0].UpdateTime)
+	assert.Equal(t, runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL, envs[0].Status)
+
+	logs := observedLogs.FilterMessage("env store snapshot item has no update timestamp").All()
+	require.Len(t, logs, 1)
+	assert.Equal(t, "FOO", logs[0].ContextMap()["name"])
+	assert.Equal(t, "test", logs[0].ContextMap()["origin"])
 }

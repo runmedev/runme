@@ -858,7 +858,7 @@ func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, sr
 				Type: runnerv1.MonitorEnvStoreType_MONITOR_ENV_STORE_TYPE_SNAPSHOT,
 			}
 
-			if err := convertToMonitorEnvStoreResponse(msg, snapshot); err != nil {
+			if err := convertToMonitorEnvStoreResponse(r.logger, msg, snapshot); err != nil {
 				errc <- err
 				goto errhandler
 			}
@@ -900,8 +900,11 @@ func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, sr
 	return err
 }
 
-func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, snapshot owl.SetVarItems) error {
+func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorEnvStoreResponse, snapshot owl.SetVarItems) error {
 	envsSnapshot := make([]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv, 0, len(snapshot))
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 
 	for _, item := range snapshot {
 		status := runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
@@ -925,9 +928,16 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 			OriginalValue: item.Value.Original,
 			ResolvedValue: item.Value.Resolved,
 			Status:        status,
-			CreateTime:    item.Var.Created.Format(time.RFC3339),
-			UpdateTime:    item.Var.Updated.Format(time.RFC3339),
+			CreateTime:    formatOptionalTime(item.Var.Created),
+			UpdateTime:    formatOptionalTime(item.Var.Updated),
 			Errors:        []*runnerv1.MonitorEnvStoreResponseSnapshot_Error{},
+		}
+		if item.Var.Updated == nil {
+			logger.Warn(
+				"env store snapshot item has no update timestamp",
+				zap.String("name", item.Var.Key),
+				zap.String("origin", item.Var.Origin),
+			)
 		}
 		for _, verr := range item.Errors {
 			if verr.Code < 0 {
@@ -948,4 +958,11 @@ func convertToMonitorEnvStoreResponse(msg *runnerv1.MonitorEnvStoreResponse, sna
 	}
 
 	return nil
+}
+
+func formatOptionalTime(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format(time.RFC3339)
 }
