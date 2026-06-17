@@ -9,7 +9,7 @@ from harbor.models.trial.config import AgentConfig
 from harbor.models.trial.result import TrialResult
 
 
-ORIGINAL_CONFIG_BACKUP = "config.runme-original.json"
+ORIGINAL_CONFIG_BACKUP = "config.original.json"
 
 
 @dataclass(frozen=True, order=True)

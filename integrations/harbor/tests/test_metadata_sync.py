@@ -29,7 +29,8 @@ def test_sync_jobs_metadata_uses_observed_trial_agents(tmp_path: Path) -> None:
         ("codex", "openai/gpt-5")
     ]
 
-    backup = JobConfig.model_validate_json((job_dir / ORIGINAL_CONFIG_BACKUP).read_text())
+    assert ORIGINAL_CONFIG_BACKUP == "config.original.json"
+    backup = JobConfig.model_validate_json((job_dir / "config.original.json").read_text())
     assert [(agent.name, agent.model_name) for agent in backup.agents] == [
         ("planned", "planned-provider/planned-model")
     ]
