@@ -6,18 +6,32 @@ from harbor.models.job.config import JobConfig
 from harbor.models.trial.config import AgentConfig
 from harbor.models.trial.result import TrialResult
 
-from runme_harbor.metadata_sync import ORIGINAL_CONFIG_BACKUP, sync_jobs_metadata
+from runme_harbor.cli import (
+    CLAUDE_IMPORT_PATH,
+    CODEX_IMPORT_PATH,
+    ENVIRONMENT_IMPORT_PATH,
+)
+from runme_harbor.metadata_sync import (
+    ORIGINAL_CONFIG_BACKUP,
+    ORIGINAL_RESULT_BACKUP,
+    sync_jobs_metadata,
+)
 
 
-def test_sync_jobs_metadata_uses_observed_trial_agents(tmp_path: Path) -> None:
+def test_sync_jobs_metadata_uses_observed_runme_agent_import_paths(tmp_path: Path) -> None:
     job_dir = _write_job_config(
         tmp_path,
-        agents=[AgentConfig(name="planned", model_name="planned-provider/planned-model")],
+        agents=[
+            AgentConfig(
+                import_path=CODEX_IMPORT_PATH,
+                model_name="planned-provider/planned-model",
+            )
+        ],
     )
     _write_trial_result(
         job_dir,
         "trial-1",
-        agent_name="codex",
+        agent_name="runme-codex",
         provider="openai",
         model_name="gpt-5",
     )
@@ -25,55 +39,89 @@ def test_sync_jobs_metadata_uses_observed_trial_agents(tmp_path: Path) -> None:
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in config.agents] == [
-        ("codex", "openai/gpt-5")
+    assert _agent_summaries(config) == [
+        ("runme-codex", CODEX_IMPORT_PATH, "openai/gpt-5")
     ]
+    assert config.environment.import_path == ENVIRONMENT_IMPORT_PATH
 
     assert ORIGINAL_CONFIG_BACKUP == "config.original.json"
     backup = JobConfig.model_validate_json((job_dir / "config.original.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in backup.agents] == [
-        ("planned", "planned-provider/planned-model")
+    assert _agent_summaries(backup) == [
+        (
+            None,
+            CODEX_IMPORT_PATH,
+            "planned-provider/planned-model",
+        )
     ]
 
 
 def test_sync_jobs_metadata_sorts_and_deduplicates_observed_agents(tmp_path: Path) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
-    _write_trial_result(job_dir, "trial-z", agent_name="codex", provider=None, model_name="gpt-5")
-    _write_trial_result(job_dir, "trial-a", agent_name="claude-code", provider="anthropic", model_name="sonnet")
-    _write_trial_result(job_dir, "trial-b", agent_name="codex", provider=None, model_name="gpt-5")
+    _write_trial_result(job_dir, "trial-z", agent_name="runme-codex", provider=None, model_name="gpt-5")
+    _write_trial_result(
+        job_dir,
+        "trial-a",
+        agent_name="runme-claude-code",
+        provider="anthropic",
+        model_name="sonnet",
+    )
+    _write_trial_result(job_dir, "trial-b", agent_name="runme-codex", provider=None, model_name="gpt-5")
 
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in config.agents] == [
-        ("claude-code", "anthropic/sonnet"),
-        ("codex", "gpt-5"),
+    assert _agent_summaries(config) == [
+        ("runme-claude-code", CLAUDE_IMPORT_PATH, "anthropic/sonnet"),
+        ("runme-codex", CODEX_IMPORT_PATH, "gpt-5"),
     ]
 
 
 def test_sync_jobs_metadata_omits_missing_model_info(tmp_path: Path) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
-    _write_trial_result(job_dir, "trial-1", agent_name="codex")
+    _write_trial_result(job_dir, "trial-1", agent_name="oracle")
 
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in config.agents] == [("codex", None)]
+    assert _agent_summaries(config) == [("oracle", None, None)]
+
+
+def test_sync_jobs_metadata_keeps_builtin_agent_names(tmp_path: Path) -> None:
+    job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
+    _write_trial_result(job_dir, "trial-1", agent_name="oracle", model_name="gpt-5")
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert _agent_summaries(config) == [("oracle", None, "gpt-5")]
 
 
 def test_sync_jobs_metadata_uses_atif_model_when_trial_model_info_missing(
     tmp_path: Path,
 ) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
-    _write_trial_result(job_dir, "trial-1", agent_name="codex")
-    _write_trajectory(job_dir / "trial-1", agent_name="codex", model_name="gpt-5.5")
+    _write_trial_result(job_dir, "trial-1", agent_name="runme-codex")
+    _write_trajectory(job_dir / "trial-1", agent_name="runme-codex", model_name="gpt-5.5")
 
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in config.agents] == [
-        ("codex", "gpt-5.5")
+    assert _agent_summaries(config) == [
+        ("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")
     ]
+    result = TrialResult.model_validate_json((job_dir / "trial-1" / "result.json").read_text())
+    assert result.agent_info.model_info is not None
+    assert result.agent_info.model_info.name == "gpt-5.5"
+    assert result.agent_info.model_info.provider is None
+    result_backup = TrialResult.model_validate_json(
+        (job_dir / "trial-1" / ORIGINAL_RESULT_BACKUP).read_text()
+    )
+    assert result_backup.agent_info.model_info is None
+
+    assert sync_jobs_metadata(tmp_path) == 0
+    assert result_backup == TrialResult.model_validate_json(
+        (job_dir / "trial-1" / ORIGINAL_RESULT_BACKUP).read_text()
+    )
 
 
 def test_sync_jobs_metadata_preserves_trial_model_info_over_atif(
@@ -83,23 +131,28 @@ def test_sync_jobs_metadata_preserves_trial_model_info_over_atif(
     _write_trial_result(
         job_dir,
         "trial-1",
-        agent_name="codex",
+        agent_name="runme-codex",
         provider="openai",
         model_name="gpt-5",
     )
-    _write_trajectory(job_dir / "trial-1", agent_name="codex", model_name="gpt-5.5")
+    _write_trajectory(job_dir / "trial-1", agent_name="runme-codex", model_name="gpt-5.5")
 
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in config.agents] == [
-        ("codex", "openai/gpt-5")
+    assert _agent_summaries(config) == [
+        ("runme-codex", CODEX_IMPORT_PATH, "openai/gpt-5")
     ]
+    result = TrialResult.model_validate_json((job_dir / "trial-1" / "result.json").read_text())
+    assert result.agent_info.model_info is not None
+    assert result.agent_info.model_info.name == "gpt-5"
+    assert result.agent_info.model_info.provider == "openai"
+    assert not (job_dir / "trial-1" / ORIGINAL_RESULT_BACKUP).exists()
 
 
 def test_sync_jobs_metadata_ignores_unreadable_atif(tmp_path: Path) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
-    _write_trial_result(job_dir, "trial-1", agent_name="codex")
+    _write_trial_result(job_dir, "trial-1", agent_name="runme-codex")
     trajectory_path = job_dir / "trial-1" / "agent" / "trajectory.json"
     trajectory_path.parent.mkdir()
     trajectory_path.write_text("{")
@@ -107,7 +160,9 @@ def test_sync_jobs_metadata_ignores_unreadable_atif(tmp_path: Path) -> None:
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in config.agents] == [("codex", None)]
+    assert _agent_summaries(config) == [
+        ("runme-codex", CODEX_IMPORT_PATH, None)
+    ]
 
 
 def test_sync_jobs_metadata_skips_jobs_without_readable_trials(tmp_path: Path) -> None:
@@ -116,7 +171,7 @@ def test_sync_jobs_metadata_skips_jobs_without_readable_trials(tmp_path: Path) -
     assert sync_jobs_metadata(tmp_path) == 0
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in config.agents] == [("planned", None)]
+    assert _agent_summaries(config) == [("planned", None, None)]
     assert not (job_dir / ORIGINAL_CONFIG_BACKUP).exists()
 
 
@@ -128,7 +183,7 @@ def test_sync_jobs_metadata_ignores_unreadable_trials(tmp_path: Path) -> None:
     _write_trial_result(
         job_dir,
         "good-trial",
-        agent_name="claude-code",
+        agent_name="runme-claude-code",
         provider="anthropic",
         model_name="sonnet",
     )
@@ -136,14 +191,14 @@ def test_sync_jobs_metadata_ignores_unreadable_trials(tmp_path: Path) -> None:
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert [(agent.name, agent.model_name) for agent in config.agents] == [
-        ("claude-code", "anthropic/sonnet")
+    assert _agent_summaries(config) == [
+        ("runme-claude-code", CLAUDE_IMPORT_PATH, "anthropic/sonnet")
     ]
 
 
 def test_sync_jobs_metadata_preserves_original_backup(tmp_path: Path) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
-    _write_trial_result(job_dir, "trial-1", agent_name="codex", model_name="gpt-5")
+    _write_trial_result(job_dir, "trial-1", agent_name="runme-codex", model_name="gpt-5")
 
     assert sync_jobs_metadata(tmp_path) == 1
     backup_path = job_dir / ORIGINAL_CONFIG_BACKUP
@@ -153,10 +208,42 @@ def test_sync_jobs_metadata_preserves_original_backup(tmp_path: Path) -> None:
     assert backup_path.read_text() == backup_text
 
 
+def test_sync_jobs_metadata_corrects_prior_runme_agent_name_sync(tmp_path: Path) -> None:
+    job_dir = _write_job_config(
+        tmp_path,
+        agents=[AgentConfig(import_path=CODEX_IMPORT_PATH)],
+    )
+    backup_text = (job_dir / "config.json").read_text()
+    (job_dir / ORIGINAL_CONFIG_BACKUP).write_text(backup_text)
+    config = JobConfig.model_validate_json(backup_text).model_copy(
+        update={"agents": [AgentConfig(name="runme-codex", model_name="gpt-5.5")]}
+    )
+    (job_dir / "config.json").write_text(config.model_dump_json(indent=4))
+    _write_trial_result(job_dir, "trial-1", agent_name="runme-codex")
+    _write_trajectory(job_dir / "trial-1", agent_name="runme-codex", model_name="gpt-5.5")
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert _agent_summaries(config) == [
+        ("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")
+    ]
+    assert (job_dir / ORIGINAL_CONFIG_BACKUP).read_text() == backup_text
+
+
+def _agent_summaries(config: JobConfig) -> list[tuple[str | None, str | None, str | None]]:
+    return [(agent.name, agent.import_path, agent.model_name) for agent in config.agents]
+
+
 def _write_job_config(tmp_path: Path, *, agents: list[AgentConfig]) -> Path:
     job_dir = tmp_path / "job-1"
     job_dir.mkdir()
-    config = JobConfig(job_name="job-1", jobs_dir=tmp_path, agents=agents)
+    config = JobConfig(
+        job_name="job-1",
+        jobs_dir=tmp_path,
+        agents=agents,
+        environment={"import_path": ENVIRONMENT_IMPORT_PATH},
+    )
     (job_dir / "config.json").write_text(config.model_dump_json(indent=4))
     return job_dir
 
