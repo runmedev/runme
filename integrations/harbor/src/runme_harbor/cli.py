@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import importlib.metadata
+import os
 import re
 import shutil
 import subprocess
@@ -17,6 +18,7 @@ CLAUDE_IMPORT_PATH = "runme_harbor.runme_agents:RunmeClaudeCode"
 OPENCLAW_IMPORT_PATH = "runme_harbor.runme_agents:RunmeOpenClaw"
 MIN_HARBOR_VERSION = (0, 13, 1)
 MAX_HARBOR_VERSION = (0, 14, 0)
+SKIP_METADATA_SYNC_ENV = "RUNME_HARBOR_SKIP_METADATA_SYNC"
 AGENT_ARGUMENTS = {
     "oracle": ("--agent", "oracle"),
     "codex": ("--agent-import-path", CODEX_IMPORT_PATH),
@@ -43,7 +45,15 @@ def run(args: argparse.Namespace) -> int:
     command = build_harbor_command(args)
     if args.debug:
         print(_command_string(command), file=sys.stderr)
-    return subprocess.call(command)
+    exit_code = subprocess.call(command)
+    if not _skip_metadata_sync():
+        from runme_harbor.metadata_sync import sync_jobs_metadata
+
+        try:
+            sync_jobs_metadata(args.jobs_dir)
+        except Exception as exc:
+            print(f"warning: failed to sync Harbor job metadata: {exc}", file=sys.stderr)
+    return exit_code
 
 
 def build_harbor_command(args: argparse.Namespace) -> list[str]:
@@ -132,6 +142,10 @@ def _preflight(agent: str) -> None:
         raise SystemExit("`--agent claude-code` requires the `claude` CLI on PATH.")
     if agent == "openclaw" and not shutil.which("openclaw"):
         raise SystemExit("`--agent openclaw` requires the `openclaw` CLI on PATH.")
+
+
+def _skip_metadata_sync() -> bool:
+    return os.environ.get(SKIP_METADATA_SYNC_ENV, "").lower() in {"1", "true", "yes"}
 
 
 def _contains_concurrency_flag(args: list[str]) -> bool:
