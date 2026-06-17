@@ -126,6 +126,12 @@ func runEval(opts evalOptions, args []string) error {
 	}
 	env = append(env, opts.extraEnv...)
 
+	if usesHarborDockerEnvironment(opts.env) {
+		if err := stageHarborDockerWorkdirs(datasetPath, opts.stderr); err != nil {
+			return err
+		}
+	}
+
 	if opts.preflight && usesRunmeEnvironment(opts.env) {
 		request := strings.NewReader("{\"id\":\"preflight\",\"preflight\":{}}\n")
 		if err := opts.commandRun(runmeBin, []string{"harbor", "stdio"}, env, request, io.Discard, opts.stderr); err != nil {
@@ -280,6 +286,10 @@ func containsEnvironmentFlag(args []string) bool {
 
 func usesRunmeEnvironment(env string) bool {
 	return env == "" || env == "runme"
+}
+
+func usesHarborDockerEnvironment(env string) bool {
+	return env == "docker"
 }
 
 func runExternalCommand(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {

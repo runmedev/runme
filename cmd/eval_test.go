@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -350,6 +351,168 @@ func TestRunEvalDelegatesNonRunmeEnvWithoutPreflight(t *testing.T) {
 	}
 }
 
+func TestRunEvalStagesDockerWorkdirBeforeDelegation(t *testing.T) {
+	workspace := t.TempDir()
+	t.Chdir(workspace)
+	if err := os.WriteFile(
+		filepath.Join(workspace, ".gitignore"),
+		[]byte("ignored.txt\n**/environment/workdir/\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	dataset, workdir, target := makeHarborDockerDataset(t, workspace, "/app/source/workdir")
+	if err := os.WriteFile(filepath.Join(workdir, "keep.txt"), []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workdir, "ignored.txt"), []byte("ignored"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "stale.txt"), []byte("stale"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var calls []recordedCommand
+	var stderr bytes.Buffer
+	opts := testEvalOptions(t, &calls, &stderr)
+	opts.env = "docker"
+
+	err := runEval(opts, []string{dataset})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(calls) != 1 {
+		t.Fatalf("calls = %#v, want delegate only", calls)
+	}
+	if _, err := os.Stat(filepath.Join(target, "keep.txt")); err != nil {
+		t.Fatalf("staged file missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(target, "ignored.txt")); !os.IsNotExist(err) {
+		t.Fatalf("ignored file stat err = %v, want not exist", err)
+	}
+	if _, err := os.Stat(filepath.Join(target, "stale.txt")); !os.IsNotExist(err) {
+		t.Fatalf("stale file stat err = %v, want not exist", err)
+	}
+	if stderr.String() != "" {
+		t.Fatalf("stderr = %q, want no warning", stderr.String())
+	}
+}
+
+func TestRunEvalWarnsWhenStagedDockerWorkdirIsNotIgnored(t *testing.T) {
+	workspace := t.TempDir()
+	t.Chdir(workspace)
+	dataset, workdir, _ := makeHarborDockerDataset(t, workspace, "/app/source/workdir")
+	if err := os.WriteFile(filepath.Join(workdir, "keep.txt"), []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var calls []recordedCommand
+	var stderr bytes.Buffer
+	opts := testEvalOptions(t, &calls, &stderr)
+	opts.env = "docker"
+
+	err := runEval(opts, []string{dataset})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(stderr.String(), "is not ignored by git") {
+		t.Fatalf("stderr = %q, want git ignore warning", stderr.String())
+	}
+}
+
+func TestRunEvalDoesNotStageNonDockerWorkdir(t *testing.T) {
+	workspace := t.TempDir()
+	t.Chdir(workspace)
+	dataset, workdir, target := makeHarborDockerDataset(t, workspace, "/app/source/workdir")
+	if err := os.WriteFile(filepath.Join(workdir, "keep.txt"), []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.env = "podman"
+
+	err := runEval(opts, []string{dataset})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Fatalf("target stat err = %v, want not exist", err)
+	}
+}
+
+func TestRunEvalSkipsUnsupportedDockerWorkdirs(t *testing.T) {
+	for _, workdir := range []string{"", "relative/workdir", "/app", "/tmp/workdir"} {
+		t.Run(workdir, func(t *testing.T) {
+			workspace := t.TempDir()
+			t.Chdir(workspace)
+			dataset, _, target := makeHarborDockerDataset(t, workspace, workdir)
+			var calls []recordedCommand
+			opts := testEvalOptions(t, &calls, io.Discard)
+			opts.env = "docker"
+
+			err := runEval(opts, []string{dataset})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := os.Stat(target); !os.IsNotExist(err) {
+				t.Fatalf("target stat err = %v, want not exist", err)
+			}
+		})
+	}
+}
+
+func TestRunEvalStagesDockerWorkdirSymlinkAsRealFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink privileges vary on Windows")
+	}
+	workspace := t.TempDir()
+	t.Chdir(workspace)
+	if err := os.WriteFile(filepath.Join(workspace, ".gitignore"), []byte("**/environment/workdir/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dataset, workdir, target := makeHarborDockerDataset(t, workspace, "/app/source/workdir")
+	shared := filepath.Join(workspace, "source", "shared.txt")
+	if err := os.WriteFile(shared, []byte("shared"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(shared, filepath.Join(workdir, "linked.txt")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.env = "docker"
+
+	err := runEval(opts, []string{dataset})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	staged := filepath.Join(target, "linked.txt")
+	info, err := os.Lstat(staged)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("staged file is a symlink, want regular file")
+	}
+	data, err := os.ReadFile(staged)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "shared" {
+		t.Fatalf("staged data = %q, want shared", string(data))
+	}
+}
+
 func TestRunEvalRejectsPassthroughEnvironmentFlags(t *testing.T) {
 	for _, tt := range []struct {
 		name        string
@@ -602,4 +765,23 @@ func makeExecutable(t *testing.T, name string) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func makeHarborDockerDataset(t *testing.T, workspace string, remoteWorkdir string) (string, string, string) {
+	t.Helper()
+	dataset := filepath.Join(workspace, "evals", "tasks")
+	task := filepath.Join(dataset, "example-task")
+	workdir := filepath.Join(workspace, "source", "workdir")
+	target := filepath.Join(task, "environment", "workdir")
+	if err := os.MkdirAll(workdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(task, "environment"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	config := "schema_version = \"1.1\"\n\n[environment]\nworkdir = \"" + remoteWorkdir + "\"\n"
+	if err := os.WriteFile(filepath.Join(task, "task.toml"), []byte(config), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return dataset, workdir, target
 }
