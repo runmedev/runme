@@ -1,0 +1,59 @@
+name: Publish Runme Harbor
+
+on:
+  push:
+    tags:
+      - "runme-harbor-v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    name: Publish to PyPI
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ">=1.26.3"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.2.0
+        with:
+          version: "0.11.21"
+          enable-cache: true
+          cache-dependency-glob: integrations/harbor/uv.lock
+
+      - name: Verify tag matches package version
+        working-directory: integrations/harbor
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#runme-harbor-v}"
+          package_version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          if [ "$tag_version" != "$package_version" ]; then
+            echo "Tag version $tag_version does not match package version $package_version" >&2
+            exit 1
+          fi
+
+      - name: Build Runme
+        run: |
+          go build -o runme main.go
+          echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
+
+      - name: Build Harbor package
+        working-directory: integrations/harbor
+        run: runme run build-harbor
+
+      - name: Publish Harbor package
+        working-directory: integrations/harbor
+        run: uv publish --trusted-publishing automatic
