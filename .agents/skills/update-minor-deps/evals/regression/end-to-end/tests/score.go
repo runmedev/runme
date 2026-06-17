@@ -64,6 +64,27 @@ type rewardScore struct {
 	Description string
 }
 
+type scorer struct {
+	files       []string
+	text        string
+	commands    string
+	prDraftText string
+}
+
+func newScorer() (*scorer, error) {
+	files, err := changedFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	return &scorer{
+		files:       files,
+		text:        collectAgentText(),
+		commands:    collectAgentCommands(),
+		prDraftText: readText(prDraft),
+	}, nil
+}
+
 func runGit(args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = root
@@ -254,12 +275,12 @@ func collectAgentShellTraceCommandsFromFile(path string) string {
 	return strings.ToLower(strings.Join(commands, "\n"))
 }
 
-func scoreDependencyUpdate(files []string, text string) float64 {
-	rootDepChanged := contains(files, "go.mod") || contains(files, "go.sum")
-	daggerUntouched := !contains(files, ".dagger/go.mod") && !contains(files, ".dagger/go.sum")
-	updateAttempted := strings.Contains(text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh") ||
-		strings.Contains(text, "go get -t -u ./...") ||
-		strings.Contains(text, "update-go-deps.sh")
+func (s scorer) dependencyUpdate() float64 {
+	rootDepChanged := contains(s.files, "go.mod") || contains(s.files, "go.sum")
+	daggerUntouched := !contains(s.files, ".dagger/go.mod") && !contains(s.files, ".dagger/go.sum")
+	updateAttempted := strings.Contains(s.text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh") ||
+		strings.Contains(s.text, "go get -t -u ./...") ||
+		strings.Contains(s.text, "update-go-deps.sh")
 
 	switch {
 	case rootDepChanged && daggerUntouched:
@@ -273,8 +294,8 @@ func scoreDependencyUpdate(files []string, text string) float64 {
 	}
 }
 
-func scoreScopedChanges(files []string) float64 {
-	if len(files) == 0 {
+func (s scorer) scopedChanges() float64 {
+	if len(s.files) == 0 {
 		return 1.0
 	}
 
@@ -299,7 +320,7 @@ func scoreScopedChanges(files []string) float64 {
 	}
 
 	var unrelated []string
-	for _, file := range files {
+	for _, file := range s.files {
 		switch {
 		case file == "go.mod" || file == "go.sum":
 			continue
@@ -330,22 +351,22 @@ func scoreScopedChanges(files []string) float64 {
 	}
 }
 
-func scoreWorkflowEvidence(text string) float64 {
+func (s scorer) workflowEvidence() float64 {
 	checks := []bool{
-		strings.Contains(text, "git status --short") || strings.Contains(text, "git status -s"),
-		strings.Contains(text, "contributing.md"),
-		strings.Contains(text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh") ||
-			strings.Contains(text, "go get -t -u ./..."),
-		strings.Contains(text, "go mod tidy") || strings.Contains(text, "update-go-deps.sh"),
+		strings.Contains(s.text, "git status --short") || strings.Contains(s.text, "git status -s"),
+		strings.Contains(s.text, "contributing.md"),
+		strings.Contains(s.text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh") ||
+			strings.Contains(s.text, "go get -t -u ./..."),
+		strings.Contains(s.text, "go mod tidy") || strings.Contains(s.text, "update-go-deps.sh"),
 	}
 	return scoreChecks(checks)
 }
 
-func scoreSkillActivationEvidence(text string) float64 {
+func (s scorer) skillActivationEvidence() float64 {
 	checks := []bool{
-		strings.Contains(text, "update-minor-deps"),
-		strings.Contains(text, "skill") && (strings.Contains(text, "dependency") || strings.Contains(text, "dependencies")),
-		strings.Contains(text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh"),
+		strings.Contains(s.text, "update-minor-deps"),
+		strings.Contains(s.text, "skill") && (strings.Contains(s.text, "dependency") || strings.Contains(s.text, "dependencies")),
+		strings.Contains(s.text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh"),
 	}
 	if anyTrue(checks) {
 		return 1.0
@@ -353,11 +374,10 @@ func scoreSkillActivationEvidence(text string) float64 {
 	return 0.0
 }
 
-func scoreValidationEvidence(text string, files []string) float64 {
-	commands := text
-	focused := goTestRE.MatchString(commands)
-	final := finalValidationRan(commands)
-	moduleOnly := isModuleOnlyChange(files)
+func (s scorer) validationEvidence() float64 {
+	focused := goTestRE.MatchString(s.commands)
+	final := finalValidationRan(s.commands)
+	moduleOnly := isModuleOnlyChange(s.files)
 	switch {
 	case final && (focused || moduleOnly):
 		return 1.0
@@ -375,18 +395,13 @@ func finalValidationRan(commands string) bool {
 		(strings.Contains(commands, "runme run lint") && strings.Contains(commands, "runme run test"))
 }
 
-func scorePRDraft(files []string) float64 {
-	text := strings.ToLower(readText(prDraft))
-	return scorePRDraftText(text, files)
-}
-
-func scorePRDraftText(text string, files []string) float64 {
-	text = strings.ToLower(text)
+func (s scorer) prDraftQuality() float64 {
+	text := strings.ToLower(s.prDraftText)
 	if text == "" {
 		return 0.0
 	}
 	focusedValidation := strings.Contains(text, "go test") || strings.Contains(text, "focused")
-	if isModuleOnlyChange(files) {
+	if isModuleOnlyChange(s.files) {
 		focusedValidation = focusedValidation || hasNoCompatibilityFixesNeeded(text)
 	}
 	checks := []bool{
@@ -410,24 +425,24 @@ func hasNoCompatibilityFixesNeeded(text string) bool {
 	return noFixes && (strings.Contains(text, "not required") || strings.Contains(text, "none") || strings.Contains(text, "no "))
 }
 
-func scoreNoRealPROrCommit(text string) float64 {
+func (s scorer) noRealPROrCommit() float64 {
 	for _, re := range forbiddenCmdREs {
-		if re.MatchString(text) {
+		if re.MatchString(s.commands) {
 			return 0.0
 		}
 	}
 	return 1.0
 }
 
-func scoreRewards(files []string, text string, commands string, prDraftText string) rewardScores {
+func (s scorer) scores() rewardScores {
 	return rewardScores{
-		DependencyUpdate:        scoreDependencyUpdate(files, text),
-		ScopedChanges:           scoreScopedChanges(files),
-		SkillActivationEvidence: scoreSkillActivationEvidence(text),
-		WorkflowEvidence:        scoreWorkflowEvidence(text),
-		ValidationEvidence:      scoreValidationEvidence(commands, files),
-		PRDraftQuality:          scorePRDraftText(prDraftText, files),
-		NoRealPROrCommit:        scoreNoRealPROrCommit(commands),
+		DependencyUpdate:        s.dependencyUpdate(),
+		ScopedChanges:           s.scopedChanges(),
+		SkillActivationEvidence: s.skillActivationEvidence(),
+		WorkflowEvidence:        s.workflowEvidence(),
+		ValidationEvidence:      s.validationEvidence(),
+		PRDraftQuality:          s.prDraftQuality(),
+		NoRealPROrCommit:        s.noRealPROrCommit(),
 	}
 }
 
@@ -561,16 +576,14 @@ func run() error {
 		return fmt.Errorf("create artifacts dir: %w", err)
 	}
 
-	files, err := changedFiles()
+	s, err := newScorer()
 	if err != nil {
 		return err
 	}
-	text := collectAgentText()
-	commands := collectAgentCommands()
-	scores := scoreRewards(files, text, commands, readText(prDraft))
+	scores := s.scores()
 
 	diagnostics := map[string]any{
-		"changed_files": files,
+		"changed_files": s.files,
 		"pr_draft":      prDraft,
 		"agent_log_dir": agentLogDir,
 	}

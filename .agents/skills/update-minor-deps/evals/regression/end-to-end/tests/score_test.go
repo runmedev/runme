@@ -150,8 +150,8 @@ func TestScoreDependencyUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scoreDependencyUpdate(tt.files, tt.text); got != tt.want {
-				t.Fatalf("scoreDependencyUpdate() = %v, want %v", got, tt.want)
+			if got := (scorer{files: tt.files, text: tt.text}).dependencyUpdate(); got != tt.want {
+				t.Fatalf("dependencyUpdate() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -195,8 +195,8 @@ func TestScoreScopedChanges(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scoreScopedChanges(tt.files); got != tt.want {
-				t.Fatalf("scoreScopedChanges() = %v, want %v", got, tt.want)
+			if got := (scorer{files: tt.files}).scopedChanges(); got != tt.want {
+				t.Fatalf("scopedChanges() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -471,67 +471,73 @@ func TestEvidenceScores(t *testing.T) {
 	}{
 		{
 			name: "workflow full credit",
-			got: scoreWorkflowEvidence(
-				"git status --short contributing.md .agents/skills/update-minor-deps/scripts/update-go-deps.sh go mod tidy",
-			),
+			got: (scorer{
+				text: "git status --short contributing.md .agents/skills/update-minor-deps/scripts/update-go-deps.sh go mod tidy",
+			}).workflowEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "skill activation from skill name",
-			got:  scoreSkillActivationEvidence("using update-minor-deps"),
+			got:  (scorer{text: "using update-minor-deps"}).skillActivationEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "module-only validation final only",
-			got:  scoreValidationEvidence("runme run lint test", []string{"go.mod", "go.sum"}),
+			got:  (scorer{commands: "runme run lint test", files: []string{"go.mod", "go.sum"}}).validationEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "module-only split runme validation",
-			got:  scoreValidationEvidence("runme run lint\nrunme run test", []string{"go.mod", "go.sum"}),
+			got:  (scorer{commands: "runme run lint\nrunme run test", files: []string{"go.mod", "go.sum"}}).validationEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "module-only focused only",
-			got:  scoreValidationEvidence("go test ./...", []string{"go.mod", "go.sum"}),
+			got:  (scorer{commands: "go test ./...", files: []string{"go.mod", "go.sum"}}).validationEvidence(),
 			want: 0.4,
 		},
 		{
 			name: "source change validation final only",
-			got:  scoreValidationEvidence("runme run lint test", []string{"go.mod", "go.sum", "runner/session.go"}),
+			got: (scorer{
+				commands: "runme run lint test",
+				files:    []string{"go.mod", "go.sum", "runner/session.go"},
+			}).validationEvidence(),
 			want: 0.6,
 		},
 		{
 			name: "validation final output does not count as focused command",
-			got: scoreValidationEvidence(
-				"runme run lint test\nTZ=UTC go test -ldflags=\"...\" ./...",
-				[]string{"go.mod", "go.sum", "runner/session.go"},
-			),
+			got: (scorer{
+				commands: "runme run lint test\nTZ=UTC go test -ldflags=\"...\" ./...",
+				files:    []string{"go.mod", "go.sum", "runner/session.go"},
+			}).validationEvidence(),
 			want: 0.6,
 		},
 		{
 			name: "source change focused and final",
-			got:  scoreValidationEvidence("go test ./runner runme run lint test", []string{"go.mod", "go.sum", "runner/session.go"}),
+			got: (scorer{
+				commands: "go test ./runner runme run lint test",
+				files:    []string{"go.mod", "go.sum", "runner/session.go"},
+			}).validationEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "make lint test does not count as required runme validation",
-			got:  scoreValidationEvidence("make lint test", []string{"go.mod", "go.sum"}),
+			got:  (scorer{commands: "make lint test", files: []string{"go.mod", "go.sum"}}).validationEvidence(),
 			want: 0.0,
 		},
 		{
 			name: "no forbidden commands",
-			got:  scoreNoRealPROrCommit("wrote the draft PR summary"),
+			got:  (scorer{commands: "wrote the draft PR summary"}).noRealPROrCommit(),
 			want: 1.0,
 		},
 		{
 			name: "git commit forbidden",
-			got:  scoreNoRealPROrCommit("git commit -s -m update"),
+			got:  (scorer{commands: "git commit -s -m update"}).noRealPROrCommit(),
 			want: 0.0,
 		},
 		{
 			name: "documented git commit text is harmless when commands are clean",
-			got:  scoreNoRealPROrCommit("sed -n '1,240p' .agents/skills/update-minor-deps/SKILL.md"),
+			got:  (scorer{commands: "sed -n '1,240p' .agents/skills/update-minor-deps/SKILL.md"}).noRealPROrCommit(),
 			want: 1.0,
 		},
 	}
@@ -618,8 +624,8 @@ Validation: runme run lint and runme run test.
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scorePRDraftText(tt.text, tt.files); got != tt.want {
-				t.Fatalf("scorePRDraftText() = %v, want %v", got, tt.want)
+			if got := (scorer{prDraftText: tt.text, files: tt.files}).prDraftQuality(); got != tt.want {
+				t.Fatalf("prDraftQuality() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -635,7 +641,12 @@ func TestNegativeControlSourceChangeFinalOnlyFixture(t *testing.T) {
 	commands := strings.ToLower(strings.Join(commandsFromATIF([]byte(trajectory)), "\n"))
 	text := strings.ToLower(trajectory + "\n" + prDraft)
 
-	scores := scoreRewards(files, text, commands, prDraft)
+	scores := (scorer{
+		files:       files,
+		text:        text,
+		commands:    commands,
+		prDraftText: prDraft,
+	}).scores()
 	if scores.ValidationEvidence != 0.6 {
 		t.Fatalf("ValidationEvidence = %v, want 0.6", scores.ValidationEvidence)
 	}
