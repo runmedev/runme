@@ -1,0 +1,7 @@
+version: v2
+clean: true
+plugins:
+  - remote: buf.build/protocolbuffers/python
+    out: src/runme_harbor/_proto
+  - remote: buf.build/protocolbuffers/pyi
+    out: src/runme_harbor/_proto

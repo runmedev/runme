@@ -7,7 +7,6 @@ import shlex
 import shutil
 import stat
 import subprocess
-import sys
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -17,19 +16,8 @@ from harbor.environments.capabilities import EnvironmentCapabilities
 from harbor.models.task.config import EnvironmentConfig
 from harbor.models.trial.paths import EnvironmentPaths, TrialPaths
 
+from runme_harbor._proto.runme.harbor.v1 import harbor_pb2
 
-def _load_harbor_pb2():
-    try:
-        from runme.harbor.v1 import harbor_pb2
-    except ModuleNotFoundError:
-        repo_proto_path = Path(__file__).resolve().parents[4] / "api" / "gen" / "proto" / "python"
-        if repo_proto_path.exists():
-            sys.path.insert(0, str(repo_proto_path))
-        from runme.harbor.v1 import harbor_pb2
-    return harbor_pb2
-
-
-harbor_pb2 = _load_harbor_pb2()
 _STDIO_LINE_LIMIT_BYTES = 32 * 1024 * 1024
 
 
