@@ -34,9 +34,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: integrations/harbor/uv.lock
 
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
-
       - name: Verify tag matches package version
         working-directory: integrations/harbor
         run: |

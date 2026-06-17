@@ -24,9 +24,10 @@ set -euo pipefail
 
 rm -rf dist
 
-buf generate ../../api/proto \
-  --template buf.gen.yaml \
-  --path ../../api/proto/runme/harbor/v1/harbor.proto
+proto_src="../../api/gen/proto/python/runme/harbor/v1"
+proto_dst="src/runme_harbor/_proto/runme/harbor/v1"
+mkdir -p "$proto_dst"
+cp "$proto_src/harbor_pb2.py" "$proto_src/harbor_pb2.pyi" "$proto_dst/"
 
 uv sync --locked --all-extras --dev
 uv run ruff check .
