@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from runme_harbor import cli
+from runme_harbor import metadata_sync
 
 
 def parse(argv: list[str]):
@@ -132,6 +133,80 @@ def test_main_runs_harbor_and_prints_debug(
 
     assert calls[0][0:2] == ["harbor", "run"]
     assert "harbor run" in capsys.readouterr().err
+
+
+def test_main_syncs_metadata_after_harbor_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    synced: list[str] = []
+    monkeypatch.setattr(cli, "_preflight", lambda _agent: None)
+    monkeypatch.setattr(cli.subprocess, "call", lambda _command: 7)
+    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+
+    assert cli.main(["run", str(tmp_path), "--jobs-dir", "jobs"]) == 7
+
+    assert synced == ["jobs"]
+
+
+def test_main_skips_metadata_sync_when_disabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    synced: list[str] = []
+    monkeypatch.setenv(cli.SKIP_METADATA_SYNC_ENV, "1")
+    monkeypatch.setattr(cli, "_preflight", lambda _agent: None)
+    monkeypatch.setattr(cli.subprocess, "call", lambda _command: 0)
+    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+
+    assert cli.main(["run", str(tmp_path), "--jobs-dir", "jobs"]) == 0
+
+    assert synced == []
+
+
+def test_main_sync_metadata_command_uses_default_jobs_dir(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    synced: list[str] = []
+    preflighted: list[bool] = []
+    monkeypatch.setattr(cli, "_preflight_harbor_package", lambda: preflighted.append(True))
+    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 3)
+
+    assert cli.main(["sync-metadata"]) == 0
+
+    assert preflighted == [True]
+    assert synced == [".runme/evals/jobs"]
+    assert capsys.readouterr().out == "Synced Harbor metadata for 3 job(s).\n"
+
+
+def test_main_sync_metadata_command_accepts_jobs_dir(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    synced: list[str] = []
+    monkeypatch.setattr(cli, "_preflight_harbor_package", lambda: None)
+    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+
+    assert cli.main(["sync-metadata", "--jobs-dir", "jobs"]) == 0
+
+    assert synced == ["jobs"]
+
+
+def test_main_sync_metadata_command_reports_preflight_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail_preflight() -> None:
+        raise SystemExit("Runme Harbor requires the `harbor` Python package.")
+
+    synced: list[str] = []
+    monkeypatch.setattr(cli, "_preflight_harbor_package", fail_preflight)
+    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+
+    assert cli.main(["sync-metadata"]) == 1
+
+    assert synced == []
+    assert capsys.readouterr().err == "Runme Harbor requires the `harbor` Python package.\n"
 
 
 @pytest.mark.parametrize(

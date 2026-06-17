@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import importlib.metadata
+import os
 import re
 import shutil
 import subprocess
@@ -17,6 +18,7 @@ CLAUDE_IMPORT_PATH = "runme_harbor.runme_agents:RunmeClaudeCode"
 OPENCLAW_IMPORT_PATH = "runme_harbor.runme_agents:RunmeOpenClaw"
 MIN_HARBOR_VERSION = (0, 13, 1)
 MAX_HARBOR_VERSION = (0, 14, 0)
+SKIP_METADATA_SYNC_ENV = "RUNME_HARBOR_SKIP_METADATA_SYNC"
 AGENT_ARGUMENTS = {
     "oracle": ("--agent", "oracle"),
     "codex": ("--agent-import-path", CODEX_IMPORT_PATH),
@@ -30,6 +32,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args = _parse_args(list(argv) if argv is not None else sys.argv[1:])
         if args.command == "run":
             return run(args)
+        if args.command == "sync-metadata":
+            return sync_metadata(args)
     except SystemExit as exc:
         if isinstance(exc.code, int):
             return exc.code
@@ -43,7 +47,25 @@ def run(args: argparse.Namespace) -> int:
     command = build_harbor_command(args)
     if args.debug:
         print(_command_string(command), file=sys.stderr)
-    return subprocess.call(command)
+    exit_code = subprocess.call(command)
+    if not _skip_metadata_sync():
+        from runme_harbor.metadata_sync import sync_jobs_metadata
+
+        try:
+            sync_jobs_metadata(args.jobs_dir)
+        except Exception as exc:
+            print(f"warning: failed to sync Harbor job metadata: {exc}", file=sys.stderr)
+    return exit_code
+
+
+def sync_metadata(args: argparse.Namespace) -> int:
+    _preflight_harbor_package()
+
+    from runme_harbor.metadata_sync import sync_jobs_metadata
+
+    synced = sync_jobs_metadata(args.jobs_dir)
+    print(f"Synced Harbor metadata for {synced} job(s).")
+    return 0
 
 
 def build_harbor_command(args: argparse.Namespace) -> list[str]:
@@ -88,6 +110,9 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     run_parser.add_argument("-y", "--yes", action="store_true")
     run_parser.add_argument("--debug", action="store_true")
 
+    sync_parser = subparsers.add_parser("sync-metadata", allow_abbrev=False)
+    sync_parser.add_argument("--jobs-dir", default=".runme/evals/jobs")
+
     args, passthrough = parser.parse_known_args(argv)
     removed_task_flag = _find_removed_task_flag(passthrough)
     if removed_task_flag:
@@ -110,16 +135,9 @@ def _find_removed_task_flag(args: list[str]) -> str | None:
 
 
 def _preflight(agent: str) -> None:
-    try:
-        importlib.import_module("harbor")
-    except ModuleNotFoundError as exc:
-        raise SystemExit("Runme Harbor requires the `harbor` Python package.") from exc
+    _preflight_harbor_package()
     if not shutil.which("harbor"):
         raise SystemExit("Runme Harbor requires the `harbor` CLI on PATH.")
-
-    version = _version_tuple(importlib.metadata.version("harbor"))
-    if version < MIN_HARBOR_VERSION or version >= MAX_HARBOR_VERSION:
-        raise SystemExit("Runme Harbor requires harbor>=0.13.1,<0.14.")
 
     try:
         importlib.import_module("runme_harbor")
@@ -132,6 +150,21 @@ def _preflight(agent: str) -> None:
         raise SystemExit("`--agent claude-code` requires the `claude` CLI on PATH.")
     if agent == "openclaw" and not shutil.which("openclaw"):
         raise SystemExit("`--agent openclaw` requires the `openclaw` CLI on PATH.")
+
+
+def _preflight_harbor_package() -> None:
+    try:
+        importlib.import_module("harbor")
+    except ModuleNotFoundError as exc:
+        raise SystemExit("Runme Harbor requires the `harbor` Python package.") from exc
+
+    version = _version_tuple(importlib.metadata.version("harbor"))
+    if version < MIN_HARBOR_VERSION or version >= MAX_HARBOR_VERSION:
+        raise SystemExit("Runme Harbor requires harbor>=0.13.1,<0.14.")
+
+
+def _skip_metadata_sync() -> bool:
+    return os.environ.get(SKIP_METADATA_SYNC_ENV, "").lower() in {"1", "true", "yes"}
 
 
 def _contains_concurrency_flag(args: list[str]) -> bool:
