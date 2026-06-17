@@ -35,6 +35,7 @@ var (
 )
 
 type rewardScores struct {
+	Reward                  float64 `json:"reward"`
 	DependencyUpdate        float64 `json:"dependency_update"`
 	ScopedChanges           float64 `json:"scoped_changes"`
 	SkillActivationEvidence float64 `json:"skill_activation_evidence"`
@@ -435,7 +436,7 @@ func (s scorer) noRealPROrCommit() float64 {
 }
 
 func (s scorer) scores() rewardScores {
-	return rewardScores{
+	scores := rewardScores{
 		DependencyUpdate:        s.dependencyUpdate(),
 		ScopedChanges:           s.scopedChanges(),
 		SkillActivationEvidence: s.skillActivationEvidence(),
@@ -444,9 +445,21 @@ func (s scorer) scores() rewardScores {
 		PRDraftQuality:          s.prDraftQuality(),
 		NoRealPROrCommit:        s.noRealPROrCommit(),
 	}
+	scores.Reward = rollupReward(scores)
+	return scores
 }
 
 func rewardScoreList(scores rewardScores) []rewardScore {
+	return append([]rewardScore{
+		{
+			Name:        "reward",
+			Score:       scores.Reward,
+			Description: "reward",
+		},
+	}, rewardDimensionList(scores)...)
+}
+
+func rewardDimensionList(scores rewardScores) []rewardScore {
 	return []rewardScore{
 		{
 			Name:        "dependency_update",
@@ -486,9 +499,18 @@ func rewardScoreList(scores rewardScores) []rewardScore {
 	}
 }
 
+func rollupReward(scores rewardScores) float64 {
+	dimensions := rewardDimensionList(scores)
+	var total float64
+	for _, dimension := range dimensions {
+		total += dimension.Score
+	}
+	return total / float64(len(dimensions))
+}
+
 func rewardDetails(scores rewardScores) map[string]rewardDetail {
 	details := make(map[string]rewardDetail)
-	for _, score := range rewardScoreList(scores) {
+	for _, score := range rewardDimensionList(scores) {
 		details[score.Name] = rewardDetail{
 			Score: score.Score,
 			Criteria: []rewardCriterion{

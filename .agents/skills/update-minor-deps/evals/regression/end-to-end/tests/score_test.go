@@ -12,6 +12,7 @@ func TestRewardScoresJSONShape(t *testing.T) {
 	t.Parallel()
 
 	data, err := json.Marshal(rewardScores{
+		Reward:                  1.0,
 		DependencyUpdate:        1.0,
 		ScopedChanges:           1.0,
 		SkillActivationEvidence: 1.0,
@@ -30,6 +31,7 @@ func TestRewardScoresJSONShape(t *testing.T) {
 	}
 
 	wantKeys := []string{
+		"reward",
 		"dependency_update",
 		"scoped_changes",
 		"skill_activation_evidence",
@@ -48,10 +50,30 @@ func TestRewardScoresJSONShape(t *testing.T) {
 	}
 }
 
+func TestRollupReward(t *testing.T) {
+	t.Parallel()
+
+	scores := rewardScores{
+		DependencyUpdate:        1.0,
+		ScopedChanges:           0.5,
+		SkillActivationEvidence: 1.0,
+		WorkflowEvidence:        0.75,
+		ValidationEvidence:      0.6,
+		PRDraftQuality:          0.875,
+		NoRealPROrCommit:        1.0,
+	}
+
+	want := (1.0 + 0.5 + 1.0 + 0.75 + 0.6 + 0.875 + 1.0) / 7.0
+	if got := rollupReward(scores); got != want {
+		t.Fatalf("rollupReward() = %v, want %v", got, want)
+	}
+}
+
 func TestRewardDetailsJSONShape(t *testing.T) {
 	t.Parallel()
 
 	scores := rewardScores{
+		Reward:                  0.8178571428571428,
 		DependencyUpdate:        1.0,
 		ScopedChanges:           0.5,
 		SkillActivationEvidence: 1.0,
