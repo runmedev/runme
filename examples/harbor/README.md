@@ -32,6 +32,15 @@ runme eval examples/harbor/datasets/runme-integration \
   -y
 ```
 
+Run the smoke task with Harbor's Docker environment for a baseline comparison:
+
+```sh {"name":"smoke-docker"}
+runme eval examples/harbor/datasets/runme-integration \
+  --task-dir simple-agent \
+  --env docker \
+  --agent oracle
+```
+
 The dataset root is `examples/harbor/datasets/runme-integration`. Each
 `runme eval` creates Harbor job and trial metadata under `.runme/evals/jobs`.
 The `--task-dir` flag selects a task directory inside the dataset, such as
@@ -40,7 +49,10 @@ The `--task-dir` flag selects a task directory inside the dataset, such as
 `runme eval` delegates to `runme-harbor`, so these examples remain compatible
 with the underlying `harbor run` workflow. The adapter supports `oracle`,
 `codex`, `claude-code`, and `openclaw` agents and runs local agent CLIs through
-`runme harbor stdio`.
+`runme harbor stdio` by default. The default environment is `runme`; pass
+`--env runme` to select it explicitly. Passing a non-Runme Harbor environment,
+such as `--env docker`, delegates the selected environment and agent to Harbor
+without the Runme-specific agent wrappers.
 
 Set `--runme-bin` to use a specific Runme binary. Set `--runme-arg` one or more
 times to pass global Runme flags before `harbor stdio`.
