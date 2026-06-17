@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/runmedev/runme/v3/harbor"
+	"github.com/runmedev/runme/v3/internal/harbor"
 )
 
 func harborCmd() *cobra.Command {

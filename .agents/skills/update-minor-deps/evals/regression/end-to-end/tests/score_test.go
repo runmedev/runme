@@ -12,6 +12,7 @@ func TestRewardScoresJSONShape(t *testing.T) {
 	t.Parallel()
 
 	data, err := json.Marshal(rewardScores{
+		Reward:                  1.0,
 		DependencyUpdate:        1.0,
 		ScopedChanges:           1.0,
 		SkillActivationEvidence: 1.0,
@@ -30,6 +31,7 @@ func TestRewardScoresJSONShape(t *testing.T) {
 	}
 
 	wantKeys := []string{
+		"reward",
 		"dependency_update",
 		"scoped_changes",
 		"skill_activation_evidence",
@@ -44,6 +46,94 @@ func TestRewardScoresJSONShape(t *testing.T) {
 	for _, key := range wantKeys {
 		if _, ok := scores[key]; !ok {
 			t.Fatalf("missing reward key %q in %#v", key, scores)
+		}
+	}
+}
+
+func TestRollupReward(t *testing.T) {
+	t.Parallel()
+
+	scores := rewardScores{
+		DependencyUpdate:        1.0,
+		ScopedChanges:           0.5,
+		SkillActivationEvidence: 1.0,
+		WorkflowEvidence:        0.75,
+		ValidationEvidence:      0.6,
+		PRDraftQuality:          0.875,
+		NoRealPROrCommit:        1.0,
+	}
+
+	want := (1.0 + 0.5 + 1.0 + 0.75 + 0.6 + 0.875 + 1.0) / 7.0
+	if got := rollupReward(scores); got != want {
+		t.Fatalf("rollupReward() = %v, want %v", got, want)
+	}
+}
+
+func TestRewardDetailsJSONShape(t *testing.T) {
+	t.Parallel()
+
+	scores := rewardScores{
+		Reward:                  0.8178571428571428,
+		DependencyUpdate:        1.0,
+		ScopedChanges:           0.5,
+		SkillActivationEvidence: 1.0,
+		WorkflowEvidence:        0.75,
+		ValidationEvidence:      0.6,
+		PRDraftQuality:          0.875,
+		NoRealPROrCommit:        1.0,
+	}
+	data, err := json.Marshal(rewardDetails(scores))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var details map[string]struct {
+		Score    float64 `json:"score"`
+		Criteria []struct {
+			Name        string  `json:"name"`
+			Value       float64 `json:"value"`
+			Raw         float64 `json:"raw"`
+			Weight      float64 `json:"weight"`
+			Description string  `json:"description"`
+		} `json:"criteria"`
+		Kind string `json:"kind"`
+	}
+	if err := json.Unmarshal(data, &details); err != nil {
+		t.Fatal(err)
+	}
+
+	wantScores := map[string]float64{
+		"dependency_update":         1.0,
+		"scoped_changes":            0.5,
+		"skill_activation_evidence": 1.0,
+		"workflow_evidence":         0.75,
+		"validation_evidence":       0.6,
+		"pr_draft_quality":          0.875,
+		"no_real_pr_or_commit":      1.0,
+	}
+	if len(details) != len(wantScores) {
+		t.Fatalf("got %d details, want %d: %#v", len(details), len(wantScores), details)
+	}
+	for name, wantScore := range wantScores {
+		detail, ok := details[name]
+		if !ok {
+			t.Fatalf("missing reward detail %q in %#v", name, details)
+		}
+		if detail.Score != wantScore {
+			t.Fatalf("%s score = %v, want %v", name, detail.Score, wantScore)
+		}
+		if detail.Kind != "programmatic" {
+			t.Fatalf("%s kind = %q, want programmatic", name, detail.Kind)
+		}
+		if len(detail.Criteria) != 1 {
+			t.Fatalf("%s criteria len = %d, want 1", name, len(detail.Criteria))
+		}
+		criterion := detail.Criteria[0]
+		if criterion.Name != name || criterion.Description != name {
+			t.Fatalf("%s criterion metadata = %#v", name, criterion)
+		}
+		if criterion.Value != wantScore || criterion.Raw != wantScore || criterion.Weight != 1.0 {
+			t.Fatalf("%s criterion scores = %#v, want score/raw %v and weight 1", name, criterion, wantScore)
 		}
 	}
 }
@@ -82,8 +172,8 @@ func TestScoreDependencyUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scoreDependencyUpdate(tt.files, tt.text); got != tt.want {
-				t.Fatalf("scoreDependencyUpdate() = %v, want %v", got, tt.want)
+			if got := (scorer{files: tt.files, text: tt.text}).dependencyUpdate(); got != tt.want {
+				t.Fatalf("dependencyUpdate() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -127,8 +217,8 @@ func TestScoreScopedChanges(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scoreScopedChanges(tt.files); got != tt.want {
-				t.Fatalf("scoreScopedChanges() = %v, want %v", got, tt.want)
+			if got := (scorer{files: tt.files}).scopedChanges(); got != tt.want {
+				t.Fatalf("scopedChanges() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -403,67 +493,73 @@ func TestEvidenceScores(t *testing.T) {
 	}{
 		{
 			name: "workflow full credit",
-			got: scoreWorkflowEvidence(
-				"git status --short contributing.md .agents/skills/update-minor-deps/scripts/update-go-deps.sh go mod tidy",
-			),
+			got: (scorer{
+				text: "git status --short contributing.md .agents/skills/update-minor-deps/scripts/update-go-deps.sh go mod tidy",
+			}).workflowEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "skill activation from skill name",
-			got:  scoreSkillActivationEvidence("using update-minor-deps"),
+			got:  (scorer{text: "using update-minor-deps"}).skillActivationEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "module-only validation final only",
-			got:  scoreValidationEvidence("runme run lint test", []string{"go.mod", "go.sum"}),
+			got:  (scorer{commands: "runme run lint test", files: []string{"go.mod", "go.sum"}}).validationEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "module-only split runme validation",
-			got:  scoreValidationEvidence("runme run lint\nrunme run test", []string{"go.mod", "go.sum"}),
+			got:  (scorer{commands: "runme run lint\nrunme run test", files: []string{"go.mod", "go.sum"}}).validationEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "module-only focused only",
-			got:  scoreValidationEvidence("go test ./...", []string{"go.mod", "go.sum"}),
+			got:  (scorer{commands: "go test ./...", files: []string{"go.mod", "go.sum"}}).validationEvidence(),
 			want: 0.4,
 		},
 		{
 			name: "source change validation final only",
-			got:  scoreValidationEvidence("runme run lint test", []string{"go.mod", "go.sum", "runner/session.go"}),
+			got: (scorer{
+				commands: "runme run lint test",
+				files:    []string{"go.mod", "go.sum", "runner/session.go"},
+			}).validationEvidence(),
 			want: 0.6,
 		},
 		{
 			name: "validation final output does not count as focused command",
-			got: scoreValidationEvidence(
-				"runme run lint test\nTZ=UTC go test -ldflags=\"...\" ./...",
-				[]string{"go.mod", "go.sum", "runner/session.go"},
-			),
+			got: (scorer{
+				commands: "runme run lint test\nTZ=UTC go test -ldflags=\"...\" ./...",
+				files:    []string{"go.mod", "go.sum", "runner/session.go"},
+			}).validationEvidence(),
 			want: 0.6,
 		},
 		{
 			name: "source change focused and final",
-			got:  scoreValidationEvidence("go test ./runner runme run lint test", []string{"go.mod", "go.sum", "runner/session.go"}),
+			got: (scorer{
+				commands: "go test ./runner runme run lint test",
+				files:    []string{"go.mod", "go.sum", "runner/session.go"},
+			}).validationEvidence(),
 			want: 1.0,
 		},
 		{
 			name: "make lint test does not count as required runme validation",
-			got:  scoreValidationEvidence("make lint test", []string{"go.mod", "go.sum"}),
+			got:  (scorer{commands: "make lint test", files: []string{"go.mod", "go.sum"}}).validationEvidence(),
 			want: 0.0,
 		},
 		{
 			name: "no forbidden commands",
-			got:  scoreNoRealPROrCommit("wrote the draft PR summary"),
+			got:  (scorer{commands: "wrote the draft PR summary"}).noRealPROrCommit(),
 			want: 1.0,
 		},
 		{
 			name: "git commit forbidden",
-			got:  scoreNoRealPROrCommit("git commit -s -m update"),
+			got:  (scorer{commands: "git commit -s -m update"}).noRealPROrCommit(),
 			want: 0.0,
 		},
 		{
 			name: "documented git commit text is harmless when commands are clean",
-			got:  scoreNoRealPROrCommit("sed -n '1,240p' .agents/skills/update-minor-deps/SKILL.md"),
+			got:  (scorer{commands: "sed -n '1,240p' .agents/skills/update-minor-deps/SKILL.md"}).noRealPROrCommit(),
 			want: 1.0,
 		},
 	}
@@ -550,8 +646,8 @@ Validation: runme run lint and runme run test.
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := scorePRDraftText(tt.text, tt.files); got != tt.want {
-				t.Fatalf("scorePRDraftText() = %v, want %v", got, tt.want)
+			if got := (scorer{prDraftText: tt.text, files: tt.files}).prDraftQuality(); got != tt.want {
+				t.Fatalf("prDraftQuality() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -567,7 +663,12 @@ func TestNegativeControlSourceChangeFinalOnlyFixture(t *testing.T) {
 	commands := strings.ToLower(strings.Join(commandsFromATIF([]byte(trajectory)), "\n"))
 	text := strings.ToLower(trajectory + "\n" + prDraft)
 
-	scores := scoreRewards(files, text, commands, prDraft)
+	scores := (scorer{
+		files:       files,
+		text:        text,
+		commands:    commands,
+		prDraftText: prDraft,
+	}).scores()
 	if scores.ValidationEvidence != 0.6 {
 		t.Fatalf("ValidationEvidence = %v, want 0.6", scores.ValidationEvidence)
 	}
