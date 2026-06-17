@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -18,6 +19,7 @@ const (
 	verifierDir       = "/logs/verifier"
 	prDraft           = artifactsDir + "/pr.md"
 	rewardPath        = verifierDir + "/reward.json"
+	rewardDetailsPath = verifierDir + "/reward-details.json"
 	evalHarnessPrefix = ".agents/skills/update-minor-deps/evals/regression/"
 )
 
@@ -40,6 +42,26 @@ type rewardScores struct {
 	ValidationEvidence      float64 `json:"validation_evidence"`
 	PRDraftQuality          float64 `json:"pr_draft_quality"`
 	NoRealPROrCommit        float64 `json:"no_real_pr_or_commit"`
+}
+
+type rewardCriterion struct {
+	Name        string  `json:"name"`
+	Value       float64 `json:"value"`
+	Raw         float64 `json:"raw"`
+	Weight      float64 `json:"weight"`
+	Description string  `json:"description"`
+}
+
+type rewardDetail struct {
+	Score    float64           `json:"score"`
+	Criteria []rewardCriterion `json:"criteria"`
+	Kind     string            `json:"kind"`
+}
+
+type rewardScore struct {
+	Name        string
+	Score       float64
+	Description string
 }
 
 func runGit(args ...string) (string, error) {
@@ -409,6 +431,80 @@ func scoreRewards(files []string, text string, commands string, prDraftText stri
 	}
 }
 
+func rewardScoreList(scores rewardScores) []rewardScore {
+	return []rewardScore{
+		{
+			Name:        "dependency_update",
+			Score:       scores.DependencyUpdate,
+			Description: "dependency_update",
+		},
+		{
+			Name:        "scoped_changes",
+			Score:       scores.ScopedChanges,
+			Description: "scoped_changes",
+		},
+		{
+			Name:        "skill_activation_evidence",
+			Score:       scores.SkillActivationEvidence,
+			Description: "skill_activation_evidence",
+		},
+		{
+			Name:        "workflow_evidence",
+			Score:       scores.WorkflowEvidence,
+			Description: "workflow_evidence",
+		},
+		{
+			Name:        "validation_evidence",
+			Score:       scores.ValidationEvidence,
+			Description: "validation_evidence",
+		},
+		{
+			Name:        "pr_draft_quality",
+			Score:       scores.PRDraftQuality,
+			Description: "pr_draft_quality",
+		},
+		{
+			Name:        "no_real_pr_or_commit",
+			Score:       scores.NoRealPROrCommit,
+			Description: "no_real_pr_or_commit",
+		},
+	}
+}
+
+func rewardDetails(scores rewardScores) map[string]rewardDetail {
+	details := make(map[string]rewardDetail)
+	for _, score := range rewardScoreList(scores) {
+		details[score.Name] = rewardDetail{
+			Score: score.Score,
+			Criteria: []rewardCriterion{
+				{
+					Name:        score.Name,
+					Value:       score.Score,
+					Raw:         score.Score,
+					Weight:      1.0,
+					Description: score.Description,
+				},
+			},
+			Kind: "programmatic",
+		}
+	}
+	return details
+}
+
+func printRewardSummary(scores rewardScores) {
+	for _, score := range rewardScoreList(scores) {
+		fmt.Printf("%s: %s\n", score.Name, formatRewardFloat(score.Score))
+	}
+}
+
+func formatRewardFloat(value float64) string {
+	formatted := strconv.FormatFloat(value, 'f', -1, 64)
+	if !strings.Contains(formatted, ".") {
+		return formatted + ".0"
+	}
+	return formatted
+}
+
 func scoreChecks(checks []bool) float64 {
 	var passed int
 	for _, check := range checks {
@@ -484,12 +580,10 @@ func run() error {
 	if err := writeJSON(rewardPath, scores, true); err != nil {
 		return fmt.Errorf("write reward: %w", err)
 	}
-
-	output, err := json.MarshalIndent(scores, "", "  ")
-	if err != nil {
-		return err
+	if err := writeJSON(rewardDetailsPath, rewardDetails(scores), true); err != nil {
+		return fmt.Errorf("write reward details: %w", err)
 	}
-	fmt.Println(string(output))
+	printRewardSummary(scores)
 	return nil
 }
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
 set -eu
 
-go run /tests/score.go
+mkdir -p /logs/verifier
+go run /tests/score.go > /logs/verifier/test-stdout.txt

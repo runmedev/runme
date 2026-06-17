@@ -48,6 +48,74 @@ func TestRewardScoresJSONShape(t *testing.T) {
 	}
 }
 
+func TestRewardDetailsJSONShape(t *testing.T) {
+	t.Parallel()
+
+	scores := rewardScores{
+		DependencyUpdate:        1.0,
+		ScopedChanges:           0.5,
+		SkillActivationEvidence: 1.0,
+		WorkflowEvidence:        0.75,
+		ValidationEvidence:      0.6,
+		PRDraftQuality:          0.875,
+		NoRealPROrCommit:        1.0,
+	}
+	data, err := json.Marshal(rewardDetails(scores))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var details map[string]struct {
+		Score    float64 `json:"score"`
+		Criteria []struct {
+			Name        string  `json:"name"`
+			Value       float64 `json:"value"`
+			Raw         float64 `json:"raw"`
+			Weight      float64 `json:"weight"`
+			Description string  `json:"description"`
+		} `json:"criteria"`
+		Kind string `json:"kind"`
+	}
+	if err := json.Unmarshal(data, &details); err != nil {
+		t.Fatal(err)
+	}
+
+	wantScores := map[string]float64{
+		"dependency_update":         1.0,
+		"scoped_changes":            0.5,
+		"skill_activation_evidence": 1.0,
+		"workflow_evidence":         0.75,
+		"validation_evidence":       0.6,
+		"pr_draft_quality":          0.875,
+		"no_real_pr_or_commit":      1.0,
+	}
+	if len(details) != len(wantScores) {
+		t.Fatalf("got %d details, want %d: %#v", len(details), len(wantScores), details)
+	}
+	for name, wantScore := range wantScores {
+		detail, ok := details[name]
+		if !ok {
+			t.Fatalf("missing reward detail %q in %#v", name, details)
+		}
+		if detail.Score != wantScore {
+			t.Fatalf("%s score = %v, want %v", name, detail.Score, wantScore)
+		}
+		if detail.Kind != "programmatic" {
+			t.Fatalf("%s kind = %q, want programmatic", name, detail.Kind)
+		}
+		if len(detail.Criteria) != 1 {
+			t.Fatalf("%s criteria len = %d, want 1", name, len(detail.Criteria))
+		}
+		criterion := detail.Criteria[0]
+		if criterion.Name != name || criterion.Description != name {
+			t.Fatalf("%s criterion metadata = %#v", name, criterion)
+		}
+		if criterion.Value != wantScore || criterion.Raw != wantScore || criterion.Weight != 1.0 {
+			t.Fatalf("%s criterion scores = %#v, want score/raw %v and weight 1", name, criterion, wantScore)
+		}
+	}
+}
+
 func TestScoreDependencyUpdate(t *testing.T) {
 	t.Parallel()
 
