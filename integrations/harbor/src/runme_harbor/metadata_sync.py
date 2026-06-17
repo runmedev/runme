@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from harbor.models.job.config import JobConfig
+from harbor.models.trajectories.trajectory import Trajectory
 from harbor.models.trial.config import AgentConfig
 from harbor.models.trial.result import TrialResult
 
@@ -84,8 +85,21 @@ def _observed_agents(job_dir: Path) -> list[ObservedAgent]:
             model_name = model_info.name
             if model_info.provider:
                 model_name = f"{model_info.provider}/{model_info.name}"
+        else:
+            model_name = _trajectory_model_name(result_path)
         observed.add(ObservedAgent(name=result.agent_info.name, model_name=model_name))
     return sorted(observed)
+
+
+def _trajectory_model_name(result_path: Path) -> str | None:
+    trajectory_path = result_path.parent / "agent" / "trajectory.json"
+    if not trajectory_path.exists():
+        return None
+    try:
+        trajectory = Trajectory.model_validate_json(trajectory_path.read_text())
+    except Exception:
+        return None
+    return trajectory.agent.model_name
 
 
 def _same_json(left: str, right: str) -> bool:

@@ -32,6 +32,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args = _parse_args(list(argv) if argv is not None else sys.argv[1:])
         if args.command == "run":
             return run(args)
+        if args.command == "sync-metadata":
+            return sync_metadata(args)
     except SystemExit as exc:
         if isinstance(exc.code, int):
             return exc.code
@@ -54,6 +56,14 @@ def run(args: argparse.Namespace) -> int:
         except Exception as exc:
             print(f"warning: failed to sync Harbor job metadata: {exc}", file=sys.stderr)
     return exit_code
+
+
+def sync_metadata(args: argparse.Namespace) -> int:
+    from runme_harbor.metadata_sync import sync_jobs_metadata
+
+    synced = sync_jobs_metadata(args.jobs_dir)
+    print(f"Synced Harbor metadata for {synced} job(s).")
+    return 0
 
 
 def build_harbor_command(args: argparse.Namespace) -> list[str]:
@@ -97,6 +107,9 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     run_parser.add_argument("--jobs-dir", default=".runme/evals/jobs")
     run_parser.add_argument("-y", "--yes", action="store_true")
     run_parser.add_argument("--debug", action="store_true")
+
+    sync_parser = subparsers.add_parser("sync-metadata", allow_abbrev=False)
+    sync_parser.add_argument("--jobs-dir", default=".runme/evals/jobs")
 
     args, passthrough = parser.parse_known_args(argv)
     removed_task_flag = _find_removed_task_flag(passthrough)

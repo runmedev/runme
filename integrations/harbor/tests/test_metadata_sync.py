@@ -61,6 +61,55 @@ def test_sync_jobs_metadata_omits_missing_model_info(tmp_path: Path) -> None:
     assert [(agent.name, agent.model_name) for agent in config.agents] == [("codex", None)]
 
 
+def test_sync_jobs_metadata_uses_atif_model_when_trial_model_info_missing(
+    tmp_path: Path,
+) -> None:
+    job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
+    _write_trial_result(job_dir, "trial-1", agent_name="codex")
+    _write_trajectory(job_dir / "trial-1", agent_name="codex", model_name="gpt-5.5")
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert [(agent.name, agent.model_name) for agent in config.agents] == [
+        ("codex", "gpt-5.5")
+    ]
+
+
+def test_sync_jobs_metadata_preserves_trial_model_info_over_atif(
+    tmp_path: Path,
+) -> None:
+    job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
+    _write_trial_result(
+        job_dir,
+        "trial-1",
+        agent_name="codex",
+        provider="openai",
+        model_name="gpt-5",
+    )
+    _write_trajectory(job_dir / "trial-1", agent_name="codex", model_name="gpt-5.5")
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert [(agent.name, agent.model_name) for agent in config.agents] == [
+        ("codex", "openai/gpt-5")
+    ]
+
+
+def test_sync_jobs_metadata_ignores_unreadable_atif(tmp_path: Path) -> None:
+    job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
+    _write_trial_result(job_dir, "trial-1", agent_name="codex")
+    trajectory_path = job_dir / "trial-1" / "agent" / "trajectory.json"
+    trajectory_path.parent.mkdir()
+    trajectory_path.write_text("{")
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert [(agent.name, agent.model_name) for agent in config.agents] == [("codex", None)]
+
+
 def test_sync_jobs_metadata_skips_jobs_without_readable_trials(tmp_path: Path) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
 
@@ -138,3 +187,25 @@ def _write_trial_result(
         }
     )
     (trial_dir / "result.json").write_text(result.model_dump_json(indent=4))
+
+
+def _write_trajectory(trial_dir: Path, *, agent_name: str, model_name: str) -> None:
+    trajectory_dir = trial_dir / "agent"
+    trajectory_dir.mkdir()
+    (trajectory_dir / "trajectory.json").write_text(
+        f"""{{
+    "schema_version": "ATIF-v1.5",
+    "agent": {{
+        "name": "{agent_name}",
+        "version": "1.0",
+        "model_name": "{model_name}"
+    }},
+    "steps": [
+        {{
+            "step_id": 1,
+            "source": "user",
+            "message": "hello"
+        }}
+    ]
+}}"""
+    )

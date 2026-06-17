@@ -164,6 +164,30 @@ def test_main_skips_metadata_sync_when_disabled(
     assert synced == []
 
 
+def test_main_sync_metadata_command_uses_default_jobs_dir(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    synced: list[str] = []
+    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 3)
+
+    assert cli.main(["sync-metadata"]) == 0
+
+    assert synced == [".runme/evals/jobs"]
+    assert capsys.readouterr().out == "Synced Harbor metadata for 3 job(s).\n"
+
+
+def test_main_sync_metadata_command_accepts_jobs_dir(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    synced: list[str] = []
+    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+
+    assert cli.main(["sync-metadata", "--jobs-dir", "jobs"]) == 0
+
+    assert synced == ["jobs"]
+
+
 @pytest.mark.parametrize(
     ("agent", "missing", "message"),
     [
