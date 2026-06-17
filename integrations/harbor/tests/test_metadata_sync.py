@@ -138,7 +138,7 @@ def test_sync_jobs_metadata_uses_atif_model_when_trial_model_info_missing(
     )
 
 
-def test_sync_jobs_metadata_preserves_trial_model_info_over_atif(
+def test_sync_jobs_metadata_prefers_atif_over_trial_model_info(
     tmp_path: Path,
 ) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
@@ -155,13 +155,75 @@ def test_sync_jobs_metadata_preserves_trial_model_info_over_atif(
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
     assert _agent_summaries(config) == [
-        ("runme-codex", CODEX_IMPORT_PATH, "openai/gpt-5")
+        ("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")
     ]
     result = TrialResult.model_validate_json((job_dir / "trial-1" / "result.json").read_text())
     assert result.agent_info.model_info is not None
-    assert result.agent_info.model_info.name == "gpt-5"
-    assert result.agent_info.model_info.provider == "openai"
-    assert not (job_dir / "trial-1" / ORIGINAL_RESULT_BACKUP).exists()
+    assert result.agent_info.model_info.name == "gpt-5.5"
+    assert result.agent_info.model_info.provider is None
+    result_backup = TrialResult.model_validate_json(
+        (job_dir / "trial-1" / ORIGINAL_RESULT_BACKUP).read_text()
+    )
+    assert result_backup.agent_info.model_info is not None
+    assert result_backup.agent_info.model_info.name == "gpt-5"
+    assert result_backup.agent_info.model_info.provider == "openai"
+
+
+def test_sync_jobs_metadata_replaces_claude_alias_with_atif_model_name(
+    tmp_path: Path,
+) -> None:
+    job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
+    _write_trial_result(
+        job_dir,
+        "trial-1",
+        agent_name="runme-claude-code",
+        model_name="haiku",
+    )
+    _write_trajectory(
+        job_dir / "trial-1",
+        agent_name="runme-claude-code",
+        model_name="claude-haiku-4-5-20251001",
+    )
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert _agent_summaries(config) == [
+        ("runme-claude-code", CLAUDE_IMPORT_PATH, "claude-haiku-4-5-20251001")
+    ]
+    result = TrialResult.model_validate_json((job_dir / "trial-1" / "result.json").read_text())
+    assert result.agent_info.model_info is not None
+    assert result.agent_info.model_info.name == "claude-haiku-4-5-20251001"
+    assert result.agent_info.model_info.provider is None
+
+
+def test_sync_jobs_metadata_clears_provider_when_atif_model_name_matches(
+    tmp_path: Path,
+) -> None:
+    job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
+    _write_trial_result(
+        job_dir,
+        "trial-1",
+        agent_name="runme-claude-code",
+        provider="anthropic",
+        model_name="claude-haiku-4-5-20251001",
+    )
+    _write_trajectory(
+        job_dir / "trial-1",
+        agent_name="runme-claude-code",
+        model_name="claude-haiku-4-5-20251001",
+    )
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert _agent_summaries(config) == [
+        ("runme-claude-code", CLAUDE_IMPORT_PATH, "claude-haiku-4-5-20251001")
+    ]
+    result = TrialResult.model_validate_json((job_dir / "trial-1" / "result.json").read_text())
+    assert result.agent_info.model_info is not None
+    assert result.agent_info.model_info.name == "claude-haiku-4-5-20251001"
+    assert result.agent_info.model_info.provider is None
 
 
 def test_sync_jobs_metadata_ignores_unreadable_atif(tmp_path: Path) -> None:

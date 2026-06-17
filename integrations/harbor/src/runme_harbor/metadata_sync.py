@@ -94,11 +94,14 @@ def _sync_trial_result(result_path: Path) -> bool:
     except Exception:
         return False
 
-    if result.agent_info.model_info is not None:
-        return False
-
     model_name = _trajectory_model_name(result_path)
     if not model_name:
+        return False
+    if (
+        result.agent_info.model_info is not None
+        and result.agent_info.model_info.name == model_name
+        and result.agent_info.model_info.provider is None
+    ):
         return False
 
     synced_result = result.model_copy(
@@ -129,13 +132,14 @@ def _observed_agents(job_dir: Path) -> list[ObservedAgent]:
             continue
 
         model_name = None
-        model_info = result.agent_info.model_info
-        if model_info is not None:
+        atif_model_name = _trajectory_model_name(result_path)
+        if atif_model_name:
+            model_name = atif_model_name
+        elif result.agent_info.model_info is not None:
+            model_info = result.agent_info.model_info
             model_name = model_info.name
             if model_info.provider:
                 model_name = f"{model_info.provider}/{model_info.name}"
-        else:
-            model_name = _trajectory_model_name(result_path)
         observed.add(ObservedAgent(name=result.agent_info.name, model_name=model_name))
     return sorted(observed, key=lambda agent: (agent.name, agent.model_name or ""))
 
