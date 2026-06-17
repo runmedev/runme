@@ -17,7 +17,7 @@ ORIGINAL_CONFIG_BACKUP = "config.original.json"
 ORIGINAL_RESULT_BACKUP = "result.original.json"
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(frozen=True)
 class ObservedAgent:
     name: str
     model_name: str | None = None
@@ -137,7 +137,7 @@ def _observed_agents(job_dir: Path) -> list[ObservedAgent]:
         else:
             model_name = _trajectory_model_name(result_path)
         observed.add(ObservedAgent(name=result.agent_info.name, model_name=model_name))
-    return sorted(observed)
+    return sorted(observed, key=lambda agent: (agent.name, agent.model_name or ""))
 
 
 def _trajectory_model_name(result_path: Path) -> str | None:

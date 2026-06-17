@@ -59,6 +59,8 @@ def run(args: argparse.Namespace) -> int:
 
 
 def sync_metadata(args: argparse.Namespace) -> int:
+    _preflight_harbor_package()
+
     from runme_harbor.metadata_sync import sync_jobs_metadata
 
     synced = sync_jobs_metadata(args.jobs_dir)
@@ -133,16 +135,9 @@ def _find_removed_task_flag(args: list[str]) -> str | None:
 
 
 def _preflight(agent: str) -> None:
-    try:
-        importlib.import_module("harbor")
-    except ModuleNotFoundError as exc:
-        raise SystemExit("Runme Harbor requires the `harbor` Python package.") from exc
+    _preflight_harbor_package()
     if not shutil.which("harbor"):
         raise SystemExit("Runme Harbor requires the `harbor` CLI on PATH.")
-
-    version = _version_tuple(importlib.metadata.version("harbor"))
-    if version < MIN_HARBOR_VERSION or version >= MAX_HARBOR_VERSION:
-        raise SystemExit("Runme Harbor requires harbor>=0.13.1,<0.14.")
 
     try:
         importlib.import_module("runme_harbor")
@@ -155,6 +150,17 @@ def _preflight(agent: str) -> None:
         raise SystemExit("`--agent claude-code` requires the `claude` CLI on PATH.")
     if agent == "openclaw" and not shutil.which("openclaw"):
         raise SystemExit("`--agent openclaw` requires the `openclaw` CLI on PATH.")
+
+
+def _preflight_harbor_package() -> None:
+    try:
+        importlib.import_module("harbor")
+    except ModuleNotFoundError as exc:
+        raise SystemExit("Runme Harbor requires the `harbor` Python package.") from exc
+
+    version = _version_tuple(importlib.metadata.version("harbor"))
+    if version < MIN_HARBOR_VERSION or version >= MAX_HARBOR_VERSION:
+        raise SystemExit("Runme Harbor requires harbor>=0.13.1,<0.14.")
 
 
 def _skip_metadata_sync() -> bool:

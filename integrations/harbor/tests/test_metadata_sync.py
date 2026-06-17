@@ -76,6 +76,20 @@ def test_sync_jobs_metadata_sorts_and_deduplicates_observed_agents(tmp_path: Pat
     ]
 
 
+def test_sync_jobs_metadata_sorts_same_agent_with_missing_model_info(tmp_path: Path) -> None:
+    job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
+    _write_trial_result(job_dir, "trial-a", agent_name="runme-codex")
+    _write_trial_result(job_dir, "trial-b", agent_name="runme-codex", model_name="gpt-5")
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert _agent_summaries(config) == [
+        ("runme-codex", CODEX_IMPORT_PATH, None),
+        ("runme-codex", CODEX_IMPORT_PATH, "gpt-5"),
+    ]
+
+
 def test_sync_jobs_metadata_omits_missing_model_info(tmp_path: Path) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
     _write_trial_result(job_dir, "trial-1", agent_name="oracle")
