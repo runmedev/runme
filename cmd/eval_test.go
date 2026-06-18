@@ -14,9 +14,10 @@ import (
 )
 
 type recordedCommand struct {
-	name string
-	args []string
-	env  []string
+	name       string
+	args       []string
+	workingDir string
+	env        []string
 }
 
 type fakeExitError struct {
@@ -95,12 +96,15 @@ func TestRunEvalDefaultsDatasetPath(t *testing.T) {
 
 	want := []string{
 		"run",
-		mustAbs(t, defaultEvalDatasetPath),
+		defaultDatasetPath(t),
 		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != defaultEvalBaseDir(tmp) {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, defaultEvalBaseDir(tmp))
 	}
 }
 
@@ -120,7 +124,7 @@ func TestRunEvalDefaultsDatasetPathWithPassthrough(t *testing.T) {
 
 	want := []string{
 		"run",
-		mustAbs(t, defaultEvalDatasetPath),
+		defaultDatasetPath(t),
 		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
 		"--",
@@ -128,6 +132,9 @@ func TestRunEvalDefaultsDatasetPathWithPassthrough(t *testing.T) {
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != defaultEvalBaseDir(tmp) {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, defaultEvalBaseDir(tmp))
 	}
 }
 
@@ -144,6 +151,7 @@ func TestRunEvalDefaultsUseGitRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(nested)
+	baseDir := defaultEvalBaseDir(nested)
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
 
@@ -154,12 +162,15 @@ func TestRunEvalDefaultsUseGitRoot(t *testing.T) {
 
 	want := []string{
 		"run",
-		filepath.Join(repoRoot, defaultEvalDatasetPath),
+		filepath.Join(baseDir, defaultEvalDatasetPath),
 		"--agent", "oracle",
-		"--jobs-dir", filepath.Join(repoRoot, defaultEvalJobsDir),
+		"--jobs-dir", filepath.Join(baseDir, defaultEvalJobsDir),
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != baseDir {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
 	}
 }
 
@@ -174,6 +185,7 @@ func TestRunEvalExplicitDatasetUsesCwdAndDefaultJobsUseGitRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(nested)
+	baseDir := defaultEvalBaseDir(nested)
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
 
@@ -186,10 +198,13 @@ func TestRunEvalExplicitDatasetUsesCwdAndDefaultJobsUseGitRoot(t *testing.T) {
 		"run",
 		dataset,
 		"--agent", "oracle",
-		"--jobs-dir", filepath.Join(repoRoot, defaultEvalJobsDir),
+		"--jobs-dir", filepath.Join(baseDir, defaultEvalJobsDir),
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != baseDir {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
 	}
 }
 
@@ -206,6 +221,7 @@ func TestRunEvalExplicitJobsDirIsUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(nested)
+	baseDir := defaultEvalBaseDir(nested)
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
 	opts.jobsDir = "custom/jobs"
@@ -218,12 +234,15 @@ func TestRunEvalExplicitJobsDirIsUnchanged(t *testing.T) {
 
 	want := []string{
 		"run",
-		filepath.Join(repoRoot, defaultEvalDatasetPath),
+		filepath.Join(baseDir, defaultEvalDatasetPath),
 		"--agent", "oracle",
 		"--jobs-dir", "custom/jobs",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != baseDir {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
 	}
 }
 
@@ -637,8 +656,8 @@ func TestRunEvalPropagatesDelegateExitCode(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
-	opts.commandRun = func(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
-		calls = append(calls, recordedCommand{name: name, args: append([]string(nil), args...), env: env})
+	opts.commandRun = func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
+		calls = append(calls, recordedCommand{name: name, args: append([]string(nil), args...), workingDir: workingDir, env: env})
 		if len(calls) == 2 {
 			return fakeExitError{code: 42}
 		}
@@ -672,11 +691,12 @@ func testEvalOptions(t *testing.T, calls *[]recordedCommand, stderr io.Writer) e
 }
 
 func recordCommand(calls *[]recordedCommand) commandRunFunc {
-	return func(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
+	return func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
 		*calls = append(*calls, recordedCommand{
-			name: name,
-			args: append([]string(nil), args...),
-			env:  append([]string(nil), env...),
+			name:       name,
+			args:       append([]string(nil), args...),
+			workingDir: workingDir,
+			env:        append([]string(nil), env...),
 		})
 		return nil
 	}
@@ -713,6 +733,15 @@ func defaultJobsDir(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return filepath.Join(defaultEvalBaseDir(cwd), defaultEvalJobsDir)
+}
+
+func defaultDatasetPath(t *testing.T) string {
+	t.Helper()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Join(defaultEvalBaseDir(cwd), defaultEvalDatasetPath)
 }
 
 func envValue(env []string, key string) string {

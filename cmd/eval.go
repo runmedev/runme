@@ -35,6 +35,7 @@ type evalOptions struct {
 	runmeHarbor     string
 	debug           bool
 	jobsDirExplicit bool
+	evalBaseDir     string
 	commandRun      commandRunFunc
 	lookPath        func(string) (string, error)
 	executable      func() (string, error)
@@ -44,7 +45,7 @@ type evalOptions struct {
 	preflight       bool
 }
 
-type commandRunFunc func(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error
+type commandRunFunc func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error
 
 func evalCmd() *cobra.Command {
 	opts := evalOptions{
@@ -144,7 +145,7 @@ func runEval(opts evalOptions, args []string) error {
 
 	if opts.preflight && usesRunmeEnvironment(opts.env) {
 		request := strings.NewReader("{\"id\":\"preflight\",\"preflight\":{}}\n")
-		if err := opts.commandRun(runmeBin, []string{"harbor", "stdio"}, env, request, io.Discard, opts.stderr); err != nil {
+		if err := opts.commandRun(runmeBin, []string{"harbor", "stdio"}, "", env, request, io.Discard, opts.stderr); err != nil {
 			return fmt.Errorf("runme harbor stdio preflight failed: %w", err)
 		}
 	}
@@ -154,7 +155,7 @@ func runEval(opts evalOptions, args []string) error {
 		_, _ = fmt.Fprintf(opts.stderr, "%s\n", shellCommandString(append([]string{runmeHarbor}, delegatedArgs...)))
 	}
 
-	err = opts.commandRun(runmeHarbor, delegatedArgs, env, os.Stdin, opts.stdout, opts.stderr)
+	err = opts.commandRun(runmeHarbor, delegatedArgs, opts.evalBaseDir, env, os.Stdin, opts.stdout, opts.stderr)
 	if err == nil {
 		return nil
 	}
@@ -179,6 +180,7 @@ func resolveEvalPaths(opts *evalOptions, args []string) (string, []string, bool,
 		if !opts.jobsDirExplicit {
 			opts.jobsDir = filepath.Join(baseDir, defaultEvalJobsDir)
 		}
+		opts.evalBaseDir = baseDir
 		return filepath.Join(baseDir, defaultEvalDatasetPath), passthrough, true, nil
 	}
 
@@ -192,6 +194,13 @@ func resolveEvalPaths(opts *evalOptions, args []string) (string, []string, bool,
 			return "", nil, false, err
 		}
 		opts.jobsDir = filepath.Join(baseDir, defaultEvalJobsDir)
+		opts.evalBaseDir = baseDir
+	} else {
+		baseDir, err := evalDefaultBaseDir()
+		if err != nil {
+			return "", nil, false, err
+		}
+		opts.evalBaseDir = baseDir
 	}
 	return datasetPath, passthrough, false, nil
 }
@@ -350,8 +359,9 @@ func usesHarborDockerEnvironment(env string) bool {
 	return env == "docker"
 }
 
-func runExternalCommand(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
+func runExternalCommand(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	cmd := exec.Command(name, args...)
+	cmd.Dir = workingDir
 	cmd.Env = env
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
