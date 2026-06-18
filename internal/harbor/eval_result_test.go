@@ -59,6 +59,21 @@ func TestPrintExceptionDetailsOnlyUsesReportedJob(t *testing.T) {
 	}
 }
 
+func TestPrintExceptionDetailsDoesNotColorNonTerminalOutput(t *testing.T) {
+	jobDir := t.TempDir()
+	writeException(t, filepath.Join(jobDir, "attempt", "exception.txt"), "current detail\n")
+
+	var stdout bytes.Buffer
+	PrintExceptionDetails(&stdout, jobDir)
+
+	if strings.Contains(stdout.String(), "\x1b[") {
+		t.Fatalf("output contains ANSI escape sequence: %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Harbor Exception Details") {
+		t.Fatalf("output = %q", stdout.String())
+	}
+}
+
 func writeException(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
