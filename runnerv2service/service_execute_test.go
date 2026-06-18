@@ -640,6 +640,8 @@ func TestRunnerServiceServerExecute_Configs(t *testing.T) {
 func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 	t.Parallel()
 
+	const terminalReadyMarker = "__RUNME_TERMINAL_READY__"
+
 	_, _, lis, stop := startRunnerServiceServer(t)
 	t.Cleanup(stop)
 
@@ -651,11 +653,11 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 	// Step 1: execute the first command in the terminal mode with bash,
 	// then write a line that exports an environment variable.
 	{
-		execStream, err := client.Execute(context.Background())
-		require.NoError(t, err)
+		execCtx, execCancel := context.WithTimeout(context.Background(), executeResultTimeout)
+		defer execCancel()
 
-		resultC := make(chan executeResult)
-		go getExecuteResult(execStream, resultC)
+		execStream, err := client.Execute(execCtx)
+		require.NoError(t, err)
 
 		err = execStream.Send(
 			&runnerv2.ExecuteRequest{
@@ -675,31 +677,35 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// Wait for the bash to start.
-		time.Sleep(time.Second)
+		// Wait until the shell has consumed the terminal bootstrap commands.
+		err = execStream.Send(
+			&runnerv2.ExecuteRequest{InputData: []byte("printf '" + terminalReadyMarker + "\\n'\n")},
+		)
+		require.NoError(t, err)
+		requireExecuteStdoutContains(t, execStream, terminalReadyMarker)
 
 		// Export some variables so that it can be tested if they are collected.
 		err = execStream.Send(
-			&runnerv2.ExecuteRequest{InputData: []byte("export TEST_ENV=TEST_VALUE\n")},
-		)
-		require.NoError(t, err)
-		// Signal the end of input.
-		err = execStream.Send(
-			&runnerv2.ExecuteRequest{InputData: []byte{0x04}},
+			&runnerv2.ExecuteRequest{InputData: []byte("export TEST_ENV=TEST_VALUE\nexit\n")},
 		)
 		require.NoError(t, err)
 
-		result := <-resultC
+		resultC := make(chan executeResult, 1)
+		go getExecuteResult(execStream, resultC)
+		result := requireExecuteResult(t, resultC)
 		require.NoError(t, result.Err)
 	}
 
 	// Step 2: execute the second command which will try to get the value of
 	// the exported environment variable from the step 1.
 	{
-		execStream, err := client.Execute(context.Background())
+		execCtx, execCancel := context.WithTimeout(context.Background(), executeResultTimeout)
+		defer execCancel()
+
+		execStream, err := client.Execute(execCtx)
 		require.NoError(t, err)
 
-		resultC := make(chan executeResult)
+		resultC := make(chan executeResult, 1)
 		go getExecuteResult(execStream, resultC)
 
 		err = execStream.Send(
@@ -720,7 +726,7 @@ func TestRunnerServiceServerExecute_CommandMode_Terminal(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		result := <-resultC
+		result := requireExecuteResult(t, resultC)
 		require.NoError(t, result.Err)
 		require.Equal(t, "TEST_VALUE", string(result.Stdout))
 	}
@@ -1355,6 +1361,39 @@ type executeResult struct {
 	MimeType string
 	Stderr   []byte
 	Stdout   []byte
+}
+
+const executeResultTimeout = 30 * time.Second
+
+func requireExecuteResult(t *testing.T, resultC <-chan executeResult) executeResult {
+	t.Helper()
+
+	select {
+	case result := <-resultC:
+		return result
+	case <-time.After(executeResultTimeout):
+		t.Fatal("timed out waiting for execute result")
+		return executeResult{}
+	}
+}
+
+func requireExecuteStdoutContains(
+	t *testing.T,
+	stream runnerv2.RunnerService_ExecuteClient,
+	expected string,
+) {
+	t.Helper()
+
+	var stdout bytes.Buffer
+	for {
+		resp, err := stream.Recv()
+		require.NoError(t, err, "timed out waiting for stdout to contain %q; stdout: %q", expected, stdout.String())
+
+		_, _ = stdout.Write(resp.StdoutData)
+		if bytes.Contains(stdout.Bytes(), []byte(expected)) {
+			return
+		}
+	}
 }
 
 func getExecuteResult(
