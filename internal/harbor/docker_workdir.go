@@ -1,4 +1,4 @@
-package cmd
+package harbor
 
 import (
 	"fmt"
@@ -15,28 +15,55 @@ import (
 	internalgitignore "github.com/runmedev/runme/v3/internal/gitignore"
 )
 
-type harborDockerTaskConfig struct {
+type DockerWorkdirStagerOptions struct {
+	WorkspaceRoot string
+	Stderr        io.Writer
+}
+
+type DockerWorkdirStager struct {
+	workspaceRoot string
+	ignoreMatcher gogitignore.Matcher
+	stderr        io.Writer
+}
+
+type dockerTaskConfig struct {
 	Environment struct {
 		Workdir string `toml:"workdir"`
 	} `toml:"environment"`
 }
 
-func stageHarborDockerWorkdirs(datasetPath string, stderr io.Writer) error {
-	workspaceRoot, err := os.Getwd()
-	if err != nil {
-		return err
+func NewDockerWorkdirStager(opts DockerWorkdirStagerOptions) (*DockerWorkdirStager, error) {
+	workspaceRoot := opts.WorkspaceRoot
+	if workspaceRoot == "" {
+		var err error
+		workspaceRoot, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
 	}
-	workspaceRoot, err = filepath.Abs(workspaceRoot)
+
+	workspaceRoot, err := filepath.Abs(workspaceRoot)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	workspaceRoot, err = filepath.EvalSymlinks(workspaceRoot)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	ignoreMatcher := internalgitignore.NewMatcher(osfs.New(workspaceRoot), true, nil, nil)
+	stderr := opts.Stderr
+	if stderr == nil {
+		stderr = io.Discard
+	}
 
+	return &DockerWorkdirStager{
+		workspaceRoot: workspaceRoot,
+		ignoreMatcher: internalgitignore.NewMatcher(osfs.New(workspaceRoot), true, nil, nil),
+		stderr:        stderr,
+	}, nil
+}
+
+func (s *DockerWorkdirStager) StageDataset(datasetPath string) error {
 	return filepath.WalkDir(datasetPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -44,17 +71,17 @@ func stageHarborDockerWorkdirs(datasetPath string, stderr io.Writer) error {
 		if d.IsDir() || d.Name() != "task.toml" {
 			return nil
 		}
-		return stageHarborDockerTaskWorkdir(workspaceRoot, ignoreMatcher, path, stderr)
+		return s.stageTask(path)
 	})
 }
 
-func stageHarborDockerTaskWorkdir(workspaceRoot string, ignoreMatcher gogitignore.Matcher, taskConfigPath string, stderr io.Writer) error {
-	config, err := readHarborDockerTaskConfig(taskConfigPath)
+func (s *DockerWorkdirStager) stageTask(taskConfigPath string) error {
+	config, err := readDockerTaskConfig(taskConfigPath)
 	if err != nil {
 		return err
 	}
 
-	source, ok, err := harborDockerWorkdirSource(workspaceRoot, config.Environment.Workdir)
+	source, ok, err := s.workdirSource(config.Environment.Workdir)
 	if err != nil || !ok {
 		return err
 	}
@@ -74,12 +101,12 @@ func stageHarborDockerTaskWorkdir(workspaceRoot string, ignoreMatcher gogitignor
 	if err := os.RemoveAll(target); err != nil {
 		return err
 	}
-	if err := copyHarborDockerWorkdir(workspaceRoot, ignoreMatcher, source, source, target); err != nil {
+	if err := s.copyWorkdir(source, source, target); err != nil {
 		return err
 	}
-	if !isGitIgnored(workspaceRoot, ignoreMatcher, target, true) {
+	if !s.isGitIgnored(target, true) {
 		_, _ = fmt.Fprintf(
-			stderr,
+			s.stderr,
 			"warning: staged Harbor Docker workdir %s is not ignored by git; add **/environment/workdir/ to .gitignore\n",
 			target,
 		)
@@ -87,19 +114,19 @@ func stageHarborDockerTaskWorkdir(workspaceRoot string, ignoreMatcher gogitignor
 	return nil
 }
 
-func readHarborDockerTaskConfig(path string) (*harborDockerTaskConfig, error) {
+func readDockerTaskConfig(path string) (*dockerTaskConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var config harborDockerTaskConfig
+	var config dockerTaskConfig
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("read Harbor task config %s: %w", path, err)
 	}
 	return &config, nil
 }
 
-func harborDockerWorkdirSource(workspaceRoot string, remoteWorkdir string) (string, bool, error) {
+func (s *DockerWorkdirStager) workdirSource(remoteWorkdir string) (string, bool, error) {
 	if remoteWorkdir == "" || remoteWorkdir == "/app" {
 		return "", false, nil
 	}
@@ -109,7 +136,7 @@ func harborDockerWorkdirSource(workspaceRoot string, remoteWorkdir string) (stri
 	}
 
 	rel := strings.TrimPrefix(remoteWorkdir, appPrefix)
-	source := filepath.Join(workspaceRoot, filepath.FromSlash(rel))
+	source := filepath.Join(s.workspaceRoot, filepath.FromSlash(rel))
 	source, err := filepath.Abs(source)
 	if err != nil {
 		return "", false, err
@@ -121,13 +148,13 @@ func harborDockerWorkdirSource(workspaceRoot string, remoteWorkdir string) (stri
 		}
 		return "", false, err
 	}
-	if !isPathWithin(source, workspaceRoot) {
-		return "", false, fmt.Errorf("harbor Docker workdir %s maps outside workspace root %s", remoteWorkdir, workspaceRoot)
+	if !isPathWithin(source, s.workspaceRoot) {
+		return "", false, fmt.Errorf("harbor Docker workdir %s maps outside workspace root %s", remoteWorkdir, s.workspaceRoot)
 	}
 	return source, true, nil
 }
 
-func copyHarborDockerWorkdir(workspaceRoot string, ignoreMatcher gogitignore.Matcher, source string, logicalSource string, target string) error {
+func (s *DockerWorkdirStager) copyWorkdir(source string, logicalSource string, target string) error {
 	entries, err := os.ReadDir(source)
 	if err != nil {
 		return err
@@ -159,12 +186,12 @@ func copyHarborDockerWorkdir(workspaceRoot string, ignoreMatcher gogitignore.Mat
 			isDir = info.IsDir()
 		}
 
-		if isGitIgnored(workspaceRoot, ignoreMatcher, logicalPath, isDir) {
+		if s.isGitIgnored(logicalPath, isDir) {
 			continue
 		}
 
 		if isDir {
-			if err := copyHarborDockerWorkdir(workspaceRoot, ignoreMatcher, resolvedSource, logicalPath, targetPath); err != nil {
+			if err := s.copyWorkdir(resolvedSource, logicalPath, targetPath); err != nil {
 				return err
 			}
 			continue
@@ -172,14 +199,14 @@ func copyHarborDockerWorkdir(workspaceRoot string, ignoreMatcher gogitignore.Mat
 		if !info.Mode().IsRegular() {
 			continue
 		}
-		if err := copyHarborDockerFile(resolvedSource, targetPath, info.Mode().Perm()); err != nil {
+		if err := copyDockerWorkdirFile(resolvedSource, targetPath, info.Mode().Perm()); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func copyHarborDockerFile(source string, target string, mode fs.FileMode) error {
+func copyDockerWorkdirFile(source string, target string, mode fs.FileMode) error {
 	in, err := os.Open(source)
 	if err != nil {
 		return err
@@ -201,12 +228,12 @@ func copyHarborDockerFile(source string, target string, mode fs.FileMode) error 
 	return closeErr
 }
 
-func isGitIgnored(workspaceRoot string, ignoreMatcher gogitignore.Matcher, path string, isDir bool) bool {
-	rel, err := filepath.Rel(workspaceRoot, path)
+func (s *DockerWorkdirStager) isGitIgnored(path string, isDir bool) bool {
+	rel, err := filepath.Rel(s.workspaceRoot, path)
 	if err != nil || rel == "." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
 		return false
 	}
-	return ignoreMatcher.Match(strings.Split(rel, string(filepath.Separator)), isDir)
+	return s.ignoreMatcher.Match(strings.Split(rel, string(filepath.Separator)), isDir)
 }
 
 func isPathWithin(path string, root string) bool {

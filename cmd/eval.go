@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/runmedev/runme/v3/internal/harbor"
 )
 
 const (
@@ -127,7 +129,13 @@ func runEval(opts evalOptions, args []string) error {
 	env = append(env, opts.extraEnv...)
 
 	if usesHarborDockerEnvironment(opts.env) {
-		if err := stageHarborDockerWorkdirs(datasetPath, opts.stderr); err != nil {
+		stager, err := harbor.NewDockerWorkdirStager(harbor.DockerWorkdirStagerOptions{
+			Stderr: opts.stderr,
+		})
+		if err != nil {
+			return err
+		}
+		if err := stager.StageDataset(datasetPath); err != nil {
 			return err
 		}
 	}
