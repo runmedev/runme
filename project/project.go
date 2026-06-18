@@ -11,13 +11,13 @@ import (
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/pkg/errors"
 	"github.com/stateful/godotenv"
 	"go.uber.org/zap"
 
 	"github.com/runmedev/runme/v3/document"
 	"github.com/runmedev/runme/v3/document/identity"
+	internalgitignore "github.com/runmedev/runme/v3/internal/gitignore"
 )
 
 type LoadEventType uint8
@@ -351,42 +351,6 @@ func (p *Project) send(ctx context.Context, eventc chan<- LoadEvent, event LoadE
 	}
 }
 
-func (p *Project) getAllIgnorePatterns() []gitignore.Pattern {
-	// TODO: confirm if the order of appending to ignorePatterns is important.
-	ignorePatterns := []gitignore.Pattern{
-		// Ignore .git by default.
-		gitignore.ParsePattern(".git", nil),
-	}
-
-	if p.respectGitignore {
-		sysPatterns, err := gitignore.LoadSystemPatterns(p.fs)
-		if err != nil {
-			p.logger.Info("failed to load system ignore patterns", zap.Error(err))
-		}
-		ignorePatterns = append(ignorePatterns, sysPatterns...)
-
-		globPatterns, err := gitignore.LoadGlobalPatterns(p.fs)
-		if err != nil {
-			p.logger.Info("failed to load global ignore patterns", zap.Error(err))
-		}
-		ignorePatterns = append(ignorePatterns, globPatterns...)
-
-		// TODO(adamb): this is a slow operation if there are many directories.
-		// Profile this function and figure out a way to optimize it.
-		patterns, err := gitignore.ReadPatterns(p.fs, nil)
-		if err != nil {
-			p.logger.Info("failed to load local ignore patterns", zap.Error(err))
-		}
-		ignorePatterns = append(ignorePatterns, patterns...)
-	}
-
-	for _, p := range p.ignoreFilePatterns {
-		ignorePatterns = append(ignorePatterns, gitignore.ParsePattern(p, nil))
-	}
-
-	return ignorePatterns
-}
-
 func (p *Project) loadFromDirectory(
 	ctx context.Context,
 	eventc chan<- LoadEvent,
@@ -399,8 +363,12 @@ func (p *Project) loadFromDirectory(
 		}
 	}
 
-	ignorePatterns := p.getAllIgnorePatterns()
-	ignoreMatcher := gitignore.NewMatcher(ignorePatterns)
+	ignoreMatcher := internalgitignore.NewMatcher(
+		p.fs,
+		p.respectGitignore,
+		p.ignoreFilePatterns,
+		p.logger,
+	)
 
 	p.send(ctx, eventc, LoadEvent{Type: LoadEventStartedWalk})
 

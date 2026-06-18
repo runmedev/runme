@@ -71,6 +71,7 @@ runner/.runme-script-*
 
 # Eval job output
 .runme/evals/
+**/environment/workdir/
 
 # Legacy Harbor example job output
 .runme/harbor/

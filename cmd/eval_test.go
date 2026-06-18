@@ -350,6 +350,28 @@ func TestRunEvalDelegatesNonRunmeEnvWithoutPreflight(t *testing.T) {
 	}
 }
 
+func TestRunEvalDoesNotStageNonDockerWorkdir(t *testing.T) {
+	workspace := t.TempDir()
+	t.Chdir(workspace)
+	dataset, workdir, target := makeHarborDockerDataset(t, workspace, "/app/source/workdir")
+	if err := os.WriteFile(filepath.Join(workdir, "keep.txt"), []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.env = "podman"
+
+	err := runEval(opts, []string{dataset})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Fatalf("target stat err = %v, want not exist", err)
+	}
+}
+
 func TestRunEvalRejectsPassthroughEnvironmentFlags(t *testing.T) {
 	for _, tt := range []struct {
 		name        string
@@ -602,4 +624,23 @@ func makeExecutable(t *testing.T, name string) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func makeHarborDockerDataset(t *testing.T, workspace string, remoteWorkdir string) (string, string, string) {
+	t.Helper()
+	dataset := filepath.Join(workspace, "evals", "tasks")
+	task := filepath.Join(dataset, "example-task")
+	workdir := filepath.Join(workspace, "source", "workdir")
+	target := filepath.Join(task, "environment", "workdir")
+	if err := os.MkdirAll(workdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(task, "environment"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	config := "schema_version = \"1.1\"\n\n[environment]\nworkdir = \"" + remoteWorkdir + "\"\n"
+	if err := os.WriteFile(filepath.Join(task, "task.toml"), []byte(config), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return dataset, workdir, target
 }
