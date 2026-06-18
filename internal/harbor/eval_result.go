@@ -128,7 +128,7 @@ func exceptionDisplayPath(jobDir, path string) string {
 	if err != nil || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) || relative == ".." {
 		return path
 	}
-	return relative
+	return filepath.ToSlash(relative)
 }
 
 func exceptionFiles(jobDir string) []string {
