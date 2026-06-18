@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -12,11 +14,17 @@ def parse(argv: list[str]):
     return cli._parse_args(argv)
 
 
+def make_executable(path: Path) -> Path:
+    path.write_text("#!/bin/sh\nexit 0\n")
+    path.chmod(path.stat().st_mode | 0o111)
+    return path
+
+
 def test_build_harbor_command_oracle_defaults(tmp_path: Path) -> None:
     args = parse(["run", str(tmp_path)])
 
     assert cli.build_harbor_command(args) == [
-        "harbor",
+        "runme-harbor-harbor",
         "run",
         "--path",
         str(tmp_path.resolve()),
@@ -35,7 +43,7 @@ def test_build_harbor_command_runme_env_alias(tmp_path: Path) -> None:
     args = parse(["run", str(tmp_path), "--env", "runme"])
 
     assert cli.build_harbor_command(args) == [
-        "harbor",
+        "runme-harbor-harbor",
         "run",
         "--path",
         str(tmp_path.resolve()),
@@ -56,7 +64,7 @@ def test_build_harbor_command_builtin_env_uses_harbor_agent(tmp_path: Path) -> N
     command = cli.build_harbor_command(args)
 
     assert command == [
-        "harbor",
+        "runme-harbor-harbor",
         "run",
         "--path",
         str(tmp_path.resolve()),
@@ -78,6 +86,14 @@ def test_build_harbor_command_builtin_env_accepts_unknown_agent(tmp_path: Path) 
 
     assert command[command.index("--env") : command.index("--env") + 2] == ["--env", "docker"]
     assert command[command.index("--agent") : command.index("--agent") + 2] == ["--agent", "goose"]
+
+
+def test_build_harbor_command_accepts_resolved_harbor_bin(tmp_path: Path) -> None:
+    args = parse(["run", str(tmp_path)])
+
+    command = cli.build_harbor_command(args, harbor_bin=tmp_path / "bin" / "runme-harbor-harbor")
+
+    assert command[0] == str(tmp_path / "bin" / "runme-harbor-harbor")
 
 
 def test_build_harbor_command_codex(tmp_path: Path) -> None:
@@ -199,19 +215,20 @@ def test_build_harbor_command_rejects_environment_passthrough(
         cli.build_harbor_command(args)
 
 
-def test_main_runs_harbor_and_prints_debug(
+def test_main_runs_bundled_harbor_and_prints_debug(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr(cli, "_preflight", lambda _agent: None)
+    harbor_bin = tmp_path / "bin" / "runme-harbor-harbor"
+    monkeypatch.setattr(cli, "_preflight", lambda _agent: harbor_bin)
     monkeypatch.setattr(cli.subprocess, "call", lambda command: calls.append(command) or 7)
 
     assert cli.main(["run", str(tmp_path), "--debug"]) == 7
 
-    assert calls[0][0:2] == ["harbor", "run"]
-    assert "harbor run" in capsys.readouterr().err
+    assert calls[0][0:2] == [str(harbor_bin), "run"]
+    assert f"{harbor_bin} run" in capsys.readouterr().err
 
 
 def test_main_syncs_metadata_after_harbor_run(
@@ -219,7 +236,7 @@ def test_main_syncs_metadata_after_harbor_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     synced: list[str] = []
-    monkeypatch.setattr(cli, "_preflight", lambda _agent: None)
+    monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
     monkeypatch.setattr(cli.subprocess, "call", lambda _command: 7)
     monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
 
@@ -234,7 +251,7 @@ def test_main_skips_metadata_sync_when_disabled(
 ) -> None:
     synced: list[str] = []
     monkeypatch.setenv(cli.SKIP_METADATA_SYNC_ENV, "1")
-    monkeypatch.setattr(cli, "_preflight", lambda _agent: None)
+    monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
     monkeypatch.setattr(cli.subprocess, "call", lambda _command: 0)
     monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
 
@@ -288,6 +305,54 @@ def test_main_sync_metadata_command_reports_preflight_errors(
     assert capsys.readouterr().err == "Runme Harbor requires the `harbor` Python package.\n"
 
 
+def test_pyproject_exposes_runme_owned_scripts_only() -> None:
+    pyproject = Path(__file__).parents[1] / "pyproject.toml"
+    scripts = tomllib.loads(pyproject.read_text())["project"]["scripts"]
+
+    assert scripts["runme-harbor"] == "runme_harbor.cli:main"
+    assert scripts["runme-harbor-harbor"] == "harbor.cli.main:app"
+    assert "harbor" not in scripts
+    assert "hr" not in scripts
+    assert "hb" not in scripts
+
+
+def test_preflight_uses_bundled_harbor_executable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    runme_harbor = make_executable(bin_dir / "runme-harbor")
+    bundled_harbor = make_executable(bin_dir / "runme-harbor-harbor")
+
+    monkeypatch.setattr(sys, "argv", [str(runme_harbor), "run"])
+    monkeypatch.setattr(cli.importlib, "import_module", lambda _name: object())
+    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.13.1")
+    monkeypatch.setattr(cli.shutil, "which", lambda name: f"/usr/local/bin/{name}")
+
+    assert cli._preflight("oracle") == bundled_harbor.resolve()
+
+
+def test_preflight_rejects_global_harbor_without_bundled_sibling(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    runme_harbor = make_executable(bin_dir / "runme-harbor")
+    global_bin = tmp_path / "global-bin"
+    global_bin.mkdir()
+    make_executable(global_bin / "harbor")
+
+    monkeypatch.setenv("PATH", str(global_bin))
+    monkeypatch.setattr(sys, "argv", [str(runme_harbor), "run"])
+    monkeypatch.setattr(cli.importlib, "import_module", lambda _name: object())
+    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.13.1")
+
+    with pytest.raises(SystemExit, match="bundled `runme-harbor-harbor` executable"):
+        cli._preflight("oracle")
+
+
 @pytest.mark.parametrize(
     ("agent", "missing", "message"),
     [
@@ -298,10 +363,17 @@ def test_main_sync_metadata_command_reports_preflight_errors(
 )
 def test_preflight_requires_runme_agent_cli(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
     agent: str,
     missing: str,
     message: str,
 ) -> None:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    runme_harbor = make_executable(bin_dir / "runme-harbor")
+    make_executable(bin_dir / "runme-harbor-harbor")
+
+    monkeypatch.setattr(sys, "argv", [str(runme_harbor), "run"])
     monkeypatch.setattr(cli.importlib, "import_module", lambda _name: object())
     monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.13.1")
     monkeypatch.setattr(

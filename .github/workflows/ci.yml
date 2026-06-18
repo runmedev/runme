@@ -52,6 +52,31 @@ jobs:
       - name: Run tests
         working-directory: integrations/harbor
         run: uv run pytest
+      - name: Build package
+        working-directory: integrations/harbor
+        run: |
+          set -euo pipefail
+
+          rm -rf dist
+
+          proto_src="../../api/gen/proto/python/runme/harbor/v1"
+          proto_dst="src/runme_harbor/_proto/runme/harbor/v1"
+          mkdir -p "$proto_dst"
+          cp "$proto_src/harbor_pb2.py" "$proto_src/harbor_pb2.pyi" "$proto_dst/"
+
+          uv build
+      - name: Test wheel install
+        working-directory: integrations/harbor
+        run: |
+          set -euo pipefail
+
+          uv run --with dist/*.whl python -c "import runme_harbor"
+
+          tmp_tools="$(mktemp -d)"
+          trap 'rm -rf "$tmp_tools"' EXIT
+          UV_TOOL_DIR="$tmp_tools/tools" UV_TOOL_BIN_DIR="$tmp_tools/bin" uv tool install dist/*.whl
+          "$tmp_tools/bin/runme-harbor" --help >/dev/null
+          "$tmp_tools/bin/runme-harbor-harbor" --help >/dev/null
 
   build-and-test:
     # Don't use make here as this job needs to be cross-platform.

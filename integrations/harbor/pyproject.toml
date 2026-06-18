@@ -31,6 +31,7 @@ Issues = "https://github.com/runmedev/runme/issues"
 
 [project.scripts]
 runme-harbor = "runme_harbor.cli:main"
+runme-harbor-harbor = "harbor.cli.main:app"
 
 [build-system]
 requires = ["hatchling"]

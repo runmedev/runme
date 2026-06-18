@@ -17,7 +17,7 @@ The `runme` CLI must be installed separately and available on `PATH`.
 
 ## Build
 
-Run the full local validation and build workflow:
+Build the distribution artifacts:
 
 ```sh {"name":"build-harbor"}
 set -euo pipefail
@@ -29,16 +29,7 @@ proto_dst="src/runme_harbor/_proto/runme/harbor/v1"
 mkdir -p "$proto_dst"
 cp "$proto_src/harbor_pb2.py" "$proto_src/harbor_pb2.pyi" "$proto_dst/"
 
-uv sync --locked --all-extras --dev
-uv run ruff check .
-uv run pytest
-
-(cd ../.. && go test ./cmd ./internal/harbor)
-
 uv build
-
-uv run --with dist/*.whl python -c "import runme_harbor"
-uv tool run --from dist/*.whl runme-harbor --help >/dev/null
 ```
 
 Publishing is intentionally not part of `build-harbor`. Release automation runs
