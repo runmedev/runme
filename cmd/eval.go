@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/runmedev/runme/v3/internal/harbor"
+	"github.com/runmedev/runme/v3/project"
 )
 
 const (
@@ -23,23 +24,24 @@ const (
 var errRunmeHarborMissing = errors.New("runme-harbor missing")
 
 type evalOptions struct {
-	agent       string
-	taskDir     string
-	jobsDir     string
-	yes         bool
-	model       string
-	env         string
-	runmeBin    string
-	runmeArgs   []string
-	runmeHarbor string
-	debug       bool
-	commandRun  commandRunFunc
-	lookPath    func(string) (string, error)
-	executable  func() (string, error)
-	stdout      io.Writer
-	stderr      io.Writer
-	extraEnv    []string
-	preflight   bool
+	agent           string
+	taskDir         string
+	jobsDir         string
+	yes             bool
+	model           string
+	env             string
+	runmeBin        string
+	runmeArgs       []string
+	runmeHarbor     string
+	debug           bool
+	jobsDirExplicit bool
+	commandRun      commandRunFunc
+	lookPath        func(string) (string, error)
+	executable      func() (string, error)
+	stdout          io.Writer
+	stderr          io.Writer
+	extraEnv        []string
+	preflight       bool
 }
 
 type commandRunFunc func(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error
@@ -66,6 +68,7 @@ When dataset-path is omitted, runme eval uses ./%s.`, defaultEvalDatasetPath),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.stdout = cmd.OutOrStdout()
 			opts.stderr = cmd.ErrOrStderr()
+			opts.jobsDirExplicit = cmd.Flags().Changed("jobs-dir")
 			return runEval(opts, args)
 		},
 	}
@@ -86,17 +89,16 @@ When dataset-path is omitted, runme eval uses ./%s.`, defaultEvalDatasetPath),
 }
 
 func runEval(opts evalOptions, args []string) error {
-	datasetArg, passthrough := splitEvalDatasetArg(args)
-	datasetPath, err := filepath.Abs(datasetArg)
+	datasetPath, passthrough, defaultDataset, err := resolveEvalPaths(&opts, args)
 	if err != nil {
 		return err
 	}
 	if _, err := os.Stat(datasetPath); err != nil {
 		if os.IsNotExist(err) {
-			if datasetArg == defaultEvalDatasetPath {
-				return fmt.Errorf("dataset path does not exist: %s; create it or pass a dataset path explicitly", datasetArg)
+			if defaultDataset {
+				return fmt.Errorf("dataset path does not exist: %s; create it or pass a dataset path explicitly", defaultEvalDatasetPath)
 			}
-			return fmt.Errorf("dataset path does not exist: %s", datasetArg)
+			return fmt.Errorf("dataset path does not exist: %s", datasetPath)
 		}
 		return err
 	}
@@ -167,6 +169,41 @@ func runEval(opts evalOptions, args []string) error {
 	return err
 }
 
+func resolveEvalPaths(opts *evalOptions, args []string) (string, []string, bool, error) {
+	datasetArg, defaultDataset, passthrough := splitEvalDatasetArg(args)
+	if defaultDataset {
+		baseDir, err := evalDefaultBaseDir()
+		if err != nil {
+			return "", nil, false, err
+		}
+		if !opts.jobsDirExplicit {
+			opts.jobsDir = filepath.Join(baseDir, defaultEvalJobsDir)
+		}
+		return filepath.Join(baseDir, defaultEvalDatasetPath), passthrough, true, nil
+	}
+
+	datasetPath, err := filepath.Abs(datasetArg)
+	if err != nil {
+		return "", nil, false, err
+	}
+	if !opts.jobsDirExplicit {
+		baseDir, err := evalDefaultBaseDir()
+		if err != nil {
+			return "", nil, false, err
+		}
+		opts.jobsDir = filepath.Join(baseDir, defaultEvalJobsDir)
+	}
+	return datasetPath, passthrough, false, nil
+}
+
+func evalDefaultBaseDir() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return defaultEvalBaseDir(cwd), nil
+}
+
 func validateEvalArgs(_ *cobra.Command, args []string) error {
 	if len(args) < 2 {
 		return nil
@@ -180,11 +217,24 @@ func validateEvalArgs(_ *cobra.Command, args []string) error {
 	return fmt.Errorf("accepts at most 1 dataset path, received %d", len(args))
 }
 
-func splitEvalDatasetArg(args []string) (string, []string) {
+func splitEvalDatasetArg(args []string) (string, bool, []string) {
 	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
-		return defaultEvalDatasetPath, args
+		return defaultEvalDatasetPath, true, args
 	}
-	return args[0], args[1:]
+	return args[0], false, args[1:]
+}
+
+func defaultEvalBaseDir(cwd string) string {
+	proj, err := project.NewDirProject(
+		cwd,
+		project.WithFindRepoUpward(),
+		project.WithAllowUnsupportedGitExtensions(true),
+		project.WithRespectGitignore(false),
+	)
+	if err != nil {
+		return cwd
+	}
+	return proj.Root()
 }
 
 func resolveRunmeHarbor(opts evalOptions) (string, error) {
