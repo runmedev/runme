@@ -1,17 +1,23 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
+	"syscall"
 
+	"github.com/creack/pty"
 	"github.com/spf13/cobra"
 
+	"github.com/runmedev/runme/v3/internal/ansi"
 	"github.com/runmedev/runme/v3/internal/harbor"
 	"github.com/runmedev/runme/v3/project"
 )
@@ -19,6 +25,7 @@ import (
 const (
 	defaultEvalDatasetPath = "evals/tasks"
 	defaultEvalJobsDir     = ".runme/evals/jobs"
+	maxHarborResultLineLen = 64 * 1024
 )
 
 var errRunmeHarborMissing = errors.New("runme-harbor missing")
@@ -46,6 +53,13 @@ type evalOptions struct {
 }
 
 type commandRunFunc func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error
+
+type harborResultPathWriter struct {
+	dst         io.Writer
+	line        []byte
+	lineTooLong bool
+	resultPath  string
+}
 
 func evalCmd() *cobra.Command {
 	opts := evalOptions{
@@ -155,7 +169,11 @@ func runEval(opts evalOptions, args []string) error {
 		_, _ = fmt.Fprintf(opts.stderr, "%s\n", shellCommandString(append([]string{runmeHarbor}, delegatedArgs...)))
 	}
 
-	err = opts.commandRun(runmeHarbor, delegatedArgs, opts.evalBaseDir, env, os.Stdin, opts.stdout, opts.stderr)
+	harborStdout := &harborResultPathWriter{dst: opts.stdout}
+	err = opts.commandRun(runmeHarbor, delegatedArgs, opts.evalBaseDir, env, os.Stdin, harborStdout, opts.stderr)
+	if jobDir := evalJobDirFromResultPath(harborStdout.ResultPath(), opts.evalBaseDir); jobDir != "" {
+		printEvalExceptionDetails(opts.stdout, jobDir)
+	}
 	if err == nil {
 		return nil
 	}
@@ -359,14 +377,169 @@ func usesHarborDockerEnvironment(env string) bool {
 	return env == "docker"
 }
 
+func (w *harborResultPathWriter) Write(p []byte) (int, error) {
+	// Forward Harbor output before inspecting it so progress and tables keep streaming.
+	n, err := w.dst.Write(p)
+	remaining := p[:n]
+	for len(remaining) > 0 {
+		index := bytes.IndexByte(remaining, '\n')
+		if index < 0 {
+			w.appendLine(remaining)
+			break
+		}
+		w.appendLine(remaining[:index])
+		if !w.lineTooLong {
+			w.recordLine(w.line)
+		}
+		w.line = w.line[:0]
+		w.lineTooLong = false
+		remaining = remaining[index+1:]
+	}
+	return n, err
+}
+
+func (w *harborResultPathWriter) ResultPath() string {
+	if len(w.line) > 0 && !w.lineTooLong {
+		w.recordLine(w.line)
+		w.line = nil
+	}
+	return w.resultPath
+}
+
+func (w *harborResultPathWriter) StdoutFile() *os.File {
+	file, _ := w.dst.(*os.File)
+	return file
+}
+
+func (w *harborResultPathWriter) appendLine(p []byte) {
+	if w.lineTooLong {
+		return
+	}
+	if len(w.line)+len(p) > maxHarborResultLineLen {
+		w.line = w.line[:0]
+		w.lineTooLong = true
+		return
+	}
+	w.line = append(w.line, p...)
+}
+
+func (w *harborResultPathWriter) recordLine(line []byte) {
+	const prefix = "Results written to "
+	text := strings.TrimSpace(string(ansi.Strip(line)))
+	index := strings.Index(text, prefix)
+	if index == -1 {
+		return
+	}
+	w.resultPath = strings.TrimSpace(text[index+len(prefix):])
+}
+
+func evalJobDirFromResultPath(resultPath, evalBaseDir string) string {
+	if resultPath == "" {
+		return ""
+	}
+	if !filepath.IsAbs(resultPath) && evalBaseDir != "" {
+		resultPath = filepath.Join(evalBaseDir, resultPath)
+	}
+	return filepath.Dir(resultPath)
+}
+
+func printEvalExceptionDetails(w io.Writer, jobDir string) {
+	paths := evalExceptionFiles(jobDir)
+	if len(paths) == 0 {
+		return
+	}
+
+	printed := false
+	for _, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		detail := strings.TrimSpace(string(content))
+		if detail == "" {
+			continue
+		}
+		if !printed {
+			_, _ = fmt.Fprintln(w)
+			_, _ = fmt.Fprintln(w, ansi.Color("Harbor Exception Details", "red+b"))
+			printed = true
+		}
+		_, _ = fmt.Fprintf(w, "\nFile: %s\n%s\n", evalExceptionDisplayPath(jobDir, path), detail)
+	}
+}
+
+func evalExceptionDisplayPath(jobsDir, path string) string {
+	relative, err := filepath.Rel(jobsDir, path)
+	if err != nil || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) || relative == ".." {
+		return path
+	}
+	return relative
+}
+
+func evalExceptionFiles(jobDir string) []string {
+	var paths []string
+	_ = filepath.WalkDir(jobDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || filepath.Base(path) != "exception.txt" {
+			return nil
+		}
+		paths = append(paths, path)
+		return nil
+	})
+	sort.Strings(paths)
+	return paths
+}
+
 func runExternalCommand(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	cmd := exec.Command(name, args...)
 	cmd.Dir = workingDir
 	cmd.Env = env
+	if provider, ok := stdout.(interface{ StdoutFile() *os.File }); ok {
+		if file := provider.StdoutFile(); file != nil && isTerminal(file.Fd()) {
+			return runExternalCommandWithPtyStdout(cmd, stdin, stdout, stderr, file)
+		}
+	}
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Stdin = stdin
 	return cmd.Run()
+}
+
+func runExternalCommandWithPtyStdout(cmd *exec.Cmd, stdin io.Reader, stdout, stderr io.Writer, stdoutFile *os.File) error {
+	ptmx, tty, err := pty.Open()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = ptmx.Close() }()
+	defer func() { _ = tty.Close() }()
+	_ = pty.InheritSize(stdoutFile, ptmx)
+
+	cmd.Stdout = tty
+	cmd.Stderr = stderr
+	cmd.Stdin = stdin
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	_ = tty.Close()
+
+	copyDone := make(chan error, 1)
+	go func() {
+		_, err := io.Copy(stdout, ptmx)
+		copyDone <- err
+	}()
+
+	waitErr := cmd.Wait()
+	_ = ptmx.Close()
+	copyErr := <-copyDone
+	if waitErr != nil {
+		return waitErr
+	}
+	if copyErr != nil && !errors.Is(copyErr, os.ErrClosed) {
+		if errors.Is(copyErr, syscall.EIO) {
+			return nil
+		}
+		return copyErr
+	}
+	return nil
 }
 
 func setEnv(env []string, key, value string) []string {

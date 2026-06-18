@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/go-git/go-git/v5"
+
+	"github.com/runmedev/runme/v3/internal/ansi"
 )
 
 type recordedCommand struct {
@@ -674,6 +677,128 @@ func TestRunEvalPropagatesDelegateExitCode(t *testing.T) {
 	}
 }
 
+func TestRunEvalPrintsExceptionDetailsAfterHarborOutput(t *testing.T) {
+	path := t.TempDir()
+	jobsDir := filepath.Join(t.TempDir(), "jobs")
+	jobDir := filepath.Join(jobsDir, "2026-06-18__10-51-14")
+	resultPath := filepath.Join(jobDir, "result.json")
+	var stdout bytes.Buffer
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.jobsDir = jobsDir
+	opts.jobsDirExplicit = true
+	opts.stdout = &stdout
+	opts.commandRun = func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdoutWriter, stderr io.Writer) error {
+		calls = append(calls, recordedCommand{name: name, args: append([]string(nil), args...), workingDir: workingDir, env: env})
+		if len(calls) == 2 {
+			_, _ = fmt.Fprintf(stdoutWriter, "Exception           Count\nHarborProtocolError 1\nResults written to %s\n", resultPath)
+			writeEvalException(t, jobDir, "end-to-end__abc/exception.txt", "HarborProtocolError: runme failed with useful context\n")
+			return fakeExitError{code: 7}
+		}
+		return nil
+	}
+
+	err := runEval(opts, []string{path})
+	var exitErr ExitCodeError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T %v, want ExitCodeError", err, err)
+	}
+
+	output := string(ansi.Strip(stdout.Bytes()))
+	if !strings.Contains(output, "Exception           Count\nHarborProtocolError 1\nResults written to "+resultPath+"\n\nHarbor Exception Details\n") {
+		t.Fatalf("output = %q", output)
+	}
+	if !strings.Contains(output, "File: end-to-end__abc/exception.txt") {
+		t.Fatalf("output = %q", output)
+	}
+	if !strings.Contains(output, "HarborProtocolError: runme failed with useful context") {
+		t.Fatalf("output = %q", output)
+	}
+}
+
+func TestRunEvalPrintsExceptionDetailsForDockerEnvironment(t *testing.T) {
+	workspace := t.TempDir()
+	t.Chdir(workspace)
+	dataset, _, _ := makeHarborDockerDataset(t, workspace, "/app/source/workdir")
+	jobsDir := filepath.Join(t.TempDir(), "jobs")
+	jobDir := filepath.Join(jobsDir, "2026-06-18__10-51-14")
+	resultPath := filepath.Join(jobDir, "result.json")
+	var stdout bytes.Buffer
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.env = "docker"
+	opts.jobsDir = jobsDir
+	opts.jobsDirExplicit = true
+	opts.stdout = &stdout
+	opts.commandRun = func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdoutWriter, stderr io.Writer) error {
+		calls = append(calls, recordedCommand{name: name, args: append([]string(nil), args...), workingDir: workingDir, env: env})
+		_, _ = fmt.Fprintf(stdoutWriter, "Exception           Count\nHarborProtocolError 1\nResults written to %s\n", resultPath)
+		writeEvalException(t, jobDir, "end-to-end__abc/exception.txt", "ValueError: docker detail should be visible\n")
+		return fakeExitError{code: 7}
+	}
+
+	err := runEval(opts, []string{dataset})
+	var exitErr ExitCodeError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T %v, want ExitCodeError", err, err)
+	}
+	output := string(ansi.Strip(stdout.Bytes()))
+	if !strings.Contains(output, "Harbor Exception Details") || !strings.Contains(output, "ValueError: docker detail should be visible") {
+		t.Fatalf("output = %q", stdout.String())
+	}
+}
+
+func TestRunEvalOnlyPrintsExceptionDetailsForReportedJob(t *testing.T) {
+	path := t.TempDir()
+	jobsDir := filepath.Join(t.TempDir(), "jobs")
+	jobDir := filepath.Join(jobsDir, "current")
+	resultPath := filepath.Join(jobDir, "result.json")
+	writeEvalException(t, jobsDir, "other/attempt/exception.txt", "other detail\n")
+	writeEvalException(t, jobDir, "attempt/exception.txt", "current detail\n")
+	var stdout bytes.Buffer
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.jobsDir = jobsDir
+	opts.jobsDirExplicit = true
+	opts.stdout = &stdout
+	opts.commandRun = func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdoutWriter, stderr io.Writer) error {
+		calls = append(calls, recordedCommand{name: name, args: append([]string(nil), args...), workingDir: workingDir, env: env})
+		if len(calls) == 2 {
+			_, _ = fmt.Fprintf(stdoutWriter, "Exception           Count\nHarborProtocolError 1\nResults written to %s\n", resultPath)
+			return fakeExitError{code: 7}
+		}
+		return nil
+	}
+
+	err := runEval(opts, []string{path})
+	var exitErr ExitCodeError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T %v, want ExitCodeError", err, err)
+	}
+	output := string(ansi.Strip(stdout.Bytes()))
+	if !strings.Contains(output, "Harbor Exception Details") || !strings.Contains(output, "current detail") {
+		t.Fatalf("output = %q", stdout.String())
+	}
+	if strings.Contains(output, "other detail") {
+		t.Fatalf("output = %q", stdout.String())
+	}
+}
+
+func TestHarborResultPathWriterStreamsBeforeNewline(t *testing.T) {
+	var stdout bytes.Buffer
+	writer := &harborResultPathWriter{dst: &stdout}
+
+	if _, err := writer.Write([]byte("1/1 Mean: 0.000")); err != nil {
+		t.Fatal(err)
+	}
+	if got := stdout.String(); got != "1/1 Mean: 0.000" {
+		t.Fatalf("stdout = %q, want streamed partial line", got)
+	}
+	if got := writer.ResultPath(); got != "" {
+		t.Fatalf("result path = %q, want empty before result line", got)
+	}
+}
+
 func testEvalOptions(t *testing.T, calls *[]recordedCommand, stderr io.Writer) evalOptions {
 	t.Helper()
 	return evalOptions{
@@ -780,4 +905,15 @@ func makeHarborDockerDataset(t *testing.T, workspace string, remoteWorkdir strin
 		t.Fatal(err)
 	}
 	return dataset, workdir, target
+}
+
+func writeEvalException(t *testing.T, jobsDir, relativePath, content string) {
+	t.Helper()
+	path := filepath.Join(jobsDir, relativePath)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
