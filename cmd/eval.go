@@ -17,7 +17,7 @@ type evalOptions struct {
 	agent           string
 	taskDir         string
 	jobsDir         string
-	yes             bool
+	ask             bool
 	model           string
 	env             string
 	runmeBin        string
@@ -64,7 +64,7 @@ When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetP
 	flags.StringVar(&opts.agent, "agent", "oracle", "Harbor agent to use")
 	flags.StringVar(&opts.taskDir, "task-dir", "", "Task directory name to include from the Harbor dataset")
 	flags.StringVar(&opts.jobsDir, "jobs-dir", harbor.DefaultEvalJobsDir, "Eval jobs directory")
-	flags.BoolVarP(&opts.yes, "yes", "y", false, "Confirm Harbor prompts")
+	flags.BoolVar(&opts.ask, "ask", false, "Do not auto-accept Harbor confirmation prompts")
 	flags.StringVar(&opts.model, "model", "", "Harbor agent model")
 	flags.StringVarP(&opts.env, "env", "e", "", `Harbor environment to use. Defaults to "runme"`)
 	flags.StringVar(&opts.runmeBin, "runme-bin", "", "Runme binary used by the Harbor environment")
@@ -80,7 +80,7 @@ func runEval(opts evalOptions, args []string) error {
 		Agent:           opts.agent,
 		TaskDir:         opts.taskDir,
 		JobsDir:         opts.jobsDir,
-		Yes:             opts.yes,
+		Ask:             opts.ask,
 		Model:           opts.model,
 		Env:             opts.env,
 		RunmeBin:        opts.runmeBin,

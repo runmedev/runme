@@ -28,7 +28,7 @@ type EvalOptions struct {
 	Agent           string
 	TaskDir         string
 	JobsDir         string
-	Yes             bool
+	Ask             bool
 	Model           string
 	Env             string
 	RunmeBin        string
@@ -261,7 +261,7 @@ func buildRunmeHarborArgs(datasetPath string, opts EvalOptions, passthrough []st
 	if opts.TaskDir != "" {
 		args = append(args, "--task-dir", opts.TaskDir)
 	}
-	if opts.Yes {
+	if !opts.Ask {
 		args = append(args, "-y")
 	}
 	if opts.Debug {

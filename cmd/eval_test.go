@@ -43,7 +43,7 @@ func TestEvalCmdPassesOptionsToHarborRunner(t *testing.T) {
 		"--agent", "codex",
 		"--task-dir", "simple-agent",
 		"--jobs-dir", "jobs",
-		"--yes",
+		"--ask",
 		"--model", "haiku",
 		"--env", "docker",
 		"--runme-bin", "/bin/runme",
@@ -72,7 +72,7 @@ func TestEvalCmdPassesOptionsToHarborRunner(t *testing.T) {
 		gotOpts.TaskDir != "simple-agent" ||
 		gotOpts.JobsDir != "jobs" ||
 		!gotOpts.JobsDirExplicit ||
-		!gotOpts.Yes ||
+		!gotOpts.Ask ||
 		gotOpts.Model != "haiku" ||
 		gotOpts.Env != "docker" ||
 		gotOpts.RunmeBin != "/bin/runme" ||
@@ -116,6 +116,29 @@ func TestEvalCmdRejectsTaskNameFlag(t *testing.T) {
 	}
 }
 
+func TestEvalCmdRejectsYesFlags(t *testing.T) {
+	for _, args := range [][]string{
+		{t.TempDir(), "-y"},
+		{t.TempDir(), "--yes"},
+	} {
+		t.Run(strings.Join(args[1:], " "), func(t *testing.T) {
+			cmd := evalCmd()
+			cmd.SetArgs(args)
+			cmd.SetOut(io.Discard)
+			cmd.SetErr(io.Discard)
+
+			err := cmd.Execute()
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if !strings.Contains(err.Error(), "unknown shorthand flag: 'y'") &&
+				!strings.Contains(err.Error(), "unknown flag: --yes") {
+				t.Fatalf("error = %q", err.Error())
+			}
+		})
+	}
+}
+
 func TestEvalCmdHelpIncludesDefaultDatasetPath(t *testing.T) {
 	cmd := evalCmd()
 	var stdout bytes.Buffer
@@ -134,6 +157,9 @@ func TestEvalCmdHelpIncludesDefaultDatasetPath(t *testing.T) {
 		t.Fatalf("help output = %q", stdout.String())
 	}
 	if !strings.Contains(stdout.String(), `Defaults to "runme"`) {
+		t.Fatalf("help output = %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `--ask`) {
 		t.Fatalf("help output = %q", stdout.String())
 	}
 }

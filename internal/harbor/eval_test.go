@@ -64,6 +64,7 @@ func TestRunEvalDelegatesOracle(t *testing.T) {
 			mustAbs(t, path),
 			"--agent", "oracle",
 			"--jobs-dir", defaultJobsDir(t),
+			"-y",
 			"--debug",
 			"--",
 			"--extra",
@@ -104,6 +105,7 @@ func TestRunEvalDefaultsDatasetPath(t *testing.T) {
 		defaultDatasetPath(t),
 		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"-y",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -132,6 +134,7 @@ func TestRunEvalDefaultsDatasetPathWithPassthrough(t *testing.T) {
 		defaultDatasetPath(t),
 		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"-y",
 		"--",
 		"--model", "haiku",
 	}
@@ -170,6 +173,7 @@ func TestRunEvalDefaultsUseGitRoot(t *testing.T) {
 		filepath.Join(baseDir, DefaultEvalDatasetPath),
 		"--agent", "oracle",
 		"--jobs-dir", filepath.Join(baseDir, DefaultEvalJobsDir),
+		"-y",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -204,6 +208,7 @@ func TestRunEvalExplicitDatasetUsesCwdAndDefaultJobsUseGitRoot(t *testing.T) {
 		dataset,
 		"--agent", "oracle",
 		"--jobs-dir", filepath.Join(baseDir, DefaultEvalJobsDir),
+		"-y",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -242,6 +247,7 @@ func TestRunEvalExplicitJobsDirIsUnchanged(t *testing.T) {
 		filepath.Join(baseDir, DefaultEvalDatasetPath),
 		"--agent", "oracle",
 		"--jobs-dir", "custom/jobs",
+		"-y",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -267,7 +273,6 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 			opts.TaskDir = "simple-agent"
 			opts.JobsDir = "jobs"
 			opts.JobsDirExplicit = true
-			opts.Yes = true
 
 			err := NewEvalRunner(opts).Run([]string{path})
 			if err != nil {
@@ -289,6 +294,28 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 	}
 }
 
+func TestRunEvalAskDoesNotDelegateYes(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.Ask = true
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultJobsDir(t),
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
 func TestRunEvalDelegatesModel(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
@@ -305,6 +332,7 @@ func TestRunEvalDelegatesModel(t *testing.T) {
 		mustAbs(t, path),
 		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"-y",
 		"--",
 		"--model", "haiku",
 	}
@@ -328,6 +356,7 @@ func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 		mustAbs(t, path),
 		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"-y",
 		"--",
 		"--model", "haiku",
 	}
@@ -384,6 +413,7 @@ func TestRunEvalDelegatesRunmeEnvAlias(t *testing.T) {
 		mustAbs(t, path),
 		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"-y",
 		"--env", "runme",
 	}
 	if !sameCommand(calls[0], wantPreflight) {
@@ -411,6 +441,7 @@ func TestRunEvalDelegatesNonRunmeEnvWithoutPreflight(t *testing.T) {
 		mustAbs(t, path),
 		"--agent", "codex",
 		"--jobs-dir", defaultJobsDir(t),
+		"-y",
 		"--env", "docker",
 	}
 	if len(calls) != 1 {
@@ -553,6 +584,7 @@ func TestRunEvalDelegatesUnknownAgent(t *testing.T) {
 		mustAbs(t, path),
 		"--agent", "bad",
 		"--jobs-dir", defaultJobsDir(t),
+		"-y",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
