@@ -52,6 +52,22 @@ jobs:
       - name: Run tests
         working-directory: integrations/harbor
         run: uv run pytest
+      - name: Build package
+        uses: stateful/runme-action@v2
+        with:
+          workflows: build-harbor
+      - name: Test wheel install
+        working-directory: integrations/harbor
+        run: |
+          set -euo pipefail
+
+          uv run --with dist/*.whl python -c "import runme_harbor"
+
+          tmp_tools="$(mktemp -d)"
+          trap 'rm -rf "$tmp_tools"' EXIT
+          UV_TOOL_DIR="$tmp_tools/tools" UV_TOOL_BIN_DIR="$tmp_tools/bin" uv tool install dist/*.whl
+          "$tmp_tools/bin/runme-harbor" --help >/dev/null
+          "$tmp_tools/bin/runme-harbor-harbor" --help >/dev/null
 
   build-and-test:
     # Don't use make here as this job needs to be cross-platform.

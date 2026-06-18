@@ -1,6 +1,6 @@
 [project]
 name = "runme-harbor"
-version = "0.0.1"
+version = "0.0.2"
 description = "Runme Harbor environment adapter"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -31,6 +31,7 @@ Issues = "https://github.com/runmedev/runme/issues"
 
 [project.scripts]
 runme-harbor = "runme_harbor.cli:main"
+runme-harbor-harbor = "harbor.cli.main:app"
 
 [build-system]
 requires = ["hatchling"]

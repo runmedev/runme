@@ -19,6 +19,7 @@ OPENCLAW_IMPORT_PATH = "runme_harbor.runme_agents:RunmeOpenClaw"
 MIN_HARBOR_VERSION = (0, 13, 1)
 MAX_HARBOR_VERSION = (0, 14, 0)
 SKIP_METADATA_SYNC_ENV = "RUNME_HARBOR_SKIP_METADATA_SYNC"
+BUNDLED_HARBOR_EXECUTABLE = "runme-harbor-harbor"
 AGENT_ARGUMENTS = {
     "oracle": ("--agent", "oracle"),
     "codex": ("--agent-import-path", CODEX_IMPORT_PATH),
@@ -43,8 +44,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def run(args: argparse.Namespace) -> int:
-    _preflight(args.agent)
-    command = build_harbor_command(args)
+    harbor_bin = _preflight(args.agent)
+    command = build_harbor_command(args, harbor_bin=harbor_bin)
     if args.debug:
         print(_command_string(command), file=sys.stderr)
     exit_code = subprocess.call(command)
@@ -68,10 +69,13 @@ def sync_metadata(args: argparse.Namespace) -> int:
     return 0
 
 
-def build_harbor_command(args: argparse.Namespace) -> list[str]:
+def build_harbor_command(
+    args: argparse.Namespace,
+    harbor_bin: str | Path = BUNDLED_HARBOR_EXECUTABLE,
+) -> list[str]:
     dataset_path = str(Path(args.dataset_path).expanduser().resolve())
     command = [
-        "harbor",
+        str(harbor_bin),
         "run",
         "--path",
         dataset_path,
@@ -160,10 +164,14 @@ def _uses_runme_environment(env: str | None) -> bool:
     return env in {None, "", "runme"}
 
 
-def _preflight(agent: str) -> None:
+def _preflight(agent: str) -> Path:
     _preflight_harbor_package()
-    if not shutil.which("harbor"):
-        raise SystemExit("Runme Harbor requires the `harbor` CLI on PATH.")
+    harbor_bin = _bundled_harbor_executable()
+    if not harbor_bin:
+        raise SystemExit(
+            "Runme Harbor expected a bundled `runme-harbor-harbor` executable next to "
+            "`runme-harbor`. Reinstall with:\n  uv tool install runme-harbor --force"
+        )
 
     try:
         importlib.import_module("runme_harbor")
@@ -176,6 +184,35 @@ def _preflight(agent: str) -> None:
         raise SystemExit("`--agent claude-code` requires the `claude` CLI on PATH.")
     if agent == "openclaw" and not shutil.which("openclaw"):
         raise SystemExit("`--agent openclaw` requires the `openclaw` CLI on PATH.")
+    return harbor_bin
+
+
+def _bundled_harbor_executable() -> Path | None:
+    entrypoint = _current_entrypoint()
+    if not entrypoint:
+        return None
+
+    candidate = entrypoint.with_name(_script_name(BUNDLED_HARBOR_EXECUTABLE))
+    if candidate.exists() and os.access(candidate, os.X_OK):
+        return candidate
+    return None
+
+
+def _current_entrypoint() -> Path | None:
+    argv0 = Path(sys.argv[0])
+    if argv0.parent != Path("."):
+        return argv0.resolve()
+
+    resolved = shutil.which(argv0.name)
+    if resolved:
+        return Path(resolved).resolve()
+    return None
+
+
+def _script_name(name: str) -> str:
+    if os.name == "nt":
+        return f"{name}.exe"
+    return name
 
 
 def _preflight_harbor_package() -> None:
