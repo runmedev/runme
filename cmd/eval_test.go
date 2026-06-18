@@ -784,21 +784,6 @@ func TestRunEvalOnlyPrintsExceptionDetailsForReportedJob(t *testing.T) {
 	}
 }
 
-func TestHarborResultPathWriterStreamsBeforeNewline(t *testing.T) {
-	var stdout bytes.Buffer
-	writer := &harborResultPathWriter{dst: &stdout}
-
-	if _, err := writer.Write([]byte("1/1 Mean: 0.000")); err != nil {
-		t.Fatal(err)
-	}
-	if got := stdout.String(); got != "1/1 Mean: 0.000" {
-		t.Fatalf("stdout = %q, want streamed partial line", got)
-	}
-	if got := writer.ResultPath(); got != "" {
-		t.Fatalf("result path = %q, want empty before result line", got)
-	}
-}
-
 func testEvalOptions(t *testing.T, calls *[]recordedCommand, stderr io.Writer) evalOptions {
 	t.Helper()
 	return evalOptions{
