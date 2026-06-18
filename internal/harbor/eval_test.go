@@ -640,7 +640,7 @@ func TestRunEvalPrintsExceptionDetailsAfterHarborOutput(t *testing.T) {
 	}
 
 	output := string(ansi.Strip(stdout.Bytes()))
-	if !strings.Contains(output, "Exception           Count\nHarborProtocolError 1\nResults written to "+resultPath+"\n\nHarbor Exception Details\n") {
+	if !strings.Contains(output, "Exception           Count\nHarborProtocolError 1\nResults written to "+resultPath+"\nHarbor Exception Details\n") {
 		t.Fatalf("output = %q", output)
 	}
 	if !strings.Contains(output, "File: end-to-end__abc/exception.txt") {

@@ -116,25 +116,11 @@ func PrintExceptionDetails(w io.Writer, jobDir string) {
 			continue
 		}
 		if !printed {
-			_, _ = fmt.Fprintln(w)
-			_, _ = fmt.Fprintln(w, exceptionDetailsHeading(w))
+			_, _ = fmt.Fprintln(w, ansi.ColorForWriter(w, "Harbor Exception Details", "red+b"))
 			printed = true
 		}
 		_, _ = fmt.Fprintf(w, "\nFile: %s\n%s\n", exceptionDisplayPath(jobDir, path), detail)
 	}
-}
-
-func exceptionDetailsHeading(w io.Writer) string {
-	const heading = "Harbor Exception Details"
-	if file, ok := w.(*os.File); ok && isTerminal(file.Fd()) {
-		return ansi.Color(heading, "red+b")
-	}
-	if provider, ok := w.(interface{ StdoutFile() *os.File }); ok {
-		if file := provider.StdoutFile(); file != nil && isTerminal(file.Fd()) {
-			return ansi.Color(heading, "red+b")
-		}
-	}
-	return heading
 }
 
 func exceptionDisplayPath(jobDir, path string) string {

@@ -69,6 +69,9 @@ func TestPrintExceptionDetailsDoesNotColorNonTerminalOutput(t *testing.T) {
 	if strings.Contains(stdout.String(), "\x1b[") {
 		t.Fatalf("output contains ANSI escape sequence: %q", stdout.String())
 	}
+	if strings.HasPrefix(stdout.String(), "\n") {
+		t.Fatalf("output starts with extra newline: %q", stdout.String())
+	}
 	if !strings.Contains(stdout.String(), "Harbor Exception Details") {
 		t.Fatalf("output = %q", stdout.String())
 	}

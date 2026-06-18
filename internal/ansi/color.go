@@ -1,8 +1,10 @@
 package ansi
 
 import (
+	"io"
 	"os"
 
+	"github.com/mattn/go-isatty"
 	"github.com/mgutz/ansi"
 )
 
@@ -23,4 +25,28 @@ func Color(s string, style string) string {
 	}
 
 	return ansi.Color(s, style)
+}
+
+// ColorForWriter colors s only when w is connected to a terminal.
+func ColorForWriter(w io.Writer, s, style string) string {
+	if !WriterSupportsColor(w) {
+		return s
+	}
+	return Color(s, style)
+}
+
+// WriterSupportsColor reports whether w is connected to a terminal that can display ANSI colors.
+func WriterSupportsColor(w io.Writer) bool {
+	if file, ok := w.(*os.File); ok {
+		return isTerminal(file.Fd())
+	}
+	if provider, ok := w.(interface{ StdoutFile() *os.File }); ok {
+		file := provider.StdoutFile()
+		return file != nil && isTerminal(file.Fd())
+	}
+	return false
+}
+
+func isTerminal(fd uintptr) bool {
+	return isatty.IsTerminal(fd) || isatty.IsCygwinTerminal(fd)
 }
