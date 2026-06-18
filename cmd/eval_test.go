@@ -9,12 +9,15 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/go-git/go-git/v5"
 )
 
 type recordedCommand struct {
-	name string
-	args []string
-	env  []string
+	name       string
+	args       []string
+	workingDir string
+	env        []string
 }
 
 type fakeExitError struct {
@@ -55,7 +58,7 @@ func TestRunEvalDelegatesOracle(t *testing.T) {
 			"run",
 			mustAbs(t, path),
 			"--agent", "oracle",
-			"--jobs-dir", defaultEvalJobsDir,
+			"--jobs-dir", defaultJobsDir(t),
 			"--debug",
 			"--",
 			"--extra",
@@ -93,12 +96,15 @@ func TestRunEvalDefaultsDatasetPath(t *testing.T) {
 
 	want := []string{
 		"run",
-		mustAbs(t, defaultEvalDatasetPath),
+		defaultDatasetPath(t),
 		"--agent", "oracle",
-		"--jobs-dir", defaultEvalJobsDir,
+		"--jobs-dir", defaultJobsDir(t),
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != defaultEvalBaseDir(tmp) {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, defaultEvalBaseDir(tmp))
 	}
 }
 
@@ -118,14 +124,125 @@ func TestRunEvalDefaultsDatasetPathWithPassthrough(t *testing.T) {
 
 	want := []string{
 		"run",
-		mustAbs(t, defaultEvalDatasetPath),
+		defaultDatasetPath(t),
 		"--agent", "oracle",
-		"--jobs-dir", defaultEvalJobsDir,
+		"--jobs-dir", defaultJobsDir(t),
 		"--",
 		"--model", "haiku",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != defaultEvalBaseDir(tmp) {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, defaultEvalBaseDir(tmp))
+	}
+}
+
+func TestRunEvalDefaultsUseGitRoot(t *testing.T) {
+	repoRoot := t.TempDir()
+	if _, err := git.PlainInit(repoRoot, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoRoot, defaultEvalDatasetPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	nested := filepath.Join(repoRoot, "nested", "dir")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(nested)
+	baseDir := defaultEvalBaseDir(nested)
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := runEval(opts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		filepath.Join(baseDir, defaultEvalDatasetPath),
+		"--agent", "oracle",
+		"--jobs-dir", filepath.Join(baseDir, defaultEvalJobsDir),
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != baseDir {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
+	}
+}
+
+func TestRunEvalExplicitDatasetUsesCwdAndDefaultJobsUseGitRoot(t *testing.T) {
+	repoRoot := t.TempDir()
+	if _, err := git.PlainInit(repoRoot, false); err != nil {
+		t.Fatal(err)
+	}
+	nested := filepath.Join(repoRoot, "nested", "dir")
+	dataset := filepath.Join(nested, "custom-dataset")
+	if err := os.MkdirAll(dataset, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(nested)
+	baseDir := defaultEvalBaseDir(nested)
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := runEval(opts, []string{"./custom-dataset"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		dataset,
+		"--agent", "oracle",
+		"--jobs-dir", filepath.Join(baseDir, defaultEvalJobsDir),
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != baseDir {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
+	}
+}
+
+func TestRunEvalExplicitJobsDirIsUnchanged(t *testing.T) {
+	repoRoot := t.TempDir()
+	if _, err := git.PlainInit(repoRoot, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(repoRoot, defaultEvalDatasetPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	nested := filepath.Join(repoRoot, "nested", "dir")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(nested)
+	baseDir := defaultEvalBaseDir(nested)
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.jobsDir = "custom/jobs"
+	opts.jobsDirExplicit = true
+
+	err := runEval(opts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		filepath.Join(baseDir, defaultEvalDatasetPath),
+		"--agent", "oracle",
+		"--jobs-dir", "custom/jobs",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if calls[1].workingDir != baseDir {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
 	}
 }
 
@@ -144,6 +261,7 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 			opts.agent = tt.agent
 			opts.taskDir = "simple-agent"
 			opts.jobsDir = "jobs"
+			opts.jobsDirExplicit = true
 			opts.yes = true
 
 			err := runEval(opts, []string{path})
@@ -233,7 +351,7 @@ func TestRunEvalDelegatesModel(t *testing.T) {
 		"run",
 		mustAbs(t, path),
 		"--agent", "oracle",
-		"--jobs-dir", defaultEvalJobsDir,
+		"--jobs-dir", defaultJobsDir(t),
 		"--",
 		"--model", "haiku",
 	}
@@ -256,7 +374,7 @@ func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 		"run",
 		mustAbs(t, path),
 		"--agent", "oracle",
-		"--jobs-dir", defaultEvalJobsDir,
+		"--jobs-dir", defaultJobsDir(t),
 		"--",
 		"--model", "haiku",
 	}
@@ -312,7 +430,7 @@ func TestRunEvalDelegatesRunmeEnvAlias(t *testing.T) {
 		"run",
 		mustAbs(t, path),
 		"--agent", "oracle",
-		"--jobs-dir", defaultEvalJobsDir,
+		"--jobs-dir", defaultJobsDir(t),
 		"--env", "runme",
 	}
 	if !sameCommand(calls[0], wantPreflight) {
@@ -339,7 +457,7 @@ func TestRunEvalDelegatesNonRunmeEnvWithoutPreflight(t *testing.T) {
 		"run",
 		mustAbs(t, path),
 		"--agent", "codex",
-		"--jobs-dir", defaultEvalJobsDir,
+		"--jobs-dir", defaultJobsDir(t),
 		"--env", "docker",
 	}
 	if len(calls) != 1 {
@@ -481,7 +599,7 @@ func TestRunEvalDelegatesUnknownAgent(t *testing.T) {
 		"run",
 		mustAbs(t, path),
 		"--agent", "bad",
-		"--jobs-dir", defaultEvalJobsDir,
+		"--jobs-dir", defaultJobsDir(t),
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -538,8 +656,8 @@ func TestRunEvalPropagatesDelegateExitCode(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
-	opts.commandRun = func(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
-		calls = append(calls, recordedCommand{name: name, args: append([]string(nil), args...), env: env})
+	opts.commandRun = func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
+		calls = append(calls, recordedCommand{name: name, args: append([]string(nil), args...), workingDir: workingDir, env: env})
 		if len(calls) == 2 {
 			return fakeExitError{code: 42}
 		}
@@ -573,11 +691,12 @@ func testEvalOptions(t *testing.T, calls *[]recordedCommand, stderr io.Writer) e
 }
 
 func recordCommand(calls *[]recordedCommand) commandRunFunc {
-	return func(name string, args []string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
+	return func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error {
 		*calls = append(*calls, recordedCommand{
-			name: name,
-			args: append([]string(nil), args...),
-			env:  append([]string(nil), env...),
+			name:       name,
+			args:       append([]string(nil), args...),
+			workingDir: workingDir,
+			env:        append([]string(nil), env...),
 		})
 		return nil
 	}
@@ -605,6 +724,24 @@ func mustAbs(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return abs
+}
+
+func defaultJobsDir(t *testing.T) string {
+	t.Helper()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Join(defaultEvalBaseDir(cwd), defaultEvalJobsDir)
+}
+
+func defaultDatasetPath(t *testing.T) string {
+	t.Helper()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Join(defaultEvalBaseDir(cwd), defaultEvalDatasetPath)
 }
 
 func envValue(env []string, key string) string {
