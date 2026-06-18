@@ -337,6 +337,8 @@ func runExternalCommandWithPtyStdout(cmd *exec.Cmd, stdin io.Reader, stdout, std
 	defer func() { _ = tty.Close() }()
 	_ = pty.InheritSize(stdoutFile, ptmx)
 
+	// Only stdout is bridged through a PTY so Harbor's Rich progress output
+	// keeps terminal rendering while eval itself stays non-interactive.
 	cmd.Stdout = tty
 	cmd.Stderr = stderr
 	cmd.Stdin = stdin

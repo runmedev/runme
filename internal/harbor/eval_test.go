@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/creack/pty"
 	"github.com/go-git/go-git/v5"
 
 	"github.com/runmedev/runme/v3/internal/ansi"
@@ -717,6 +719,62 @@ func TestRunEvalOnlyPrintsExceptionDetailsForReportedJob(t *testing.T) {
 	}
 }
 
+func TestRunExternalCommandUsesPtyWhenStdoutIsTerminal(t *testing.T) {
+	ptmx, tty, err := pty.Open()
+	if err != nil {
+		t.Skipf("open pty: %v", err)
+	}
+	defer func() { _ = ptmx.Close() }()
+	defer func() { _ = tty.Close() }()
+
+	stdout := &terminalCapture{file: tty}
+	err = runExternalCommand(
+		testShell(t),
+		[]string{"-c", "if [ -t 1 ]; then printf tty; else printf pipe; fi"},
+		"",
+		os.Environ(),
+		nil,
+		stdout,
+		io.Discard,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stdout.String(); got != "tty" {
+		t.Fatalf("stdout = %q, want tty", got)
+	}
+}
+
+func TestRunExternalCommandWithPtyStdoutReturnsExitError(t *testing.T) {
+	ptmx, tty, err := pty.Open()
+	if err != nil {
+		t.Skipf("open pty: %v", err)
+	}
+	defer func() { _ = ptmx.Close() }()
+	defer func() { _ = tty.Close() }()
+
+	stdout := &terminalCapture{file: tty}
+	err = runExternalCommand(
+		testShell(t),
+		[]string{"-c", "printf before-exit; exit 7"},
+		"",
+		os.Environ(),
+		nil,
+		stdout,
+		io.Discard,
+	)
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T %[1]v, want *exec.ExitError", err)
+	}
+	if exitErr.ExitCode() != 7 {
+		t.Fatalf("exit code = %d, want 7", exitErr.ExitCode())
+	}
+	if got := stdout.String(); got != "before-exit" {
+		t.Fatalf("stdout = %q, want before-exit", got)
+	}
+}
+
 func testEvalOptions(t *testing.T, calls *[]recordedCommand, stderr io.Writer) EvalOptions {
 	t.Helper()
 	return EvalOptions{
@@ -731,6 +789,24 @@ func testEvalOptions(t *testing.T, calls *[]recordedCommand, stderr io.Writer) E
 		Preflight:      true,
 		RunmeHarborBin: "",
 	}
+}
+
+type terminalCapture struct {
+	bytes.Buffer
+	file *os.File
+}
+
+func (w *terminalCapture) StdoutFile() *os.File {
+	return w.file
+}
+
+func testShell(t *testing.T) string {
+	t.Helper()
+	shell, err := exec.LookPath("sh")
+	if err != nil {
+		t.Skip("sh not found")
+	}
+	return shell
 }
 
 func recordCommand(calls *[]recordedCommand) CommandRunFunc {

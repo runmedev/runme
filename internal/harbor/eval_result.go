@@ -48,6 +48,7 @@ func (w *ResultPathWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// ResultPath finalizes any pending output line and returns the last result path seen.
 func (w *ResultPathWriter) ResultPath() string {
 	if len(w.line) > 0 && !w.lineTooLong {
 		w.recordLine(w.line)
@@ -75,6 +76,8 @@ func (w *ResultPathWriter) appendLine(p []byte) {
 }
 
 func (w *ResultPathWriter) recordLine(line []byte) {
+	// Harbor currently reports result locations only through this human-readable line.
+	// Keep this coupling local until Harbor exposes a machine-readable marker.
 	const prefix = "Results written to "
 	text := strings.TrimSpace(string(ansi.Strip(line)))
 	index := strings.Index(text, prefix)
@@ -121,8 +124,8 @@ func PrintExceptionDetails(w io.Writer, jobDir string) {
 	}
 }
 
-func exceptionDisplayPath(jobsDir, path string) string {
-	relative, err := filepath.Rel(jobsDir, path)
+func exceptionDisplayPath(jobDir, path string) string {
+	relative, err := filepath.Rel(jobDir, path)
 	if err != nil || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) || relative == ".." {
 		return path
 	}
