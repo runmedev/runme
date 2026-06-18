@@ -53,18 +53,9 @@ jobs:
         working-directory: integrations/harbor
         run: uv run pytest
       - name: Build package
-        working-directory: integrations/harbor
-        run: |
-          set -euo pipefail
-
-          rm -rf dist
-
-          proto_src="../../api/gen/proto/python/runme/harbor/v1"
-          proto_dst="src/runme_harbor/_proto/runme/harbor/v1"
-          mkdir -p "$proto_dst"
-          cp "$proto_src/harbor_pb2.py" "$proto_src/harbor_pb2.pyi" "$proto_dst/"
-
-          uv build
+        uses: stateful/runme-action@v2
+        with:
+          workflows: build-harbor
       - name: Test wheel install
         working-directory: integrations/harbor
         run: |
