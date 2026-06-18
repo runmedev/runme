@@ -21,9 +21,10 @@ type DockerWorkdirStagerOptions struct {
 }
 
 type DockerWorkdirStager struct {
-	workspaceRoot string
-	ignoreMatcher gogitignore.Matcher
-	stderr        io.Writer
+	workspaceRoot         string
+	resolvedWorkspaceRoot string
+	ignoreMatcher         gogitignore.Matcher
+	stderr                io.Writer
 }
 
 type dockerTaskConfig struct {
@@ -46,7 +47,7 @@ func NewDockerWorkdirStager(opts DockerWorkdirStagerOptions) (*DockerWorkdirStag
 	if err != nil {
 		return nil, err
 	}
-	workspaceRoot, err = filepath.EvalSymlinks(workspaceRoot)
+	resolvedWorkspaceRoot, err := filepath.EvalSymlinks(workspaceRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -57,9 +58,10 @@ func NewDockerWorkdirStager(opts DockerWorkdirStagerOptions) (*DockerWorkdirStag
 	}
 
 	return &DockerWorkdirStager{
-		workspaceRoot: workspaceRoot,
-		ignoreMatcher: internalgitignore.NewMatcher(osfs.New(workspaceRoot), true, nil, nil),
-		stderr:        stderr,
+		workspaceRoot:         workspaceRoot,
+		resolvedWorkspaceRoot: resolvedWorkspaceRoot,
+		ignoreMatcher:         internalgitignore.NewMatcher(osfs.New(workspaceRoot), true, nil, nil),
+		stderr:                stderr,
 	}, nil
 }
 
@@ -81,7 +83,7 @@ func (s *DockerWorkdirStager) stageTask(taskConfigPath string) error {
 		return err
 	}
 
-	source, ok, err := s.workdirSource(config.Environment.Workdir)
+	source, logicalSource, ok, err := s.workdirSource(config.Environment.Workdir)
 	if err != nil || !ok {
 		return err
 	}
@@ -101,7 +103,7 @@ func (s *DockerWorkdirStager) stageTask(taskConfigPath string) error {
 	if err := os.RemoveAll(target); err != nil {
 		return err
 	}
-	if err := s.copyWorkdir(source, source, target); err != nil {
+	if err := s.copyWorkdir(source, logicalSource, target); err != nil {
 		return err
 	}
 	if !s.isGitIgnored(target, true) {
@@ -126,32 +128,32 @@ func readDockerTaskConfig(path string) (*dockerTaskConfig, error) {
 	return &config, nil
 }
 
-func (s *DockerWorkdirStager) workdirSource(remoteWorkdir string) (string, bool, error) {
+func (s *DockerWorkdirStager) workdirSource(remoteWorkdir string) (string, string, bool, error) {
 	if remoteWorkdir == "" || remoteWorkdir == "/app" {
-		return "", false, nil
+		return "", "", false, nil
 	}
 	const appPrefix = "/app/"
 	if !strings.HasPrefix(remoteWorkdir, appPrefix) {
-		return "", false, nil
+		return "", "", false, nil
 	}
 
 	rel := strings.TrimPrefix(remoteWorkdir, appPrefix)
-	source := filepath.Join(s.workspaceRoot, filepath.FromSlash(rel))
-	source, err := filepath.Abs(source)
+	logicalSource := filepath.Join(s.workspaceRoot, filepath.FromSlash(rel))
+	logicalSource, err := filepath.Abs(logicalSource)
 	if err != nil {
-		return "", false, err
+		return "", "", false, err
 	}
-	source, err = filepath.EvalSymlinks(source)
+	source, err := filepath.EvalSymlinks(logicalSource)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", false, nil
+			return "", "", false, nil
 		}
-		return "", false, err
+		return "", "", false, err
 	}
-	if !isPathWithin(source, s.workspaceRoot) {
-		return "", false, fmt.Errorf("harbor Docker workdir %s maps outside workspace root %s", remoteWorkdir, s.workspaceRoot)
+	if !isPathWithin(source, s.resolvedWorkspaceRoot) {
+		return "", "", false, fmt.Errorf("harbor Docker workdir %s maps outside workspace root %s", remoteWorkdir, s.workspaceRoot)
 	}
-	return source, true, nil
+	return source, logicalSource, true, nil
 }
 
 func (s *DockerWorkdirStager) copyWorkdir(source string, logicalSource string, target string) error {
