@@ -1,4 +1,4 @@
-# CLAUDE.md
+# Context for Runme
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -9,7 +9,7 @@ Runme is a tool that makes markdown files executable by running code blocks dire
 ## Prerequisites
 
 - **Runme CLI installed** (`brew install runme` or `npm install -g runme`) - we use runme to build runme
-- Go 1.25.2
+- Golang installed
 
 ## Common Commands
 
