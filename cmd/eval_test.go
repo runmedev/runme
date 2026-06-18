@@ -44,6 +44,8 @@ func TestEvalCmdPassesOptionsToHarborRunner(t *testing.T) {
 		"--task-dir", "simple-agent",
 		"--jobs-dir", "jobs",
 		"--ask",
+		"--agent-kwarg", "reasoning_effort=xhigh",
+		"--ak", "sandbox_mode=workspace-write",
 		"--model", "haiku",
 		"--env", "docker",
 		"--runme-bin", "/bin/runme",
@@ -73,6 +75,7 @@ func TestEvalCmdPassesOptionsToHarborRunner(t *testing.T) {
 		gotOpts.JobsDir != "jobs" ||
 		!gotOpts.JobsDirExplicit ||
 		!gotOpts.Ask ||
+		!reflect.DeepEqual(gotOpts.AgentKwargs, []string{"reasoning_effort=xhigh", "sandbox_mode=workspace-write"}) ||
 		gotOpts.Model != "haiku" ||
 		gotOpts.Env != "docker" ||
 		gotOpts.RunmeBin != "/bin/runme" ||
@@ -160,6 +163,9 @@ func TestEvalCmdHelpIncludesDefaultDatasetPath(t *testing.T) {
 		t.Fatalf("help output = %q", stdout.String())
 	}
 	if !strings.Contains(stdout.String(), `--ask`) {
+		t.Fatalf("help output = %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `alias: --ak`) {
 		t.Fatalf("help output = %q", stdout.String())
 	}
 }

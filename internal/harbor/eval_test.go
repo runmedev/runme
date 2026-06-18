@@ -341,6 +341,32 @@ func TestRunEvalDelegatesModel(t *testing.T) {
 	}
 }
 
+func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.AgentKwargs = []string{"reasoning_effort=xhigh", "sandbox_mode=workspace-write"}
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultJobsDir(t),
+		"-y",
+		"--",
+		"--agent-kwarg", "reasoning_effort=xhigh",
+		"--agent-kwarg", "sandbox_mode=workspace-write",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
 func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
@@ -359,6 +385,31 @@ func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 		"-y",
 		"--",
 		"--model", "haiku",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalPreservesPassthroughAgentKwargs(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := NewEvalRunner(opts).Run([]string{path, "--ak", "reasoning_effort=xhigh", "--agent-kwarg=sandbox_mode=workspace-write"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultJobsDir(t),
+		"-y",
+		"--",
+		"--ak", "reasoning_effort=xhigh",
+		"--agent-kwarg=sandbox_mode=workspace-write",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -384,6 +435,36 @@ func TestRunEvalRejectsDuplicateModel(t *testing.T) {
 				t.Fatal("expected error")
 			}
 			if !strings.Contains(err.Error(), "--model cannot be used together with passthrough --model") {
+				t.Fatalf("error = %q", err.Error())
+			}
+			if len(calls) != 0 {
+				t.Fatalf("calls = %#v, want none", calls)
+			}
+		})
+	}
+}
+
+func TestRunEvalRejectsDuplicateAgentKwargs(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		passthrough []string
+	}{
+		{name: "long separate arg", passthrough: []string{"--agent-kwarg", "sandbox_mode=workspace-write"}},
+		{name: "long equals arg", passthrough: []string{"--agent-kwarg=sandbox_mode=workspace-write"}},
+		{name: "alias separate arg", passthrough: []string{"--ak", "sandbox_mode=workspace-write"}},
+		{name: "alias equals arg", passthrough: []string{"--ak=sandbox_mode=workspace-write"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			path := t.TempDir()
+			var calls []recordedCommand
+			opts := testEvalOptions(t, &calls, io.Discard)
+			opts.AgentKwargs = []string{"reasoning_effort=xhigh"}
+
+			err := NewEvalRunner(opts).Run(append([]string{path}, tt.passthrough...))
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if !strings.Contains(err.Error(), "--agent-kwarg cannot be used together with passthrough") {
 				t.Fatalf("error = %q", err.Error())
 			}
 			if len(calls) != 0 {
