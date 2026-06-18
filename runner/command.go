@@ -52,8 +52,9 @@ type command struct {
 
 	tempScriptFile string
 
-	context context.Context
-	wg      sync.WaitGroup
+	context  context.Context
+	ptyInWg  sync.WaitGroup
+	ptyOutWg sync.WaitGroup
 
 	mu sync.Mutex
 	// +checklocks:mu
@@ -294,7 +295,7 @@ func (c *command) cleanup() {
 		}
 	}
 	if c.pty != nil {
-		if e := c.pty.Close(); err != nil {
+		if e := c.pty.Close(); e != nil {
 			c.logger.Info("failed to close pty", zap.Error(e))
 			err = multierr.Append(err, e)
 		}
@@ -384,9 +385,9 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 	}
 
 	if c.pty != nil {
-		c.wg.Add(1)
+		c.ptyInWg.Add(1)
 		go func() {
-			defer c.wg.Done()
+			defer c.ptyInWg.Done()
 			n, err := io.Copy(c.pty, c.Stdin)
 			if err != nil {
 				c.logger.Info("failed to copy from stdin to pty", zap.Error(err))
@@ -396,20 +397,20 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 			}
 		}()
 
-		c.wg.Add(1)
+		c.ptyOutWg.Add(1)
 		go func() {
-			defer c.wg.Done()
+			defer c.ptyOutWg.Done()
 			n, err := io.Copy(c.Stdout, c.pty)
 			if err != nil {
 				// Linux kernel returns EIO when attempting to read from
 				// a master pseudo-terminal which no longer has an open slave.
 				// See https://github.com/creack/pty/issues/21.
 				if errors.Is(err, syscall.EIO) {
-					c.logger.Debug("failed to copy from pty to stdout; handled EIO")
+					c.logger.Debug("failed to copy from pty to stdout; handled EIO", zap.Int64("count", n))
 					return
 				}
 				if errors.Is(err, os.ErrClosed) {
-					c.logger.Debug("failed to copy from pty to stdout; handled ErrClosed")
+					c.logger.Debug("failed to copy from pty to stdout; handled ErrClosed", zap.Int64("count", n))
 					return
 				}
 
@@ -544,9 +545,13 @@ func (c *command) Finalize() (err error) {
 		c.collectEnvs()
 	}
 
+	// Let the PTY output reader drain before cleanup closes the PTY master.
+	// Closing the PTY first can race short-lived commands and drop their final output.
+	c.ptyOutWg.Wait()
+
 	c.cleanup()
 
-	c.wg.Wait()
+	c.ptyInWg.Wait()
 
 	c.mu.Lock()
 	err = c.err

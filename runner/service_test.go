@@ -812,6 +812,29 @@ func Test_runnerService(t *testing.T) {
 		assert.EqualValues(t, "24\r\n80", strings.TrimRight(string(result.Stdout), "\r\n"))
 	})
 
+	t.Run("ExecuteTTYShortLivedOutput", func(t *testing.T) {
+		for range 25 {
+			stream, err := client.Execute(context.Background())
+			require.NoError(t, err)
+
+			execResult := make(chan executeResult)
+			go getExecuteResult(stream, execResult)
+
+			err = stream.Send(&runnerv1.ExecuteRequest{
+				ProgramName: "bash",
+				CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
+				Commands:    []string{`printf 'tiny\n'`},
+				Tty:         true,
+			})
+			require.NoError(t, err)
+
+			result := <-execResult
+			assert.NoError(t, result.Err)
+			assert.EqualValues(t, 0, result.ExitCode)
+			assert.EqualValues(t, "tiny", strings.TrimRight(string(result.Stdout), "\r\n"))
+		}
+	})
+
 	t.Run("ExecuteWinsizeSet", func(t *testing.T) {
 		t.Parallel()
 
