@@ -159,7 +159,6 @@ func TestRunEvalDefaultsUseGitRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(nested)
-	baseDir := defaultEvalBaseDir(nested)
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
 
@@ -170,20 +169,20 @@ func TestRunEvalDefaultsUseGitRoot(t *testing.T) {
 
 	want := []string{
 		"run",
-		filepath.Join(baseDir, DefaultEvalDatasetPath),
+		filepath.Join("..", "..", DefaultEvalDatasetPath),
 		"--agent", "oracle",
-		"--jobs-dir", filepath.Join(baseDir, DefaultEvalJobsDir),
+		"--jobs-dir", filepath.Join("..", "..", DefaultEvalJobsDir),
 		"-y",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
 	}
-	if calls[1].workingDir != baseDir {
-		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
+	if calls[1].workingDir != nested {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, nested)
 	}
 }
 
-func TestRunEvalExplicitDatasetUsesCwdAndDefaultJobsUseGitRoot(t *testing.T) {
+func TestRunEvalExplicitDatasetUsesInvocationCwdAndDefaultJobsUseGitRoot(t *testing.T) {
 	repoRoot := t.TempDir()
 	if _, err := git.PlainInit(repoRoot, false); err != nil {
 		t.Fatal(err)
@@ -194,7 +193,6 @@ func TestRunEvalExplicitDatasetUsesCwdAndDefaultJobsUseGitRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(nested)
-	baseDir := defaultEvalBaseDir(nested)
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
 
@@ -205,20 +203,23 @@ func TestRunEvalExplicitDatasetUsesCwdAndDefaultJobsUseGitRoot(t *testing.T) {
 
 	want := []string{
 		"run",
-		dataset,
+		"custom-dataset",
 		"--agent", "oracle",
-		"--jobs-dir", filepath.Join(baseDir, DefaultEvalJobsDir),
+		"--jobs-dir", filepath.Join("..", "..", DefaultEvalJobsDir),
 		"-y",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
 	}
-	if calls[1].workingDir != baseDir {
-		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
+	if calls[1].workingDir != nested {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, nested)
+	}
+	if _, err := os.Stat(dataset); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func TestRunEvalExplicitJobsDirIsUnchanged(t *testing.T) {
+func TestRunEvalExplicitJobsDirUsesInvocationCwd(t *testing.T) {
 	repoRoot := t.TempDir()
 	if _, err := git.PlainInit(repoRoot, false); err != nil {
 		t.Fatal(err)
@@ -231,7 +232,6 @@ func TestRunEvalExplicitJobsDirIsUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(nested)
-	baseDir := defaultEvalBaseDir(nested)
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
 	opts.JobsDir = "custom/jobs"
@@ -244,7 +244,7 @@ func TestRunEvalExplicitJobsDirIsUnchanged(t *testing.T) {
 
 	want := []string{
 		"run",
-		filepath.Join(baseDir, DefaultEvalDatasetPath),
+		filepath.Join("..", "..", DefaultEvalDatasetPath),
 		"--agent", "oracle",
 		"--jobs-dir", "custom/jobs",
 		"-y",
@@ -252,8 +252,66 @@ func TestRunEvalExplicitJobsDirIsUnchanged(t *testing.T) {
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
 	}
-	if calls[1].workingDir != baseDir {
-		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, baseDir)
+	if calls[1].workingDir != nested {
+		t.Fatalf("workingDir = %q, want %q", calls[1].workingDir, nested)
+	}
+}
+
+func TestRunEvalExplicitAbsoluteJobsDirUnderCwdUsesRelativeDelegatePath(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	if err := os.MkdirAll(DefaultEvalDatasetPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.JobsDir = filepath.Join(tmp, "custom", "jobs")
+	opts.JobsDirExplicit = true
+
+	err := NewEvalRunner(opts).Run(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		DefaultEvalDatasetPath,
+		"--agent", "oracle",
+		"--jobs-dir", filepath.Join("custom", "jobs"),
+		"-y",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalExplicitAbsolutePathsOutsideCwdStayAbsolute(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	dataset := filepath.Join(t.TempDir(), "tasks")
+	if err := os.MkdirAll(dataset, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	jobsDir := filepath.Join(t.TempDir(), "jobs")
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.JobsDir = jobsDir
+	opts.JobsDirExplicit = true
+
+	err := NewEvalRunner(opts).Run([]string{dataset})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		dataset,
+		"--agent", "oracle",
+		"--jobs-dir", jobsDir,
+		"-y",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
 	}
 }
 
@@ -964,7 +1022,11 @@ func defaultJobsDir(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return filepath.Join(defaultEvalBaseDir(cwd), DefaultEvalJobsDir)
+	path, err := relativePathFrom(cwd, filepath.Join(defaultEvalBaseDir(cwd), DefaultEvalJobsDir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path
 }
 
 func defaultDatasetPath(t *testing.T) string {
@@ -973,7 +1035,11 @@ func defaultDatasetPath(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return filepath.Join(defaultEvalBaseDir(cwd), DefaultEvalDatasetPath)
+	path, err := relativePathFrom(cwd, filepath.Join(defaultEvalBaseDir(cwd), DefaultEvalDatasetPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path
 }
 
 func envValue(env []string, key string) string {

@@ -53,6 +53,15 @@ type EvalRunner struct {
 	opts EvalOptions
 }
 
+type evalPaths struct {
+	datasetPath         string
+	delegateDatasetPath string
+	delegateJobsDir     string
+	passthrough         []string
+	defaultDataset      bool
+	invocationCwd       string
+}
+
 func NewEvalRunner(opts EvalOptions) *EvalRunner {
 	if opts.Agent == "" {
 		opts.Agent = "oracle"
@@ -83,27 +92,27 @@ func NewEvalRunner(opts EvalOptions) *EvalRunner {
 
 func (r *EvalRunner) Run(args []string) error {
 	opts := r.opts
-	datasetPath, passthrough, defaultDataset, evalBaseDir, err := resolveEvalPaths(&opts, args)
+	paths, err := resolveEvalPaths(&opts, args)
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(datasetPath); err != nil {
+	if _, err := os.Stat(paths.datasetPath); err != nil {
 		if os.IsNotExist(err) {
-			if defaultDataset {
+			if paths.defaultDataset {
 				return fmt.Errorf("dataset path does not exist: %s; create it or pass a dataset path explicitly", DefaultEvalDatasetPath)
 			}
-			return fmt.Errorf("dataset path does not exist: %s", datasetPath)
+			return fmt.Errorf("dataset path does not exist: %s", paths.datasetPath)
 		}
 		return err
 	}
 
-	if opts.Model != "" && containsModelFlag(passthrough) {
+	if opts.Model != "" && containsModelFlag(paths.passthrough) {
 		return fmt.Errorf("--model cannot be used together with passthrough --model; use only runme eval --model")
 	}
-	if len(opts.AgentKwargs) > 0 && containsAgentKwargFlag(passthrough) {
+	if len(opts.AgentKwargs) > 0 && containsAgentKwargFlag(paths.passthrough) {
 		return fmt.Errorf("--agent-kwarg cannot be used together with passthrough --agent-kwarg/--ak; use only runme eval --agent-kwarg")
 	}
-	if containsEnvironmentFlag(passthrough) {
+	if containsEnvironmentFlag(paths.passthrough) {
 		return fmt.Errorf("use runme eval --env instead of passing Harbor environment flags after --")
 	}
 
@@ -131,7 +140,7 @@ func (r *EvalRunner) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if err := stager.StageDataset(datasetPath); err != nil {
+		if err := stager.StageDataset(paths.datasetPath); err != nil {
 			return err
 		}
 	}
@@ -143,45 +152,100 @@ func (r *EvalRunner) Run(args []string) error {
 		}
 	}
 
-	delegatedArgs := buildRunmeHarborArgs(datasetPath, opts, passthrough)
+	delegatedArgs := buildRunmeHarborArgs(paths.delegateDatasetPath, opts, paths.delegateJobsDir, paths.passthrough)
 	if opts.Debug {
 		_, _ = fmt.Fprintf(opts.Stderr, "%s\n", shellCommandString(append([]string{runmeHarbor}, delegatedArgs...)))
 	}
 
 	harborStdout := NewResultPathWriter(opts.Stdout)
-	err = opts.CommandRun(runmeHarbor, delegatedArgs, evalBaseDir, env, opts.Stdin, harborStdout, opts.Stderr)
-	if jobDir := JobDirFromResultPath(harborStdout.ResultPath(), evalBaseDir); jobDir != "" {
+	err = opts.CommandRun(runmeHarbor, delegatedArgs, paths.invocationCwd, env, opts.Stdin, harborStdout, opts.Stderr)
+	if jobDir := JobDirFromResultPath(harborStdout.ResultPath(), paths.invocationCwd); jobDir != "" {
 		PrintExceptionDetails(opts.Stdout, jobDir)
 	}
 	return err
 }
 
-func resolveEvalPaths(opts *EvalOptions, args []string) (string, []string, bool, string, error) {
+func resolveEvalPaths(opts *EvalOptions, args []string) (evalPaths, error) {
 	datasetArg, defaultDataset, passthrough := splitEvalDatasetArg(args)
-	baseDir, err := evalDefaultBaseDir()
+	invocationCwd, err := os.Getwd()
 	if err != nil {
-		return "", nil, false, "", err
+		return evalPaths{}, err
 	}
+	baseDir := defaultEvalBaseDir(invocationCwd)
+
+	var datasetPath string
+	var delegateDatasetPath string
+	if defaultDataset {
+		datasetPath = filepath.Join(baseDir, DefaultEvalDatasetPath)
+		delegateDatasetPath, err = relativePathFrom(invocationCwd, datasetPath)
+	} else {
+		datasetPath, delegateDatasetPath, err = resolveExplicitDelegatePath(datasetArg, invocationCwd)
+	}
+	if err != nil {
+		return evalPaths{}, err
+	}
+
+	var delegateJobsDir string
 	if !opts.JobsDirExplicit {
 		opts.JobsDir = filepath.Join(baseDir, DefaultEvalJobsDir)
+		delegateJobsDir, err = relativePathFrom(invocationCwd, opts.JobsDir)
+	} else {
+		_, delegateJobsDir, err = resolveExplicitDelegatePath(opts.JobsDir, invocationCwd)
 	}
-	if defaultDataset {
-		return filepath.Join(baseDir, DefaultEvalDatasetPath), passthrough, true, baseDir, nil
+	if err != nil {
+		return evalPaths{}, err
 	}
 
-	datasetPath, err := filepath.Abs(datasetArg)
-	if err != nil {
-		return "", nil, false, "", err
-	}
-	return datasetPath, passthrough, false, baseDir, nil
+	return evalPaths{
+		datasetPath:         datasetPath,
+		delegateDatasetPath: delegateDatasetPath,
+		delegateJobsDir:     delegateJobsDir,
+		passthrough:         passthrough,
+		defaultDataset:      defaultDataset,
+		invocationCwd:       invocationCwd,
+	}, nil
 }
 
-func evalDefaultBaseDir() (string, error) {
-	cwd, err := os.Getwd()
+func resolveExplicitDelegatePath(path, invocationCwd string) (string, string, error) {
+	if filepath.IsAbs(path) {
+		resolved := filepath.Clean(path)
+		delegated, err := relativePathUnder(invocationCwd, resolved)
+		if err != nil {
+			return "", "", err
+		}
+		if delegated == "" {
+			delegated = resolved
+		}
+		return resolved, delegated, nil
+	}
+
+	resolved := filepath.Join(invocationCwd, path)
+	return resolved, filepath.Clean(path), nil
+}
+
+func relativePathFrom(base, path string) (string, error) {
+	relative, err := filepath.Rel(base, path)
 	if err != nil {
 		return "", err
 	}
-	return defaultEvalBaseDir(cwd), nil
+	if relative == "." {
+		return ".", nil
+	}
+	return filepath.Clean(relative), nil
+}
+
+func relativePathUnder(base, path string) (string, error) {
+	relative, err := filepath.Rel(base, path)
+	if err != nil {
+		return "", err
+	}
+	if relative == "." {
+		return ".", nil
+	}
+	if relative == ".." || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) {
+		return "", nil
+	}
+	return filepath.Clean(relative), nil
 }
 
 func splitEvalDatasetArg(args []string) (string, bool, []string) {
@@ -255,12 +319,12 @@ func resolveExecutable(name string, lookPath func(string) (string, error)) (stri
 	return lookPath(name)
 }
 
-func buildRunmeHarborArgs(datasetPath string, opts EvalOptions, passthrough []string) []string {
+func buildRunmeHarborArgs(datasetPath string, opts EvalOptions, jobsDir string, passthrough []string) []string {
 	args := []string{
 		"run",
 		datasetPath,
 		"--agent", opts.Agent,
-		"--jobs-dir", opts.JobsDir,
+		"--jobs-dir", jobsDir,
 	}
 	if opts.TaskDir != "" {
 		args = append(args, "--task-dir", opts.TaskDir)
