@@ -171,6 +171,7 @@ func resolveEvalPaths(opts *EvalOptions, args []string) (evalPaths, error) {
 	if err != nil {
 		return evalPaths{}, err
 	}
+	invocationCwd = cleanExistingPath(invocationCwd)
 	baseDir := defaultEvalBaseDir(invocationCwd)
 
 	var datasetPath string
@@ -209,10 +210,7 @@ func resolveEvalPaths(opts *EvalOptions, args []string) (evalPaths, error) {
 func resolveExplicitDelegatePath(path, invocationCwd string) (string, string, error) {
 	if filepath.IsAbs(path) {
 		resolved := filepath.Clean(path)
-		delegated, err := relativePathUnder(invocationCwd, resolved)
-		if err != nil {
-			return "", "", err
-		}
+		delegated := relativePathUnder(invocationCwd, resolved)
 		if delegated == "" {
 			delegated = resolved
 		}
@@ -223,10 +221,22 @@ func resolveExplicitDelegatePath(path, invocationCwd string) (string, string, er
 	return resolved, filepath.Clean(path), nil
 }
 
+func cleanExistingPath(path string) string {
+	resolved, err := filepath.EvalSymlinks(path)
+	if err == nil {
+		return filepath.Clean(resolved)
+	}
+	abs, err := filepath.Abs(path)
+	if err == nil {
+		return filepath.Clean(abs)
+	}
+	return filepath.Clean(path)
+}
+
 func relativePathFrom(base, path string) (string, error) {
 	relative, err := filepath.Rel(base, path)
 	if err != nil {
-		return "", err
+		return filepath.Clean(path), nil
 	}
 	if relative == "." {
 		return ".", nil
@@ -234,18 +244,18 @@ func relativePathFrom(base, path string) (string, error) {
 	return filepath.Clean(relative), nil
 }
 
-func relativePathUnder(base, path string) (string, error) {
+func relativePathUnder(base, path string) string {
 	relative, err := filepath.Rel(base, path)
 	if err != nil {
-		return "", err
+		return ""
 	}
 	if relative == "." {
-		return ".", nil
+		return "."
 	}
 	if relative == ".." || strings.HasPrefix(relative, ".."+string(os.PathSeparator)) {
-		return "", nil
+		return ""
 	}
-	return filepath.Clean(relative), nil
+	return filepath.Clean(relative)
 }
 
 func splitEvalDatasetArg(args []string) (string, bool, []string) {

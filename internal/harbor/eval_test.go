@@ -246,7 +246,7 @@ func TestRunEvalExplicitJobsDirUsesInvocationCwd(t *testing.T) {
 		"run",
 		filepath.Join("..", "..", DefaultEvalDatasetPath),
 		"--agent", "oracle",
-		"--jobs-dir", "custom/jobs",
+		"--jobs-dir", filepath.Join("custom", "jobs"),
 		"-y",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
