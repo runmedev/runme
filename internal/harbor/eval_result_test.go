@@ -38,6 +38,16 @@ func TestResultPathWriterRecordsResultPath(t *testing.T) {
 	}
 }
 
+func TestJobDirFromResultPathResolvesRelativeToBaseDir(t *testing.T) {
+	baseDir := t.TempDir()
+	resultPath := filepath.Join("..", "jobs", "current", "result.json")
+	want := filepath.Join(filepath.Dir(baseDir), "jobs", "current")
+
+	if got := JobDirFromResultPath(resultPath, baseDir); got != want {
+		t.Fatalf("job dir = %q, want %q", got, want)
+	}
+}
+
 func TestPrintExceptionDetailsOnlyUsesReportedJob(t *testing.T) {
 	jobsDir := filepath.Join(t.TempDir(), "jobs")
 	jobDir := filepath.Join(jobsDir, "current")
