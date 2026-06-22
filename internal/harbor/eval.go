@@ -53,15 +53,6 @@ type EvalRunner struct {
 	opts EvalOptions
 }
 
-type evalPaths struct {
-	datasetPath         string
-	delegateDatasetPath string
-	delegateJobsDir     string
-	passthrough         []string
-	defaultDataset      bool
-	invocationCwd       string
-}
-
 func NewEvalRunner(opts EvalOptions) *EvalRunner {
 	if opts.Agent == "" {
 		opts.Agent = "oracle"
@@ -158,44 +149,62 @@ func (r *EvalRunner) Run(args []string) error {
 	}
 
 	harborStdout := NewResultPathWriter(opts.Stdout)
-	err = opts.CommandRun(runmeHarbor, delegatedArgs, paths.invocationCwd, env, opts.Stdin, harborStdout, opts.Stderr)
-	if jobDir := JobDirFromResultPath(harborStdout.ResultPath(), paths.invocationCwd); jobDir != "" {
+	err = opts.CommandRun(runmeHarbor, delegatedArgs, paths.executionCwd, env, opts.Stdin, harborStdout, opts.Stderr)
+	if jobDir := JobDirFromResultPath(harborStdout.ResultPath(), paths.executionCwd); jobDir != "" {
 		PrintExceptionDetails(opts.Stdout, jobDir)
 	}
 	return err
 }
 
+type evalPaths struct {
+	datasetPath         string
+	delegateDatasetPath string
+	delegateJobsDir     string
+	passthrough         []string
+	defaultDataset      bool
+	invocationCwd       string
+	executionCwd        string
+}
+
+type evalPathResolver struct {
+	opts          *EvalOptions
+	invocationCwd string
+	baseDir       string
+}
+
 func resolveEvalPaths(opts *EvalOptions, args []string) (evalPaths, error) {
-	datasetArg, defaultDataset, passthrough := splitEvalDatasetArg(args)
 	invocationCwd, err := os.Getwd()
 	if err != nil {
 		return evalPaths{}, err
 	}
-	invocationCwd = cleanExistingPath(invocationCwd)
-	baseDir := defaultEvalBaseDir(invocationCwd)
+
+	resolver := evalPathResolver{
+		opts:          opts,
+		invocationCwd: cleanExistingPath(invocationCwd),
+	}
+	resolver.baseDir = defaultEvalBaseDir(resolver.invocationCwd)
+	return resolver.resolve(args), nil
+}
+
+func (r evalPathResolver) resolve(args []string) evalPaths {
+	datasetArg, defaultDataset, passthrough := splitEvalDatasetArg(args)
 
 	var datasetPath string
-	var delegateDatasetPath string
 	if defaultDataset {
-		datasetPath = filepath.Join(baseDir, DefaultEvalDatasetPath)
-		delegateDatasetPath, err = relativePathFrom(invocationCwd, datasetPath)
+		datasetPath = filepath.Join(r.baseDir, DefaultEvalDatasetPath)
 	} else {
-		datasetPath, delegateDatasetPath, err = resolveExplicitDelegatePath(datasetArg, invocationCwd)
-	}
-	if err != nil {
-		return evalPaths{}, err
+		datasetPath = r.inputPath(datasetArg)
 	}
 
-	var delegateJobsDir string
-	if !opts.JobsDirExplicit {
-		opts.JobsDir = filepath.Join(baseDir, DefaultEvalJobsDir)
-		delegateJobsDir, err = relativePathFrom(invocationCwd, opts.JobsDir)
+	executionCwd := r.executionCwd(datasetPath)
+	delegateDatasetPath := r.delegatePath(datasetPath, executionCwd)
+
+	if !r.opts.JobsDirExplicit {
+		r.opts.JobsDir = filepath.Join(r.baseDir, DefaultEvalJobsDir)
 	} else {
-		_, delegateJobsDir, err = resolveExplicitDelegatePath(opts.JobsDir, invocationCwd)
+		r.opts.JobsDir = r.inputPath(r.opts.JobsDir)
 	}
-	if err != nil {
-		return evalPaths{}, err
-	}
+	delegateJobsDir := r.delegateJobsPath(r.opts.JobsDir, executionCwd)
 
 	return evalPaths{
 		datasetPath:         datasetPath,
@@ -203,22 +212,39 @@ func resolveEvalPaths(opts *EvalOptions, args []string) (evalPaths, error) {
 		delegateJobsDir:     delegateJobsDir,
 		passthrough:         passthrough,
 		defaultDataset:      defaultDataset,
-		invocationCwd:       invocationCwd,
-	}, nil
+		invocationCwd:       r.invocationCwd,
+		executionCwd:        executionCwd,
+	}
 }
 
-func resolveExplicitDelegatePath(path, invocationCwd string) (string, string, error) {
+func (r evalPathResolver) inputPath(path string) string {
 	if filepath.IsAbs(path) {
-		resolved := filepath.Clean(path)
-		delegated := relativePathUnder(invocationCwd, resolved)
-		if delegated == "" {
-			delegated = resolved
-		}
-		return resolved, delegated, nil
+		return cleanExistingPath(path)
 	}
 
-	resolved := filepath.Join(invocationCwd, path)
-	return resolved, filepath.Clean(path), nil
+	return filepath.Clean(filepath.Join(r.invocationCwd, path))
+}
+
+func (r evalPathResolver) executionCwd(datasetPath string) string {
+	if relativePathUnder(r.baseDir, datasetPath) != "" {
+		return r.baseDir
+	}
+	return r.invocationCwd
+}
+
+func (r evalPathResolver) delegatePath(path, executionCwd string) string {
+	delegated := relativePathUnder(executionCwd, path)
+	if delegated == "" {
+		return filepath.Clean(path)
+	}
+	return delegated
+}
+
+func (r evalPathResolver) delegateJobsPath(path, executionCwd string) string {
+	if r.invocationCwd == executionCwd {
+		return r.delegatePath(path, executionCwd)
+	}
+	return filepath.Clean(path)
 }
 
 func cleanExistingPath(path string) string {
@@ -228,20 +254,32 @@ func cleanExistingPath(path string) string {
 	}
 	abs, err := filepath.Abs(path)
 	if err == nil {
-		return filepath.Clean(abs)
+		return cleanPathFromExistingParent(abs)
 	}
 	return filepath.Clean(path)
 }
 
-func relativePathFrom(base, path string) (string, error) {
-	relative, err := filepath.Rel(base, path)
-	if err != nil {
-		return filepath.Clean(path), nil
+func cleanPathFromExistingParent(path string) string {
+	cleaned := filepath.Clean(path)
+	current := cleaned
+	missing := []string{}
+
+	for {
+		resolved, err := filepath.EvalSymlinks(current)
+		if err == nil {
+			for i := len(missing) - 1; i >= 0; i-- {
+				resolved = filepath.Join(resolved, missing[i])
+			}
+			return filepath.Clean(resolved)
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			return cleaned
+		}
+		missing = append(missing, filepath.Base(current))
+		current = parent
 	}
-	if relative == "." {
-		return ".", nil
-	}
-	return filepath.Clean(relative), nil
 }
 
 func relativePathUnder(base, path string) string {
