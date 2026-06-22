@@ -663,7 +663,7 @@ wheels = [
 
 [[package]]
 name = "harbor"
-version = "0.13.1"
+version = "0.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "claude-agent-sdk" },
@@ -680,7 +680,6 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "rich" },
-    { name = "ruff" },
     { name = "shortuuid" },
     { name = "supabase" },
     { name = "tenacity" },
@@ -688,9 +687,9 @@ dependencies = [
     { name = "typer" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/44/5a/89fe6831dba01c53cffed5afb0dd9cfa7dd1e62c0d6b531294742270e30c/harbor-0.13.1.tar.gz", hash = "sha256:4c9f8a345a3bda772dbba2053ee68bc735ca641d083b083f7e81a3c3fb6fb2cc", size = 1094654, upload-time = "2026-06-03T20:45:47.738Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/af/9927af345cd7d80e4346539e2340a1cd795861b12fb5d5ffc7b0788a7401/harbor-0.15.0.tar.gz", hash = "sha256:406b20ce520fc1ec12bc9b05396cc91756bb6379fb565a5bc2f2b6759e94cb12", size = 1287081, upload-time = "2026-06-19T22:48:17.474Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/d9/640ae0d85f0c63bdda20341f3eee1dbdcd22448258d0ca4970a8523f7eb5/harbor-0.13.1-py3-none-any.whl", hash = "sha256:6116305f7d756ae919b50ce1c5363e14ea377ae924dfd68b10ed00dc20f6f432", size = 1247918, upload-time = "2026-06-03T20:45:49.273Z" },
+    { url = "https://files.pythonhosted.org/packages/df/5a/6e860d3bdbb09c56296d4b57fcebc22f8eb014b06eb3810f9e0a8ab718f7/harbor-0.15.0-py3-none-any.whl", hash = "sha256:a6f7f703d9b008920f07751ae27f6c049afe908bee8199aa6bcc911f6c2aab1b", size = 1463875, upload-time = "2026-06-19T22:48:19.009Z" },
 ]
 
 [[package]]
@@ -2063,7 +2062,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "harbor", specifier = ">=0.13.1,<0.14" },
+    { name = "harbor", specifier = ">=0.15,<0.16" },
     { name = "protobuf", specifier = ">=7.35.1" },
 ]
 

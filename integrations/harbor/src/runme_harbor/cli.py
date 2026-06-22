@@ -17,8 +17,8 @@ CODEX_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCodex"
 CLAUDE_IMPORT_PATH = "runme_harbor.runme_agents:RunmeClaudeCode"
 CURSOR_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCursorCli"
 OPENCLAW_IMPORT_PATH = "runme_harbor.runme_agents:RunmeOpenClaw"
-MIN_HARBOR_VERSION = (0, 13, 1)
-MAX_HARBOR_VERSION = (0, 14, 0)
+MIN_HARBOR_VERSION = (0, 15, 0)
+MAX_HARBOR_VERSION = (0, 16, 0)
 SKIP_METADATA_SYNC_ENV = "RUNME_HARBOR_SKIP_METADATA_SYNC"
 BUNDLED_HARBOR_EXECUTABLE = "runme-harbor-harbor"
 AGENT_ARGUMENTS = {
@@ -227,7 +227,7 @@ def _preflight_harbor_package() -> None:
 
     version = _version_tuple(importlib.metadata.version("harbor"))
     if version < MIN_HARBOR_VERSION or version >= MAX_HARBOR_VERSION:
-        raise SystemExit("Runme Harbor requires harbor>=0.13.1,<0.14.")
+        raise SystemExit("Runme Harbor requires harbor>=0.15,<0.16.")
 
 
 def _skip_metadata_sync() -> bool:
