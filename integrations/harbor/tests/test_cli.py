@@ -332,6 +332,30 @@ def test_main_sync_metadata_command_reports_preflight_errors(
     assert capsys.readouterr().err == "Runme Harbor requires the `harbor` Python package.\n"
 
 
+@pytest.mark.parametrize(
+    ("version", "supported"),
+    [
+        ("0.14.0", False),
+        ("0.15.0", True),
+        ("0.15.9", True),
+        ("0.16.0", False),
+    ],
+)
+def test_preflight_harbor_version_range(
+    monkeypatch: pytest.MonkeyPatch,
+    version: str,
+    supported: bool,
+) -> None:
+    monkeypatch.setattr(cli.importlib, "import_module", lambda _name: object())
+    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: version)
+
+    if supported:
+        cli._preflight_harbor_package()
+    else:
+        with pytest.raises(SystemExit, match="harbor>=0.15,<0.16"):
+            cli._preflight_harbor_package()
+
+
 def test_pyproject_exposes_runme_owned_scripts_only() -> None:
     pyproject = Path(__file__).parents[1] / "pyproject.toml"
     scripts = tomllib.loads(pyproject.read_text())["project"]["scripts"]
@@ -354,7 +378,7 @@ def test_preflight_uses_bundled_harbor_executable(
 
     monkeypatch.setattr(sys, "argv", [str(runme_harbor), "run"])
     monkeypatch.setattr(cli.importlib, "import_module", lambda _name: object())
-    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.13.1")
+    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.15.0")
     monkeypatch.setattr(cli.shutil, "which", lambda name: f"/usr/local/bin/{name}")
 
     assert cli._preflight("oracle") == bundled_harbor.resolve()
@@ -374,7 +398,7 @@ def test_preflight_rejects_global_harbor_without_bundled_sibling(
     monkeypatch.setenv("PATH", str(global_bin))
     monkeypatch.setattr(sys, "argv", [str(runme_harbor), "run"])
     monkeypatch.setattr(cli.importlib, "import_module", lambda _name: object())
-    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.13.1")
+    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.15.0")
 
     with pytest.raises(SystemExit, match="bundled `runme-harbor-harbor` executable"):
         cli._preflight("oracle")
@@ -403,7 +427,7 @@ def test_preflight_requires_runme_agent_cli(
 
     monkeypatch.setattr(sys, "argv", [str(runme_harbor), "run"])
     monkeypatch.setattr(cli.importlib, "import_module", lambda _name: object())
-    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.13.1")
+    monkeypatch.setattr(cli.importlib.metadata, "version", lambda _name: "0.15.0")
     monkeypatch.setattr(
         cli.shutil, "which", lambda name: None if name == missing else f"/bin/{name}"
     )

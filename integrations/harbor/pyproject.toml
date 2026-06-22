@@ -18,7 +18,7 @@ classifiers = [
   "Topic :: System :: Shells",
 ]
 dependencies = [
-  "harbor>=0.13.1,<0.14",
+  "harbor>=0.15,<0.16",
   "protobuf>=7.35.1",
 ]
 license-files = ["LICENSE", "NOTICE"]
