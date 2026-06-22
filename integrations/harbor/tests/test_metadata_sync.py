@@ -9,6 +9,7 @@ from harbor.models.trial.result import TrialResult
 from runme_harbor.cli import (
     CLAUDE_IMPORT_PATH,
     CODEX_IMPORT_PATH,
+    CURSOR_IMPORT_PATH,
     ENVIRONMENT_IMPORT_PATH,
 )
 from runme_harbor.metadata_sync import (
@@ -39,9 +40,7 @@ def test_sync_jobs_metadata_uses_observed_runme_agent_import_paths(tmp_path: Pat
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert _agent_summaries(config) == [
-        ("runme-codex", CODEX_IMPORT_PATH, "openai/gpt-5")
-    ]
+    assert _agent_summaries(config) == [("runme-codex", CODEX_IMPORT_PATH, "openai/gpt-5")]
     assert config.environment.import_path == ENVIRONMENT_IMPORT_PATH
 
     assert ORIGINAL_CONFIG_BACKUP == "config.original.json"
@@ -57,7 +56,9 @@ def test_sync_jobs_metadata_uses_observed_runme_agent_import_paths(tmp_path: Pat
 
 def test_sync_jobs_metadata_sorts_and_deduplicates_observed_agents(tmp_path: Path) -> None:
     job_dir = _write_job_config(tmp_path, agents=[AgentConfig(name="planned")])
-    _write_trial_result(job_dir, "trial-z", agent_name="runme-codex", provider=None, model_name="gpt-5")
+    _write_trial_result(
+        job_dir, "trial-z", agent_name="runme-codex", provider=None, model_name="gpt-5"
+    )
     _write_trial_result(
         job_dir,
         "trial-a",
@@ -65,7 +66,9 @@ def test_sync_jobs_metadata_sorts_and_deduplicates_observed_agents(tmp_path: Pat
         provider="anthropic",
         model_name="sonnet",
     )
-    _write_trial_result(job_dir, "trial-b", agent_name="runme-codex", provider=None, model_name="gpt-5")
+    _write_trial_result(
+        job_dir, "trial-b", agent_name="runme-codex", provider=None, model_name="gpt-5"
+    )
 
     assert sync_jobs_metadata(tmp_path) == 1
 
@@ -88,6 +91,31 @@ def test_sync_jobs_metadata_sorts_same_agent_with_missing_model_info(tmp_path: P
         ("runme-codex", CODEX_IMPORT_PATH, None),
         ("runme-codex", CODEX_IMPORT_PATH, "gpt-5"),
     ]
+
+
+def test_sync_jobs_metadata_uses_cursor_cli_import_path(tmp_path: Path) -> None:
+    job_dir = _write_job_config(
+        tmp_path,
+        agents=[
+            AgentConfig(
+                import_path=CURSOR_IMPORT_PATH,
+                model_name="cursor/planned-model",
+            )
+        ],
+    )
+    _write_trial_result(
+        job_dir,
+        "trial-1",
+        agent_name="cursor-cli",
+        provider="cursor",
+        model_name="composer-2",
+    )
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert _agent_summaries(config) == [("cursor-cli", CURSOR_IMPORT_PATH, "cursor/composer-2")]
+    assert config.environment.import_path == ENVIRONMENT_IMPORT_PATH
 
 
 def test_sync_jobs_metadata_omits_missing_model_info(tmp_path: Path) -> None:
@@ -120,9 +148,7 @@ def test_sync_jobs_metadata_uses_atif_model_when_trial_model_info_missing(
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert _agent_summaries(config) == [
-        ("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")
-    ]
+    assert _agent_summaries(config) == [("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")]
     result = TrialResult.model_validate_json((job_dir / "trial-1" / "result.json").read_text())
     assert result.agent_info.model_info is not None
     assert result.agent_info.model_info.name == "gpt-5.5"
@@ -154,9 +180,7 @@ def test_sync_jobs_metadata_prefers_atif_over_trial_model_info(
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert _agent_summaries(config) == [
-        ("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")
-    ]
+    assert _agent_summaries(config) == [("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")]
     result = TrialResult.model_validate_json((job_dir / "trial-1" / "result.json").read_text())
     assert result.agent_info.model_info is not None
     assert result.agent_info.model_info.name == "gpt-5.5"
@@ -236,9 +260,7 @@ def test_sync_jobs_metadata_ignores_unreadable_atif(tmp_path: Path) -> None:
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert _agent_summaries(config) == [
-        ("runme-codex", CODEX_IMPORT_PATH, None)
-    ]
+    assert _agent_summaries(config) == [("runme-codex", CODEX_IMPORT_PATH, None)]
 
 
 def test_sync_jobs_metadata_skips_jobs_without_readable_trials(tmp_path: Path) -> None:
@@ -301,9 +323,7 @@ def test_sync_jobs_metadata_corrects_prior_runme_agent_name_sync(tmp_path: Path)
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert _agent_summaries(config) == [
-        ("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")
-    ]
+    assert _agent_summaries(config) == [("runme-codex", CODEX_IMPORT_PATH, "gpt-5.5")]
     assert (job_dir / ORIGINAL_CONFIG_BACKUP).read_text() == backup_text
 
 
