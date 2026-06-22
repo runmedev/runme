@@ -116,6 +116,16 @@ def test_build_harbor_command_claude(tmp_path: Path) -> None:
     assert "--agent" not in command
 
 
+def test_build_harbor_command_cursor_cli(tmp_path: Path) -> None:
+    args = parse(["run", str(tmp_path), "--agent", "cursor-cli"])
+
+    command = cli.build_harbor_command(args)
+
+    assert "--agent-import-path" in command
+    assert "runme_harbor.runme_agents:RunmeCursorCli" in command
+    assert "--agent" not in command
+
+
 def test_build_harbor_command_openclaw(tmp_path: Path) -> None:
     args = parse(["run", str(tmp_path), "--agent", "openclaw"])
 
@@ -130,6 +140,13 @@ def test_build_harbor_command_runme_env_rejects_unknown_agent(tmp_path: Path) ->
     args = parse(["run", str(tmp_path), "--agent", "goose"])
 
     with pytest.raises(SystemExit, match="invalid --agent 'goose'"):
+        cli.build_harbor_command(args)
+
+
+def test_build_harbor_command_runme_env_rejects_cursor_alias(tmp_path: Path) -> None:
+    args = parse(["run", str(tmp_path), "--agent", "cursor"])
+
+    with pytest.raises(SystemExit, match="invalid --agent 'cursor'"):
         cli.build_harbor_command(args)
 
 
@@ -238,7 +255,9 @@ def test_main_syncs_metadata_after_harbor_run(
     synced: list[str] = []
     monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
     monkeypatch.setattr(cli.subprocess, "call", lambda _command: 7)
-    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+    monkeypatch.setattr(
+        metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
+    )
 
     assert cli.main(["run", str(tmp_path), "--jobs-dir", "jobs"]) == 7
 
@@ -253,7 +272,9 @@ def test_main_skips_metadata_sync_when_disabled(
     monkeypatch.setenv(cli.SKIP_METADATA_SYNC_ENV, "1")
     monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
     monkeypatch.setattr(cli.subprocess, "call", lambda _command: 0)
-    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+    monkeypatch.setattr(
+        metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
+    )
 
     assert cli.main(["run", str(tmp_path), "--jobs-dir", "jobs"]) == 0
 
@@ -267,7 +288,9 @@ def test_main_sync_metadata_command_uses_default_jobs_dir(
     synced: list[str] = []
     preflighted: list[bool] = []
     monkeypatch.setattr(cli, "_preflight_harbor_package", lambda: preflighted.append(True))
-    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 3)
+    monkeypatch.setattr(
+        metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 3
+    )
 
     assert cli.main(["sync-metadata"]) == 0
 
@@ -281,7 +304,9 @@ def test_main_sync_metadata_command_accepts_jobs_dir(
 ) -> None:
     synced: list[str] = []
     monkeypatch.setattr(cli, "_preflight_harbor_package", lambda: None)
-    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+    monkeypatch.setattr(
+        metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
+    )
 
     assert cli.main(["sync-metadata", "--jobs-dir", "jobs"]) == 0
 
@@ -297,7 +322,9 @@ def test_main_sync_metadata_command_reports_preflight_errors(
 
     synced: list[str] = []
     monkeypatch.setattr(cli, "_preflight_harbor_package", fail_preflight)
-    monkeypatch.setattr(metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1)
+    monkeypatch.setattr(
+        metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
+    )
 
     assert cli.main(["sync-metadata"]) == 1
 
@@ -358,6 +385,7 @@ def test_preflight_rejects_global_harbor_without_bundled_sibling(
     [
         ("codex", "codex", "`--agent codex` requires the `codex` CLI"),
         ("claude-code", "claude", "`--agent claude-code` requires the `claude` CLI"),
+        ("cursor-cli", "cursor-agent", "`--agent cursor-cli` requires the `cursor-agent` CLI"),
         ("openclaw", "openclaw", "`--agent openclaw` requires the `openclaw` CLI"),
     ],
 )

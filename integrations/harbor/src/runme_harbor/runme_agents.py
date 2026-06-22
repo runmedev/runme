@@ -9,6 +9,7 @@ from pathlib import Path
 from harbor.agents.installed.base import CliFlag, with_prompt_template
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
+from harbor.agents.installed.cursor_cli import CursorCli
 from harbor.agents.installed.openclaw import OpenClaw
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
@@ -227,6 +228,74 @@ class RunmeCodex(Codex):
             self.populate_context_post_run(context)
 
 
+class RunmeCursorCli(CursorCli):
+    """Cursor CLI-backed Runme agent without container bootstrap.
+
+    Harbor's installed Cursor agent assumes a disposable container and requires
+    API-key setup before running. Runme Harbor executes through Runme's runtime,
+    so this wrapper expects `cursor-agent` to already be available and uses the
+    user's ambient Cursor authentication when present.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "cursor-cli"
+
+    async def install(self, environment: BaseEnvironment) -> None:
+        return None
+
+    async def setup(self, environment: BaseEnvironment) -> None:
+        return None
+
+    def _runtime_env(self) -> dict[str, str]:
+        env: dict[str, str] = {}
+        if cursor_api_key := os.environ.get("CURSOR_API_KEY"):
+            env["CURSOR_API_KEY"] = cursor_api_key
+        env.update(self._resolved_env_vars)
+        return env
+
+    @with_prompt_template
+    async def run(
+        self,
+        instruction: str,
+        environment: BaseEnvironment,
+        context: AgentContext,
+    ) -> None:
+        escaped_instruction = shlex.quote(instruction)
+
+        if self.model_name and "/" not in self.model_name:
+            raise ValueError("Model name must be in the format provider/model_name")
+
+        model_arg = (
+            f"--model={shlex.quote(self.model_name.split('/')[-1])} " if self.model_name else ""
+        )
+        env = self._runtime_env()
+
+        mcp_command = self._build_register_mcp_servers_command()
+        if mcp_command:
+            await self.exec_as_agent(environment, command=mcp_command, env=env)
+
+        cli_flags = self.build_cli_flags()
+        cli_flags_arg = f"{cli_flags} " if cli_flags else ""
+
+        await self.exec_as_agent(
+            environment,
+            command=(
+                "set -o pipefail\n"
+                'export PATH="$HOME/.local/bin:$PATH"\n'
+                "cursor-agent --yolo --print --output-format=stream-json "
+                f"{cli_flags_arg}"
+                f"{model_arg}"
+                f"-- {escaped_instruction} "
+                f"2>&1 </dev/null | tee "
+                f"{EnvironmentPaths.agent_dir / self._OUTPUT_FILENAME}"
+            ),
+            env=env,
+        )
+
+        self.populate_context_post_run(context)
+
+
 class RunmeOpenClaw(OpenClaw):
     """OpenClaw-backed Runme agent without container bootstrap.
 
@@ -333,9 +402,7 @@ class RunmeOpenClaw(OpenClaw):
         shutil.copy2(source, target)
 
     def _session_key_arg(self) -> str:
-        if self._resolved_flags.get("session_id") or self._resolved_flags.get(
-            "session_key"
-        ):
+        if self._resolved_flags.get("session_id") or self._resolved_flags.get("session_key"):
             return ""
 
         digest = sha256(str(self.logs_dir.resolve()).encode()).hexdigest()[:16]
@@ -364,9 +431,7 @@ class RunmeOpenClaw(OpenClaw):
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
         session_key_arg = self._session_key_arg()
-        model_arg = (
-            f"--model {shlex.quote(self.model_name)} " if self.model_name else ""
-        )
+        model_arg = f"--model {shlex.quote(self.model_name)} " if self.model_name else ""
 
         try:
             await self.exec_as_agent(

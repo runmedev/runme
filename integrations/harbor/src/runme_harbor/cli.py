@@ -15,6 +15,7 @@ from typing import Sequence
 ENVIRONMENT_IMPORT_PATH = "runme_harbor.environment:RunmeEnvironment"
 CODEX_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCodex"
 CLAUDE_IMPORT_PATH = "runme_harbor.runme_agents:RunmeClaudeCode"
+CURSOR_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCursorCli"
 OPENCLAW_IMPORT_PATH = "runme_harbor.runme_agents:RunmeOpenClaw"
 MIN_HARBOR_VERSION = (0, 13, 1)
 MAX_HARBOR_VERSION = (0, 14, 0)
@@ -24,6 +25,7 @@ AGENT_ARGUMENTS = {
     "oracle": ("--agent", "oracle"),
     "codex": ("--agent-import-path", CODEX_IMPORT_PATH),
     "claude-code": ("--agent-import-path", CLAUDE_IMPORT_PATH),
+    "cursor-cli": ("--agent-import-path", CURSOR_IMPORT_PATH),
     "openclaw": ("--agent-import-path", OPENCLAW_IMPORT_PATH),
 }
 
@@ -182,6 +184,8 @@ def _preflight(agent: str) -> Path:
         raise SystemExit("`--agent codex` requires the `codex` CLI on PATH.")
     if agent == "claude-code" and not shutil.which("claude"):
         raise SystemExit("`--agent claude-code` requires the `claude` CLI on PATH.")
+    if agent == "cursor-cli" and not shutil.which("cursor-agent"):
+        raise SystemExit("`--agent cursor-cli` requires the `cursor-agent` CLI on PATH.")
     if agent == "openclaw" and not shutil.which("openclaw"):
         raise SystemExit("`--agent openclaw` requires the `openclaw` CLI on PATH.")
     return harbor_bin
