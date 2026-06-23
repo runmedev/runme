@@ -496,6 +496,32 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 	}
 }
 
+func TestRunEvalDelegatesAgentEnv(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.AgentEnv = []string{"AWS_REGION=us-east-1", "FOO=bar"}
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultJobsDir(t),
+		"-y",
+		"--",
+		"--agent-env", "AWS_REGION=us-east-1",
+		"--agent-env", "FOO=bar",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
 func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
@@ -545,6 +571,31 @@ func TestRunEvalPreservesPassthroughAgentKwargs(t *testing.T) {
 	}
 }
 
+func TestRunEvalPreservesPassthroughAgentEnv(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := NewEvalRunner(opts).Run([]string{path, "--ae", "AWS_REGION=us-east-1", "--agent-env=FOO=bar"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultJobsDir(t),
+		"-y",
+		"--",
+		"--ae", "AWS_REGION=us-east-1",
+		"--agent-env=FOO=bar",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
 func TestRunEvalRejectsDuplicateModel(t *testing.T) {
 	for _, tt := range []struct {
 		name        string
@@ -573,31 +624,59 @@ func TestRunEvalRejectsDuplicateModel(t *testing.T) {
 	}
 }
 
-func TestRunEvalRejectsDuplicateAgentKwargs(t *testing.T) {
+func TestRunEvalRejectsDuplicateAgentFlags(t *testing.T) {
 	for _, tt := range []struct {
-		name        string
-		passthrough []string
+		name         string
+		configure    func(*EvalOptions)
+		errorMessage string
+		variants     [][]string
 	}{
-		{name: "long separate arg", passthrough: []string{"--agent-kwarg", "sandbox_mode=workspace-write"}},
-		{name: "long equals arg", passthrough: []string{"--agent-kwarg=sandbox_mode=workspace-write"}},
-		{name: "alias separate arg", passthrough: []string{"--ak", "sandbox_mode=workspace-write"}},
-		{name: "alias equals arg", passthrough: []string{"--ak=sandbox_mode=workspace-write"}},
+		{
+			name: "agent kwargs",
+			configure: func(opts *EvalOptions) {
+				opts.AgentKwargs = []string{"reasoning_effort=xhigh"}
+			},
+			errorMessage: "--agent-kwarg cannot be used together with passthrough",
+			variants: [][]string{
+				{"--agent-kwarg", "sandbox_mode=workspace-write"},
+				{"--agent-kwarg=sandbox_mode=workspace-write"},
+				{"--ak", "sandbox_mode=workspace-write"},
+				{"--ak=sandbox_mode=workspace-write"},
+			},
+		},
+		{
+			name: "agent env",
+			configure: func(opts *EvalOptions) {
+				opts.AgentEnv = []string{"FOO=bar"}
+			},
+			errorMessage: "--agent-env cannot be used together with passthrough",
+			variants: [][]string{
+				{"--agent-env", "AWS_REGION=us-east-1"},
+				{"--agent-env=AWS_REGION=us-east-1"},
+				{"--ae", "AWS_REGION=us-east-1"},
+				{"--ae=AWS_REGION=us-east-1"},
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			path := t.TempDir()
-			var calls []recordedCommand
-			opts := testEvalOptions(t, &calls, io.Discard)
-			opts.AgentKwargs = []string{"reasoning_effort=xhigh"}
+			for _, passthrough := range tt.variants {
+				t.Run(strings.Join(passthrough, " "), func(t *testing.T) {
+					path := t.TempDir()
+					var calls []recordedCommand
+					opts := testEvalOptions(t, &calls, io.Discard)
+					tt.configure(&opts)
 
-			err := NewEvalRunner(opts).Run(append([]string{path}, tt.passthrough...))
-			if err == nil {
-				t.Fatal("expected error")
-			}
-			if !strings.Contains(err.Error(), "--agent-kwarg cannot be used together with passthrough") {
-				t.Fatalf("error = %q", err.Error())
-			}
-			if len(calls) != 0 {
-				t.Fatalf("calls = %#v, want none", calls)
+					err := NewEvalRunner(opts).Run(append([]string{path}, passthrough...))
+					if err == nil {
+						t.Fatal("expected error")
+					}
+					if !strings.Contains(err.Error(), tt.errorMessage) {
+						t.Fatalf("error = %q", err.Error())
+					}
+					if len(calls) != 0 {
+						t.Fatalf("calls = %#v, want none", calls)
+					}
+				})
 			}
 		})
 	}

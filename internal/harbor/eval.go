@@ -30,6 +30,7 @@ type EvalOptions struct {
 	JobsDir         string
 	Ask             bool
 	AgentKwargs     []string
+	AgentEnv        []string
 	Model           string
 	Env             string
 	RunmeBin        string
@@ -100,8 +101,11 @@ func (r *EvalRunner) Run(args []string) error {
 	if opts.Model != "" && containsModelFlag(paths.passthrough) {
 		return fmt.Errorf("--model cannot be used together with passthrough --model; use only runme eval --model")
 	}
-	if len(opts.AgentKwargs) > 0 && containsAgentKwargFlag(paths.passthrough) {
+	if len(opts.AgentKwargs) > 0 && containsFlagAlias(paths.passthrough, "--agent-kwarg", "--ak") {
 		return fmt.Errorf("--agent-kwarg cannot be used together with passthrough --agent-kwarg/--ak; use only runme eval --agent-kwarg")
+	}
+	if len(opts.AgentEnv) > 0 && containsFlagAlias(paths.passthrough, "--agent-env", "--ae") {
+		return fmt.Errorf("--agent-env cannot be used together with passthrough --agent-env/--ae; use only runme eval --agent-env")
 	}
 	if containsEnvironmentFlag(paths.passthrough) {
 		return fmt.Errorf("use runme eval --env instead of passing Harbor environment flags after --")
@@ -390,6 +394,9 @@ func buildRunmeHarborArgs(datasetPath string, opts EvalOptions, jobsDir string, 
 	for _, kwarg := range opts.AgentKwargs {
 		delegatedPassthrough = append(delegatedPassthrough, "--agent-kwarg", kwarg)
 	}
+	for _, env := range opts.AgentEnv {
+		delegatedPassthrough = append(delegatedPassthrough, "--agent-env", env)
+	}
 	if opts.Model != "" {
 		delegatedPassthrough = append(delegatedPassthrough, "--model", opts.Model)
 	}
@@ -409,12 +416,12 @@ func containsModelFlag(args []string) bool {
 	return false
 }
 
-func containsAgentKwargFlag(args []string) bool {
+func containsFlagAlias(args []string, long, alias string) bool {
 	for _, arg := range args {
-		if arg == "--agent-kwarg" || arg == "--ak" {
+		if arg == long || arg == alias {
 			return true
 		}
-		if strings.HasPrefix(arg, "--agent-kwarg=") || strings.HasPrefix(arg, "--ak=") {
+		if strings.HasPrefix(arg, long+"=") || strings.HasPrefix(arg, alias+"=") {
 			return true
 		}
 	}
