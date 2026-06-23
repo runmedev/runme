@@ -485,12 +485,11 @@ func runExternalCommandWithPtyStdout(cmd *exec.Cmd, stdin io.Reader, stdout, std
 	}()
 
 	waitErr := cmd.Wait()
-	_ = ptmx.Close()
 	copyErr := <-copyDone
 	if waitErr != nil {
 		return waitErr
 	}
-	if copyErr != nil && !errors.Is(copyErr, os.ErrClosed) {
+	if copyErr != nil {
 		if errors.Is(copyErr, syscall.EIO) {
 			return nil
 		}
