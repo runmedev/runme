@@ -91,22 +91,3 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-
-      - name: Calculate Homebrew source checksum
-        id: homebrew-source
-        # skip prereleases
-        if: ${{ !contains(github.ref, '-') }}
-        run: |
-          curl -sSL "https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz" \
-            | shasum -a 256 \
-            | awk '{print "sha256="$1}' >> "$GITHUB_OUTPUT"
-
-      - name: Bump Homebrew Formula
-        uses: mislav/bump-homebrew-formula-action@v4.1
-        # skip prereleases
-        if: ${{ !contains(github.ref, '-') }}
-        with:
-          formula-name: runme
-          download-sha256: ${{ steps.homebrew-source.outputs.sha256 }}
-        env:
-          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
