@@ -46,10 +46,11 @@ type ToolBridge struct {
 	upgrader websocket.Upgrader
 	auth     *iam.AuthContext
 
-	mu      sync.Mutex
-	conn    *websocket.Conn
-	connSeq uint64
-	pending map[string]pendingBridgeCall
+	mu         sync.Mutex
+	conn       *websocket.Conn
+	connSeq    uint64
+	connecting bool
+	pending    map[string]pendingBridgeCall
 
 	writeMu sync.Mutex
 }
@@ -77,16 +78,15 @@ func (b *ToolBridge) HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 	}
 	forceReplace := r.URL.Query().Get("force_replace") == "true"
 
-	b.mu.Lock()
-	existingConn := b.conn
-	b.mu.Unlock()
-	if existingConn != nil && !forceReplace {
+	existingConn, connSeq, ok := b.reserveConnection(forceReplace)
+	if !ok {
 		writeBridgeConflict(w)
 		return
 	}
 
 	conn, err := b.upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		b.releaseConnectionReservation(connSeq)
 		logger.Error(err, "failed to upgrade /codex/ws connection")
 		return
 	}
@@ -96,6 +96,7 @@ func (b *ToolBridge) HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 
 	authCtx, authErr := b.authorizeInitialRequest(ctx, conn)
 	if authErr != nil {
+		b.releaseConnectionReservation(connSeq)
 		logger.Error(authErr, "failed to authorize /codex/ws connection")
 		_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, authErr.Error()), time.Now().Add(3*time.Second))
 		return
@@ -106,7 +107,9 @@ func (b *ToolBridge) HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 		logger = logger.WithValues("principal", principal)
 	}
 
-	connSeq := b.installConnection(conn)
+	if !b.installConnection(conn, connSeq) {
+		return
+	}
 	if existingConn != nil {
 		_ = existingConn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "replaced by force_replace"), time.Now().Add(3*time.Second))
 		_ = existingConn.Close()
@@ -148,12 +151,35 @@ func writeBridgeConflict(w http.ResponseWriter) {
 	})
 }
 
-func (b *ToolBridge) installConnection(conn *websocket.Conn) uint64 {
+func (b *ToolBridge) reserveConnection(forceReplace bool) (*websocket.Conn, uint64, bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	existingConn := b.conn
+	if (existingConn != nil || b.connecting) && !forceReplace {
+		return nil, 0, false
+	}
 	b.connSeq++
+	b.connecting = true
+	return existingConn, b.connSeq, true
+}
+
+func (b *ToolBridge) releaseConnectionReservation(connSeq uint64) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.connecting && b.connSeq == connSeq {
+		b.connecting = false
+	}
+}
+
+func (b *ToolBridge) installConnection(conn *websocket.Conn, connSeq uint64) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.connSeq != connSeq {
+		return false
+	}
 	b.conn = conn
-	return b.connSeq
+	b.connecting = false
+	return true
 }
 
 // Call dispatches a notebook tool call request over the active websocket and waits for the response.
@@ -342,6 +368,8 @@ func (b *ToolBridge) Shutdown() {
 	b.mu.Lock()
 	conn := b.conn
 	b.conn = nil
+	b.connecting = false
+	b.connSeq++
 	pending := b.pending
 	b.pending = make(map[string]pendingBridgeCall, 4)
 	b.mu.Unlock()

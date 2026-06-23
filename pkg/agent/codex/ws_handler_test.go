@@ -17,6 +17,7 @@ import (
 
 	codexv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/codex/v1"
 	toolsv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/tools/v1"
+	"github.com/runmedev/runme/v3/pkg/agent/iam"
 )
 
 func TestToolBridge_RejectSecondConnection(t *testing.T) {
@@ -31,12 +32,115 @@ func TestToolBridge_RejectSecondConnection(t *testing.T) {
 	}
 	defer conn1.Close()
 
+	waitForBridgeConnection(t, bridge)
+
 	_, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err == nil {
 		t.Fatalf("second websocket dial should fail")
 	}
 	if resp == nil || resp.StatusCode != 409 {
 		t.Fatalf("second websocket status = %v, want 409", respStatus(resp))
+	}
+}
+
+func TestToolBridge_RejectsConcurrentSecondConnection(t *testing.T) {
+	bridge := NewToolBridge(nil)
+	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
+	defer ts.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(ts.URL, "http")
+
+	type dialResult struct {
+		conn *websocket.Conn
+		resp *http.Response
+		err  error
+	}
+
+	results := make(chan dialResult, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			conn, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
+			results <- dialResult{conn: conn, resp: resp, err: err}
+		}()
+	}
+
+	var successes int
+	var conflicts int
+	for i := 0; i < 2; i++ {
+		result := <-results
+		if result.err == nil {
+			successes++
+			defer result.conn.Close()
+			continue
+		}
+		if result.resp != nil && result.resp.StatusCode == http.StatusConflict {
+			conflicts++
+		}
+	}
+
+	if successes != 1 || conflicts != 1 {
+		t.Fatalf("got successes=%d conflicts=%d, want 1 success and 1 conflict", successes, conflicts)
+	}
+}
+
+func TestToolBridge_ForceReplaceSupersedesConnectingConnection(t *testing.T) {
+	bridge := NewToolBridge(&iam.AuthContext{})
+	ts := newTCP4TestServer(t, http.HandlerFunc(bridge.HandleWebsocket))
+	defer ts.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(ts.URL, "http")
+	conn1, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("first websocket dial failed: %v", err)
+	}
+	defer conn1.Close()
+
+	conn2, _, err := websocket.DefaultDialer.Dial(wsURL+"?force_replace=true", nil)
+	if err != nil {
+		t.Fatalf("force_replace websocket dial failed: %v", err)
+	}
+	defer conn2.Close()
+
+	writeAuthEnvelope(t, conn2)
+	waitForBridgeConnection(t, bridge)
+
+	writeAuthEnvelope(t, conn1)
+	_ = conn1.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if _, _, err := conn1.ReadMessage(); err == nil {
+		t.Fatalf("superseded connection should be closed")
+	}
+
+	callErrCh := make(chan error, 1)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		_, err := bridge.Call(ctx, &toolsv1.ToolCallInput{
+			Input: &toolsv1.ToolCallInput_ExecuteCode{
+				ExecuteCode: &toolsv1.ExecuteCodeRequest{Code: "console.log('ok')"},
+			},
+		})
+		callErrCh <- err
+	}()
+
+	_ = conn2.SetReadDeadline(time.Now().Add(2 * time.Second))
+	messageType, message, err := conn2.ReadMessage()
+	if err != nil {
+		t.Fatalf("force_replace connection did not receive bridge call: %v", err)
+	}
+	if messageType != websocket.TextMessage {
+		t.Fatalf("unexpected websocket message type: got %d", messageType)
+	}
+	req := &codexv1.WebsocketResponse{}
+	if err := protojson.Unmarshal(message, req); err != nil {
+		t.Fatalf("Unmarshal websocket response failed: %v", err)
+	}
+	toolReq := req.GetNotebookToolCallRequest()
+	if toolReq == nil {
+		t.Fatalf("request missing notebook_tool_call_request payload")
+	}
+	writeBridgeToolResponse(t, conn2, toolReq.GetBridgeCallId())
+	if err := <-callErrCh; err != nil {
+		t.Fatalf("Call returned error: %v", err)
 	}
 }
 
@@ -294,6 +398,38 @@ func respStatus(resp *http.Response) int {
 		return 0
 	}
 	return resp.StatusCode
+}
+
+func writeAuthEnvelope(t *testing.T, conn *websocket.Conn) {
+	t.Helper()
+	if err := conn.WriteMessage(websocket.TextMessage, []byte(`{"authorization":"Bearer test"}`)); err != nil {
+		t.Fatalf("failed to write auth envelope: %v", err)
+	}
+}
+
+func writeBridgeToolResponse(t *testing.T, conn *websocket.Conn, bridgeCallID string) {
+	t.Helper()
+	resp := &codexv1.WebsocketRequest{
+		Payload: &codexv1.WebsocketRequest_NotebookToolCallResponse{
+			NotebookToolCallResponse: &codexv1.NotebookToolCallResponse{
+				BridgeCallId: bridgeCallID,
+				Output: &toolsv1.ToolCallOutput{
+					CallId: bridgeCallID,
+					Output: &toolsv1.ToolCallOutput_ExecuteCode{
+						ExecuteCode: &toolsv1.ExecuteCodeResponse{Output: "ok\n"},
+					},
+					Status: toolsv1.ToolCallOutput_STATUS_SUCCESS,
+				},
+			},
+		},
+	}
+	data, err := protojson.Marshal(resp)
+	if err != nil {
+		t.Fatalf("Marshal websocket request failed: %v", err)
+	}
+	if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+		t.Fatalf("WriteMessage response failed: %v", err)
+	}
 }
 
 func newTCP4TestServer(t *testing.T, handler http.Handler) *httptest.Server {
