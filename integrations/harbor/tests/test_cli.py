@@ -20,6 +20,19 @@ def make_executable(path: Path) -> Path:
     return path
 
 
+class FakeProcess:
+    def __init__(self, exit_code: int = 0, interrupt_once: bool = False) -> None:
+        self.exit_code = exit_code
+        self.interrupt_once = interrupt_once
+        self.waits = 0
+
+    def wait(self) -> int:
+        self.waits += 1
+        if self.interrupt_once and self.waits == 1:
+            raise KeyboardInterrupt
+        return self.exit_code
+
+
 def test_build_harbor_command_oracle_defaults(tmp_path: Path) -> None:
     args = parse(["run", str(tmp_path)])
 
@@ -240,7 +253,7 @@ def test_main_runs_bundled_harbor_and_prints_debug(
     calls: list[list[str]] = []
     harbor_bin = tmp_path / "bin" / "runme-harbor-harbor"
     monkeypatch.setattr(cli, "_preflight", lambda _agent: harbor_bin)
-    monkeypatch.setattr(cli.subprocess, "call", lambda command: calls.append(command) or 7)
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda command: calls.append(command) or FakeProcess(7))
 
     assert cli.main(["run", str(tmp_path), "--debug"]) == 7
 
@@ -254,7 +267,7 @@ def test_main_syncs_metadata_after_harbor_run(
 ) -> None:
     synced: list[str] = []
     monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
-    monkeypatch.setattr(cli.subprocess, "call", lambda _command: 7)
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda _command: FakeProcess(7))
     monkeypatch.setattr(
         metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
     )
@@ -271,7 +284,7 @@ def test_main_skips_metadata_sync_when_disabled(
     synced: list[str] = []
     monkeypatch.setenv(cli.SKIP_METADATA_SYNC_ENV, "1")
     monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
-    monkeypatch.setattr(cli.subprocess, "call", lambda _command: 0)
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda _command: FakeProcess(0))
     monkeypatch.setattr(
         metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
     )
@@ -279,6 +292,20 @@ def test_main_skips_metadata_sync_when_disabled(
     assert cli.main(["run", str(tmp_path), "--jobs-dir", "jobs"]) == 0
 
     assert synced == []
+
+
+def test_main_waits_for_child_after_keyboard_interrupt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    process = FakeProcess(130, interrupt_once=True)
+    monkeypatch.setenv(cli.SKIP_METADATA_SYNC_ENV, "1")
+    monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda _command: process)
+
+    assert cli.main(["run", str(tmp_path)]) == 130
+
+    assert process.waits == 2
 
 
 def test_main_sync_metadata_command_uses_default_jobs_dir(

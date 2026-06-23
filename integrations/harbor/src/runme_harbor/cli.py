@@ -50,7 +50,11 @@ def run(args: argparse.Namespace) -> int:
     command = build_harbor_command(args, harbor_bin=harbor_bin)
     if args.debug:
         print(_command_string(command), file=sys.stderr)
-    exit_code = subprocess.call(command)
+    process = subprocess.Popen(command)
+    try:
+        exit_code = process.wait()
+    except KeyboardInterrupt:
+        exit_code = process.wait()
     if not _skip_metadata_sync():
         from runme_harbor.metadata_sync import sync_jobs_metadata
 
