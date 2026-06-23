@@ -20,6 +20,7 @@ type evalOptions struct {
 	jobsDir         string
 	ask             bool
 	agentKwargs     []string
+	agentEnv        []string
 	model           string
 	env             string
 	runmeBin        string
@@ -65,8 +66,11 @@ When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetP
 	flags := cmd.Flags()
 	previousNormalize := flags.GetNormalizeFunc()
 	flags.SetNormalizeFunc(func(f *pflag.FlagSet, name string) pflag.NormalizedName {
-		if name == "ak" {
+		switch name {
+		case "ak":
 			name = "agent-kwarg"
+		case "ae":
+			name = "agent-env"
 		}
 		return previousNormalize(f, name)
 	})
@@ -75,6 +79,7 @@ When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetP
 	flags.StringVar(&opts.jobsDir, "jobs-dir", harbor.DefaultEvalJobsDir, "Eval jobs directory")
 	flags.BoolVar(&opts.ask, "ask", false, "Do not auto-accept Harbor confirmation prompts")
 	flags.StringArrayVar(&opts.agentKwargs, "agent-kwarg", nil, "Harbor agent kwarg; can be repeated; alias: --ak")
+	flags.StringArrayVar(&opts.agentEnv, "agent-env", nil, "Environment variable to pass to the agent in KEY=VALUE format; can be repeated; alias: --ae")
 	flags.StringVar(&opts.model, "model", "", "Harbor agent model")
 	flags.StringVarP(&opts.env, "env", "e", "", `Harbor environment to use. Defaults to "runme"`)
 	flags.StringVar(&opts.runmeBin, "runme-bin", "", "Runme binary used by the Harbor environment")
@@ -92,6 +97,7 @@ func runEval(opts evalOptions, args []string) error {
 		JobsDir:         opts.jobsDir,
 		Ask:             opts.ask,
 		AgentKwargs:     opts.agentKwargs,
+		AgentEnv:        opts.agentEnv,
 		Model:           opts.model,
 		Env:             opts.env,
 		RunmeBin:        opts.runmeBin,

@@ -496,6 +496,32 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 	}
 }
 
+func TestRunEvalDelegatesAgentEnv(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.AgentEnv = []string{"AWS_REGION=us-east-1", "FOO=bar"}
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultJobsDir(t),
+		"-y",
+		"--",
+		"--agent-env", "AWS_REGION=us-east-1",
+		"--agent-env", "FOO=bar",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
 func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
@@ -539,6 +565,31 @@ func TestRunEvalPreservesPassthroughAgentKwargs(t *testing.T) {
 		"--",
 		"--ak", "reasoning_effort=xhigh",
 		"--agent-kwarg=sandbox_mode=workspace-write",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalPreservesPassthroughAgentEnv(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+
+	err := NewEvalRunner(opts).Run([]string{path, "--ae", "AWS_REGION=us-east-1", "--agent-env=FOO=bar"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		mustAbs(t, path),
+		"--agent", "oracle",
+		"--jobs-dir", defaultJobsDir(t),
+		"-y",
+		"--",
+		"--ae", "AWS_REGION=us-east-1",
+		"--agent-env=FOO=bar",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -594,6 +645,36 @@ func TestRunEvalRejectsDuplicateAgentKwargs(t *testing.T) {
 				t.Fatal("expected error")
 			}
 			if !strings.Contains(err.Error(), "--agent-kwarg cannot be used together with passthrough") {
+				t.Fatalf("error = %q", err.Error())
+			}
+			if len(calls) != 0 {
+				t.Fatalf("calls = %#v, want none", calls)
+			}
+		})
+	}
+}
+
+func TestRunEvalRejectsDuplicateAgentEnv(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		passthrough []string
+	}{
+		{name: "long separate arg", passthrough: []string{"--agent-env", "AWS_REGION=us-east-1"}},
+		{name: "long equals arg", passthrough: []string{"--agent-env=AWS_REGION=us-east-1"}},
+		{name: "alias separate arg", passthrough: []string{"--ae", "AWS_REGION=us-east-1"}},
+		{name: "alias equals arg", passthrough: []string{"--ae=AWS_REGION=us-east-1"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			path := t.TempDir()
+			var calls []recordedCommand
+			opts := testEvalOptions(t, &calls, io.Discard)
+			opts.AgentEnv = []string{"FOO=bar"}
+
+			err := NewEvalRunner(opts).Run(append([]string{path}, tt.passthrough...))
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if !strings.Contains(err.Error(), "--agent-env cannot be used together with passthrough") {
 				t.Fatalf("error = %q", err.Error())
 			}
 			if len(calls) != 0 {

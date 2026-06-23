@@ -30,6 +30,7 @@ type EvalOptions struct {
 	JobsDir         string
 	Ask             bool
 	AgentKwargs     []string
+	AgentEnv        []string
 	Model           string
 	Env             string
 	RunmeBin        string
@@ -102,6 +103,9 @@ func (r *EvalRunner) Run(args []string) error {
 	}
 	if len(opts.AgentKwargs) > 0 && containsAgentKwargFlag(paths.passthrough) {
 		return fmt.Errorf("--agent-kwarg cannot be used together with passthrough --agent-kwarg/--ak; use only runme eval --agent-kwarg")
+	}
+	if len(opts.AgentEnv) > 0 && containsAgentEnvFlag(paths.passthrough) {
+		return fmt.Errorf("--agent-env cannot be used together with passthrough --agent-env/--ae; use only runme eval --agent-env")
 	}
 	if containsEnvironmentFlag(paths.passthrough) {
 		return fmt.Errorf("use runme eval --env instead of passing Harbor environment flags after --")
@@ -390,6 +394,9 @@ func buildRunmeHarborArgs(datasetPath string, opts EvalOptions, jobsDir string, 
 	for _, kwarg := range opts.AgentKwargs {
 		delegatedPassthrough = append(delegatedPassthrough, "--agent-kwarg", kwarg)
 	}
+	for _, env := range opts.AgentEnv {
+		delegatedPassthrough = append(delegatedPassthrough, "--agent-env", env)
+	}
 	if opts.Model != "" {
 		delegatedPassthrough = append(delegatedPassthrough, "--model", opts.Model)
 	}
@@ -415,6 +422,18 @@ func containsAgentKwargFlag(args []string) bool {
 			return true
 		}
 		if strings.HasPrefix(arg, "--agent-kwarg=") || strings.HasPrefix(arg, "--ak=") {
+			return true
+		}
+	}
+	return false
+}
+
+func containsAgentEnvFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == "--agent-env" || arg == "--ae" {
+			return true
+		}
+		if strings.HasPrefix(arg, "--agent-env=") || strings.HasPrefix(arg, "--ae=") {
 			return true
 		}
 	}
