@@ -13,9 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ">=1.26.3"
       - name: Install dependencies
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Test Harbor integration
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup Python
         uses: actions/setup-python@v6.2.0
         with:
@@ -53,7 +53,7 @@ jobs:
         working-directory: integrations/harbor
         run: uv run pytest
       - name: Build package
-        uses: stateful/runme-action@v2
+        uses: stateful/runme-action@v3
         with:
           workflows: build-harbor
       - name: Test wheel install
@@ -78,12 +78,12 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     name: Build and test with Go on ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: true
       - name: Setup deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v2
         with:
           deno-version: v1.x
       - name: Setup Dagger (Linux only)
@@ -107,11 +107,11 @@ jobs:
           rm install
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Setup go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
       - name: Setup Node version
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
       - name: Install rust-script
@@ -125,7 +125,7 @@ jobs:
           go build -o runme main.go
           ./runme --version
       - name: Test with coverage
-        uses: stateful/runme-action@v2
+        uses: stateful/runme-action@v3
         with:
           workflows: ci-coverage
         env:
@@ -133,7 +133,7 @@ jobs:
           FROM_CI: true
         if: ${{ matrix.os == 'ubuntu-latest' }}
       - name: Test without coverage (txtar)
-        uses: stateful/runme-action@v2
+        uses: stateful/runme-action@v3
         with:
           workflows: ci-txtar
         env:
@@ -146,7 +146,7 @@ jobs:
           make test
         if: ${{ matrix.os == 'windows-latest' }}
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{github.actor != 'dependabot[bot]' && matrix.os == 'ubuntu-latest'}}
         with:
           name: coverage
@@ -161,13 +161,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Test
-        uses: stateful/runme-action@v2
+        uses: stateful/runme-action@v3
         with:
           workflows: test-docker
 
@@ -176,27 +176,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ">=1.26.3"
       - name: Setup & build
-        uses: stateful/runme-action@v2
+        uses: stateful/runme-action@v3
         with:
           workflows: |
             setup
             build
       - name: Test parser
-        uses: stateful/runme-action@v2
+        uses: stateful/runme-action@v3
         with:
           workflows: |
             ci-test-parser
         timeout-minutes: 5
       - name: Debug Build
-        uses: stateful/vscode-server-action@v1.1.0
+        uses: stateful/vscode-server-action@v1
         if: failure()
 
   # sonarcloud:
