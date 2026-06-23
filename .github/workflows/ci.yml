@@ -153,7 +153,7 @@ jobs:
           path: cover.out
           if-no-files-found: error
       - name: Debug Build
-        uses: stateful/vscode-server-action@v1
+        uses: stateful/vscode-server-action@v1.1.0
         if: failure()
 
   test-in-docker:
