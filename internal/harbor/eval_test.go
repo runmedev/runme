@@ -9,8 +9,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/creack/pty"
 	"github.com/go-git/go-git/v5"
@@ -1093,6 +1096,81 @@ func TestRunExternalCommandWithPtyStdoutReturnsExitError(t *testing.T) {
 	}
 	if got := stdout.String(); got != "before-exit" {
 		t.Fatalf("stdout = %q, want before-exit", got)
+	}
+}
+
+func TestWaitExternalCommandIgnoresInterruptForwardingAndWaits(t *testing.T) {
+	if testing.Short() {
+		t.Skip("signal test is too slow for short mode")
+	}
+
+	cmd := exec.Command(
+		testShell(t),
+		"-c",
+		"trap 'printf interrupted; exit 130' INT; sleep 0.3; printf completed",
+	)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = io.Discard
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		process, err := os.FindProcess(os.Getpid())
+		if err == nil {
+			_ = process.Signal(os.Interrupt)
+		}
+	}()
+
+	err := waitExternalCommand(cmd)
+	if err != nil {
+		t.Fatalf("error = %v, want nil", err)
+	}
+	if got := stdout.String(); got != "completed" {
+		t.Fatalf("stdout = %q, want completed", got)
+	}
+}
+
+func TestWaitExternalCommandForwardsTerminateAndWaits(t *testing.T) {
+	if testing.Short() {
+		t.Skip("signal test is too slow for short mode")
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("SIGTERM forwarding to shell traps is POSIX-specific")
+	}
+
+	cmd := exec.Command(
+		testShell(t),
+		"-c",
+		"trap 'printf terminated; exit 143' TERM; while :; do sleep 1; done",
+	)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = io.Discard
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		process, err := os.FindProcess(os.Getpid())
+		if err == nil {
+			_ = process.Signal(syscall.SIGTERM)
+		}
+	}()
+
+	err := waitExternalCommand(cmd)
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("error = %T %[1]v, want *exec.ExitError", err)
+	}
+	if exitErr.ExitCode() != 143 {
+		t.Fatalf("exit code = %d, want 143", exitErr.ExitCode())
+	}
+	if got := stdout.String(); got != "terminated" {
+		t.Fatalf("stdout = %q, want terminated", got)
 	}
 }
 

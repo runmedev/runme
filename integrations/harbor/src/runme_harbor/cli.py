@@ -21,6 +21,8 @@ MIN_HARBOR_VERSION = (0, 15, 0)
 MAX_HARBOR_VERSION = (0, 16, 0)
 SKIP_METADATA_SYNC_ENV = "RUNME_HARBOR_SKIP_METADATA_SYNC"
 BUNDLED_HARBOR_EXECUTABLE = "runme-harbor-harbor"
+INTERRUPTED_EXIT_CODE = 130
+INTERRUPT_WAIT_TIMEOUT_SECONDS = 1
 AGENT_ARGUMENTS = {
     "oracle": ("--agent", "oracle"),
     "codex": ("--agent-import-path", CODEX_IMPORT_PATH),
@@ -50,7 +52,12 @@ def run(args: argparse.Namespace) -> int:
     command = build_harbor_command(args, harbor_bin=harbor_bin)
     if args.debug:
         print(_command_string(command), file=sys.stderr)
-    exit_code = subprocess.call(command)
+    process = subprocess.Popen(command)
+    try:
+        exit_code = process.wait()
+    except KeyboardInterrupt:
+        _stop_interrupted_process(process)
+        return INTERRUPTED_EXIT_CODE
     if not _skip_metadata_sync():
         from runme_harbor.metadata_sync import sync_jobs_metadata
 
@@ -59,6 +66,20 @@ def run(args: argparse.Namespace) -> int:
         except Exception as exc:
             print(f"warning: failed to sync Harbor job metadata: {exc}", file=sys.stderr)
     return exit_code
+
+
+def _stop_interrupted_process(process: subprocess.Popen) -> None:
+    try:
+        process.wait(timeout=INTERRUPT_WAIT_TIMEOUT_SECONDS)
+        return
+    except subprocess.TimeoutExpired:
+        process.terminate()
+
+    try:
+        process.wait(timeout=INTERRUPT_WAIT_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
 
 
 def sync_metadata(args: argparse.Namespace) -> int:

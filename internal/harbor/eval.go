@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -88,6 +89,12 @@ func (r *EvalRunner) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+
+	runmeHarbor, err := resolveRunmeHarbor(opts)
+	if err != nil {
+		return err
+	}
+
 	if _, err := os.Stat(paths.datasetPath); err != nil {
 		if os.IsNotExist(err) {
 			if paths.defaultDataset {
@@ -109,11 +116,6 @@ func (r *EvalRunner) Run(args []string) error {
 	}
 	if containsEnvironmentFlag(paths.passthrough) {
 		return fmt.Errorf("use runme eval --env instead of passing Harbor environment flags after --")
-	}
-
-	runmeHarbor, err := resolveRunmeHarbor(opts)
-	if err != nil {
-		return err
 	}
 
 	runmeBin, err := resolveRunmeBin(opts)
@@ -463,7 +465,10 @@ func runExternalCommand(name string, args []string, workingDir string, env []str
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Stdin = stdin
-	return cmd.Run()
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return waitExternalCommand(cmd)
 }
 
 func runExternalCommandWithPtyStdout(cmd *exec.Cmd, stdin io.Reader, stdout, stderr io.Writer, stdoutFile *os.File) error {
@@ -491,7 +496,7 @@ func runExternalCommandWithPtyStdout(cmd *exec.Cmd, stdin io.Reader, stdout, std
 		copyDone <- err
 	}()
 
-	waitErr := cmd.Wait()
+	waitErr := waitExternalCommand(cmd)
 	copyErr := <-copyDone
 	if waitErr != nil {
 		return waitErr
@@ -503,6 +508,31 @@ func runExternalCommandWithPtyStdout(cmd *exec.Cmd, stdin io.Reader, stdout, std
 		return copyErr
 	}
 	return nil
+}
+
+func waitExternalCommand(cmd *exec.Cmd) error {
+	signals := make(chan os.Signal, 1)
+	done := make(chan struct{})
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	defer func() {
+		signal.Stop(signals)
+		close(done)
+	}()
+
+	go func() {
+		for {
+			select {
+			case sig := <-signals:
+				if sig != os.Interrupt && cmd.Process != nil {
+					_ = cmd.Process.Signal(sig)
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	return cmd.Wait()
 }
 
 func isTerminal(fd uintptr) bool {

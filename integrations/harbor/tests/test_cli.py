@@ -20,6 +20,35 @@ def make_executable(path: Path) -> Path:
     return path
 
 
+class FakeProcess:
+    def __init__(
+        self,
+        exit_code: int = 0,
+        interrupt_once: bool = False,
+        timeout_after_interrupt: bool = False,
+    ) -> None:
+        self.exit_code = exit_code
+        self.interrupt_once = interrupt_once
+        self.timeout_after_interrupt = timeout_after_interrupt
+        self.waits = 0
+        self.terminates = 0
+        self.kills = 0
+
+    def wait(self, timeout: float | None = None) -> int:
+        self.waits += 1
+        if self.interrupt_once and self.waits == 1:
+            raise KeyboardInterrupt
+        if self.timeout_after_interrupt and self.waits == 2:
+            raise cli.subprocess.TimeoutExpired("fake", timeout)
+        return self.exit_code
+
+    def terminate(self) -> None:
+        self.terminates += 1
+
+    def kill(self) -> None:
+        self.kills += 1
+
+
 def test_build_harbor_command_oracle_defaults(tmp_path: Path) -> None:
     args = parse(["run", str(tmp_path)])
 
@@ -240,7 +269,7 @@ def test_main_runs_bundled_harbor_and_prints_debug(
     calls: list[list[str]] = []
     harbor_bin = tmp_path / "bin" / "runme-harbor-harbor"
     monkeypatch.setattr(cli, "_preflight", lambda _agent: harbor_bin)
-    monkeypatch.setattr(cli.subprocess, "call", lambda command: calls.append(command) or 7)
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda command: calls.append(command) or FakeProcess(7))
 
     assert cli.main(["run", str(tmp_path), "--debug"]) == 7
 
@@ -254,7 +283,7 @@ def test_main_syncs_metadata_after_harbor_run(
 ) -> None:
     synced: list[str] = []
     monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
-    monkeypatch.setattr(cli.subprocess, "call", lambda _command: 7)
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda _command: FakeProcess(7))
     monkeypatch.setattr(
         metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
     )
@@ -271,7 +300,7 @@ def test_main_skips_metadata_sync_when_disabled(
     synced: list[str] = []
     monkeypatch.setenv(cli.SKIP_METADATA_SYNC_ENV, "1")
     monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
-    monkeypatch.setattr(cli.subprocess, "call", lambda _command: 0)
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda _command: FakeProcess(0))
     monkeypatch.setattr(
         metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
     )
@@ -279,6 +308,41 @@ def test_main_skips_metadata_sync_when_disabled(
     assert cli.main(["run", str(tmp_path), "--jobs-dir", "jobs"]) == 0
 
     assert synced == []
+
+
+def test_main_returns_130_after_keyboard_interrupt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    synced: list[str] = []
+    process = FakeProcess(130, interrupt_once=True)
+    monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda _command: process)
+    monkeypatch.setattr(
+        metadata_sync, "sync_jobs_metadata", lambda jobs_dir: synced.append(jobs_dir) or 1
+    )
+
+    assert cli.main(["run", str(tmp_path)]) == 130
+
+    assert process.waits == 2
+    assert process.terminates == 0
+    assert process.kills == 0
+    assert synced == []
+
+
+def test_main_terminates_child_after_keyboard_interrupt_timeout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    process = FakeProcess(130, interrupt_once=True, timeout_after_interrupt=True)
+    monkeypatch.setattr(cli, "_preflight", lambda _agent: tmp_path / "runme-harbor-harbor")
+    monkeypatch.setattr(cli.subprocess, "Popen", lambda _command: process)
+
+    assert cli.main(["run", str(tmp_path)]) == 130
+
+    assert process.waits == 3
+    assert process.terminates == 1
+    assert process.kills == 0
 
 
 def test_main_sync_metadata_command_uses_default_jobs_dir(
