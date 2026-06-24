@@ -184,15 +184,18 @@ func resolveEvalViewPaths(jobsDir string) (evalViewPaths, error) {
 }
 
 func resolveBundledHarbor(runmeHarbor string) (string, error) {
-	name := "runme-harbor-harbor"
-	if runtime.GOOS == "windows" {
-		name += ".exe"
-	}
-	candidate := filepath.Join(filepath.Dir(runmeHarbor), name)
+	candidate := filepath.Join(filepath.Dir(runmeHarbor), bundledHarborExecutableName())
 	if _, err := resolveExecutable(candidate, exec.LookPath); err != nil {
-		return "", fmt.Errorf("Runme Harbor expected a bundled `runme-harbor-harbor` executable next to `runme-harbor`.\n\nReinstall with:\n  uv tool install runme-harbor --force")
+		return "", fmt.Errorf("runme: Harbor installation is missing a required executable.\n\nReinstall with:\n  uv tool install runme-harbor --force")
 	}
 	return candidate, nil
+}
+
+func bundledHarborExecutableName() string {
+	if runtime.GOOS == "windows" {
+		return "runme-harbor-harbor.exe"
+	}
+	return "runme-harbor-harbor"
 }
 
 func openLocalPorts(start, limit int) ([]int, error) {

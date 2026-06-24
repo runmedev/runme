@@ -24,7 +24,7 @@ func (c fakeStartedCommand) Wait() error {
 }
 
 func TestRunEvalViewDefaultsJobsDirFromGitRoot(t *testing.T) {
-	repoRoot := t.TempDir()
+	repoRoot := cleanExistingPath(t.TempDir())
 	if _, err := git.PlainInit(repoRoot, false); err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestRunEvalViewDefaultsJobsDirFromGitRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []string{"view", defaultJobsArg(), "--jobs", "--port", "9090"}
+	want := []string{"view", DefaultEvalJobsDir, "--jobs", "--port", "9090"}
 	if !reflect.DeepEqual(calls[0].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[0].args, want)
 	}
@@ -113,10 +113,10 @@ func TestRunEvalViewDelegatesBundledHarborAndOpensDashboard(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bundledHarbor := filepath.Join(filepath.Dir(opts.RunmeHarborBin), "runme-harbor-harbor")
+	bundledHarbor := filepath.Join(filepath.Dir(opts.RunmeHarborBin), bundledHarborExecutableName())
 	want := recordedCommand{
 		name:       bundledHarbor,
-		args:       []string{"view", defaultJobsArg(), "--jobs", "--port", "9090"},
+		args:       []string{"view", DefaultEvalJobsDir, "--jobs", "--port", "9090"},
 		workingDir: cleanExistingPath(tmp),
 	}
 	if !sameCommand(calls[0], want) || calls[0].workingDir != want.workingDir {
@@ -183,7 +183,7 @@ func TestRunEvalViewAutoPortDelegatesRange(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []string{"view", defaultJobsArg(), "--jobs", "--port", "8080-8180"}
+	want := []string{"view", DefaultEvalJobsDir, "--jobs", "--port", "8080-8180"}
 	if !reflect.DeepEqual(calls[0].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[0].args, want)
 	}
@@ -249,7 +249,7 @@ func TestRunEvalViewMissingBundledHarbor(t *testing.T) {
 
 	var calls []recordedCommand
 	opts := testEvalViewOptions(t, &calls, io.Discard)
-	if err := os.Remove(filepath.Join(filepath.Dir(opts.RunmeHarborBin), "runme-harbor-harbor")); err != nil {
+	if err := os.Remove(filepath.Join(filepath.Dir(opts.RunmeHarborBin), bundledHarborExecutableName())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -317,7 +317,7 @@ func testEvalViewOptions(t *testing.T, calls *[]recordedCommand, stderr io.Write
 	t.Helper()
 	binDir := t.TempDir()
 	runmeHarbor := filepath.Join(binDir, "runme-harbor")
-	bundledHarbor := filepath.Join(binDir, "runme-harbor-harbor")
+	bundledHarbor := filepath.Join(binDir, bundledHarborExecutableName())
 	for _, path := range []string{runmeHarbor, bundledHarbor} {
 		if err := os.WriteFile(path, []byte("#!/bin/sh\n"), 0o755); err != nil {
 			t.Fatal(err)

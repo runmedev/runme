@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"syscall"
 	"testing"
@@ -1135,6 +1136,9 @@ func TestWaitExternalCommandIgnoresInterruptForwardingAndWaits(t *testing.T) {
 func TestWaitExternalCommandForwardsTerminateAndWaits(t *testing.T) {
 	if testing.Short() {
 		t.Skip("signal test is too slow for short mode")
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("SIGTERM forwarding to shell traps is POSIX-specific")
 	}
 
 	cmd := exec.Command(
