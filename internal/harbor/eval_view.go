@@ -96,7 +96,7 @@ func (r *EvalViewer) Run(args []string) error {
 		return err
 	}
 
-	bundledHarbor, err := resolveBundledHarbor(runmeHarbor)
+	bundledHarbor, err := resolveBundledHarborWithLookPath(runmeHarbor, opts.LookPath)
 	if err != nil {
 		return err
 	}
@@ -183,9 +183,12 @@ func resolveEvalViewPaths(jobsDir string) (evalViewPaths, error) {
 	}, nil
 }
 
-func resolveBundledHarbor(runmeHarbor string) (string, error) {
+func resolveBundledHarborWithLookPath(runmeHarbor string, lookPath func(string) (string, error)) (string, error) {
 	candidate := filepath.Join(filepath.Dir(runmeHarbor), bundledHarborExecutableName())
-	if _, err := resolveExecutable(candidate, exec.LookPath); err != nil {
+	if _, err := resolveExecutable(candidate, exec.LookPath); err == nil {
+		return candidate, nil
+	}
+	if _, err := lookPath(candidate); err != nil {
 		return "", fmt.Errorf("runme: Harbor installation is missing a required executable.\n\nReinstall with:\n  uv tool install runme-harbor --force")
 	}
 	return candidate, nil

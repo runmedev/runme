@@ -239,7 +239,7 @@ class RunmeCursorCli(CursorCli):
 
     @staticmethod
     def name() -> str:
-        return "cursor-cli"
+        return "runme-cursor-cli"
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
