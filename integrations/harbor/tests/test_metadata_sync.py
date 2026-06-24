@@ -106,7 +106,7 @@ def test_sync_jobs_metadata_uses_cursor_cli_import_path(tmp_path: Path) -> None:
     _write_trial_result(
         job_dir,
         "trial-1",
-        agent_name="cursor-cli",
+        agent_name="runme-cursor-cli",
         provider="cursor",
         model_name="composer-2",
     )
@@ -114,7 +114,9 @@ def test_sync_jobs_metadata_uses_cursor_cli_import_path(tmp_path: Path) -> None:
     assert sync_jobs_metadata(tmp_path) == 1
 
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
-    assert _agent_summaries(config) == [("cursor-cli", CURSOR_IMPORT_PATH, "cursor/composer-2")]
+    assert _agent_summaries(config) == [
+        ("runme-cursor-cli", CURSOR_IMPORT_PATH, "cursor/composer-2")
+    ]
     assert config.environment.import_path == ENVIRONMENT_IMPORT_PATH
 
 

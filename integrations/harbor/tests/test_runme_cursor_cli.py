@@ -14,7 +14,7 @@ class FakeEnvironment:
 
 
 def test_runme_cursor_cli_name() -> None:
-    assert RunmeCursorCli.name() == "cursor-cli"
+    assert RunmeCursorCli.name() == "runme-cursor-cli"
 
 
 def test_runme_cursor_cli_uses_ambient_user_auth(
