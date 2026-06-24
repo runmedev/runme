@@ -57,19 +57,20 @@ func TestRunEvalDelegatesOracle(t *testing.T) {
 	}
 
 	wantPreflight := recordedCommand{
-		name: "/bin/runme",
+		name: fakeRunmeBin(),
 		args: []string{"harbor", "stdio"},
 	}
 	wantDelegate := recordedCommand{
-		name: "/bin/runme-harbor",
+		name: fakeBundledHarborBin(),
 		args: []string{
 			"run",
+			"--path",
 			mustAbs(t, path),
-			"--agent", "oracle",
 			"--jobs-dir", defaultJobsDir(t),
+			"--environment-import-path", runmeEnvironmentImportPath,
+			"--agent", "oracle",
 			"-y",
-			"--debug",
-			"--",
+			"--n-concurrent", "1",
 			"--extra",
 			"value",
 		},
@@ -84,8 +85,14 @@ func TestRunEvalDelegatesOracle(t *testing.T) {
 	if stderr.String() != wantDebug {
 		t.Fatalf("debug output = %q, want %q", stderr.String(), wantDebug)
 	}
-	if got := envValue(calls[1].env, "RUNME_BIN"); got != "/bin/runme" {
-		t.Fatalf("RUNME_BIN = %q, want /bin/runme", got)
+	if got := envValue(calls[1].env, "RUNME_BIN"); got != fakeRunmeBin() {
+		t.Fatalf("RUNME_BIN = %q, want %q", got, fakeRunmeBin())
+	}
+	if !sameCommand(calls[2], recordedCommand{
+		name: fakeRunmeHarborBin(),
+		args: []string{"sync-metadata", "--jobs-dir", defaultJobsDir(t)},
+	}) {
+		t.Fatalf("metadata sync = %#v", calls[2])
 	}
 }
 
@@ -105,10 +112,13 @@ func TestRunEvalDefaultsDatasetPath(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		defaultDatasetPath(t),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -134,11 +144,13 @@ func TestRunEvalDefaultsDatasetPathWithPassthrough(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		defaultDatasetPath(t),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
-		"--",
+		"--n-concurrent", "1",
 		"--model", "haiku",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
@@ -173,10 +185,13 @@ func TestRunEvalDefaultsUseGitRoot(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		defaultDatasetArg(),
-		"--agent", "oracle",
 		"--jobs-dir", filepath.Join(baseDir, DefaultEvalJobsDir),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -208,10 +223,13 @@ func TestRunEvalExplicitDatasetUsesInvocationCwdAndDefaultJobsUseGitRoot(t *test
 
 	want := []string{
 		"run",
+		"--path",
 		filepath.Join("nested", "dir", "custom-dataset"),
-		"--agent", "oracle",
 		"--jobs-dir", filepath.Join(baseDir, DefaultEvalJobsDir),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -245,10 +263,13 @@ func TestRunEvalExplicitCurrentDatasetUnderGitRootRunsHarborFromGitRoot(t *testi
 
 	want := []string{
 		"run",
+		"--path",
 		filepath.Join("skills", "world-cup-picks-report", "evals", "regression"),
-		"--agent", "oracle",
 		"--jobs-dir", filepath.Join(baseDir, DefaultEvalJobsDir),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -279,10 +300,13 @@ func TestRunEvalExplicitNestedDatasetFromGitRootUsesCopyPasteableJobsDir(t *test
 
 	want := []string{
 		"run",
+		"--path",
 		filepath.Join("skills", "world-cup-picks-report", "evals", "regression"),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsArg(),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -318,10 +342,13 @@ func TestRunEvalExplicitJobsDirUsesInvocationCwd(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		defaultDatasetArg(),
-		"--agent", "oracle",
 		"--jobs-dir", filepath.Join(cleanExistingPath(nested), "custom", "jobs"),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -349,10 +376,13 @@ func TestRunEvalExplicitAbsoluteJobsDirUnderCwdUsesRelativeDelegatePath(t *testi
 
 	want := []string{
 		"run",
+		"--path",
 		defaultDatasetArg(),
-		"--agent", "oracle",
 		"--jobs-dir", filepath.Join("custom", "jobs"),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -379,10 +409,13 @@ func TestRunEvalExplicitAbsolutePathsOutsideCwdStayAbsolute(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		cleanExistingPath(dataset),
-		"--agent", "oracle",
 		"--jobs-dir", cleanExistingPath(jobsDir),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -413,11 +446,14 @@ func TestRunEvalDelegatesCodexAndClaudeOptions(t *testing.T) {
 
 			want := []string{
 				"run",
+				"--path",
 				mustAbs(t, path),
-				"--agent", tt.agent,
 				"--jobs-dir", "jobs",
-				"--task-dir", "simple-agent",
+				"--environment-import-path", runmeEnvironmentImportPath,
+				"--agent-import-path", mustRunmeAgentImportPath(t, tt.agent),
+				"--include-task-name", "simple-agent",
 				"-y",
+				"--n-concurrent", "1",
 			}
 			if !reflect.DeepEqual(calls[1].args, want) {
 				t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -439,9 +475,12 @@ func TestRunEvalAskDoesNotDelegateYes(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
+		"--n-concurrent", "1",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
@@ -461,11 +500,13 @@ func TestRunEvalDelegatesModel(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
-		"--",
+		"--n-concurrent", "1",
 		"--model", "haiku",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
@@ -486,11 +527,13 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
-		"--",
+		"--n-concurrent", "1",
 		"--agent-kwarg", "reasoning_effort=xhigh",
 		"--agent-kwarg", "sandbox_mode=workspace-write",
 	}
@@ -512,11 +555,13 @@ func TestRunEvalDelegatesAgentEnv(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
-		"--",
+		"--n-concurrent", "1",
 		"--agent-env", "AWS_REGION=us-east-1",
 		"--agent-env", "FOO=bar",
 	}
@@ -537,11 +582,13 @@ func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
-		"--",
+		"--n-concurrent", "1",
 		"--model", "haiku",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
@@ -561,11 +608,13 @@ func TestRunEvalPreservesPassthroughAgentKwargs(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
-		"--",
+		"--n-concurrent", "1",
 		"--ak", "reasoning_effort=xhigh",
 		"--agent-kwarg=sandbox_mode=workspace-write",
 	}
@@ -586,11 +635,13 @@ func TestRunEvalPreservesPassthroughAgentEnv(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
-		"--",
+		"--n-concurrent", "1",
 		"--ae", "AWS_REGION=us-east-1",
 		"--agent-env=FOO=bar",
 	}
@@ -697,16 +748,18 @@ func TestRunEvalDelegatesRunmeEnvAlias(t *testing.T) {
 	}
 
 	wantPreflight := recordedCommand{
-		name: "/bin/runme",
+		name: fakeRunmeBin(),
 		args: []string{"harbor", "stdio"},
 	}
 	wantDelegate := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "oracle",
 		"--jobs-dir", defaultJobsDir(t),
+		"--environment-import-path", runmeEnvironmentImportPath,
+		"--agent", "oracle",
 		"-y",
-		"--env", "runme",
+		"--n-concurrent", "1",
 	}
 	if !sameCommand(calls[0], wantPreflight) {
 		t.Fatalf("preflight = %#v, want %#v", calls[0], wantPreflight)
@@ -730,14 +783,16 @@ func TestRunEvalDelegatesNonRunmeEnvWithoutPreflight(t *testing.T) {
 
 	want := []string{
 		"run",
+		"--path",
 		mustAbs(t, path),
-		"--agent", "codex",
 		"--jobs-dir", defaultJobsDir(t),
-		"-y",
 		"--env", "docker",
+		"--agent", "codex",
+		"-y",
+		"--n-concurrent", "1",
 	}
-	if len(calls) != 1 {
-		t.Fatalf("calls = %#v, want delegate only", calls)
+	if len(calls) != 2 {
+		t.Fatalf("calls = %#v, want delegate and metadata sync", calls)
 	}
 	if !reflect.DeepEqual(calls[0].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[0].args, want)
@@ -799,7 +854,9 @@ func TestRunEvalRejectsPassthroughEnvironmentFlags(t *testing.T) {
 
 func TestRunEvalUsesEnvAndRunmeArgs(t *testing.T) {
 	envHarbor := makeExecutable(t, "env-runme-harbor")
+	makeExecutableAt(t, filepath.Join(filepath.Dir(envHarbor), bundledHarborExecutableName()))
 	flagHarbor := makeExecutable(t, "flag-runme-harbor")
+	makeExecutableAt(t, filepath.Join(filepath.Dir(flagHarbor), bundledHarborExecutableName()))
 	t.Setenv("RUNME_HARBOR_BIN", envHarbor)
 	t.Setenv("RUNME_ARGS", "--existing")
 	path := t.TempDir()
@@ -814,8 +871,8 @@ func TestRunEvalUsesEnvAndRunmeArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if calls[1].name != envHarbor {
-		t.Fatalf("runme-harbor = %q, want env override", calls[1].name)
+	if calls[1].name != filepath.Join(filepath.Dir(envHarbor), bundledHarborExecutableName()) {
+		t.Fatalf("harbor = %q, want bundled env override", calls[1].name)
 	}
 	if got := envValue(calls[1].env, "RUNME_BIN"); got != "/flag/runme" {
 		t.Fatalf("RUNME_BIN = %q, want /flag/runme", got)
@@ -861,25 +918,21 @@ func TestRunEvalMissingRunmeHarbor(t *testing.T) {
 	}
 }
 
-func TestRunEvalDelegatesUnknownAgent(t *testing.T) {
+func TestRunEvalRejectsUnknownRunmeAgent(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
 	opts.Agent = "bad"
 
 	err := NewEvalRunner(opts).Run([]string{path})
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatal("expected error")
 	}
-	want := []string{
-		"run",
-		mustAbs(t, path),
-		"--agent", "bad",
-		"--jobs-dir", defaultJobsDir(t),
-		"-y",
+	if !strings.Contains(err.Error(), `invalid --agent "bad"`) {
+		t.Fatalf("error = %q", err.Error())
 	}
-	if !reflect.DeepEqual(calls[1].args, want) {
-		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	if len(calls) != 0 {
+		t.Fatalf("calls = %#v, want none", calls)
 	}
 }
 
@@ -1179,7 +1232,7 @@ func testEvalOptions(t *testing.T, calls *[]recordedCommand, stderr io.Writer) E
 	return EvalOptions{
 		Agent:          "oracle",
 		JobsDir:        DefaultEvalJobsDir,
-		RunmeBin:       "/bin/runme",
+		RunmeBin:       fakeRunmeBin(),
 		CommandRun:     recordCommand(calls),
 		LookPath:       fakeLookPath,
 		Executable:     func() (string, error) { return "/bin/current-runme", nil },
@@ -1221,14 +1274,30 @@ func recordCommand(calls *[]recordedCommand) CommandRunFunc {
 }
 
 func fakeLookPath(name string) (string, error) {
-	switch name {
-	case "runme-harbor":
-		return "/bin/runme-harbor", nil
-	case "/env/runme-harbor", "/flag/runme-harbor":
+	switch {
+	case name == "runme-harbor":
+		return fakeRunmeHarborBin(), nil
+	case name == fakeBundledHarborBin(),
+		name == filepath.Join(filepath.Dir("/env/runme-harbor"), bundledHarborExecutableName()),
+		name == filepath.Join(filepath.Dir("/flag/runme-harbor"), bundledHarborExecutableName()),
+		name == "/env/runme-harbor",
+		name == "/flag/runme-harbor":
 		return name, nil
 	default:
 		return "", os.ErrNotExist
 	}
+}
+
+func fakeRunmeBin() string {
+	return filepath.Join(string(os.PathSeparator), "bin", "runme")
+}
+
+func fakeRunmeHarborBin() string {
+	return filepath.Join(string(os.PathSeparator), "bin", "runme-harbor")
+}
+
+func fakeBundledHarborBin() string {
+	return filepath.Join(filepath.Dir(fakeRunmeHarborBin()), bundledHarborExecutableName())
 }
 
 func sameCommand(got, want recordedCommand) bool {
@@ -1288,13 +1357,27 @@ func envValue(env []string, key string) string {
 	return ""
 }
 
+func mustRunmeAgentImportPath(t *testing.T, name string) string {
+	t.Helper()
+	spec, ok := runmeAgentByName(name)
+	if !ok || spec.importPath == "" {
+		t.Fatalf("missing import path for %q", name)
+	}
+	return spec.importPath
+}
+
 func makeExecutable(t *testing.T, name string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), name)
+	makeExecutableAt(t, path)
+	return path
+}
+
+func makeExecutableAt(t *testing.T, path string) {
+	t.Helper()
 	if err := os.WriteFile(path, []byte("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	return path
 }
 
 func makeHarborDockerDataset(t *testing.T, workspace string, remoteWorkdir string) (string, string, string) {
