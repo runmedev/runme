@@ -16,7 +16,13 @@ func TestEvalPromoterDryRunDoesNotRequireStagedChanges(t *testing.T) {
 	writePromoteJob(t, jobDir, "2026-06-25T10:00:00Z")
 
 	var stdout bytes.Buffer
-	gitClient := &recordingPromoteGit{root: tmp}
+	gitClient := &recordingPromoteGit{
+		root: tmp,
+		jobFiles: []string{
+			"jobs/2026-06-25__10-00-00/result.json",
+			"jobs/2026-06-25__10-00-00/trial/verifier/reward.json",
+		},
+	}
 	promoter := NewEvalPromoter(EvalPromoteOptions{
 		JobsDir: jobsRoot,
 		Latest:  true,
@@ -31,6 +37,12 @@ func TestEvalPromoterDryRunDoesNotRequireStagedChanges(t *testing.T) {
 	if gitClient.stagedCalled {
 		t.Fatal("StagedFiles was called during dry-run")
 	}
+	if !gitClient.jobFilesCalled {
+		t.Fatal("JobFiles was not called during dry-run")
+	}
+	if gitClient.addCalled {
+		t.Fatal("AddJobDir was called during dry-run")
+	}
 	if got := stdout.String(); !strings.Contains(got, "Selected eval job: jobs/2026-06-25__10-00-00") {
 		t.Fatalf("stdout = %q", got)
 	}
@@ -39,6 +51,40 @@ func TestEvalPromoterDryRunDoesNotRequireStagedChanges(t *testing.T) {
 	}
 	if got := stdout.String(); strings.HasSuffix(got, "\n\n") {
 		t.Fatalf("stdout has trailing blank line: %q", got)
+	}
+	if got := stdout.String(); !strings.Contains(got, "Evidence mode: compact\nFiles to add:\n  jobs/2026-06-25__10-00-00/result.json\n  jobs/2026-06-25__10-00-00/trial/verifier/reward.json\n\nPromote changes verified by task eval") {
+		t.Fatalf("stdout = %q", got)
+	}
+}
+
+func TestEvalPromoterDryRunShowsArtifactsModeAndWorkdirExclusion(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	jobDir := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	writePromoteJob(t, jobDir, "2026-06-25T10:00:00Z")
+
+	var stdout bytes.Buffer
+	gitClient := &recordingPromoteGit{
+		root:     tmp,
+		jobFiles: []string{"jobs/2026-06-25__10-00-00/result.json"},
+	}
+	promoter := NewEvalPromoter(EvalPromoteOptions{
+		JobsDir:   jobsRoot,
+		Latest:    true,
+		DryRun:    true,
+		Artifacts: true,
+		Stdout:    &stdout,
+		Git:       gitClient,
+	})
+
+	if err := promoter.Run(nil); err != nil {
+		t.Fatal(err)
+	}
+	if !gitClient.includeArtifacts {
+		t.Fatal("includeArtifacts = false, want true")
+	}
+	if got := stdout.String(); !strings.Contains(got, "Evidence mode: artifacts\nFiles to add:\n  jobs/2026-06-25__10-00-00/result.json\nExcluded: */workdir/*\n\nPromote changes verified by task eval") {
+		t.Fatalf("stdout = %q", got)
 	}
 }
 
@@ -142,8 +188,39 @@ func TestEvalPromoterEvidenceOnlyCommitsJobWithoutStagedChanges(t *testing.T) {
 	if !gitClient.addCalled || !gitClient.commitCalled {
 		t.Fatal("expected add and commit")
 	}
+	if gitClient.includeArtifacts {
+		t.Fatal("includeArtifacts = true, want false")
+	}
 	if !strings.Contains(gitClient.message, "Promotion-Mode: eval-evidence-only") {
 		t.Fatalf("commit message missing evidence-only mode:\n%s", gitClient.message)
+	}
+}
+
+func TestEvalPromoterArtifactsCommitsFullJobEvidence(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	jobDir := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	writePromoteJob(t, jobDir, "2026-06-25T10:00:00Z")
+
+	gitClient := &recordingPromoteGit{
+		root:   tmp,
+		staged: []string{"main.go"},
+	}
+	promoter := NewEvalPromoter(EvalPromoteOptions{
+		JobsDir:   jobsRoot,
+		Latest:    true,
+		Artifacts: true,
+		Git:       gitClient,
+	})
+
+	if err := promoter.Run(nil); err != nil {
+		t.Fatal(err)
+	}
+	if !gitClient.addCalled || !gitClient.commitCalled {
+		t.Fatal("expected add and commit")
+	}
+	if !gitClient.includeArtifacts {
+		t.Fatal("includeArtifacts = false, want true")
 	}
 }
 
@@ -250,12 +327,15 @@ func TestEvalPromoterExplicitJobRejectsIncompleteJob(t *testing.T) {
 }
 
 type recordingPromoteGit struct {
-	root         string
-	staged       []string
-	stagedCalled bool
-	addCalled    bool
-	commitCalled bool
-	message      string
+	root             string
+	staged           []string
+	stagedCalled     bool
+	addCalled        bool
+	jobFilesCalled   bool
+	commitCalled     bool
+	includeArtifacts bool
+	jobFiles         []string
+	message          string
 }
 
 func (g *recordingPromoteGit) StagedFiles() ([]string, error) {
@@ -271,9 +351,16 @@ func (g *recordingPromoteGit) LatestModTime([]string) (time.Time, error) {
 	return time.Time{}, nil
 }
 
-func (g *recordingPromoteGit) AddJobDir(string) error {
+func (g *recordingPromoteGit) AddJobDir(_ string, includeArtifacts bool) error {
 	g.addCalled = true
+	g.includeArtifacts = includeArtifacts
 	return nil
+}
+
+func (g *recordingPromoteGit) JobFiles(_ string, includeArtifacts bool) ([]string, error) {
+	g.jobFilesCalled = true
+	g.includeArtifacts = includeArtifacts
+	return append([]string(nil), g.jobFiles...), nil
 }
 
 func (g *recordingPromoteGit) Commit(message string) (string, error) {

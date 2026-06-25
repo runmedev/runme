@@ -30,6 +30,7 @@ func TestEvalPromoteCmdPassesOptionsToHarborPromoter(t *testing.T) {
 		"--job", "jobs/job-1",
 		"--dry-run",
 		"--evidence-only",
+		"--artifacts",
 		"--include-oracle",
 		"--allow-errors",
 		"--message", "Custom subject",
@@ -53,6 +54,7 @@ func TestEvalPromoteCmdPassesOptionsToHarborPromoter(t *testing.T) {
 		gotOpts.Job != "jobs/job-1" ||
 		!gotOpts.DryRun ||
 		!gotOpts.EvidenceOnly ||
+		!gotOpts.Artifacts ||
 		!gotOpts.IncludeOracle ||
 		!gotOpts.AllowErrors ||
 		gotOpts.Latest ||

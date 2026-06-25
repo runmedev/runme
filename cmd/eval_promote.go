@@ -25,6 +25,7 @@ type evalPromoteOptions struct {
 	latest        bool
 	dryRun        bool
 	evidenceOnly  bool
+	artifacts     bool
 	includeOracle bool
 	allowErrors   bool
 	message       string
@@ -55,6 +56,7 @@ func evalPromoteCmd() *cobra.Command {
 	flags.BoolVar(&opts.latest, "latest", false, "Promote the latest eval job under --jobs-dir")
 	flags.BoolVar(&opts.dryRun, "dry-run", false, "Print what would be committed without staging or committing")
 	flags.BoolVar(&opts.evidenceOnly, "evidence-only", false, "Commit only the selected eval job evidence when no source changes are staged")
+	flags.BoolVar(&opts.artifacts, "artifacts", false, "Include full eval artifacts such as logs and trial outputs; may contain sensitive information")
 	flags.BoolVar(&opts.includeOracle, "include-oracle", false, "Allow promoting eval jobs that only used Harbor's oracle agent")
 	flags.BoolVar(&opts.allowErrors, "allow-errors", false, "Allow promoting eval jobs with errored trials")
 	flags.StringVar(&opts.message, "message", "", "Commit message subject")
@@ -69,6 +71,7 @@ func runEvalPromote(opts evalPromoteOptions, args []string) error {
 		Latest:        opts.latest,
 		DryRun:        opts.dryRun,
 		EvidenceOnly:  opts.evidenceOnly,
+		Artifacts:     opts.artifacts,
 		IncludeOracle: opts.includeOracle,
 		AllowErrors:   opts.allowErrors,
 		Message:       opts.message,
