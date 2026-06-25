@@ -84,7 +84,7 @@ func (c config) IsPreRelease() bool {
 var flagsConfig = config{}
 
 func init() {
-	flag.StringVar(&flagsConfig.Owner, "owner", "stateful", "Owner of the repository")
+	flag.StringVar(&flagsConfig.Owner, "owner", "runmedev", "Owner of the repository")
 	flag.StringVar(&flagsConfig.Repo, "repo", "runme", "Repository name")
 	flag.StringVar(&flagsConfig.Version, "version", "", "The new version, for example v0.1.1")
 
