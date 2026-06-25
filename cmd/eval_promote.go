@@ -59,7 +59,7 @@ func evalPromoteCmd() *cobra.Command {
 	flags.BoolVar(&opts.artifacts, "artifacts", false, "Include full eval artifacts such as logs and trial outputs; may contain sensitive information")
 	flags.BoolVar(&opts.includeOracle, "include-oracle", false, "Allow promoting eval jobs that only used Harbor's oracle agent")
 	flags.BoolVar(&opts.allowErrors, "allow-errors", false, "Allow promoting eval jobs with errored trials")
-	flags.StringVar(&opts.message, "message", "", "Commit message subject")
+	flags.StringVar(&opts.message, "message", "", "Commit subject line; eval evidence is added to the commit body")
 
 	return cmd
 }
