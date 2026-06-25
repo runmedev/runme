@@ -88,6 +88,7 @@ When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetP
 	flags.BoolVar(&opts.debug, "debug", false, "Print delegated commands")
 
 	cmd.AddCommand(evalViewCmd())
+	cmd.AddCommand(evalPromoteCmd())
 
 	return cmd
 }
