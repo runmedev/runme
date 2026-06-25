@@ -84,33 +84,33 @@ func buildEvalComparison(base, candidate compareJob, baseRef string) evalCompari
 }
 
 func renderEvalComparisonText(w io.Writer, comparison evalComparison) error {
-	_, _ = fmt.Fprintf(w, "Base:   %s  tracked in %s\n", comparison.Base.Path, comparison.Base.Ref)
-	_, _ = fmt.Fprintf(w, "Latest: %s  local\n\n", comparison.Candidate.Path)
+	_, _ = fmt.Fprintf(w, "%s   %s  tracked in %s\n", evalOutputLabel(w, "Base:"), comparison.Base.Path, comparison.Base.Ref)
+	_, _ = fmt.Fprintf(w, "%s %s  local\n\n", evalOutputLabel(w, "Latest:"), comparison.Candidate.Path)
 
-	_, _ = fmt.Fprintf(w, "Dataset: %s\n", comparison.Metadata.Dataset.Candidate)
+	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Dataset:"), comparison.Metadata.Dataset.Candidate)
 	if tasks := strings.TrimSpace(fmt.Sprint(comparison.Metadata.Tasks.Candidate)); tasks != "" {
-		_, _ = fmt.Fprintf(w, "Tasks: %s\n", tasks)
+		_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Tasks:"), tasks)
 	}
-	_, _ = fmt.Fprintf(w, "Agent: %s\n", comparison.Metadata.Agent.Candidate)
-	_, _ = fmt.Fprintf(w, "Model: %s\n", comparison.Metadata.Model.Candidate)
-	_, _ = fmt.Fprintf(w, "Environment: %s\n\n", comparison.Metadata.Environment.Candidate)
+	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Agent:"), comparison.Metadata.Agent.Candidate)
+	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Model:"), comparison.Metadata.Model.Candidate)
+	_, _ = fmt.Fprintf(w, "%s %s\n\n", evalOutputLabel(w, "Environment:"), comparison.Metadata.Environment.Candidate)
 
 	if len(comparison.MetadataDiffs) > 0 {
-		_, _ = fmt.Fprintln(w, "Metadata mismatches:")
+		_, _ = fmt.Fprintln(w, evalOutputLabel(w, "Metadata mismatches:"))
 		for _, diff := range comparison.MetadataDiffs {
-			_, _ = fmt.Fprintf(w, "  %s: %v -> %v\n", diff.Delta, diff.Base, diff.Candidate)
+			_, _ = fmt.Fprintf(w, "  %s %v -> %v\n", evalOutputLabel(w, fmt.Sprintf("%s:", diff.Delta)), diff.Base, diff.Candidate)
 		}
 		_, _ = fmt.Fprintln(w)
 	}
 
-	_, _ = fmt.Fprintln(w, "Score:")
-	_, _ = fmt.Fprintf(w, "  completed: %v -> %v  %s\n", comparison.Stats.Completed.Base, comparison.Stats.Completed.Candidate, signedDelta(comparison.Stats.Completed.Delta))
-	_, _ = fmt.Fprintf(w, "  errors:    %v -> %v  %s\n", comparison.Stats.Errors.Base, comparison.Stats.Errors.Candidate, signedDelta(comparison.Stats.Errors.Delta))
+	_, _ = fmt.Fprintln(w, evalOutputLabel(w, "Score:"))
+	_, _ = fmt.Fprintf(w, "  %s %v -> %v  %s\n", evalOutputLabel(w, "completed:"), comparison.Stats.Completed.Base, comparison.Stats.Completed.Candidate, signedDelta(comparison.Stats.Completed.Delta))
+	_, _ = fmt.Fprintf(w, "  %s    %v -> %v  %s\n", evalOutputLabel(w, "errors:"), comparison.Stats.Errors.Base, comparison.Stats.Errors.Candidate, signedDelta(comparison.Stats.Errors.Delta))
 	if comparison.Stats.Mean.Base != nil || comparison.Stats.Mean.Candidate != nil {
-		_, _ = fmt.Fprintf(w, "  mean:      %s -> %s  %s\n", displayValue(comparison.Stats.Mean.Base), displayValue(comparison.Stats.Mean.Candidate), signedDelta(comparison.Stats.Mean.Delta))
+		_, _ = fmt.Fprintf(w, "  %s      %s -> %s  %s\n", evalOutputLabel(w, "mean:"), displayValue(comparison.Stats.Mean.Base), displayValue(comparison.Stats.Mean.Candidate), signedDelta(comparison.Stats.Mean.Delta))
 	}
-	_, _ = fmt.Fprintf(w, "  evals:     %v -> %v  %s\n\n", comparison.Stats.Evals.Base, comparison.Stats.Evals.Candidate, signedDelta(comparison.Stats.Evals.Delta))
-	_, _ = fmt.Fprintf(w, "Recommendation: %s\n", comparison.Recommendation)
+	_, _ = fmt.Fprintf(w, "  %s     %v -> %v  %s\n\n", evalOutputLabel(w, "evals:"), comparison.Stats.Evals.Base, comparison.Stats.Evals.Candidate, signedDelta(comparison.Stats.Evals.Delta))
+	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Recommendation:"), comparison.Recommendation)
 	return nil
 }
 

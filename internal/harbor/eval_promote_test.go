@@ -37,6 +37,9 @@ func TestEvalPromoterDryRunDoesNotRequireStagedChanges(t *testing.T) {
 	if got := stdout.String(); !strings.Contains(got, "Selection: latest job under jobs") {
 		t.Fatalf("stdout = %q", got)
 	}
+	if got := stdout.String(); strings.HasSuffix(got, "\n\n") {
+		t.Fatalf("stdout has trailing blank line: %q", got)
+	}
 }
 
 func TestEvalPromoterWarnsWhenNewerJobsAreNotPromotable(t *testing.T) {
@@ -62,6 +65,9 @@ func TestEvalPromoterWarnsWhenNewerJobsAreNotPromotable(t *testing.T) {
 	}
 	if got := stderr.String(); !strings.Contains(got, "warning: no newer complete promotable eval job found under jobs") {
 		t.Fatalf("stderr = %q", got)
+	}
+	if got := stderr.String(); !strings.Contains(got, "warning: no newer complete promotable eval job found under jobs\n\n") {
+		t.Fatalf("stderr missing trailing blank line after warning: %q", got)
 	}
 }
 
