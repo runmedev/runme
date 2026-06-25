@@ -318,6 +318,10 @@ func readPromoteJobResult(jobDir string) (promoteJobResult, error) {
 	if err != nil {
 		return promoteJobResult{}, err
 	}
+	return parsePromoteJobResult(resultPath, data)
+}
+
+func parsePromoteJobResult(resultPath string, data []byte) (promoteJobResult, error) {
 	var raw struct {
 		StartedAt   string          `json:"started_at"`
 		UpdatedAt   string          `json:"updated_at"`
@@ -347,6 +351,10 @@ func readPromoteJobConfig(jobDir string) (promoteJobConfig, error) {
 		}
 		return promoteJobConfig{}, err
 	}
+	return parsePromoteJobConfig(data)
+}
+
+func parsePromoteJobConfig(data []byte) (promoteJobConfig, error) {
 	var config promoteJobConfig
 	if err := json.Unmarshal(data, &config); err != nil {
 		return promoteJobConfig{}, err
