@@ -15,7 +15,8 @@ type promoteGit interface {
 	StagedFiles() ([]string, error)
 	UnstagedFilesTouching([]string) ([]string, error)
 	LatestModTime([]string) (time.Time, error)
-	AddJobDir(string) error
+	AddJobDir(string, bool) error
+	JobFiles(string, bool) ([]string, error)
 	Commit(string) (string, error)
 	Rel(string) (string, error)
 }
@@ -97,23 +98,76 @@ func (c *goGitPromoteClient) LatestModTime(paths []string) (time.Time, error) {
 	return latest, nil
 }
 
-func (c *goGitPromoteClient) AddJobDir(jobDir string) error {
-	return filepath.WalkDir(jobDir, func(path string, d os.DirEntry, err error) error {
+func (c *goGitPromoteClient) AddJobDir(jobDir string, includeArtifacts bool) error {
+	files, err := c.JobFiles(jobDir, includeArtifacts)
+	if err != nil {
+		return err
+	}
+	for _, rel := range files {
+		if err := c.wt.AddWithOptions(&git.AddOptions{
+			Path:       filepath.FromSlash(rel),
+			SkipStatus: true,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *goGitPromoteClient) JobFiles(jobDir string, includeArtifacts bool) ([]string, error) {
+	var files []string
+	err := filepath.WalkDir(jobDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() {
+		if shouldSkipPromoteDir(jobDir, path, d) {
+			return filepath.SkipDir
+		}
+		if d.IsDir() || !shouldAddPromoteFile(jobDir, path, includeArtifacts) {
 			return nil
 		}
 		rel, err := c.Rel(path)
 		if err != nil {
 			return err
 		}
-		return c.wt.AddWithOptions(&git.AddOptions{
-			Path:       filepath.FromSlash(rel),
-			SkipStatus: true,
-		})
+		files = append(files, rel)
+		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(files)
+	return files, nil
+}
+
+func shouldSkipPromoteDir(jobDir, path string, d os.DirEntry) bool {
+	if !d.IsDir() || cleanExistingPath(path) == cleanExistingPath(jobDir) {
+		return false
+	}
+	return d.Name() == "workdir"
+}
+
+func shouldAddPromoteFile(jobDir, path string, includeArtifacts bool) bool {
+	if includeArtifacts {
+		return true
+	}
+	rel, err := filepath.Rel(jobDir, path)
+	if err != nil {
+		return false
+	}
+	if rel == "." {
+		return false
+	}
+	if !strings.Contains(rel, string(os.PathSeparator)) {
+		return true
+	}
+	parts := strings.Split(rel, string(os.PathSeparator))
+	for _, part := range parts[:len(parts)-1] {
+		if part == "verifier" {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *goGitPromoteClient) Commit(message string) (string, error) {

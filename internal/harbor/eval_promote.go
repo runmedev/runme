@@ -14,6 +14,7 @@ type EvalPromoteOptions struct {
 	Latest        bool
 	DryRun        bool
 	EvidenceOnly  bool
+	Artifacts     bool
 	IncludeOracle bool
 	AllowErrors   bool
 	Message       string
@@ -115,8 +116,25 @@ func (p *EvalPromoter) Run(args []string) error {
 	})
 
 	if p.opts.DryRun {
+		files, err := gitClient.JobFiles(jobDir, p.opts.Artifacts)
+		if err != nil {
+			return err
+		}
 		_, _ = fmt.Fprintf(p.opts.Stdout, "%s %s\n", evalOutputLabel(p.opts.Stdout, "Selected eval job:"), jobRel)
-		_, _ = fmt.Fprintf(p.opts.Stdout, "%s %s\n\n", evalOutputLabel(p.opts.Stdout, "Selection:"), selection)
+		_, _ = fmt.Fprintf(p.opts.Stdout, "%s %s\n", evalOutputLabel(p.opts.Stdout, "Selection:"), selection)
+		if p.opts.Artifacts {
+			_, _ = fmt.Fprintf(p.opts.Stdout, "%s artifacts\n", evalOutputLabel(p.opts.Stdout, "Evidence mode:"))
+		} else {
+			_, _ = fmt.Fprintf(p.opts.Stdout, "%s compact\n", evalOutputLabel(p.opts.Stdout, "Evidence mode:"))
+		}
+		_, _ = fmt.Fprintln(p.opts.Stdout, evalOutputLabel(p.opts.Stdout, "Files to add:"))
+		for _, file := range files {
+			_, _ = fmt.Fprintf(p.opts.Stdout, "  %s\n", file)
+		}
+		if p.opts.Artifacts {
+			_, _ = fmt.Fprintf(p.opts.Stdout, "%s */workdir/*\n", evalOutputLabel(p.opts.Stdout, "Excluded:"))
+		}
+		_, _ = fmt.Fprintln(p.opts.Stdout)
 		_, _ = fmt.Fprint(p.opts.Stdout, renderPromoteCommitMessageForWriter(p.opts.Stdout, promoteMessageData{
 			subject:      p.opts.Message,
 			jobPath:      jobRel,
@@ -156,7 +174,7 @@ func (p *EvalPromoter) Run(args []string) error {
 			_, _ = fmt.Fprintf(p.opts.Stderr, "warning: %s\n", warning)
 		}
 	}
-	if err := gitClient.AddJobDir(jobDir); err != nil {
+	if err := gitClient.AddJobDir(jobDir, p.opts.Artifacts); err != nil {
 		return err
 	}
 	hash, err := gitClient.Commit(message)
