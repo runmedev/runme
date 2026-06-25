@@ -99,7 +99,7 @@ func (p *EvalPromoter) Run(args []string) error {
 		includeOracle: p.opts.IncludeOracle,
 		allowErrors:   p.opts.AllowErrors,
 	}); warning != "" {
-		_, _ = fmt.Fprintf(p.opts.Stderr, "warning: %s under %s\n", warning, jobsRel)
+		_, _ = fmt.Fprintf(p.opts.Stderr, "warning: %s under %s\n\n", warning, jobsRel)
 	}
 	resultRel, err := gitClient.Rel(result.Path)
 	if err != nil {
@@ -115,9 +115,16 @@ func (p *EvalPromoter) Run(args []string) error {
 	})
 
 	if p.opts.DryRun {
-		_, _ = fmt.Fprintf(p.opts.Stdout, "Selected eval job: %s\n", jobRel)
-		_, _ = fmt.Fprintf(p.opts.Stdout, "Selection: %s\n\n", selection)
-		_, _ = fmt.Fprintf(p.opts.Stdout, "%s\n", message)
+		_, _ = fmt.Fprintf(p.opts.Stdout, "%s %s\n", evalOutputLabel(p.opts.Stdout, "Selected eval job:"), jobRel)
+		_, _ = fmt.Fprintf(p.opts.Stdout, "%s %s\n\n", evalOutputLabel(p.opts.Stdout, "Selection:"), selection)
+		_, _ = fmt.Fprint(p.opts.Stdout, renderPromoteCommitMessageForWriter(p.opts.Stdout, promoteMessageData{
+			subject:      p.opts.Message,
+			jobPath:      jobRel,
+			resultPath:   resultRel,
+			evidenceOnly: p.opts.EvidenceOnly,
+			config:       config,
+			result:       result,
+		}))
 		return nil
 	}
 
