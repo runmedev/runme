@@ -207,7 +207,7 @@ func newerPromotableJobWarning(jobsRoot, selectedJobDir string, selectedResult p
 	if !foundNewer {
 		return ""
 	}
-	return "no newer complete promotable eval job found"
+	return "using latest complete promotable eval job"
 }
 
 func isPromoteJobNewer(result promoteJobResult, name string, selectedTimestamp time.Time, selectedName string) bool {

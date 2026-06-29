@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestRenderPromoteCommitMessageUsesJobRollup(t *testing.T) {
+func TestRenderPromoteCommitMessageUsesJobAndResultRollups(t *testing.T) {
 	msg := renderPromoteCommitMessage(promoteMessageData{
 		subject:    defaultPromoteSubject,
 		jobPath:    ".runme/evals/jobs/job",
@@ -28,7 +28,7 @@ func TestRenderPromoteCommitMessageUsesJobRollup(t *testing.T) {
 				ErroredTrials:   0,
 				Evals: map[string]promoteEvalStats{
 					"codex__dataset": {
-						Metrics: []map[string]interface{}{{"mean": 0.75}},
+						Metrics: []map[string]interface{}{{"reward": 0.75}},
 					},
 				},
 			},
@@ -44,16 +44,37 @@ func TestRenderPromoteCommitMessageUsesJobRollup(t *testing.T) {
 		"Agent: codex",
 		"Model: gpt-5-codex",
 		"Environment: " + runmeEnvironmentImportPath,
-		"Result: completed=2/2, errors=0, evals=1",
-		"Score: mean=0.750",
+		"Job: completed=2/2, errors=0, evals=1",
+		"Results:",
+		"dataset: reward=0.750",
+		"\nResults:\n dataset: reward=0.750\nJob: completed=2/2, errors=0, evals=1\n\nAgent: codex\n",
 	} {
 		if !strings.Contains(msg, want) {
 			t.Fatalf("message missing %q:\n%s", want, msg)
 		}
 	}
+	for _, unwanted := range []string{
+		"Result: completed=",
+		"Score:",
+		"mean",
+		"codex__dataset: reward=",
+	} {
+		if strings.Contains(msg, unwanted) {
+			t.Fatalf("message should not contain %q:\n%s", unwanted, msg)
+		}
+	}
+	assertPromoteMessageOrder(t, msg,
+		"Dataset: evals/tasks",
+		"Results:",
+		"dataset: reward=0.750",
+		"Job: completed=2/2, errors=0, evals=1",
+		"Agent: codex",
+		"Model: gpt-5-codex",
+		"Environment: "+runmeEnvironmentImportPath,
+	)
 }
 
-func TestRenderPromoteCommitMessageSeparatesResultFromScore(t *testing.T) {
+func TestRenderPromoteCommitMessageOmitsResultsWithoutEvals(t *testing.T) {
 	msg := renderPromoteCommitMessage(promoteMessageData{
 		subject:    defaultPromoteSubject,
 		jobPath:    ".runme/evals/jobs/job",
@@ -70,15 +91,12 @@ func TestRenderPromoteCommitMessageSeparatesResultFromScore(t *testing.T) {
 			Stats: promoteJobStats{
 				CompletedTrials: 2,
 				ErroredTrials:   0,
-				Evals: map[string]promoteEvalStats{
-					"runme-codex__dataset": {},
-				},
 			},
 		},
 	})
 
 	for _, want := range []string{
-		"Result: completed=2/2, errors=0, evals=1",
+		"Job: completed=2/2, errors=0",
 	} {
 		if !strings.Contains(msg, want) {
 			t.Fatalf("message missing %q:\n%s", want, msg)
@@ -90,9 +108,12 @@ func TestRenderPromoteCommitMessageSeparatesResultFromScore(t *testing.T) {
 	if strings.Contains(msg, "Score:") {
 		t.Fatalf("message should not contain Score without score metric:\n%s", msg)
 	}
+	if strings.Contains(msg, "Results:") {
+		t.Fatalf("message should not contain Results without eval summaries:\n%s", msg)
+	}
 }
 
-func TestRenderPromoteCommitMessageIgnoresNamedMetricDimensions(t *testing.T) {
+func TestRenderPromoteCommitMessageDefaultsMissingRewardToZero(t *testing.T) {
 	msg := renderPromoteCommitMessage(promoteMessageData{
 		subject:    defaultPromoteSubject,
 		jobPath:    ".runme/evals/jobs/job",
@@ -117,12 +138,35 @@ func TestRenderPromoteCommitMessageIgnoresNamedMetricDimensions(t *testing.T) {
 		},
 	})
 
-	if strings.Contains(msg, "Score:") {
-		t.Fatalf("message should not contain Score for named metric dimensions:\n%s", msg)
+	for _, want := range []string{
+		"Results:",
+		"dataset: reward=0.000",
+	} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("message missing %q:\n%s", want, msg)
+		}
+	}
+	if strings.Contains(msg, "Score:") || strings.Contains(msg, "mean") {
+		t.Fatalf("message should use reward results, not score/mean:\n%s", msg)
 	}
 }
 
-func TestRenderPromoteCommitMessageIgnoresRewardWithoutMean(t *testing.T) {
+func assertPromoteMessageOrder(t *testing.T, msg string, values ...string) {
+	t.Helper()
+	previous := -1
+	for _, value := range values {
+		index := strings.Index(msg, value)
+		if index == -1 {
+			t.Fatalf("message missing %q:\n%s", value, msg)
+		}
+		if index <= previous {
+			t.Fatalf("message has %q out of order:\n%s", value, msg)
+		}
+		previous = index
+	}
+}
+
+func TestRenderPromoteCommitMessageMarksAmbiguousReward(t *testing.T) {
 	msg := renderPromoteCommitMessage(promoteMessageData{
 		subject:    defaultPromoteSubject,
 		jobPath:    ".runme/evals/jobs/job",
@@ -137,14 +181,20 @@ func TestRenderPromoteCommitMessageIgnoresRewardWithoutMean(t *testing.T) {
 				CompletedTrials: 1,
 				Evals: map[string]promoteEvalStats{
 					"runme-codex__dataset": {
-						Metrics: []map[string]interface{}{{"reward": 0.5}},
+						Metrics: []map[string]interface{}{
+							{"reward": 0.5},
+							{"reward": 0.75},
+						},
 					},
 				},
 			},
 		},
 	})
 
-	if strings.Contains(msg, "Score:") {
-		t.Fatalf("message should not contain Score without mean:\n%s", msg)
+	if !strings.Contains(msg, "dataset: reward=n/a (ambiguous)") {
+		t.Fatalf("message should mark ambiguous rewards:\n%s", msg)
+	}
+	if strings.Contains(msg, "Score:") || strings.Contains(msg, "mean") {
+		t.Fatalf("message should use reward results, not score/mean:\n%s", msg)
 	}
 }

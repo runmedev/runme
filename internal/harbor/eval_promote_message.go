@@ -3,7 +3,6 @@ package harbor
 import (
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 )
 
@@ -45,13 +44,17 @@ func renderPromoteCommitMessageWithLabel(data promoteMessageData, label func(str
 		_, _ = fmt.Fprintf(&b, "%s %s\n", label("Tasks:"), tasks)
 	}
 	_, _ = fmt.Fprintln(&b)
+	if results := data.resultsSummary(); len(results) > 0 {
+		_, _ = fmt.Fprintln(&b, label("Results:"))
+		for _, result := range results {
+			_, _ = fmt.Fprintf(&b, " %s\n", result)
+		}
+	}
+	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Job:"), data.jobSummary())
+	_, _ = fmt.Fprintln(&b)
 	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Agent:"), data.agentSummary())
 	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Model:"), data.modelSummary())
-	_, _ = fmt.Fprintf(&b, "%s %s\n\n", label("Environment:"), data.environmentSummary())
-	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Result:"), data.resultSummary())
-	if score := data.scoreSummary(); score != "" {
-		_, _ = fmt.Fprintf(&b, "%s %s\n", label("Score:"), score)
-	}
+	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Environment:"), data.environmentSummary())
 	return b.String()
 }
 
@@ -108,7 +111,7 @@ func (d promoteMessageData) environmentSummary() string {
 	return "unknown"
 }
 
-func (d promoteMessageData) resultSummary() string {
+func (d promoteMessageData) jobSummary() string {
 	stats := d.result.Stats
 	parts := []string{
 		fmt.Sprintf("completed=%d/%d", stats.CompletedTrials, d.result.TotalTrials),
@@ -120,40 +123,17 @@ func (d promoteMessageData) resultSummary() string {
 	return strings.Join(parts, ", ")
 }
 
-func (d promoteMessageData) scoreSummary() string {
-	if score, ok := singlePromoteMean(d.result.Stats); ok {
-		return fmt.Sprintf("mean=%.3f", score)
-	}
-	return ""
-}
-
-func singlePromoteMean(stats promoteJobStats) (float64, bool) {
-	var means []float64
-	keys := make([]string, 0, len(stats.Evals))
-	for key := range stats.Evals {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		for _, metric := range stats.Evals[key].Metrics {
-			if value, ok := promoteMetricNumber(metric["mean"]); ok {
-				means = append(means, value)
-			}
+func (d promoteMessageData) resultsSummary() []string {
+	summaries := summarizeEvalResults(d.result, d.config)
+	values := make([]string, 0, len(summaries))
+	for _, summary := range summaries {
+		reward := "n/a"
+		if summary.RewardStatus == evalRewardStatusAmbiguous {
+			reward = "n/a (ambiguous)"
+		} else if summary.Reward != nil {
+			reward = fmt.Sprintf("%.3f", *summary.Reward)
 		}
+		values = append(values, fmt.Sprintf("%s: reward=%s", summary.Key, reward))
 	}
-	if len(means) != 1 {
-		return 0, false
-	}
-	return means[0], true
-}
-
-func promoteMetricNumber(value interface{}) (float64, bool) {
-	switch typed := value.(type) {
-	case float64:
-		return typed, true
-	case int:
-		return float64(typed), true
-	default:
-		return 0, false
-	}
+	return values
 }

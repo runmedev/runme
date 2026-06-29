@@ -100,7 +100,7 @@ func (p *EvalPromoter) Run(args []string) error {
 		includeOracle: p.opts.IncludeOracle,
 		allowErrors:   p.opts.AllowErrors,
 	}); warning != "" {
-		_, _ = fmt.Fprintf(p.opts.Stderr, "warning: %s under %s\n\n", warning, jobsRel)
+		_, _ = fmt.Fprintf(p.opts.Stderr, "warning: %s under %s; newer eval jobs were skipped\n\n", warning, jobsRel)
 	}
 	resultRel, err := gitClient.Rel(result.Path)
 	if err != nil {
