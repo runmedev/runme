@@ -23,7 +23,7 @@ cpus = 1
 memory_mb = 1024
 storage_mb = 1024
 gpus = 0
-workdir = "/app/examples/harbor/datasets/runme-integration/simple-agent/workdir"
+workdir = "/app/examples/harbor/datasets/runme-smoke/simple-agent/workdir"
 
 [environment.env]
 RUNME_HARBOR_EXPECTED = "hello from a real agent"

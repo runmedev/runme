@@ -10,7 +10,7 @@ These examples exercise Runme through Harbor's custom environment interface via
 Run the smoke task with the oracle, which uses the known-good solution:
 
 ```sh {"name":"smoke-oracle"}
-runme eval examples/harbor/datasets/runme-integration \
+runme eval examples/harbor/datasets/runme-smoke \
   --task-dir simple-agent \
   --agent oracle
 ```
@@ -18,7 +18,7 @@ runme eval examples/harbor/datasets/runme-integration \
 Run a deterministic weighted-scoring task with the oracle:
 
 ```sh {"name":"scoring-oracle"}
-runme eval examples/harbor/datasets/runme-integration \
+runme eval examples/harbor/datasets/runme-rewardkit \
   --task-dir text-stats-reward \
   --agent oracle
 ```
@@ -26,7 +26,7 @@ runme eval examples/harbor/datasets/runme-integration \
 Run the same smoke task with Codex through Runme's Harbor adapter:
 
 ```sh {"name":"smoke-codex"}
-runme eval examples/harbor/datasets/runme-integration \
+runme eval examples/harbor/datasets/runme-smoke \
   --task-dir simple-agent \
   --agent codex \
   -y
@@ -35,16 +35,17 @@ runme eval examples/harbor/datasets/runme-integration \
 Run the smoke task with Harbor's Docker environment for a baseline comparison:
 
 ```sh {"name":"smoke-docker"}
-runme eval examples/harbor/datasets/runme-integration \
+runme eval examples/harbor/datasets/runme-smoke \
   --task-dir simple-agent \
   --env docker \
   --agent oracle
 ```
 
-The dataset root is `examples/harbor/datasets/runme-integration`. Each
-`runme eval` creates Harbor job and trial metadata under `.runme/evals/jobs`.
-The `--task-dir` flag selects a task directory inside the dataset, such as
-`simple-agent` or `text-stats-reward`.
+The dataset roots are `examples/harbor/datasets/runme-smoke` and
+`examples/harbor/datasets/runme-rewardkit`. Each `runme eval` creates Harbor
+job and trial metadata under `.runme/evals/jobs`. The `--task-dir` flag selects
+a task directory inside the dataset, such as `simple-agent` or
+`text-stats-reward`.
 
 `runme eval` delegates to `runme-harbor`, so these examples remain compatible
 with the underlying `harbor run` workflow. The adapter supports `oracle`,
