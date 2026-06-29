@@ -28,8 +28,7 @@ Run the same smoke task with Codex through Runme's Harbor adapter:
 ```sh {"name":"smoke-codex"}
 runme eval examples/harbor/datasets/runme-smoke \
   --task-dir simple-agent \
-  --agent codex \
-  -y
+  --agent codex
 ```
 
 Run the smoke task with Harbor's Docker environment for a baseline comparison:
@@ -39,6 +38,14 @@ runme eval examples/harbor/datasets/runme-smoke \
   --task-dir simple-agent \
   --env docker \
   --agent oracle
+```
+
+Run the rewards scoring example with a real agent:
+
+```sh {"name":"scoring-codex"}
+runme eval examples/harbor/datasets/runme-rewardkit \
+  --task-dir text-stats-reward \
+  --agent codex
 ```
 
 The dataset roots are `examples/harbor/datasets/runme-smoke` and
