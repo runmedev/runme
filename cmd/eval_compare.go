@@ -41,12 +41,11 @@ func evalCompareCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "compare",
 		Short: "Compare the latest Git-tracked eval job with the latest local eval job",
-		Long: `Compare top-level eval result summaries between the last Git-tracked eval
-job and a local candidate eval job. By default, the candidate is the newest
-local job under --jobs-dir. The command is read-only and prints an advisory
-recommendation based on comparable top-level stats such as score rollups,
-pass counts, exceptions, and failures. It does not promote, commit, or enforce
-policy.`,
+		Long: `Compare eval job execution summaries and matching eval results between
+the last Git-tracked eval job and a local candidate eval job. By default, the
+candidate is the newest local job under --jobs-dir. The command is read-only
+and prints an advisory recommendation based on job counters and overlapping
+result rewards. It does not promote, commit, or enforce policy.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.stdout = cmd.OutOrStdout()

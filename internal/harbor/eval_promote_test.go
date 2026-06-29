@@ -109,10 +109,10 @@ func TestEvalPromoterWarnsWhenNewerJobsAreNotPromotable(t *testing.T) {
 	if err := promoter.Run(nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := stderr.String(); !strings.Contains(got, "warning: no newer complete promotable eval job found under jobs") {
+	if got := stderr.String(); !strings.Contains(got, "warning: using latest complete promotable eval job under jobs; newer eval jobs were skipped") {
 		t.Fatalf("stderr = %q", got)
 	}
-	if got := stderr.String(); !strings.Contains(got, "warning: no newer complete promotable eval job found under jobs\n\n") {
+	if got := stderr.String(); !strings.Contains(got, "warning: using latest complete promotable eval job under jobs; newer eval jobs were skipped\n\n") {
 		t.Fatalf("stderr missing trailing blank line after warning: %q", got)
 	}
 }
@@ -138,7 +138,7 @@ func TestEvalPromoterDoesNotWarnWhenNewerPromotableJobExists(t *testing.T) {
 	if err := promoter.Run(nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := stderr.String(); strings.Contains(got, "no newer complete promotable eval job") {
+	if got := stderr.String(); strings.Contains(got, "newer eval jobs were skipped") {
 		t.Fatalf("stderr = %q", got)
 	}
 }

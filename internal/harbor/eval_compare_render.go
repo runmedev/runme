@@ -4,17 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 )
 
 type evalComparison struct {
-	Base           evalComparisonJob    `json:"base"`
-	Candidate      evalComparisonJob    `json:"candidate"`
-	Metadata       evalComparisonMeta   `json:"metadata"`
-	MetadataDiffs  []evalComparisonDiff `json:"metadata_mismatches,omitempty"`
-	Stats          evalComparisonStats  `json:"stats"`
-	Recommendation string               `json:"recommendation"`
+	Base           evalComparisonJob     `json:"base"`
+	Candidate      evalComparisonJob     `json:"candidate"`
+	Metadata       evalComparisonMeta    `json:"metadata"`
+	MetadataDiffs  []evalComparisonDiff  `json:"metadata_mismatches,omitempty"`
+	Job            evalComparisonStats   `json:"job"`
+	Results        evalComparisonResults `json:"results"`
+	Recommendation string                `json:"recommendation"`
 }
 
 type evalComparisonJob struct {
@@ -36,9 +38,24 @@ type evalComparisonMeta struct {
 type evalComparisonStats struct {
 	Completed evalComparisonDiff `json:"completed"`
 	Errors    evalComparisonDiff `json:"errors"`
-	Mean      evalComparisonDiff `json:"mean,omitempty"`
 	Evals     evalComparisonDiff `json:"evals"`
 	CostUSD   evalComparisonDiff `json:"cost_usd,omitempty"`
+}
+
+type evalComparisonResults struct {
+	BaseOnly      []string               `json:"base_only,omitempty"`
+	CandidateOnly []string               `json:"candidate_only,omitempty"`
+	Comparisons   []evalComparisonResult `json:"comparisons"`
+}
+
+type evalComparisonResult struct {
+	Key          string             `json:"key"`
+	BaseKey      string             `json:"base_key,omitempty"`
+	CandidateKey string             `json:"candidate_key,omitempty"`
+	Reward       evalComparisonDiff `json:"reward"`
+	RewardStatus string             `json:"reward_status,omitempty"`
+	Errors       evalComparisonDiff `json:"errors"`
+	Trials       evalComparisonDiff `json:"trials"`
 }
 
 type evalComparisonDiff struct {
@@ -58,7 +75,8 @@ func buildEvalComparison(base, candidate compareJob, baseRef string) evalCompari
 		Model:       stringDiff(baseSummary.modelSummary(), candidateSummary.modelSummary()),
 		Environment: stringDiff(baseSummary.environmentSummary(), candidateSummary.environmentSummary()),
 	}
-	stats := compareStats(base.Result, candidate.Result)
+	job := compareJobStats(base.Result, candidate.Result)
+	results := compareResults(base, candidate)
 	mismatches := metadataMismatches(metadata)
 
 	comparison := evalComparison{
@@ -77,7 +95,8 @@ func buildEvalComparison(base, candidate compareJob, baseRef string) evalCompari
 		},
 		Metadata:      metadata,
 		MetadataDiffs: mismatches,
-		Stats:         stats,
+		Job:           job,
+		Results:       results,
 	}
 	comparison.Recommendation = compareRecommendation(comparison)
 	return comparison
@@ -103,13 +122,25 @@ func renderEvalComparisonText(w io.Writer, comparison evalComparison) error {
 		_, _ = fmt.Fprintln(w)
 	}
 
-	_, _ = fmt.Fprintln(w, evalOutputLabel(w, "Score:"))
-	_, _ = fmt.Fprintf(w, "  %s %v -> %v  %s\n", evalOutputLabel(w, "completed:"), comparison.Stats.Completed.Base, comparison.Stats.Completed.Candidate, signedDelta(comparison.Stats.Completed.Delta))
-	_, _ = fmt.Fprintf(w, "  %s    %v -> %v  %s\n", evalOutputLabel(w, "errors:"), comparison.Stats.Errors.Base, comparison.Stats.Errors.Candidate, signedDelta(comparison.Stats.Errors.Delta))
-	if comparison.Stats.Mean.Base != nil || comparison.Stats.Mean.Candidate != nil {
-		_, _ = fmt.Fprintf(w, "  %s      %s -> %s  %s\n", evalOutputLabel(w, "mean:"), displayValue(comparison.Stats.Mean.Base), displayValue(comparison.Stats.Mean.Candidate), signedDelta(comparison.Stats.Mean.Delta))
+	_, _ = fmt.Fprintln(w, evalOutputLabel(w, "Job:"))
+	_, _ = fmt.Fprintf(w, "  %s %v -> %v  %s\n", evalOutputLabel(w, "completed:"), comparison.Job.Completed.Base, comparison.Job.Completed.Candidate, signedDelta(comparison.Job.Completed.Delta))
+	_, _ = fmt.Fprintf(w, "  %s    %v -> %v  %s\n", evalOutputLabel(w, "errors:"), comparison.Job.Errors.Base, comparison.Job.Errors.Candidate, signedDelta(comparison.Job.Errors.Delta))
+	_, _ = fmt.Fprintf(w, "  %s     %v -> %v  %s\n\n", evalOutputLabel(w, "evals:"), comparison.Job.Evals.Base, comparison.Job.Evals.Candidate, signedDelta(comparison.Job.Evals.Delta))
+
+	_, _ = fmt.Fprintln(w, evalOutputLabel(w, "Results:"))
+	if len(comparison.Results.Comparisons) == 0 {
+		_, _ = fmt.Fprintln(w, "  no matching eval results")
 	}
-	_, _ = fmt.Fprintf(w, "  %s     %v -> %v  %s\n\n", evalOutputLabel(w, "evals:"), comparison.Stats.Evals.Base, comparison.Stats.Evals.Candidate, signedDelta(comparison.Stats.Evals.Delta))
+	for _, result := range comparison.Results.Comparisons {
+		_, _ = fmt.Fprintf(w, "  %s reward %s -> %s  %s\n", evalOutputLabel(w, result.Key+":"), displayValue(result.Reward.Base), displayValue(result.Reward.Candidate), signedDelta(result.Reward.Delta))
+	}
+	if len(comparison.Results.BaseOnly) > 0 {
+		_, _ = fmt.Fprintf(w, "  %s %s\n", evalOutputLabel(w, "base only:"), strings.Join(comparison.Results.BaseOnly, ", "))
+	}
+	if len(comparison.Results.CandidateOnly) > 0 {
+		_, _ = fmt.Fprintf(w, "  %s %s\n", evalOutputLabel(w, "latest only:"), strings.Join(comparison.Results.CandidateOnly, ", "))
+	}
+	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Recommendation:"), comparison.Recommendation)
 	return nil
 }
@@ -136,23 +167,71 @@ func floatDiff(base, candidate *float64) evalComparisonDiff {
 	return diff
 }
 
-func compareStats(base, candidate promoteJobResult) evalComparisonStats {
-	baseMean, baseHasMean := singlePromoteMean(base.Stats)
-	candidateMean, candidateHasMean := singlePromoteMean(candidate.Stats)
-	var baseMeanPtr, candidateMeanPtr *float64
-	if baseHasMean {
-		baseMeanPtr = &baseMean
-	}
-	if candidateHasMean {
-		candidateMeanPtr = &candidateMean
-	}
+func compareJobStats(base, candidate promoteJobResult) evalComparisonStats {
 	return evalComparisonStats{
 		Completed: intDiff(base.Stats.CompletedTrials, candidate.Stats.CompletedTrials),
 		Errors:    intDiff(base.Stats.ErroredTrials, candidate.Stats.ErroredTrials),
-		Mean:      floatDiff(baseMeanPtr, candidateMeanPtr),
 		Evals:     intDiff(len(base.Stats.Evals), len(candidate.Stats.Evals)),
 		CostUSD:   floatDiff(base.Stats.CostUSD, candidate.Stats.CostUSD),
 	}
+}
+
+func compareResults(base, candidate compareJob) evalComparisonResults {
+	baseEntries := evalResultSummaryMap(base.Result, base.Config)
+	candidateEntries := evalResultSummaryMap(candidate.Result, candidate.Config)
+	baseKeys := sortedEvalResultSummaryKeys(baseEntries)
+	candidateKeys := sortedEvalResultSummaryKeys(candidateEntries)
+	candidateSet := make(map[string]struct{}, len(candidateKeys))
+	for _, key := range candidateKeys {
+		candidateSet[key] = struct{}{}
+	}
+	baseSet := make(map[string]struct{}, len(baseKeys))
+	for _, key := range baseKeys {
+		baseSet[key] = struct{}{}
+	}
+
+	var results evalComparisonResults
+	for _, key := range baseKeys {
+		if _, ok := candidateSet[key]; !ok {
+			results.BaseOnly = append(results.BaseOnly, key)
+			continue
+		}
+		baseEntry := baseEntries[key]
+		candidateEntry := candidateEntries[key]
+		results.Comparisons = append(results.Comparisons, evalComparisonResult{
+			Key:          key,
+			BaseKey:      baseEntry.RawKey,
+			CandidateKey: candidateEntry.RawKey,
+			Reward:       floatDiff(baseEntry.Reward, candidateEntry.Reward),
+			RewardStatus: combinedRewardStatus(baseEntry.RewardStatus, candidateEntry.RewardStatus),
+			Errors:       intDiff(baseEntry.Stats.Errors, candidateEntry.Stats.Errors),
+			Trials:       intDiff(baseEntry.Stats.Trials, candidateEntry.Stats.Trials),
+		})
+	}
+	for _, key := range candidateKeys {
+		if _, ok := baseSet[key]; !ok {
+			results.CandidateOnly = append(results.CandidateOnly, key)
+		}
+	}
+	return results
+}
+
+func evalResultSummaryMap(result promoteJobResult, config promoteJobConfig) map[string]evalResultSummary {
+	summaries := summarizeEvalResults(result, config)
+	entries := make(map[string]evalResultSummary, len(summaries))
+	for _, summary := range summaries {
+		entries[summary.Key] = summary
+	}
+	return entries
+}
+
+func sortedEvalResultSummaryKeys(entries map[string]evalResultSummary) []string {
+	keys := make([]string, 0, len(entries))
+	for key := range entries {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func metadataMismatches(meta evalComparisonMeta) []evalComparisonDiff {
@@ -180,15 +259,25 @@ func compareRecommendation(comparison evalComparison) string {
 	if sameComparisonJob(comparison.Base, comparison.Candidate) {
 		return "base and latest are the same eval job; nothing to compare."
 	}
+	job := comparison.Job
+	if intDelta(job.Errors) > 0 || intDelta(job.Completed) < 0 {
+		return "candidate regressed; rerun or inspect job/task details before promotion."
+	}
+	if len(comparison.Results.Comparisons) == 0 {
+		return "no matching eval results; compare job selection before promotion."
+	}
 	if len(comparison.MetadataDiffs) > 0 {
 		return "metadata differs; review mismatches before promotion."
 	}
-	stats := comparison.Stats
-	if intDelta(stats.Errors) > 0 || intDelta(stats.Completed) < 0 || floatDelta(stats.Mean) < 0 {
-		return "candidate regressed; rerun or inspect job/task details before promotion."
+	for _, result := range comparison.Results.Comparisons {
+		if floatDelta(result.Reward) < 0 {
+			return "candidate regressed; rerun or inspect job/task details before promotion."
+		}
 	}
-	if stats.Mean.Base == nil || stats.Mean.Candidate == nil {
-		return "summary changed; inspect job/task details before promotion."
+	for _, result := range comparison.Results.Comparisons {
+		if result.RewardStatus != "" {
+			return "summary changed; inspect job/task details before promotion."
+		}
 	}
 	return "candidate improved or held steady; promotion looks reasonable after normal review."
 }
