@@ -7,6 +7,6 @@ RUN apt-get update \
   && ln -s /root/.local/bin/uv /usr/local/bin/uv \
   && ln -s /root/.local/bin/uvx /usr/local/bin/uvx
 
-WORKDIR /app/examples/harbor/datasets/runme-integration/text-stats-reward/workdir
+WORKDIR /app/examples/harbor/datasets/runme-rewardkit/text-stats-reward/workdir
 
 COPY sample.txt .
