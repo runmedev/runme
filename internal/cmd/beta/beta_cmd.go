@@ -11,6 +11,7 @@ import (
 	"github.com/runmedev/runme/v3/internal/cmd/beta/server"
 	"github.com/runmedev/runme/v3/internal/config"
 	"github.com/runmedev/runme/v3/internal/config/autoconfig"
+	"github.com/runmedev/runme/v3/internal/terminal"
 )
 
 type commonFlags struct {
@@ -33,6 +34,8 @@ All commands are experimental and not yet ready for production use.
 All commands use the runme.yaml configuration file.`,
 		Hidden: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			terminal.SetTitle(cmd.OutOrStdout(), cmd.CommandPath())
+
 			if cFlags.silent {
 				cmd.SetErr(io.Discard)
 			}

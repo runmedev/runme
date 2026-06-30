@@ -5,6 +5,7 @@ import (
 
 	"github.com/runmedev/runme/v3/internal/config"
 	"github.com/runmedev/runme/v3/internal/config/autoconfig"
+	"github.com/runmedev/runme/v3/internal/terminal"
 )
 
 func Cmd() *cobra.Command {
@@ -13,6 +14,8 @@ func Cmd() *cobra.Command {
 		Short:  "Commands to manage and call a runme server.",
 		Hidden: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			terminal.SetTitle(cmd.OutOrStdout(), cmd.CommandPath())
+
 			return autoconfig.Invoke(
 				func(
 					cfg *config.Config,
