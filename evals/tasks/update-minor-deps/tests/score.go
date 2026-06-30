@@ -13,14 +13,15 @@ import (
 )
 
 const (
-	root              = "/app"
-	agentLogDir       = "/logs/agent"
-	artifactsDir      = "/logs/artifacts"
-	verifierDir       = "/logs/verifier"
-	prDraft           = artifactsDir + "/pr.md"
-	rewardPath        = verifierDir + "/reward.json"
-	rewardDetailsPath = verifierDir + "/reward-details.json"
-	evalHarnessPrefix = ".agents/skills/update-minor-deps/evals/regression/"
+	root               = "/app"
+	agentLogDir        = "/logs/agent"
+	artifactsDir       = "/logs/artifacts"
+	verifierDir        = "/logs/verifier"
+	prDraft            = artifactsDir + "/pr.md"
+	rewardPath         = verifierDir + "/reward.json"
+	rewardDetailsPath  = verifierDir + "/reward-details.json"
+	evalHarnessPrefix  = "evals/tasks/"
+	skillHarnessPrefix = ".agents/skills/update-minor-deps/"
 )
 
 var (
@@ -128,12 +129,17 @@ func changedFiles() ([]string, error) {
 func relevantChangedFiles(files []string) []string {
 	var relevant []string
 	for _, file := range files {
-		if strings.HasPrefix(file, evalHarnessPrefix) {
+		if isHarnessFile(file) {
 			continue
 		}
 		relevant = append(relevant, file)
 	}
 	return relevant
+}
+
+func isHarnessFile(file string) bool {
+	return strings.HasPrefix(file, evalHarnessPrefix) ||
+		strings.HasPrefix(file, skillHarnessPrefix)
 }
 
 func isModuleOnlyChange(files []string) bool {
@@ -327,7 +333,7 @@ func (s scorer) scopedChanges() float64 {
 			continue
 		case strings.HasSuffix(file, ".go"):
 			continue
-		case strings.HasPrefix(file, ".agents/skills/update-minor-deps/evals/regression/"):
+		case isHarnessFile(file):
 			continue
 		}
 
@@ -530,7 +536,7 @@ func rewardDetails(scores rewardScores) map[string]rewardDetail {
 
 func printRewardSummary(scores rewardScores) {
 	for _, score := range rewardScoreList(scores) {
-		fmt.Printf("%s: %s\n", score.Name, formatRewardFloat(score.Score))
+		_, _ = fmt.Printf("%s: %s\n", score.Name, formatRewardFloat(score.Score))
 	}
 }
 
@@ -624,7 +630,7 @@ func run() error {
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

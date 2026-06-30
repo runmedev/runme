@@ -198,8 +198,18 @@ func TestScoreScopedChanges(t *testing.T) {
 		},
 		{
 			name:  "eval regression changes are allowed",
-			files: []string{".agents/skills/update-minor-deps/evals/regression/end-to-end/tests/test.sh"},
+			files: []string{"evals/tasks/update-minor-deps/tests/test.sh"},
 			want:  1.0,
+		},
+		{
+			name: "skill harness changes are allowed",
+			files: []string{
+				".agents/skills/update-minor-deps/README.md",
+				".agents/skills/update-minor-deps/evals/README.md",
+				"go.mod",
+				"go.sum",
+			},
+			want: 1.0,
 		},
 		{
 			name:  "one unrelated file gets partial credit",
@@ -228,7 +238,8 @@ func TestRelevantChangedFiles(t *testing.T) {
 	t.Parallel()
 
 	files := []string{
-		".agents/skills/update-minor-deps/evals/regression/end-to-end/tests/score.go",
+		".agents/skills/update-minor-deps/README.md",
+		"evals/tasks/update-minor-deps/tests/score.go",
 		"go.mod",
 		"go.sum",
 	}
@@ -259,9 +270,13 @@ func TestIsModuleOnlyChange(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "go sum only with eval harness ignored",
-			files: []string{".agents/skills/update-minor-deps/evals/regression/end-to-end/tests/score.go", "go.sum"},
-			want:  true,
+			name: "go sum only with harness changes ignored",
+			files: []string{
+				".agents/skills/update-minor-deps/README.md",
+				"evals/tasks/update-minor-deps/tests/score.go",
+				"go.sum",
+			},
+			want: true,
 		},
 		{
 			name:  "source file changed",
@@ -270,7 +285,7 @@ func TestIsModuleOnlyChange(t *testing.T) {
 		},
 		{
 			name:  "eval harness only",
-			files: []string{".agents/skills/update-minor-deps/evals/regression/end-to-end/tests/score.go"},
+			files: []string{"evals/tasks/update-minor-deps/tests/score.go"},
 			want:  false,
 		},
 	}

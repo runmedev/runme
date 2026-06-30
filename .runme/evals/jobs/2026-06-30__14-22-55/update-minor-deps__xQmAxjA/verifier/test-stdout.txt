@@ -1,0 +1,8 @@
+reward: 1.0
+dependency_update: 1.0
+scoped_changes: 1.0
+skill_activation_evidence: 1.0
+workflow_evidence: 1.0
+validation_evidence: 1.0
+pr_draft_quality: 1.0
+no_real_pr_or_commit: 1.0

@@ -6,7 +6,7 @@ cwd: ../../..
 
 Development notes for the `update-minor-deps` skill.
 
-This file is human-facing documentation for maintainers of the skill. It is not part of the skill's runtime instruction contract. Keep agent-facing execution guidance in `SKILL.md`; keep reusable execution helpers in `scripts/`; keep eval fixtures under `evals/regression/`.
+This file is human-facing documentation for maintainers of the skill. It is not part of the skill's runtime instruction contract. Keep agent-facing execution guidance in `SKILL.md`; keep reusable execution helpers in `scripts/`; keep repo-specific eval fixtures under `evals/tasks/`.
 
 ## Purpose
 
@@ -23,7 +23,7 @@ The first implementation is Go-module focused because the current workflow uses 
 
 - `SKILL.md` defines what an agent should do when the skill is active.
 - `scripts/update-go-deps.sh` automates the current Go dependency refresh step.
-- `evals/regression/` contains Harbor regression tasks, oracle solutions, and verifier code that validate whether agents use the skill as intended.
+- `evals/tasks/` contains Harbor regression tasks, oracle solutions, and verifier code that validate whether agents use the skill as intended.
 - This README can document rationale, development notes, and maintenance decisions without changing skill behavior.
 
 ## Validation
@@ -37,7 +37,7 @@ python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/
 Use Harbor regression evals to test behavior over time:
 
 ```sh
-runme eval .agents/skills/update-minor-deps/evals/regression --agent codex
+runme eval --agent codex
 ```
 
 The regression eval mutates the checkout that launches it, so run it from a disposable branch or worktree.
