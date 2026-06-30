@@ -1,0 +1,75 @@
+{
+    "schema_version": 1,
+    "created_at": "2026-06-30T21:22:55.214420Z",
+    "harbor": {
+        "version": "0.16.1",
+        "is_editable": false
+    },
+    "invocation": [
+        "/Users/sourishkrout/.local/bin/runme-harbor-harbor",
+        "run",
+        "--path",
+        "evals/tasks",
+        "--jobs-dir",
+        ".runme/evals/jobs",
+        "--env",
+        "runme_harbor.environment:RunmeEnvironment",
+        "--agent",
+        "runme_harbor.runme_agents:RunmeCodex",
+        "-y",
+        "--n-concurrent",
+        "1"
+    ],
+    "n_concurrent_trials": 1,
+    "retry": {
+        "max_retries": 0,
+        "exclude_exceptions": [
+            "RewardFileNotFoundError",
+            "RewardFileEmptyError",
+            "AgentTimeoutError",
+            "VerifierTimeoutError",
+            "ApiUsageLimitError",
+            "VerifierOutputParseError"
+        ],
+        "wait_multiplier": 1.0,
+        "min_wait_sec": 1.0,
+        "max_wait_sec": 60.0
+    },
+    "trials": [
+        {
+            "task": {
+                "name": "update-minor-deps",
+                "type": "local",
+                "digest": "sha256:81f1918b2ccdef7fb5fa485d80c88c39972eb3a7646471d319848f8396f23dec",
+                "source": "tasks",
+                "path": "evals/tasks/update-minor-deps"
+            },
+            "install_only": false,
+            "timeout_multiplier": 1.0,
+            "agent": {
+                "name": "runme_harbor.runme_agents:RunmeCodex",
+                "skills": [],
+                "extra_allowed_hosts": [],
+                "kwargs": {},
+                "env": {},
+                "mcp_servers": []
+            },
+            "skills": [],
+            "environment": {
+                "import_path": "runme_harbor.environment:RunmeEnvironment",
+                "force_build": false,
+                "delete": true,
+                "cpu_enforcement_policy": "auto",
+                "memory_enforcement_policy": "auto",
+                "extra_docker_compose": [],
+                "env": {},
+                "kwargs": {},
+                "extra_allowed_hosts": []
+            },
+            "verifier": {
+                "env": {},
+                "disable": false
+            }
+        }
+    ]
+}
