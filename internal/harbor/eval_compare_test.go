@@ -472,6 +472,28 @@ func TestBuildEvalComparisonRecommendsRegressionForMatchedResultRewardDrop(t *te
 	}
 }
 
+func TestEvalComparisonResultRewardDeltaStyle(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		delta interface{}
+		want  string
+	}{
+		{name: "regressed", delta: -0.25, want: evalResultRegressedStyle},
+		{name: "improved", delta: 0.25, want: evalResultImprovedStyle},
+		{name: "unchanged", delta: 0.0, want: ""},
+		{name: "missing", delta: nil, want: ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result := evalComparisonResult{
+				Reward: evalComparisonDiff{Delta: tc.delta},
+			}
+			if got := result.rewardDeltaStyle(); got != tc.want {
+				t.Fatalf("style = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestEvalComparerReadsTrackedBaseFromGit(t *testing.T) {
 	tmp := t.TempDir()
 	repo, err := git.PlainInit(tmp, false)

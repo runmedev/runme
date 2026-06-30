@@ -9,9 +9,12 @@ import (
 	"time"
 
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 type promoteGit interface {
+	TrackedEvalJobs(string, string) ([]evalJobRef, error)
 	StagedFiles() ([]string, error)
 	UnstagedFilesTouching([]string) ([]string, error)
 	LatestModTime([]string) (time.Time, error)
@@ -188,6 +191,25 @@ func (c *goGitPromoteClient) Rel(path string) (string, error) {
 		return "", fmt.Errorf("path %s is outside git root %s", path, c.root)
 	}
 	return filepath.ToSlash(rel), nil
+}
+
+func (c *goGitPromoteClient) TrackedEvalJobs(baseRef, jobsRoot string) ([]evalJobRef, error) {
+	return trackedEvalJobReader{
+		rel:  c.Rel,
+		tree: c.tree,
+	}.Jobs(baseRef, jobsRoot)
+}
+
+func (c *goGitPromoteClient) tree(ref string) (*object.Tree, error) {
+	hash, err := c.repo.ResolveRevision(plumbing.Revision(ref))
+	if err != nil {
+		return nil, err
+	}
+	commit, err := c.repo.CommitObject(*hash)
+	if err != nil {
+		return nil, err
+	}
+	return commit.Tree()
 }
 
 func joinDisplay(values []string) string {

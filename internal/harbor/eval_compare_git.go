@@ -13,7 +13,7 @@ import (
 
 type compareGit interface {
 	Rel(string) (string, error)
-	TrackedEvalJobs(string, string) ([]compareJob, error)
+	TrackedEvalJobs(string, string) ([]evalJobRef, error)
 }
 
 type goGitCompareClient struct {
@@ -48,12 +48,36 @@ func (c *goGitCompareClient) Rel(path string) (string, error) {
 	return filepath.ToSlash(rel), nil
 }
 
-func (c *goGitCompareClient) TrackedEvalJobs(baseRef, jobsRoot string) ([]compareJob, error) {
-	jobsRootRel, err := c.Rel(jobsRoot)
+func (c *goGitCompareClient) TrackedEvalJobs(baseRef, jobsRoot string) ([]evalJobRef, error) {
+	return trackedEvalJobReader{
+		rel:  c.Rel,
+		tree: c.tree,
+	}.Jobs(baseRef, jobsRoot)
+}
+
+func (c *goGitCompareClient) tree(ref string) (*object.Tree, error) {
+	hash, err := c.repo.ResolveRevision(plumbing.Revision(ref))
 	if err != nil {
 		return nil, err
 	}
-	tree, err := c.tree(baseRef)
+	commit, err := c.repo.CommitObject(*hash)
+	if err != nil {
+		return nil, err
+	}
+	return commit.Tree()
+}
+
+type trackedEvalJobReader struct {
+	rel  func(string) (string, error)
+	tree func(string) (*object.Tree, error)
+}
+
+func (r trackedEvalJobReader) Jobs(baseRef, jobsRoot string) ([]evalJobRef, error) {
+	jobsRootRel, err := r.rel(jobsRoot)
+	if err != nil {
+		return nil, err
+	}
+	tree, err := r.tree(baseRef)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +86,7 @@ func (c *goGitCompareClient) TrackedEvalJobs(baseRef, jobsRoot string) ([]compar
 	files := tree.Files()
 	defer files.Close()
 
-	var jobs []compareJob
+	var jobs []evalJobRef
 	err = files.ForEach(func(file *object.File) error {
 		if !strings.HasPrefix(file.Name, prefix) {
 			return nil
@@ -95,7 +119,7 @@ func (c *goGitCompareClient) TrackedEvalJobs(baseRef, jobsRoot string) ([]compar
 			}
 		}
 
-		jobs = append(jobs, compareJob{
+		jobs = append(jobs, evalJobRef{
 			RelPath:   jobRel,
 			ResultRel: file.Name,
 			Result:    result,
@@ -111,19 +135,7 @@ func (c *goGitCompareClient) TrackedEvalJobs(baseRef, jobsRoot string) ([]compar
 	return jobs, nil
 }
 
-func (c *goGitCompareClient) tree(ref string) (*object.Tree, error) {
-	hash, err := c.repo.ResolveRevision(plumbing.Revision(ref))
-	if err != nil {
-		return nil, err
-	}
-	commit, err := c.repo.CommitObject(*hash)
-	if err != nil {
-		return nil, err
-	}
-	return commit.Tree()
-}
-
-func sortCompareJobs(jobs []compareJob) {
+func sortCompareJobs(jobs []evalJobRef) {
 	sort.Slice(jobs, func(i, j int) bool {
 		left, right := jobs[i], jobs[j]
 		leftTime, rightTime := resultTimestamp(left.Result), resultTimestamp(right.Result)

@@ -81,7 +81,7 @@ func (c *EvalComparer) Run(args []string) error {
 
 	comparison := buildEvalComparison(base, candidate, c.opts.Base)
 	if c.opts.Format == "json" {
-		return renderEvalComparisonJSON(c.opts.Stdout, comparison)
+		return comparison.RenderJSON(c.opts.Stdout)
 	}
-	return renderEvalComparisonText(c.opts.Stdout, comparison)
+	return comparison.RenderText(c.opts.Stdout)
 }
