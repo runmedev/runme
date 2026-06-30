@@ -1,7 +1,7 @@
 schema_version = "1.1"
 
 [task]
-name = "runmedev/update-minor-deps-end-to-end"
+name = "runmedev/update-minor-deps"
 description = "Evaluate the update-minor-deps skill end to end against the Runme checkout."
 authors = []
 keywords = ["runme", "harbor", "skills", "dependencies", "go"]
