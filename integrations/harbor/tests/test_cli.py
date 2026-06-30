@@ -9,6 +9,107 @@ from runme_harbor import cli
 from runme_harbor import metadata_sync
 
 
+def test_main_version_command_prints_package_version(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "_version_text", lambda: "runme-harbor 1.2.3\n\ninstall: package")
+
+    assert cli.main(["version"]) == 0
+
+    assert capsys.readouterr().out == "runme-harbor 1.2.3\n\ninstall: package\n"
+
+
+def test_main_version_flag_prints_package_version(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "_version_text", lambda: "runme-harbor 1.2.3\n\ninstall: package")
+
+    assert cli.main(["--version"]) == 0
+
+    assert capsys.readouterr().out == "runme-harbor 1.2.3\n\ninstall: package\n"
+
+
+def test_version_text_includes_install_and_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(cli, "_package_version", lambda: "1.2.3")
+    monkeypatch.setattr(
+        cli.InstallSource,
+        "detect",
+        lambda: cli.InstallSource(
+            kind="source",
+            location="/repo/integrations/harbor",
+            editable=True,
+        ),
+    )
+    monkeypatch.setattr(cli.sys, "prefix", "/venv/runme-harbor")
+    monkeypatch.setattr(cli.sys, "executable", "/venv/runme-harbor/bin/python")
+
+    assert cli._version_text() == "\n".join(
+        [
+            "runme-harbor 1.2.3",
+            "",
+            "install: source editable /repo/integrations/harbor",
+            "venv: /venv/runme-harbor",
+            "python: /venv/runme-harbor/bin/python",
+        ]
+    )
+
+
+def test_install_source_detects_package_without_direct_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeDistribution:
+        def read_text(self, _name: str) -> None:
+            return None
+
+    monkeypatch.setattr(cli.importlib.metadata, "distribution", lambda _name: FakeDistribution())
+
+    source = cli.InstallSource.detect()
+
+    assert source == cli.InstallSource(kind="package")
+    assert source.format() == "package"
+
+
+def test_install_source_detects_editable_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeDistribution:
+        def read_text(self, _name: str) -> str:
+            return (
+                '{"url":"file:///repo/integrations/harbor",'
+                '"dir_info":{"editable":true}}'
+            )
+
+    monkeypatch.setattr(cli.importlib.metadata, "distribution", lambda _name: FakeDistribution())
+
+    source = cli.InstallSource.detect()
+
+    assert source == cli.InstallSource(
+        kind="source",
+        location="/repo/integrations/harbor",
+        editable=True,
+    )
+    assert source.format() == "source editable /repo/integrations/harbor"
+
+
+def test_install_source_detects_source_checkout_when_package_metadata_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_distribution(_name: str) -> None:
+        raise cli.importlib.metadata.PackageNotFoundError
+
+    monkeypatch.setattr(cli.importlib.metadata, "distribution", fail_distribution)
+    monkeypatch.setattr(cli, "_project_root", lambda: Path("/repo/integrations/harbor"))
+
+    source = cli.InstallSource.detect()
+
+    assert source == cli.InstallSource(kind="source", location="/repo/integrations/harbor")
+    assert source.format() == "source /repo/integrations/harbor"
+
+
 def test_main_sync_metadata_command_uses_default_jobs_dir(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
