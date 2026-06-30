@@ -71,9 +71,70 @@ type evalComparisonDiff struct {
 	Delta     interface{} `json:"delta,omitempty"`
 }
 
+type promoteCompareGateReason string
+
+const (
+	promoteCompareGateReasonRegressed promoteCompareGateReason = "regressed"
+	promoteCompareGateReasonNoResults promoteCompareGateReason = "no_results"
+	promoteCompareGateReasonMetadata  promoteCompareGateReason = "metadata"
+	promoteCompareGateReasonSummary   promoteCompareGateReason = "summary"
+)
+
+type promoteCompareGateReasonText struct {
+	blockMessage   string
+	recommendation string
+}
+
 type promoteCompareGate struct {
-	Blocking bool
-	Reason   string
+	Blocking   bool
+	Reason     string
+	ReasonCode promoteCompareGateReason
+}
+
+func newPromoteCompareGate(reason promoteCompareGateReason) promoteCompareGate {
+	return promoteCompareGate{
+		Blocking:   true,
+		ReasonCode: reason,
+		Reason:     reason.blockMessage(),
+	}
+}
+
+func (r promoteCompareGateReason) text() promoteCompareGateReasonText {
+	switch r {
+	case promoteCompareGateReasonRegressed:
+		return promoteCompareGateReasonText{
+			blockMessage:   "candidate regressed; rerun, inspect job/task details, or pass --promote-anyway to promote anyway",
+			recommendation: "candidate regressed; rerun or inspect job/task details before promotion.",
+		}
+	case promoteCompareGateReasonNoResults:
+		return promoteCompareGateReasonText{
+			blockMessage:   "no matching eval results; compare job selection or pass --promote-anyway to promote anyway",
+			recommendation: "no matching eval results; compare job selection before promotion.",
+		}
+	case promoteCompareGateReasonMetadata:
+		return promoteCompareGateReasonText{
+			blockMessage:   "metadata differs; review mismatches or pass --promote-anyway to promote anyway",
+			recommendation: "metadata differs; review mismatches before promotion.",
+		}
+	case promoteCompareGateReasonSummary:
+		return promoteCompareGateReasonText{
+			blockMessage:   "summary changed; inspect job/task details or pass --promote-anyway to promote anyway",
+			recommendation: "summary changed; inspect job/task details before promotion.",
+		}
+	default:
+		return promoteCompareGateReasonText{}
+	}
+}
+
+func (r promoteCompareGateReason) blockMessage() string {
+	return r.text().blockMessage
+}
+
+func (r promoteCompareGateReason) recommendation() string {
+	if recommendation := r.text().recommendation; recommendation != "" {
+		return recommendation
+	}
+	return "candidate improved or held steady; promotion looks reasonable after normal review."
 }
 
 func newEvalComparison(base, candidate evalJobRef, baseRef string) evalComparison {
@@ -121,22 +182,22 @@ func (c evalComparison) Gate() promoteCompareGate {
 	}
 	job := c.Job
 	if intDelta(job.Errors) > 0 || intDelta(job.Completed) < 0 {
-		return promoteCompareGate{Blocking: true, Reason: "candidate regressed; rerun, inspect job/task details, or pass --promote-anyway to promote anyway"}
+		return newPromoteCompareGate(promoteCompareGateReasonRegressed)
 	}
 	if len(c.Results.Comparisons) == 0 {
-		return promoteCompareGate{Blocking: true, Reason: "no matching eval results; compare job selection or pass --promote-anyway to promote anyway"}
+		return newPromoteCompareGate(promoteCompareGateReasonNoResults)
 	}
 	if len(c.MetadataDiffs) > 0 {
-		return promoteCompareGate{Blocking: true, Reason: "metadata differs; review mismatches or pass --promote-anyway to promote anyway"}
+		return newPromoteCompareGate(promoteCompareGateReasonMetadata)
 	}
 	for _, result := range c.Results.Comparisons {
 		if floatDelta(result.Reward) < 0 {
-			return promoteCompareGate{Blocking: true, Reason: "candidate regressed; rerun, inspect job/task details, or pass --promote-anyway to promote anyway"}
+			return newPromoteCompareGate(promoteCompareGateReasonRegressed)
 		}
 	}
 	for _, result := range c.Results.Comparisons {
 		if result.RewardStatus != "" {
-			return promoteCompareGate{Blocking: true, Reason: "summary changed; inspect job/task details or pass --promote-anyway to promote anyway"}
+			return newPromoteCompareGate(promoteCompareGateReasonSummary)
 		}
 	}
 	return promoteCompareGate{}
@@ -150,16 +211,7 @@ func (c evalComparison) recommendation() string {
 		}
 		return "candidate improved or held steady; promotion looks reasonable after normal review."
 	}
-	switch {
-	case strings.HasPrefix(gate.Reason, "candidate regressed"):
-		return "candidate regressed; rerun or inspect job/task details before promotion."
-	case strings.HasPrefix(gate.Reason, "no matching eval results"):
-		return "no matching eval results; compare job selection before promotion."
-	case strings.HasPrefix(gate.Reason, "metadata differs"):
-		return "metadata differs; review mismatches before promotion."
-	default:
-		return "summary changed; inspect job/task details before promotion."
-	}
+	return gate.ReasonCode.recommendation()
 }
 
 func renderEvalComparisonText(w io.Writer, comparison evalComparison) error {

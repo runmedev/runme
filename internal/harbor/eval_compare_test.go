@@ -133,6 +133,9 @@ func TestBuildEvalComparisonReportsMetadataMismatches(t *testing.T) {
 	if !strings.Contains(comparison.Recommendation, "metadata differs") {
 		t.Fatalf("recommendation = %q", comparison.Recommendation)
 	}
+	if gate := comparison.Gate(); gate.ReasonCode != promoteCompareGateReasonMetadata {
+		t.Fatalf("gate reason code = %q, want %q", gate.ReasonCode, promoteCompareGateReasonMetadata)
+	}
 }
 
 func TestBuildEvalComparisonMatchesResultsAcrossDifferentAgents(t *testing.T) {
@@ -428,6 +431,9 @@ func TestRenderEvalComparisonTextReportsNoOverlappingResults(t *testing.T) {
 			t.Fatalf("output missing %q:\n%s", want, output)
 		}
 	}
+	if gate := comparison.Gate(); gate.ReasonCode != promoteCompareGateReasonNoResults {
+		t.Fatalf("gate reason code = %q, want %q", gate.ReasonCode, promoteCompareGateReasonNoResults)
+	}
 }
 
 func TestBuildEvalComparisonRecommendsRegressionForMatchedResultRewardDrop(t *testing.T) {
@@ -469,6 +475,9 @@ func TestBuildEvalComparisonRecommendsRegressionForMatchedResultRewardDrop(t *te
 
 	if !strings.Contains(comparison.Recommendation, "candidate regressed") {
 		t.Fatalf("recommendation = %q", comparison.Recommendation)
+	}
+	if gate := comparison.Gate(); gate.ReasonCode != promoteCompareGateReasonRegressed {
+		t.Fatalf("gate reason code = %q, want %q", gate.ReasonCode, promoteCompareGateReasonRegressed)
 	}
 }
 
