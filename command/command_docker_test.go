@@ -39,6 +39,25 @@ func TestDockerCommand(t *testing.T) {
 		require.NoError(t, cmd.Wait(context.Background()))
 	})
 
+	t.Run("FastOutput", func(t *testing.T) {
+		for range 10 {
+			stdout := bytes.NewBuffer(nil)
+			cmd, err := factory.Build(
+				&ProgramConfig{
+					ProgramName: "echo",
+					Arguments:   []string{"-n", "test"},
+					Interactive: true,
+					Mode:        runnerv2.CommandMode_COMMAND_MODE_INLINE,
+				},
+				CommandOptions{Stdout: stdout},
+			)
+			require.NoError(t, err)
+			require.NoError(t, cmd.Start(context.Background()))
+			require.NoError(t, cmd.Wait(context.Background()))
+			assert.Equal(t, "test", stdout.String())
+		}
+	})
+
 	t.Run("Output", func(t *testing.T) {
 		t.Parallel()
 		stdout := bytes.NewBuffer(nil)
