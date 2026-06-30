@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	root               = "/app"
+	root               = "/app/evals/tasks/update-minor-deps/workdir"
 	agentLogDir        = "/logs/agent"
 	artifactsDir       = "/logs/artifacts"
 	verifierDir        = "/logs/verifier"

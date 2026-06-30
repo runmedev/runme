@@ -23,7 +23,7 @@ cpus = 1
 memory_mb = 2048
 storage_mb = 10240
 gpus = 0
-workdir = "/app"
+workdir = "/app/evals/tasks/update-minor-deps/workdir"
 skills_dir = "/app/.agents/skills"
 
 [environment.env]

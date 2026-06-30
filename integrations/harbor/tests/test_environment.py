@@ -179,6 +179,38 @@ def test_nested_configured_workdir_is_staged_per_trial(
     assert "/app/examples/harbor/task/workdir" not in request["command"]
 
 
+def test_missing_nested_configured_workdir_stages_workspace_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    workspace = tmp_path / "repo"
+    workspace.mkdir()
+    (workspace / "go.mod").write_text("module example.com/repo\n")
+
+    configured_workdir = "/app/evals/tasks/update-minor-deps/workdir"
+    environment = _make_env(
+        tmp_path,
+        workspace_root=workspace,
+        task_env_config=EnvironmentConfig(
+            workdir=configured_workdir,
+            env={"TASK_ENV": "yes"},
+        ),
+    )
+
+    asyncio.run(environment.start(force_build=False))
+    asyncio.run(environment.exec("git status --short"))
+
+    staged = tmp_path / "trial" / "workdir"
+    assert (staged / "go.mod").read_text() == "module example.com/repo\n"
+
+    request = FakeClient.instances[0].requests[-1]["exec"]
+    assert request["cwd"] == "trial/workdir"
+    assert configured_workdir not in request["command"]
+
+
 def test_upload_dir_rewrites_configured_workdir_paths_to_staged_workdir(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -293,8 +293,10 @@ class RunmeEnvironment(BaseEnvironment):
             return
 
         source = self._workspace_path_for_app_path(remote)
-        if source is None or not source.is_dir():
+        if source is None:
             return
+        if not source.is_dir():
+            source = self._workspace_root
 
         target = self._root / "workdir"
         if target.exists():
