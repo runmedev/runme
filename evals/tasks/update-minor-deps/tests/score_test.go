@@ -154,7 +154,7 @@ func TestScoreDependencyUpdate(t *testing.T) {
 		},
 		{
 			name: "update attempted without root dep changes",
-			text: ".agents/skills/update-minor-deps/scripts/update-go-deps.sh",
+			text: "runme run update-go-deps",
 			want: 0.5,
 		},
 		{
@@ -461,7 +461,8 @@ func TestCollectAgentShellTraceCommands(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "oracle.txt"), []byte(`Using update-minor-deps skill workflow
 + git status --short
-+ .agents/skills/update-minor-deps/scripts/update-go-deps.sh
++ runme run update-go-deps
++ go mod tidy
 + runme run lint test
 `), 0o600); err != nil {
 		t.Fatal(err)
@@ -469,7 +470,8 @@ func TestCollectAgentShellTraceCommands(t *testing.T) {
 
 	want := strings.Join([]string{
 		"git status --short",
-		".agents/skills/update-minor-deps/scripts/update-go-deps.sh",
+		"runme run update-go-deps",
+		"go mod tidy",
 		"runme run lint test",
 	}, "\n")
 	if got := collectAgentShellTraceCommandsFromFile(filepath.Join(dir, "oracle.txt")); got != want {
@@ -509,7 +511,7 @@ func TestEvidenceScores(t *testing.T) {
 		{
 			name: "workflow full credit",
 			got: (scorer{
-				text: "git status --short contributing.md .agents/skills/update-minor-deps/scripts/update-go-deps.sh go mod tidy",
+				text: "git status --short contributing.md runme run update-go-deps go mod tidy",
 			}).workflowEvidence(),
 			want: 1.0,
 		},
@@ -595,7 +597,7 @@ func TestScorePRDraftText(t *testing.T) {
 
 	fullDraft := `# chore: update minor and patch dependencies (2026-06-15)
 
-Ran .agents/skills/update-minor-deps/scripts/update-go-deps.sh.
+Ran runme run update-go-deps and go mod tidy.
 Updated go.mod and go.sum.
 Compatibility fixes: none.
 Focused tests: go test ./runner.
@@ -603,14 +605,14 @@ Final validation: runme run lint test.
 `
 	moduleOnlyDraft := `# chore: update minor and patch dependencies (2026-06-15)
 
-Ran .agents/skills/update-minor-deps/scripts/update-go-deps.sh.
+Ran runme run update-go-deps and go mod tidy.
 Updated go.mod and go.sum.
 No compatibility code or test fixes required.
 Final validation: runme run lint test.
 `
 	splitValidationDraft := `# chore: update minor and patch dependencies (2026-06-15)
 
-Ran .agents/skills/update-minor-deps/scripts/update-go-deps.sh.
+Ran runme run update-go-deps and go mod tidy.
 Updated go.mod and go.sum.
 No compatibility code or test fixes required.
 Validation: runme run lint and runme run test.
@@ -648,12 +650,12 @@ Validation: runme run lint and runme run test.
 			name:  "non-module draft without focused tests",
 			text:  moduleOnlyDraft,
 			files: []string{"go.mod", "go.sum", "runner/session.go"},
-			want:  0.875,
+			want:  8.0 / 9.0,
 		},
 		{
 			name: "title only",
 			text: "chore: update minor and patch dependencies",
-			want: 0.125,
+			want: 1.0 / 9.0,
 		},
 	}
 
@@ -687,8 +689,8 @@ func TestNegativeControlSourceChangeFinalOnlyFixture(t *testing.T) {
 	if scores.ValidationEvidence != 0.6 {
 		t.Fatalf("ValidationEvidence = %v, want 0.6", scores.ValidationEvidence)
 	}
-	if scores.PRDraftQuality != 0.875 {
-		t.Fatalf("PRDraftQuality = %v, want 0.875", scores.PRDraftQuality)
+	if scores.PRDraftQuality != 8.0/9.0 {
+		t.Fatalf("PRDraftQuality = %v, want %v", scores.PRDraftQuality, 8.0/9.0)
 	}
 
 	fullCreditChecks := map[string]float64{

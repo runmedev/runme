@@ -6,7 +6,7 @@ cwd: ../../..
 
 Development notes for the `update-minor-deps` skill.
 
-This file is human-facing documentation for maintainers of the skill. It is not part of the skill's runtime instruction contract. Keep agent-facing execution guidance in `SKILL.md`; keep reusable execution helpers in `scripts/`; keep repo-specific eval fixtures under `evals/tasks/`.
+This file is human-facing documentation for maintainers of the skill. It is not part of the skill's runtime instruction contract. Keep agent-facing execution guidance in `SKILL.md`; keep repo-specific eval fixtures under `evals/tasks/`.
 
 ## Purpose
 
@@ -17,12 +17,11 @@ This skill captures the recurring dependency maintenance workflow that produced 
 - Keep compatibility fixes tightly scoped to dependency-update fallout.
 - Preserve DCO signoff and PR conventions.
 
-The first implementation is Go-module focused because the current workflow uses `go get -t -u ./...`, `go mod tidy`, and `runme run lint test`. The skill name intentionally avoids Go so the workflow can grow to cover other dependency ecosystems later.
+The first implementation is Go-module focused because the current workflow uses the `CONTRIBUTING.md` `runme run update-go-deps` command, `go mod tidy`, and `runme run lint test`. The skill name intentionally avoids Go so the workflow can grow to cover other dependency ecosystems later.
 
 ## Boundaries
 
 - `SKILL.md` defines what an agent should do when the skill is active.
-- `scripts/update-go-deps.sh` automates the current Go dependency refresh step.
 - `evals/tasks/` contains Harbor regression tasks, oracle solutions, and verifier code that validate whether agents use the skill as intended.
 - This README can document rationale, development notes, and maintenance decisions without changing skill behavior.
 

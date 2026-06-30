@@ -20,7 +20,14 @@
         {
           "function_name": "exec_command",
           "arguments": {
-            "cmd": ".agents/skills/update-minor-deps/scripts/update-go-deps.sh",
+            "cmd": "runme run update-go-deps",
+            "workdir": "/app"
+          }
+        },
+        {
+          "function_name": "exec_command",
+          "arguments": {
+            "cmd": "go mod tidy",
             "workdir": "/app"
           }
         },

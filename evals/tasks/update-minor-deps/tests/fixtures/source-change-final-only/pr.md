@@ -2,7 +2,7 @@
 
 ## Summary
 
-- Ran `.agents/skills/update-minor-deps/scripts/update-go-deps.sh`.
+- Ran `runme run update-go-deps` and `go mod tidy`.
 - Updated `go.mod` and `go.sum`.
 - Made a compatibility fix in `runner/session.go`.
 

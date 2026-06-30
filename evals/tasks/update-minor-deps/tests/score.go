@@ -285,9 +285,8 @@ func collectAgentShellTraceCommandsFromFile(path string) string {
 func (s scorer) dependencyUpdate() float64 {
 	rootDepChanged := contains(s.files, "go.mod") || contains(s.files, "go.sum")
 	daggerUntouched := !contains(s.files, ".dagger/go.mod") && !contains(s.files, ".dagger/go.sum")
-	updateAttempted := strings.Contains(s.text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh") ||
-		strings.Contains(s.text, "go get -t -u ./...") ||
-		strings.Contains(s.text, "update-go-deps.sh")
+	updateAttempted := strings.Contains(s.text, "runme run update-go-deps") ||
+		strings.Contains(s.text, "go get -t -u ./...")
 
 	switch {
 	case rootDepChanged && daggerUntouched:
@@ -362,9 +361,9 @@ func (s scorer) workflowEvidence() float64 {
 	checks := []bool{
 		strings.Contains(s.text, "git status --short") || strings.Contains(s.text, "git status -s"),
 		strings.Contains(s.text, "contributing.md"),
-		strings.Contains(s.text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh") ||
+		strings.Contains(s.text, "runme run update-go-deps") ||
 			strings.Contains(s.text, "go get -t -u ./..."),
-		strings.Contains(s.text, "go mod tidy") || strings.Contains(s.text, "update-go-deps.sh"),
+		strings.Contains(s.text, "go mod tidy"),
 	}
 	return scoreChecks(checks)
 }
@@ -373,7 +372,7 @@ func (s scorer) skillActivationEvidence() float64 {
 	checks := []bool{
 		strings.Contains(s.text, "update-minor-deps"),
 		strings.Contains(s.text, "skill") && (strings.Contains(s.text, "dependency") || strings.Contains(s.text, "dependencies")),
-		strings.Contains(s.text, ".agents/skills/update-minor-deps/scripts/update-go-deps.sh"),
+		strings.Contains(s.text, "runme run update-go-deps") && strings.Contains(s.text, "go mod tidy"),
 	}
 	if anyTrue(checks) {
 		return 1.0
@@ -414,7 +413,8 @@ func (s scorer) prDraftQuality() float64 {
 	checks := []bool{
 		strings.Contains(text, "chore: update minor and patch dependencies"),
 		prTitleWithDateRE.MatchString(text),
-		strings.Contains(text, "update-go-deps.sh") || strings.Contains(text, "go get -t -u ./..."),
+		strings.Contains(text, "runme run update-go-deps") || strings.Contains(text, "go get -t -u ./..."),
+		strings.Contains(text, "go mod tidy"),
 		strings.Contains(text, "go.mod"),
 		strings.Contains(text, "go.sum"),
 		strings.Contains(text, "compat") || strings.Contains(text, "fix") || strings.Contains(text, "none"),
