@@ -169,7 +169,7 @@ go run . server --dev --address 127.0.0.1:9999 --tls /tmp/runme/tls 2>&1
 For upgrading dependencies that have minor version changes, as well as test dependencies, use the following command. This command fetches the latest minor or patch versions of the modules required for building the current module, including their dependencies:
 Periodically dependencies need to be upgraded. For minor versions with test deps:
 
-```sh {"id":"01HF7BT3HEQBTBM9SSSG798S2D"}
+```sh {"id":"01HF7BT3HEQBTBM9SSSG798S2D","name":"update-go-deps"}
 $ go get -t -u ./...
 ```
 
