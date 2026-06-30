@@ -40,6 +40,8 @@ func Root() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			setTerminalTitle(cmd.OutOrStdout(), cmd.CommandPath())
+
 			if strings.HasPrefix(fChdir, "~") {
 				cmd.PrintErrf("WARNING: --chdir starts with ~ which should be resolved by shell. Try re-running with --chdir %s (note lack of =) if it fails.\n\n", fChdir)
 

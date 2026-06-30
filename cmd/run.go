@@ -155,6 +155,8 @@ func runCmd() *cobra.Command {
 				return errors.New("No tasks to execute with the tag provided")
 			}
 
+			setTerminalTitle(cmd.OutOrStdout(), runTerminalTitle(runTasks, runAll, runWithIndex, runIndex, cmdTags))
+
 			ctx, cancel := ctxWithSigCancel(cmd.Context())
 			defer cancel()
 
