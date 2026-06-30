@@ -214,9 +214,11 @@ def _synced_environment(
 def _runme_agent_import_paths() -> dict[str, str]:
     agent_import_paths: dict[str, str] = {}
     for args in AGENT_ARGUMENTS.values():
-        if len(args) != 2 or args[0] != "--agent-import-path":
+        if len(args) != 2 or args[0] != "--agent":
             continue
         import_path = args[1]
+        if ":" not in import_path:
+            continue
         agent_name = _agent_name_from_import_path(import_path)
         if agent_name:
             agent_import_paths[agent_name] = import_path

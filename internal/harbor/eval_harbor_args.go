@@ -97,7 +97,7 @@ func (b harborRunArgsBuilder) environmentArgs() ([]string, error) {
 		if !ok {
 			return nil, fmt.Errorf("invalid --agent %q: expected %s", b.opts.Agent, runmeAgentNames())
 		}
-		return append([]string{"--environment-import-path", runmeEnvironmentImportPath}, spec.HarborArgs()...), nil
+		return append([]string{"--env", runmeEnvironmentImportPath}, spec.HarborArgs()...), nil
 	}
 	return []string{"--env", b.opts.Env, "--agent", b.opts.Agent}, nil
 }
@@ -123,7 +123,7 @@ type runmeAgentSpec struct {
 
 func (s runmeAgentSpec) HarborArgs() []string {
 	if s.importPath != "" {
-		return []string{"--agent-import-path", s.importPath}
+		return []string{"--agent", s.importPath}
 	}
 	return []string{"--agent", s.name}
 }
