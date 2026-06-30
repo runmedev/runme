@@ -7,6 +7,13 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/runmedev/runme/v3/internal/ansi"
+)
+
+const (
+	evalResultImprovedStyle  = "green"
+	evalResultRegressedStyle = "red"
 )
 
 type evalComparison struct {
@@ -64,9 +71,75 @@ type evalComparisonDiff struct {
 	Delta     interface{} `json:"delta,omitempty"`
 }
 
-func buildEvalComparison(base, candidate compareJob, baseRef string) evalComparison {
-	baseSummary := promoteMessageData{config: base.Config, result: base.Result}
-	candidateSummary := promoteMessageData{config: candidate.Config, result: candidate.Result}
+type promoteCompareGateReason string
+
+const (
+	promoteCompareGateReasonRegressed promoteCompareGateReason = "regressed"
+	promoteCompareGateReasonNoResults promoteCompareGateReason = "no_results"
+	promoteCompareGateReasonMetadata  promoteCompareGateReason = "metadata"
+	promoteCompareGateReasonSummary   promoteCompareGateReason = "summary"
+)
+
+type promoteCompareGateReasonText struct {
+	blockMessage   string
+	recommendation string
+}
+
+type promoteCompareGate struct {
+	Blocking   bool
+	Reason     string
+	ReasonCode promoteCompareGateReason
+}
+
+func newPromoteCompareGate(reason promoteCompareGateReason) promoteCompareGate {
+	return promoteCompareGate{
+		Blocking:   true,
+		ReasonCode: reason,
+		Reason:     reason.blockMessage(),
+	}
+}
+
+func (r promoteCompareGateReason) text() promoteCompareGateReasonText {
+	switch r {
+	case promoteCompareGateReasonRegressed:
+		return promoteCompareGateReasonText{
+			blockMessage:   "candidate regressed; rerun, inspect job/task details, or pass --promote-anyway to promote anyway",
+			recommendation: "candidate regressed; rerun or inspect job/task details before promotion.",
+		}
+	case promoteCompareGateReasonNoResults:
+		return promoteCompareGateReasonText{
+			blockMessage:   "no matching eval results; compare job selection or pass --promote-anyway to promote anyway",
+			recommendation: "no matching eval results; compare job selection before promotion.",
+		}
+	case promoteCompareGateReasonMetadata:
+		return promoteCompareGateReasonText{
+			blockMessage:   "metadata differs; review mismatches or pass --promote-anyway to promote anyway",
+			recommendation: "metadata differs; review mismatches before promotion.",
+		}
+	case promoteCompareGateReasonSummary:
+		return promoteCompareGateReasonText{
+			blockMessage:   "summary changed; inspect job/task details or pass --promote-anyway to promote anyway",
+			recommendation: "summary changed; inspect job/task details before promotion.",
+		}
+	default:
+		return promoteCompareGateReasonText{}
+	}
+}
+
+func (r promoteCompareGateReason) blockMessage() string {
+	return r.text().blockMessage
+}
+
+func (r promoteCompareGateReason) recommendation() string {
+	if recommendation := r.text().recommendation; recommendation != "" {
+		return recommendation
+	}
+	return "candidate improved or held steady; promotion looks reasonable after normal review."
+}
+
+func newEvalComparison(base, candidate evalJobRef, baseRef string) evalComparison {
+	baseSummary := base.MessageData("", false)
+	candidateSummary := candidate.MessageData("", false)
 
 	metadata := evalComparisonMeta{
 		Dataset:     stringDiff(baseSummary.datasetSummary(), candidateSummary.datasetSummary()),
@@ -80,26 +153,65 @@ func buildEvalComparison(base, candidate compareJob, baseRef string) evalCompari
 	mismatches := metadataMismatches(metadata)
 
 	comparison := evalComparison{
-		Base: evalComparisonJob{
-			Path:      base.RelPath,
-			Result:    base.ResultRel,
-			Ref:       baseRef,
-			Selection: base.Selection,
-			Timestamp: formatCompareTimestamp(resultTimestamp(base.Result)),
-		},
-		Candidate: evalComparisonJob{
-			Path:      candidate.RelPath,
-			Result:    candidate.ResultRel,
-			Selection: candidate.Selection,
-			Timestamp: formatCompareTimestamp(resultTimestamp(candidate.Result)),
-		},
+		Base:          base.ComparisonJob(baseRef),
+		Candidate:     candidate.ComparisonJob(""),
 		Metadata:      metadata,
 		MetadataDiffs: mismatches,
 		Job:           job,
 		Results:       results,
 	}
-	comparison.Recommendation = compareRecommendation(comparison)
+	comparison.Recommendation = comparison.recommendation()
 	return comparison
+}
+
+func buildEvalComparison(base, candidate compareJob, baseRef string) evalComparison {
+	return newEvalComparison(base, candidate, baseRef)
+}
+
+func (c evalComparison) RenderText(w io.Writer) error {
+	return renderEvalComparisonText(w, c)
+}
+
+func (c evalComparison) RenderJSON(w io.Writer) error {
+	return renderEvalComparisonJSON(w, c)
+}
+
+func (c evalComparison) Gate() promoteCompareGate {
+	if sameComparisonJob(c.Base, c.Candidate) {
+		return promoteCompareGate{}
+	}
+	job := c.Job
+	if intDelta(job.Errors) > 0 || intDelta(job.Completed) < 0 {
+		return newPromoteCompareGate(promoteCompareGateReasonRegressed)
+	}
+	if len(c.Results.Comparisons) == 0 {
+		return newPromoteCompareGate(promoteCompareGateReasonNoResults)
+	}
+	if len(c.MetadataDiffs) > 0 {
+		return newPromoteCompareGate(promoteCompareGateReasonMetadata)
+	}
+	for _, result := range c.Results.Comparisons {
+		if floatDelta(result.Reward) < 0 {
+			return newPromoteCompareGate(promoteCompareGateReasonRegressed)
+		}
+	}
+	for _, result := range c.Results.Comparisons {
+		if result.RewardStatus != "" {
+			return newPromoteCompareGate(promoteCompareGateReasonSummary)
+		}
+	}
+	return promoteCompareGate{}
+}
+
+func (c evalComparison) recommendation() string {
+	gate := c.Gate()
+	if !gate.Blocking {
+		if sameComparisonJob(c.Base, c.Candidate) {
+			return "base and latest are the same eval job; nothing to compare."
+		}
+		return "candidate improved or held steady; promotion looks reasonable after normal review."
+	}
+	return gate.ReasonCode.recommendation()
 }
 
 func renderEvalComparisonText(w io.Writer, comparison evalComparison) error {
@@ -128,18 +240,7 @@ func renderEvalComparisonText(w io.Writer, comparison evalComparison) error {
 	_, _ = fmt.Fprintf(w, "  %s     %v -> %v  %s\n\n", evalOutputLabel(w, "evals:"), comparison.Job.Evals.Base, comparison.Job.Evals.Candidate, signedDelta(comparison.Job.Evals.Delta))
 
 	_, _ = fmt.Fprintln(w, evalOutputLabel(w, "Results:"))
-	if len(comparison.Results.Comparisons) == 0 {
-		_, _ = fmt.Fprintln(w, "  no matching eval results")
-	}
-	for _, result := range comparison.Results.Comparisons {
-		_, _ = fmt.Fprintf(w, "  %s reward %s -> %s  %s\n", evalOutputLabel(w, result.Key+":"), displayValue(result.Reward.Base), displayValue(result.Reward.Candidate), signedDelta(result.Reward.Delta))
-	}
-	if len(comparison.Results.BaseOnly) > 0 {
-		_, _ = fmt.Fprintf(w, "  %s %s\n", evalOutputLabel(w, "base only:"), strings.Join(comparison.Results.BaseOnly, ", "))
-	}
-	if len(comparison.Results.CandidateOnly) > 0 {
-		_, _ = fmt.Fprintf(w, "  %s %s\n", evalOutputLabel(w, "latest only:"), strings.Join(comparison.Results.CandidateOnly, ", "))
-	}
+	comparison.Results.RenderText(w)
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Recommendation:"), comparison.Recommendation)
 	return nil
@@ -176,9 +277,47 @@ func compareJobStats(base, candidate promoteJobResult) evalComparisonStats {
 	}
 }
 
-func compareResults(base, candidate compareJob) evalComparisonResults {
-	baseEntries := evalResultSummaryMap(base.Result, base.Config)
-	candidateEntries := evalResultSummaryMap(candidate.Result, candidate.Config)
+func (r evalComparisonResults) RenderText(w io.Writer) {
+	if len(r.Comparisons) == 0 {
+		_, _ = fmt.Fprintln(w, "  no matching eval results")
+	}
+	for _, result := range r.Comparisons {
+		_, _ = fmt.Fprintf(w, "  %s\n", result.RenderText(w))
+	}
+	if len(r.BaseOnly) > 0 {
+		_, _ = fmt.Fprintf(w, "  %s %s\n", evalOutputLabel(w, "base only:"), strings.Join(r.BaseOnly, ", "))
+	}
+	if len(r.CandidateOnly) > 0 {
+		_, _ = fmt.Fprintf(w, "  %s %s\n", evalOutputLabel(w, "latest only:"), strings.Join(r.CandidateOnly, ", "))
+	}
+}
+
+func (r evalComparisonResult) RenderText(w io.Writer) string {
+	line := fmt.Sprintf("%s: reward %s -> %s  %s", r.Key, displayValue(r.Reward.Base), displayValue(r.Reward.Candidate), signedDelta(r.Reward.Delta))
+	if style := r.rewardDeltaStyle(); style != "" {
+		return ansi.ColorForWriter(w, line, style)
+	}
+	return line
+}
+
+func (r evalComparisonResult) rewardDeltaStyle() string {
+	delta, ok := r.Reward.Delta.(float64)
+	if !ok {
+		return ""
+	}
+	switch {
+	case delta < 0:
+		return evalResultRegressedStyle
+	case delta > 0:
+		return evalResultImprovedStyle
+	default:
+		return ""
+	}
+}
+
+func compareResults(base, candidate evalJobRef) evalComparisonResults {
+	baseEntries := base.ResultSummaryMap()
+	candidateEntries := candidate.ResultSummaryMap()
 	baseKeys := sortedEvalResultSummaryKeys(baseEntries)
 	candidateKeys := sortedEvalResultSummaryKeys(candidateEntries)
 	candidateSet := make(map[string]struct{}, len(candidateKeys))
@@ -216,15 +355,6 @@ func compareResults(base, candidate compareJob) evalComparisonResults {
 	return results
 }
 
-func evalResultSummaryMap(result promoteJobResult, config promoteJobConfig) map[string]evalResultSummary {
-	summaries := summarizeEvalResults(result, config)
-	entries := make(map[string]evalResultSummary, len(summaries))
-	for _, summary := range summaries {
-		entries[summary.Key] = summary
-	}
-	return entries
-}
-
 func sortedEvalResultSummaryKeys(entries map[string]evalResultSummary) []string {
 	keys := make([]string, 0, len(entries))
 	for key := range entries {
@@ -253,33 +383,6 @@ func metadataMismatches(meta evalComparisonMeta) []evalComparisonDiff {
 		}
 	}
 	return mismatches
-}
-
-func compareRecommendation(comparison evalComparison) string {
-	if sameComparisonJob(comparison.Base, comparison.Candidate) {
-		return "base and latest are the same eval job; nothing to compare."
-	}
-	job := comparison.Job
-	if intDelta(job.Errors) > 0 || intDelta(job.Completed) < 0 {
-		return "candidate regressed; rerun or inspect job/task details before promotion."
-	}
-	if len(comparison.Results.Comparisons) == 0 {
-		return "no matching eval results; compare job selection before promotion."
-	}
-	if len(comparison.MetadataDiffs) > 0 {
-		return "metadata differs; review mismatches before promotion."
-	}
-	for _, result := range comparison.Results.Comparisons {
-		if floatDelta(result.Reward) < 0 {
-			return "candidate regressed; rerun or inspect job/task details before promotion."
-		}
-	}
-	for _, result := range comparison.Results.Comparisons {
-		if result.RewardStatus != "" {
-			return "summary changed; inspect job/task details before promotion."
-		}
-	}
-	return "candidate improved or held steady; promotion looks reasonable after normal review."
 }
 
 func sameComparisonJob(base, candidate evalComparisonJob) bool {

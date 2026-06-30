@@ -33,6 +33,7 @@ func TestEvalPromoteCmdPassesOptionsToHarborPromoter(t *testing.T) {
 		"--artifacts",
 		"--include-oracle",
 		"--allow-errors",
+		"--promote-anyway",
 		"--message", "Custom subject",
 	})
 	restoreEvalPromoter(t, func(opts harbor.EvalPromoteOptions) evalPromoter {
@@ -57,6 +58,7 @@ func TestEvalPromoteCmdPassesOptionsToHarborPromoter(t *testing.T) {
 		!gotOpts.Artifacts ||
 		!gotOpts.IncludeOracle ||
 		!gotOpts.AllowErrors ||
+		!gotOpts.PromoteAnyway ||
 		gotOpts.Latest ||
 		gotOpts.Message != "Custom subject" ||
 		gotOpts.Stdout != &stdout ||

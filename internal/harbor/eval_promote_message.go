@@ -2,7 +2,6 @@ package harbor
 
 import (
 	"fmt"
-	"io"
 	"strings"
 )
 
@@ -16,45 +15,33 @@ type promoteMessageData struct {
 }
 
 func renderPromoteCommitMessage(data promoteMessageData) string {
-	return renderPromoteCommitMessageWithLabel(data, func(label string) string {
-		return label
-	})
-}
-
-func renderPromoteCommitMessageForWriter(w io.Writer, data promoteMessageData) string {
-	return renderPromoteCommitMessageWithLabel(data, func(label string) string {
-		return evalOutputLabel(w, label)
-	})
-}
-
-func renderPromoteCommitMessageWithLabel(data promoteMessageData, label func(string) string) string {
 	var b strings.Builder
 	subject := strings.TrimSpace(data.subject)
 	if subject == "" {
 		subject = defaultPromoteSubject
 	}
 	_, _ = fmt.Fprintf(&b, "%s\n\n", subject)
-	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Eval-Job:"), data.jobPath)
-	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Eval-Result:"), data.resultPath)
+	_, _ = fmt.Fprintf(&b, "Eval-Job: %s\n", data.jobPath)
+	_, _ = fmt.Fprintf(&b, "Eval-Result: %s\n", data.resultPath)
 	if data.evidenceOnly {
-		_, _ = fmt.Fprintf(&b, "%s eval-evidence-only\n", label("Promotion-Mode:"))
+		_, _ = fmt.Fprintln(&b, "Promotion-Mode: eval-evidence-only")
 	}
-	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Dataset:"), data.datasetSummary())
+	_, _ = fmt.Fprintf(&b, "Dataset: %s\n", data.datasetSummary())
 	if tasks := data.taskSummary(); tasks != "" {
-		_, _ = fmt.Fprintf(&b, "%s %s\n", label("Tasks:"), tasks)
+		_, _ = fmt.Fprintf(&b, "Tasks: %s\n", tasks)
 	}
 	_, _ = fmt.Fprintln(&b)
 	if results := data.resultsSummary(); len(results) > 0 {
-		_, _ = fmt.Fprintln(&b, label("Results:"))
+		_, _ = fmt.Fprintln(&b, "Results:")
 		for _, result := range results {
 			_, _ = fmt.Fprintf(&b, " %s\n", result)
 		}
 	}
-	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Job:"), data.jobSummary())
+	_, _ = fmt.Fprintf(&b, "Job: %s\n", data.jobSummary())
 	_, _ = fmt.Fprintln(&b)
-	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Agent:"), data.agentSummary())
-	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Model:"), data.modelSummary())
-	_, _ = fmt.Fprintf(&b, "%s %s\n", label("Environment:"), data.environmentSummary())
+	_, _ = fmt.Fprintf(&b, "Agent: %s\n", data.agentSummary())
+	_, _ = fmt.Fprintf(&b, "Model: %s\n", data.modelSummary())
+	_, _ = fmt.Fprintf(&b, "Environment: %s\n", data.environmentSummary())
 	return b.String()
 }
 
@@ -124,7 +111,10 @@ func (d promoteMessageData) jobSummary() string {
 }
 
 func (d promoteMessageData) resultsSummary() []string {
-	summaries := summarizeEvalResults(d.result, d.config)
+	summaries := evalJobRef{
+		Result: d.result,
+		Config: d.config,
+	}.ResultSummaries()
 	values := make([]string, 0, len(summaries))
 	for _, summary := range summaries {
 		reward := "n/a"

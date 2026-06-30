@@ -28,6 +28,7 @@ type evalPromoteOptions struct {
 	artifacts     bool
 	includeOracle bool
 	allowErrors   bool
+	promoteAnyway bool
 	message       string
 	stdout        io.Writer
 	stderr        io.Writer
@@ -59,6 +60,7 @@ func evalPromoteCmd() *cobra.Command {
 	flags.BoolVar(&opts.artifacts, "artifacts", false, "Include full eval artifacts such as logs and trial outputs; may contain sensitive information")
 	flags.BoolVar(&opts.includeOracle, "include-oracle", false, "Allow promoting eval jobs that only used Harbor's oracle agent")
 	flags.BoolVar(&opts.allowErrors, "allow-errors", false, "Allow promoting eval jobs with errored trials")
+	flags.BoolVar(&opts.promoteAnyway, "promote-anyway", false, "Promote even when eval comparison blocks promotion")
 	flags.StringVar(&opts.message, "message", "", "Commit subject line; eval evidence is added to the commit body")
 
 	return cmd
@@ -74,6 +76,7 @@ func runEvalPromote(opts evalPromoteOptions, args []string) error {
 		Artifacts:     opts.artifacts,
 		IncludeOracle: opts.includeOracle,
 		AllowErrors:   opts.allowErrors,
+		PromoteAnyway: opts.promoteAnyway,
 		Message:       opts.message,
 		Stdout:        opts.stdout,
 		Stderr:        opts.stderr,
