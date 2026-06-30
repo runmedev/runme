@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -34,6 +35,7 @@ type Cmd struct {
 
 	// containerID will be set in Start().
 	containerID string
+	autoRemove  bool
 
 	ioErrC chan error
 
@@ -57,9 +59,11 @@ func (c *Cmd) Start() error {
 		Image:        c.docker.image,
 		WorkingDir:   "/workspace",
 	}
+	c.autoRemove = !c.docker.debug
+
 	hostConfig := &container.HostConfig{
 		RestartPolicy:  container.RestartPolicy{Name: container.RestartPolicyDisabled},
-		AutoRemove:     !c.docker.debug,
+		AutoRemove:     false,
 		ConsoleSize:    [2]uint{80, 24},
 		ReadonlyRootfs: true,
 		Mounts: []mount.Mount{
@@ -200,7 +204,36 @@ func (c *Cmd) Wait() error {
 		}
 	}
 
+	// Wait owns cleanup for non-debug Docker commands. Callers must call Wait
+	// after Start so short-lived containers can still be inspected for process
+	// metadata before they are removed.
+	if errCleanup := c.removeContainer(); errCleanup != nil {
+		if err == nil {
+			err = errCleanup
+		} else {
+			c.logger.Info("ignoring container cleanup error as there was an earlier error", zap.Error(errCleanup))
+		}
+	}
+
 	return err
+}
+
+func (c *Cmd) removeContainer() error {
+	if !c.autoRemove || c.containerID == "" {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err := c.docker.client.ContainerRemove(
+		ctx,
+		c.containerID,
+		container.RemoveOptions{
+			Force: true,
+		},
+	)
+	return errors.WithStack(err)
 }
 
 type Process struct {

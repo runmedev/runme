@@ -152,7 +152,7 @@ func TestWebSocketHandler_ShutdownWaitsForTapFinalization(t *testing.T) {
 	}
 	select {
 	case <-processDone:
-	default:
+	case <-time.After(time.Second):
 		t.Fatal("Shutdown returned before multiplexer process exited")
 	}
 }
