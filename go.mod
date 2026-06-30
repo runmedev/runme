@@ -12,7 +12,7 @@ require (
 	cloud.google.com/go/secretmanager v1.20.0
 	connectrpc.com/connect v1.20.0
 	connectrpc.com/cors v0.1.0
-	connectrpc.com/grpchealth v1.4.0
+	connectrpc.com/grpchealth v1.5.0
 	connectrpc.com/otelconnect v0.9.0
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/atotto/clipboard v0.1.4
