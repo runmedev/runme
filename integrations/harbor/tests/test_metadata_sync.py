@@ -43,8 +43,8 @@ def test_sync_jobs_metadata_uses_observed_runme_agent_import_paths(tmp_path: Pat
     assert _agent_summaries(config) == [("runme-codex", CODEX_IMPORT_PATH, "openai/gpt-5")]
     assert config.environment.import_path == ENVIRONMENT_IMPORT_PATH
 
-    assert ORIGINAL_CONFIG_BACKUP == "config.original.json"
-    backup = JobConfig.model_validate_json((job_dir / "config.original.json").read_text())
+    assert ORIGINAL_CONFIG_BACKUP == "config.harbor.json"
+    backup = JobConfig.model_validate_json((job_dir / "config.harbor.json").read_text())
     assert _agent_summaries(backup) == [
         (
             None,

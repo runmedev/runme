@@ -13,8 +13,8 @@ from harbor.models.trial.result import ModelInfo, TrialResult
 from runme_harbor.cli import AGENT_ARGUMENTS, ENVIRONMENT_IMPORT_PATH
 
 
-ORIGINAL_CONFIG_BACKUP = "config.original.json"
-ORIGINAL_RESULT_BACKUP = "result.original.json"
+ORIGINAL_CONFIG_BACKUP = "config.harbor.json"
+ORIGINAL_RESULT_BACKUP = "result.harbor.json"
 
 
 @dataclass(frozen=True)
