@@ -1,0 +1,93 @@
+{
+  "dependency_update": {
+    "score": 1,
+    "criteria": [
+      {
+        "name": "dependency_update",
+        "value": 1,
+        "raw": 1,
+        "weight": 1,
+        "description": "dependency_update"
+      }
+    ],
+    "kind": "programmatic"
+  },
+  "no_real_pr_or_commit": {
+    "score": 1,
+    "criteria": [
+      {
+        "name": "no_real_pr_or_commit",
+        "value": 1,
+        "raw": 1,
+        "weight": 1,
+        "description": "no_real_pr_or_commit"
+      }
+    ],
+    "kind": "programmatic"
+  },
+  "pr_draft_quality": {
+    "score": 1,
+    "criteria": [
+      {
+        "name": "pr_draft_quality",
+        "value": 1,
+        "raw": 1,
+        "weight": 1,
+        "description": "pr_draft_quality"
+      }
+    ],
+    "kind": "programmatic"
+  },
+  "scoped_changes": {
+    "score": 1,
+    "criteria": [
+      {
+        "name": "scoped_changes",
+        "value": 1,
+        "raw": 1,
+        "weight": 1,
+        "description": "scoped_changes"
+      }
+    ],
+    "kind": "programmatic"
+  },
+  "skill_activation_evidence": {
+    "score": 1,
+    "criteria": [
+      {
+        "name": "skill_activation_evidence",
+        "value": 1,
+        "raw": 1,
+        "weight": 1,
+        "description": "skill_activation_evidence"
+      }
+    ],
+    "kind": "programmatic"
+  },
+  "validation_evidence": {
+    "score": 1,
+    "criteria": [
+      {
+        "name": "validation_evidence",
+        "value": 1,
+        "raw": 1,
+        "weight": 1,
+        "description": "validation_evidence"
+      }
+    ],
+    "kind": "programmatic"
+  },
+  "workflow_evidence": {
+    "score": 1,
+    "criteria": [
+      {
+        "name": "workflow_evidence",
+        "value": 1,
+        "raw": 1,
+        "weight": 1,
+        "description": "workflow_evidence"
+      }
+    ],
+    "kind": "programmatic"
+  }
+}
