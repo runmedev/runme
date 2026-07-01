@@ -128,7 +128,11 @@ class RunmeEnvironment(BaseEnvironment):
         )
         await client.start()
         self._client = client
-        env = _env_map_to_list(self._persistent_env, self.task_env_config.env)
+        env = _env_map_to_list(
+            self._persistent_env,
+            self.task_env_config.env,
+            {"RUNME_TASK_WORKDIR": str(self._resolved_task_workdir())},
+        )
         await self._request(
             {"start": {"root": str(self._protocol_root), "env": env}},
         )
@@ -309,6 +313,11 @@ class RunmeEnvironment(BaseEnvironment):
         )
         self._staged_workdir_remote = remote
         self._staged_workdir_host = target
+
+    def _resolved_task_workdir(self) -> Path:
+        if self._staged_workdir_host:
+            return self._staged_workdir_host
+        return self._map_remote_path(self.task_env_config.workdir or "/app")
 
     def _configured_workdir_remote(self) -> PurePosixPath | None:
         workdir = self.task_env_config.workdir

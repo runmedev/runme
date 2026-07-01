@@ -93,7 +93,10 @@ def test_environment_starts_runme_harbor_stdio(
     assert client.requests[0] == {
         "start": {
             "root": str(tmp_path),
-            "env": ["TASK_ENV=yes"],
+            "env": [
+                f"RUNME_TASK_WORKDIR={tmp_path}",
+                "TASK_ENV=yes",
+            ],
         }
     }
 
@@ -173,6 +176,7 @@ def test_nested_configured_workdir_is_staged_per_trial(
 
     client = FakeClient.instances[0]
     assert client.requests[0]["start"]["root"] == str(tmp_path)
+    assert f"RUNME_TASK_WORKDIR={staged}" in client.requests[0]["start"]["env"]
     request = client.requests[-1]["exec"]
     assert request["cwd"] == "trial/workdir"
     assert str(staged) in request["command"]
@@ -206,9 +210,34 @@ def test_missing_nested_configured_workdir_stages_workspace_root(
     staged = tmp_path / "trial" / "workdir"
     assert (staged / "go.mod").read_text() == "module example.com/repo\n"
 
-    request = FakeClient.instances[0].requests[-1]["exec"]
+    client = FakeClient.instances[0]
+    assert f"RUNME_TASK_WORKDIR={staged}" in client.requests[0]["start"]["env"]
+    request = client.requests[-1]["exec"]
     assert request["cwd"] == "trial/workdir"
     assert configured_workdir not in request["command"]
+
+
+def test_runtime_task_workdir_overrides_configured_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    environment = _make_env(
+        tmp_path,
+        task_env_config=EnvironmentConfig(
+            workdir="/app",
+            env={"RUNME_TASK_WORKDIR": "/wrong", "TASK_ENV": "yes"},
+        ),
+    )
+
+    asyncio.run(environment.start(force_build=False))
+
+    assert FakeClient.instances[0].requests[0]["start"]["env"] == [
+        f"RUNME_TASK_WORKDIR={tmp_path}",
+        "TASK_ENV=yes",
+    ]
 
 
 def test_upload_dir_rewrites_configured_workdir_paths_to_staged_workdir(

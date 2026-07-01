@@ -138,6 +138,24 @@ func TestRewardDetailsJSONShape(t *testing.T) {
 	}
 }
 
+func TestTaskRoot(t *testing.T) {
+	t.Run("uses env", func(t *testing.T) {
+		t.Setenv(taskWorkdirEnv, "/tmp/task-workdir")
+
+		if got := taskRoot(); got != "/tmp/task-workdir" {
+			t.Fatalf("taskRoot() = %q, want /tmp/task-workdir", got)
+		}
+	})
+
+	t.Run("falls back to default", func(t *testing.T) {
+		t.Setenv(taskWorkdirEnv, "")
+
+		if got := taskRoot(); got != defaultRoot {
+			t.Fatalf("taskRoot() = %q, want %q", got, defaultRoot)
+		}
+	})
+}
+
 func TestScoreDependencyUpdate(t *testing.T) {
 	t.Parallel()
 

@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	root               = "/app/evals/tasks/update-minor-deps/workdir"
+	taskWorkdirEnv     = "RUNME_TASK_WORKDIR"
+	defaultRoot        = "/app/evals/tasks/update-minor-deps/workdir"
 	agentLogDir        = "/logs/agent"
 	artifactsDir       = "/logs/artifacts"
 	verifierDir        = "/logs/verifier"
@@ -89,7 +90,7 @@ func newScorer() (*scorer, error) {
 
 func runGit(args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
-	cmd.Dir = root
+	cmd.Dir = taskRoot()
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -98,6 +99,13 @@ func runGit(args ...string) (string, error) {
 		return "", fmt.Errorf("git %s failed: %w", strings.Join(args, " "), err)
 	}
 	return string(output), nil
+}
+
+func taskRoot() string {
+	if root := os.Getenv(taskWorkdirEnv); root != "" {
+		return root
+	}
+	return defaultRoot
 }
 
 func changedFiles() ([]string, error) {
