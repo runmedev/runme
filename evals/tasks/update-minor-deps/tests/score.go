@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -122,7 +123,7 @@ func verifierDir() string {
 }
 
 func prDraftPath() string {
-	return filepath.Join(artifactsDir(), "pr.md")
+	return path.Join(artifactsDir(), "pr.md")
 }
 
 func rewardPath() string {
