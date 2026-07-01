@@ -15,6 +15,7 @@ const (
 type EvalPromoteOptions struct {
 	JobsDir       string
 	Job           string
+	DatasetPath   string
 	Latest        bool
 	DryRun        bool
 	EvidenceOnly  bool
@@ -46,8 +47,11 @@ func NewEvalPromoter(opts EvalPromoteOptions) *EvalPromoter {
 }
 
 func (p *EvalPromoter) Run(args []string) error {
-	if len(args) > 0 {
-		return fmt.Errorf("accepts no arguments")
+	if len(args) > 1 {
+		return fmt.Errorf("accepts at most 1 dataset path, received %d", len(args))
+	}
+	if len(args) == 1 {
+		p.opts.DatasetPath = args[0]
 	}
 	if p.opts.Job == "" && !p.opts.Latest {
 		return fmt.Errorf("one of --job or --latest is required")
@@ -69,15 +73,20 @@ func (p *EvalPromoter) Run(args []string) error {
 			return err
 		}
 	}
+	datasetFilter, err := newEvalDatasetFilter(p.opts.DatasetPath, gitClient)
+	if err != nil {
+		return err
+	}
 
 	policy := promoteJobPolicy{
 		includeOracle: p.opts.IncludeOracle,
 		allowErrors:   p.opts.AllowErrors,
 	}
 	store := evalJobStore{
-		jobsDir: jobsRoot,
-		git:     gitClient,
-		policy:  policy,
+		jobsDir:       jobsRoot,
+		git:           gitClient,
+		policy:        policy,
+		datasetFilter: datasetFilter,
 	}
 
 	var candidate evalJobRef
@@ -96,12 +105,12 @@ func (p *EvalPromoter) Run(args []string) error {
 		return err
 	}
 	if p.opts.Latest {
-		candidate.Selection = fmt.Sprintf("latest job under %s", jobsRel)
+		candidate.Selection = fmt.Sprintf("latest job under %s for dataset %s", jobsRel, datasetFilter.displayPath())
 	}
-	if warning := newerPromotableJobWarning(jobsRoot, jobDir, candidate.Result, policy); warning != "" {
+	if warning := newerPromotableJobWarning(jobsRoot, jobDir, candidate.Result, policy, datasetFilter); warning != "" {
 		_, _ = fmt.Fprintf(p.opts.Stderr, "warning: %s under %s; newer eval jobs were skipped\n\n", warning, jobsRel)
 	}
-	comparison, hasComparison, err := p.comparison(jobsRoot, candidate, gitClient)
+	comparison, hasComparison, err := p.comparison(jobsRoot, candidate, gitClient, datasetFilter)
 	if err != nil {
 		return err
 	}
@@ -193,10 +202,11 @@ func (p *EvalPromoter) Run(args []string) error {
 	return nil
 }
 
-func (p *EvalPromoter) comparison(jobsRoot string, candidate evalJobRef, gitClient compareGit) (evalComparison, bool, error) {
+func (p *EvalPromoter) comparison(jobsRoot string, candidate evalJobRef, gitClient compareGit, datasetFilter evalDatasetFilter) (evalComparison, bool, error) {
 	base, err := (evalJobStore{
-		jobsDir: jobsRoot,
-		git:     gitClient,
+		jobsDir:       jobsRoot,
+		git:           gitClient,
+		datasetFilter: datasetFilter,
 	}).LatestTracked(promoteComparisonBaseRef)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "no complete Git-tracked eval job found") {

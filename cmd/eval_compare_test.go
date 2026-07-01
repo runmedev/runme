@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/runmedev/runme/v3/internal/harbor"
@@ -26,6 +27,7 @@ func TestEvalCompareCmdPassesOptionsToHarborComparer(t *testing.T) {
 	cmd.SetErr(&stderr)
 	cmd.SetArgs([]string{
 		"compare",
+		"examples/harbor/datasets/runme-rewardkit",
 		"--jobs-dir", "jobs",
 		"--job", "jobs/job-1",
 		"--base", "HEAD~1",
@@ -45,11 +47,12 @@ func TestEvalCompareCmdPassesOptionsToHarborComparer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(gotArgs, []string(nil)) {
+	if !reflect.DeepEqual(gotArgs, []string{"examples/harbor/datasets/runme-rewardkit"}) {
 		t.Fatalf("args = %#v", gotArgs)
 	}
 	if gotOpts.JobsDir != "jobs" ||
 		gotOpts.Job != "jobs/job-1" ||
+		gotOpts.DatasetPath != "examples/harbor/datasets/runme-rewardkit" ||
 		gotOpts.Base != "HEAD~1" ||
 		gotOpts.Format != "json" ||
 		!gotOpts.IncludeOracle ||
@@ -57,6 +60,18 @@ func TestEvalCompareCmdPassesOptionsToHarborComparer(t *testing.T) {
 		gotOpts.Stdout != &stdout ||
 		gotOpts.Stderr != &stderr {
 		t.Fatalf("options = %#v", gotOpts)
+	}
+}
+
+func TestEvalCompareCmdRejectsMultipleDatasetPaths(t *testing.T) {
+	cmd := evalCmd()
+	cmd.SetArgs([]string{"compare", "one", "two"})
+	restoreEvalComparer(t, func(harbor.EvalCompareOptions) evalComparer {
+		return fakeEvalComparer{}
+	})
+
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected error")
 	}
 }
 
@@ -78,6 +93,29 @@ func TestEvalCompareCmdDefaultsBaseAndFormat(t *testing.T) {
 	}
 	if gotOpts.Format != "text" {
 		t.Fatalf("Format = %q, want text", gotOpts.Format)
+	}
+}
+
+func TestEvalCompareCmdHelpMentionsDatasetDefault(t *testing.T) {
+	cmd := evalCmd()
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetArgs([]string{"compare", "--help"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	output := stdout.String()
+	for _, want := range []string{
+		"Usage:\n  eval compare [dataset-path] [flags]",
+		"Compare eval jobs for a dataset.",
+		"When dataset-path is omitted, runme eval compare uses ./" + harbor.DefaultEvalDatasetPath + ".",
+		"--job string        Compare against a specific local eval job",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("help output missing %q:\n%s", want, output)
+		}
 	}
 }
 

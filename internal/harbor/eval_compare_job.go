@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type evalJobRef struct {
@@ -51,9 +52,10 @@ func (j evalJobRef) ComparisonJob(baseRef string) evalComparisonJob {
 }
 
 type compareBaseOptions struct {
-	git      compareGit
-	baseRef  string
-	jobsRoot string
+	git           compareGit
+	baseRef       string
+	jobsRoot      string
+	datasetFilter evalDatasetFilter
 }
 
 type compareCandidateOptions struct {
@@ -62,12 +64,14 @@ type compareCandidateOptions struct {
 	includeOracle bool
 	allowErrors   bool
 	git           compareGit
+	datasetFilter evalDatasetFilter
 }
 
 type evalJobStore struct {
-	jobsDir string
-	git     compareGit
-	policy  promoteJobPolicy
+	jobsDir       string
+	git           compareGit
+	policy        promoteJobPolicy
+	datasetFilter evalDatasetFilter
 }
 
 func (s evalJobStore) LatestTracked(baseRef string) (evalJobRef, error) {
@@ -76,15 +80,15 @@ func (s evalJobStore) LatestTracked(baseRef string) (evalJobRef, error) {
 		return evalJobRef{}, err
 	}
 	for _, job := range jobs {
-		if incompletePromoteJobReason(job.Result) == "" {
+		if incompletePromoteJobReason(job.Result) == "" && s.datasetFilter.matches(job.Config) {
 			return job, nil
 		}
 	}
-	return evalJobRef{}, fmt.Errorf("no complete Git-tracked eval job found under %s at %s", s.jobsDir, baseRef)
+	return evalJobRef{}, fmt.Errorf("no complete Git-tracked eval job found for dataset %s under %s at %s", s.datasetFilter.displayPath(), s.jobsDir, baseRef)
 }
 
 func (s evalJobStore) LatestLocal() (evalJobRef, string, error) {
-	jobDir, selection, err := latestPromoteJob(s.jobsDir, s.policy)
+	jobDir, selection, err := latestPromoteJob(s.jobsDir, s.policy, s.datasetFilter)
 	if err != nil {
 		return evalJobRef{}, "", err
 	}
@@ -120,6 +124,9 @@ func (s evalJobStore) localJob(jobDir, selection string) (evalJobRef, error) {
 	if err := validatePromoteJobPolicy(result, config, s.policy); err != nil {
 		return evalJobRef{}, err
 	}
+	if !s.datasetFilter.matches(config) {
+		return evalJobRef{}, fmt.Errorf("eval job dataset does not match requested dataset %s", s.datasetFilter.displayPath())
+	}
 	jobRel, err := s.git.Rel(jobDir)
 	if err != nil {
 		return evalJobRef{}, err
@@ -139,8 +146,9 @@ func (s evalJobStore) localJob(jobDir, selection string) (evalJobRef, error) {
 
 func resolveCompareBase(opts compareBaseOptions) (compareJob, error) {
 	return evalJobStore{
-		jobsDir: opts.jobsRoot,
-		git:     opts.git,
+		jobsDir:       opts.jobsRoot,
+		git:           opts.git,
+		datasetFilter: opts.datasetFilter,
 	}.LatestTracked(opts.baseRef)
 }
 
@@ -150,9 +158,10 @@ func resolveCompareCandidate(opts compareCandidateOptions) (compareJob, error) {
 		allowErrors:   opts.allowErrors,
 	}
 	store := evalJobStore{
-		jobsDir: opts.jobsDir,
-		git:     opts.git,
-		policy:  policy,
+		jobsDir:       opts.jobsDir,
+		git:           opts.git,
+		policy:        policy,
+		datasetFilter: opts.datasetFilter,
 	}
 	if opts.job == "" {
 		job, _, err := store.LatestLocal()
@@ -160,4 +169,77 @@ func resolveCompareCandidate(opts compareCandidateOptions) (compareJob, error) {
 	}
 	job, _, err := store.ExplicitLocal(opts.job)
 	return job, err
+}
+
+type evalDatasetFilter struct {
+	paths []string
+}
+
+func newEvalDatasetFilter(path string, git interface{ Rel(string) (string, error) }) (evalDatasetFilter, error) {
+	if strings.TrimSpace(path) == "" {
+		path = DefaultEvalDatasetPath
+	}
+
+	var paths []string
+	addPath := func(candidate string) {
+		candidate = normalizeEvalDatasetConfigPath(candidate)
+		if candidate == "" {
+			return
+		}
+		for _, existing := range paths {
+			if existing == candidate {
+				return
+			}
+		}
+		paths = append(paths, candidate)
+	}
+
+	if filepath.IsAbs(path) {
+		rel, err := git.Rel(path)
+		if err != nil {
+			return evalDatasetFilter{}, err
+		}
+		addPath(rel)
+	} else {
+		addPath(path)
+		if normalizeEvalDatasetConfigPath(path) != normalizeEvalDatasetConfigPath(DefaultEvalDatasetPath) {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return evalDatasetFilter{}, err
+			}
+			if rel, err := git.Rel(filepath.Join(cwd, path)); err == nil {
+				addPath(rel)
+			}
+		}
+	}
+	return evalDatasetFilter{paths: paths}, nil
+}
+
+func (f evalDatasetFilter) matches(config promoteJobConfig) bool {
+	if len(f.paths) == 0 {
+		return true
+	}
+	for _, dataset := range config.Datasets {
+		path := normalizeEvalDatasetConfigPath(dataset.Path)
+		for _, want := range f.paths {
+			if path == want {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (f evalDatasetFilter) displayPath() string {
+	if len(f.paths) == 0 {
+		return DefaultEvalDatasetPath
+	}
+	return f.paths[0]
+}
+
+func normalizeEvalDatasetConfigPath(path string) string {
+	if strings.TrimSpace(path) == "" {
+		return ""
+	}
+	return filepath.ToSlash(filepath.Clean(strings.TrimSpace(path)))
 }

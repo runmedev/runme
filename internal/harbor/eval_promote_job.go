@@ -13,6 +13,7 @@ import (
 type promoteJobOptions struct {
 	jobsDir       string
 	job           string
+	datasetPath   string
 	latest        bool
 	includeOracle bool
 	allowErrors   bool
@@ -77,12 +78,16 @@ func resolvePromoteJob(opts promoteJobOptions) (jobsRoot, jobDir, selection stri
 		return "", "", "", err
 	}
 	jobsRoot = paths.jobsDir
+	datasetFilter, err := newEvalDatasetFilter(opts.datasetPath, goGitRelAdapter{})
+	if err != nil {
+		return "", "", "", err
+	}
 
 	if opts.latest {
 		jobDir, selection, err = latestPromoteJob(jobsRoot, promoteJobPolicy{
 			includeOracle: opts.includeOracle,
 			allowErrors:   opts.allowErrors,
-		})
+		}, datasetFilter)
 		if err != nil {
 			return "", "", "", err
 		}
@@ -101,6 +106,13 @@ func resolvePromoteJob(opts promoteJobOptions) (jobsRoot, jobDir, selection stri
 	if err := validatePromoteJobDir(jobsRoot, jobDir); err != nil {
 		return "", "", "", err
 	}
+	config, err := readPromoteJobConfig(jobDir)
+	if err != nil {
+		return "", "", "", err
+	}
+	if !datasetFilter.matches(config) {
+		return "", "", "", fmt.Errorf("eval job dataset does not match requested dataset %s", datasetFilter.displayPath())
+	}
 	return jobsRoot, jobDir, "explicit --job", nil
 }
 
@@ -109,7 +121,7 @@ type promoteJobPolicy struct {
 	allowErrors   bool
 }
 
-func latestPromoteJob(jobsRoot string, policy promoteJobPolicy) (string, string, error) {
+func latestPromoteJob(jobsRoot string, policy promoteJobPolicy, datasetFilter evalDatasetFilter) (string, string, error) {
 	entries, err := os.ReadDir(jobsRoot)
 	if err != nil {
 		return "", "", err
@@ -128,6 +140,9 @@ func latestPromoteJob(jobsRoot string, policy promoteJobPolicy) (string, string,
 		if err != nil {
 			continue
 		}
+		if !datasetFilter.matches(config) {
+			continue
+		}
 		if err := validatePromoteJobPolicy(result, config, policy); err != nil {
 			continue
 		}
@@ -141,7 +156,7 @@ func latestPromoteJob(jobsRoot string, policy promoteJobPolicy) (string, string,
 		})
 	}
 	if len(candidates) == 0 {
-		return "", "", fmt.Errorf("no promotable eval jobs found under %s; use --include-oracle for oracle-only jobs or --allow-errors for errored jobs", jobsRoot)
+		return "", "", fmt.Errorf("no promotable eval jobs found for dataset %s under %s; use --include-oracle for oracle-only jobs or --allow-errors for errored jobs", datasetFilter.displayPath(), jobsRoot)
 	}
 	sort.Slice(candidates, func(i, j int) bool {
 		left, right := candidates[i], candidates[j]
@@ -155,7 +170,7 @@ func latestPromoteJob(jobsRoot string, policy promoteJobPolicy) (string, string,
 		}
 		return left.modTime.After(right.modTime)
 	})
-	return candidates[0].dir, "latest job under --jobs-dir", nil
+	return candidates[0].dir, fmt.Sprintf("latest job under --jobs-dir for dataset %s", datasetFilter.displayPath()), nil
 }
 
 func validatePromoteJobPolicy(result promoteJobResult, config promoteJobConfig, policy promoteJobPolicy) error {
@@ -171,7 +186,7 @@ func validatePromoteJobPolicy(result promoteJobResult, config promoteJobConfig, 
 	return nil
 }
 
-func newerPromotableJobWarning(jobsRoot, selectedJobDir string, selectedResult promoteJobResult, policy promoteJobPolicy) string {
+func newerPromotableJobWarning(jobsRoot, selectedJobDir string, selectedResult promoteJobResult, policy promoteJobPolicy, datasetFilter evalDatasetFilter) string {
 	entries, err := os.ReadDir(jobsRoot)
 	if err != nil {
 		return ""
@@ -195,11 +210,14 @@ func newerPromotableJobWarning(jobsRoot, selectedJobDir string, selectedResult p
 		if !isPromoteJobNewer(result, entry.Name(), selectedTimestamp, selectedName) {
 			continue
 		}
-		foundNewer = true
 		config, err := readPromoteJobConfig(dir)
 		if err != nil {
 			continue
 		}
+		if !datasetFilter.matches(config) {
+			continue
+		}
+		foundNewer = true
 		if validatePromoteJobPolicy(result, config, policy) == nil {
 			return ""
 		}
@@ -208,6 +226,24 @@ func newerPromotableJobWarning(jobsRoot, selectedJobDir string, selectedResult p
 		return ""
 	}
 	return "using latest complete promotable eval job"
+}
+
+type goGitRelAdapter struct{}
+
+func (goGitRelAdapter) Rel(path string) (string, error) {
+	path = cleanExistingPath(path)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	rel, err := filepath.Rel(cleanExistingPath(cwd), path)
+	if err != nil {
+		return "", err
+	}
+	if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		return "", fmt.Errorf("path %s is outside current working directory %s", path, cwd)
+	}
+	return filepath.ToSlash(rel), nil
 }
 
 func isPromoteJobNewer(result promoteJobResult, name string, selectedTimestamp time.Time, selectedName string) bool {
