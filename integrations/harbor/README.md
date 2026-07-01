@@ -15,6 +15,21 @@ uv tool install runme-harbor
 
 The `runme` CLI must be installed separately and available on `PATH`.
 
+## Runtime Environment
+
+Runme Harbor exposes these runtime paths to task and verifier commands:
+
+- `RUNME_TASK_WORKDIR`: resolved task workspace.
+- `RUNME_TASK_DIR`: task definition directory.
+- `RUNME_TASK_NAME`: task name.
+- `RUNME_TESTS_DIR`: uploaded verifier tests directory.
+- `RUNME_LOGS_DIR`: base trial logs directory.
+- `RUNME_AGENT_LOG_DIR`: agent logs directory.
+- `RUNME_ARTIFACTS_DIR`: artifact output directory.
+- `RUNME_VERIFIER_DIR`: verifier output directory.
+- `RUNME_REWARD_PATH`: canonical reward JSON path.
+- `RUNME_REWARD_DETAILS_PATH`: optional detailed reward JSON path.
+
 ## Build
 
 Build the distribution artifacts:

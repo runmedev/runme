@@ -13,16 +13,20 @@ import (
 )
 
 const (
-	taskWorkdirEnv     = "RUNME_TASK_WORKDIR"
-	defaultRoot        = "/app/evals/tasks/update-minor-deps/workdir"
-	agentLogDir        = "/logs/agent"
-	artifactsDir       = "/logs/artifacts"
-	verifierDir        = "/logs/verifier"
-	prDraft            = artifactsDir + "/pr.md"
-	rewardPath         = verifierDir + "/reward.json"
-	rewardDetailsPath  = verifierDir + "/reward-details.json"
-	evalHarnessPrefix  = "evals/tasks/"
-	skillHarnessPrefix = ".agents/skills/update-minor-deps/"
+	taskWorkdirEnv       = "RUNME_TASK_WORKDIR"
+	agentLogDirEnv       = "RUNME_AGENT_LOG_DIR"
+	artifactsDirEnv      = "RUNME_ARTIFACTS_DIR"
+	verifierDirEnv       = "RUNME_VERIFIER_DIR"
+	rewardPathEnv        = "RUNME_REWARD_PATH"
+	rewardDetailsPathEnv = "RUNME_REWARD_DETAILS_PATH"
+	defaultRoot          = "/app/evals/tasks/update-minor-deps/workdir"
+	defaultAgentLogDir   = "/logs/agent"
+	defaultArtifactsDir  = "/logs/artifacts"
+	defaultVerifierDir   = "/logs/verifier"
+	defaultRewardPath    = defaultVerifierDir + "/reward.json"
+	defaultRewardDetails = defaultVerifierDir + "/reward-details.json"
+	evalHarnessPrefix    = "evals/tasks/"
+	skillHarnessPrefix   = ".agents/skills/update-minor-deps/"
 )
 
 var (
@@ -84,7 +88,7 @@ func newScorer() (*scorer, error) {
 		files:       files,
 		text:        collectAgentText(),
 		commands:    collectAgentCommands(),
-		prDraftText: readText(prDraft),
+		prDraftText: readText(prDraftPath()),
 	}, nil
 }
 
@@ -102,10 +106,38 @@ func runGit(args ...string) (string, error) {
 }
 
 func taskRoot() string {
-	if root := os.Getenv(taskWorkdirEnv); root != "" {
-		return root
+	return envPath(taskWorkdirEnv, defaultRoot)
+}
+
+func agentLogDir() string {
+	return envPath(agentLogDirEnv, defaultAgentLogDir)
+}
+
+func artifactsDir() string {
+	return envPath(artifactsDirEnv, defaultArtifactsDir)
+}
+
+func verifierDir() string {
+	return envPath(verifierDirEnv, defaultVerifierDir)
+}
+
+func prDraftPath() string {
+	return filepath.Join(artifactsDir(), "pr.md")
+}
+
+func rewardPath() string {
+	return envPath(rewardPathEnv, defaultRewardPath)
+}
+
+func rewardDetailsPath() string {
+	return envPath(rewardDetailsPathEnv, defaultRewardDetails)
+}
+
+func envPath(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
-	return defaultRoot
+	return fallback
 }
 
 func changedFiles() ([]string, error) {
@@ -173,10 +205,10 @@ func readText(path string) string {
 
 func collectAgentText() string {
 	var chunks []string
-	info, err := os.Stat(agentLogDir)
+	info, err := os.Stat(agentLogDir())
 	if err == nil && info.IsDir() {
 		var paths []string
-		_ = filepath.WalkDir(agentLogDir, func(path string, entry os.DirEntry, err error) error {
+		_ = filepath.WalkDir(agentLogDir(), func(path string, entry os.DirEntry, err error) error {
 			if err != nil || entry.IsDir() {
 				return nil
 			}
@@ -193,7 +225,7 @@ func collectAgentText() string {
 		}
 	}
 
-	chunks = append(chunks, readText(prDraft))
+	chunks = append(chunks, readText(prDraftPath()))
 	return strings.ToLower(strings.Join(chunks, "\n"))
 }
 
@@ -246,7 +278,7 @@ func commandFromATIFArguments(arguments map[string]json.RawMessage) string {
 }
 
 func collectAgentCommands() string {
-	return collectAgentCommandsFromDir(agentLogDir)
+	return collectAgentCommandsFromDir(agentLogDir())
 }
 
 func collectAgentCommandsFromDir(dir string) string {
@@ -605,10 +637,10 @@ func writeJSON(path string, value any, trailingNewline bool) error {
 }
 
 func run() error {
-	if err := os.MkdirAll(verifierDir, 0o750); err != nil {
+	if err := os.MkdirAll(verifierDir(), 0o750); err != nil {
 		return fmt.Errorf("create verifier dir: %w", err)
 	}
-	if err := os.MkdirAll(artifactsDir, 0o750); err != nil {
+	if err := os.MkdirAll(artifactsDir(), 0o750); err != nil {
 		return fmt.Errorf("create artifacts dir: %w", err)
 	}
 
@@ -620,16 +652,16 @@ func run() error {
 
 	diagnostics := map[string]any{
 		"changed_files": s.files,
-		"pr_draft":      prDraft,
-		"agent_log_dir": agentLogDir,
+		"pr_draft":      prDraftPath(),
+		"agent_log_dir": agentLogDir(),
 	}
-	if err := writeJSON(filepath.Join(verifierDir, "diagnostics.json"), diagnostics, false); err != nil {
+	if err := writeJSON(filepath.Join(verifierDir(), "diagnostics.json"), diagnostics, false); err != nil {
 		return fmt.Errorf("write diagnostics: %w", err)
 	}
-	if err := writeJSON(rewardPath, scores, true); err != nil {
+	if err := writeJSON(rewardPath(), scores, true); err != nil {
 		return fmt.Errorf("write reward: %w", err)
 	}
-	if err := writeJSON(rewardDetailsPath, rewardDetails(scores), true); err != nil {
+	if err := writeJSON(rewardDetailsPath(), rewardDetails(scores), true); err != nil {
 		return fmt.Errorf("write reward details: %w", err)
 	}
 	printRewardSummary(scores)

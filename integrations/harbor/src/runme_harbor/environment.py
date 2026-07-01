@@ -48,6 +48,7 @@ class RunmeEnvironment(BaseEnvironment):
         self._workspace_root = (
             Path(workspace_root).expanduser() if workspace_root else Path.cwd()
         ).resolve()
+        self._task_dir = environment_dir.parent.resolve().absolute()
         self._runme_bin = runme_bin or os.environ.get("RUNME_BIN") or "runme"
         self._runme_args = _parse_runme_args(runme_args)
         self._command = list(command) if command is not None else None
@@ -131,7 +132,7 @@ class RunmeEnvironment(BaseEnvironment):
         env = _env_map_to_list(
             self._persistent_env,
             self.task_env_config.env,
-            {"RUNME_TASK_WORKDIR": str(self._resolved_task_workdir())},
+            self._runtime_env(),
         )
         await self._request(
             {"start": {"root": str(self._protocol_root), "env": env}},
@@ -318,6 +319,21 @@ class RunmeEnvironment(BaseEnvironment):
         if self._staged_workdir_host:
             return self._staged_workdir_host
         return self._map_remote_path(self.task_env_config.workdir or "/app")
+
+    def _runtime_env(self) -> dict[str, str]:
+        verifier_dir = self._root / "verifier"
+        return {
+            "RUNME_AGENT_LOG_DIR": str(self._root / "agent"),
+            "RUNME_ARTIFACTS_DIR": str(self._root / "artifacts"),
+            "RUNME_LOGS_DIR": str(self._root),
+            "RUNME_REWARD_DETAILS_PATH": str(verifier_dir / "reward-details.json"),
+            "RUNME_REWARD_PATH": str(verifier_dir / "reward.json"),
+            "RUNME_TASK_DIR": str(self._task_dir),
+            "RUNME_TASK_NAME": self.environment_name,
+            "RUNME_TASK_WORKDIR": str(self._resolved_task_workdir()),
+            "RUNME_TESTS_DIR": str(self._root / "tests"),
+            "RUNME_VERIFIER_DIR": str(verifier_dir),
+        }
 
     def _configured_workdir_remote(self) -> PurePosixPath | None:
         workdir = self.task_env_config.workdir

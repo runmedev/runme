@@ -94,7 +94,17 @@ def test_environment_starts_runme_harbor_stdio(
         "start": {
             "root": str(tmp_path),
             "env": [
+                f"RUNME_AGENT_LOG_DIR={tmp_path / 'trial' / 'agent'}",
+                f"RUNME_ARTIFACTS_DIR={tmp_path / 'trial' / 'artifacts'}",
+                f"RUNME_LOGS_DIR={tmp_path / 'trial'}",
+                "RUNME_REWARD_DETAILS_PATH="
+                f"{tmp_path / 'trial' / 'verifier' / 'reward-details.json'}",
+                f"RUNME_REWARD_PATH={tmp_path / 'trial' / 'verifier' / 'reward.json'}",
+                f"RUNME_TASK_DIR={tmp_path}",
+                "RUNME_TASK_NAME=simple-agent",
                 f"RUNME_TASK_WORKDIR={tmp_path}",
+                f"RUNME_TESTS_DIR={tmp_path / 'trial' / 'tests'}",
+                f"RUNME_VERIFIER_DIR={tmp_path / 'trial' / 'verifier'}",
                 "TASK_ENV=yes",
             ],
         }
@@ -228,16 +238,25 @@ def test_runtime_task_workdir_overrides_configured_env(
         tmp_path,
         task_env_config=EnvironmentConfig(
             workdir="/app",
-            env={"RUNME_TASK_WORKDIR": "/wrong", "TASK_ENV": "yes"},
+            env={
+                "RUNME_ARTIFACTS_DIR": "/wrong",
+                "RUNME_REWARD_PATH": "/wrong",
+                "RUNME_TASK_WORKDIR": "/wrong",
+                "TASK_ENV": "yes",
+            },
         ),
     )
 
     asyncio.run(environment.start(force_build=False))
 
-    assert FakeClient.instances[0].requests[0]["start"]["env"] == [
-        f"RUNME_TASK_WORKDIR={tmp_path}",
-        "TASK_ENV=yes",
-    ]
+    env = FakeClient.instances[0].requests[0]["start"]["env"]
+    assert f"RUNME_ARTIFACTS_DIR={tmp_path / 'trial' / 'artifacts'}" in env
+    assert f"RUNME_REWARD_PATH={tmp_path / 'trial' / 'verifier' / 'reward.json'}" in env
+    assert f"RUNME_TASK_WORKDIR={tmp_path}" in env
+    assert "RUNME_ARTIFACTS_DIR=/wrong" not in env
+    assert "RUNME_REWARD_PATH=/wrong" not in env
+    assert "RUNME_TASK_WORKDIR=/wrong" not in env
+    assert "TASK_ENV=yes" in env
 
 
 def test_upload_dir_rewrites_configured_workdir_paths_to_staged_workdir(
