@@ -35,11 +35,11 @@ type evalComparisonJob struct {
 }
 
 type evalComparisonMeta struct {
-	Dataset     evalComparisonDiff `json:"dataset"`
-	Tasks       evalComparisonDiff `json:"tasks"`
-	Agent       evalComparisonDiff `json:"agent"`
-	Model       evalComparisonDiff `json:"model"`
-	Environment evalComparisonDiff `json:"environment"`
+	Dataset     evalComparisonDiff  `json:"dataset"`
+	Tasks       *evalComparisonDiff `json:"tasks,omitempty"`
+	Agent       evalComparisonDiff  `json:"agent"`
+	Model       evalComparisonDiff  `json:"model"`
+	Environment evalComparisonDiff  `json:"environment"`
 }
 
 type evalComparisonStats struct {
@@ -143,10 +143,15 @@ func newEvalComparison(base, candidate evalJobRef, baseRef string) evalCompariso
 
 	metadata := evalComparisonMeta{
 		Dataset:     stringDiff(baseSummary.datasetSummary(), candidateSummary.datasetSummary()),
-		Tasks:       stringDiff(baseSummary.taskSummary(), candidateSummary.taskSummary()),
 		Agent:       stringDiff(baseSummary.agentSummary(), candidateSummary.agentSummary()),
 		Model:       stringDiff(baseSummary.modelSummary(), candidateSummary.modelSummary()),
 		Environment: stringDiff(baseSummary.environmentSummary(), candidateSummary.environmentSummary()),
+	}
+	baseTasks := baseSummary.taskSummary()
+	candidateTasks := candidateSummary.taskSummary()
+	if baseTasks != "" || candidateTasks != "" {
+		tasks := stringDiff(baseTasks, candidateTasks)
+		metadata.Tasks = &tasks
 	}
 	job := compareJobStats(base.Result, candidate.Result)
 	results := compareResults(base, candidate)
@@ -219,8 +224,11 @@ func renderEvalComparisonText(w io.Writer, comparison evalComparison) error {
 	_, _ = fmt.Fprintf(w, "%s %s  local\n\n", evalOutputLabel(w, "Latest:"), comparison.Candidate.Path)
 
 	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Dataset:"), comparison.Metadata.Dataset.Candidate)
-	if tasks := strings.TrimSpace(fmt.Sprint(comparison.Metadata.Tasks.Candidate)); tasks != "" {
-		_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Tasks:"), tasks)
+	if comparison.Metadata.Tasks != nil {
+		tasks := strings.TrimSpace(fmt.Sprint(comparison.Metadata.Tasks.Candidate))
+		if tasks != "" {
+			_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Tasks:"), tasks)
+		}
 	}
 	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Agent:"), comparison.Metadata.Agent.Candidate)
 	_, _ = fmt.Fprintf(w, "%s %s\n", evalOutputLabel(w, "Model:"), comparison.Metadata.Model.Candidate)
@@ -365,16 +373,21 @@ func sortedEvalResultSummaryKeys(entries map[string]evalResultSummary) []string 
 }
 
 func metadataMismatches(meta evalComparisonMeta) []evalComparisonDiff {
-	checks := []struct {
+	type metadataCheck struct {
 		name string
 		diff evalComparisonDiff
-	}{
-		{"dataset", meta.Dataset},
-		{"tasks", meta.Tasks},
-		{"agent", meta.Agent},
-		{"model", meta.Model},
-		{"environment", meta.Environment},
 	}
+	checks := []metadataCheck{
+		{"dataset", meta.Dataset},
+	}
+	if meta.Tasks != nil {
+		checks = append(checks, metadataCheck{"tasks", *meta.Tasks})
+	}
+	checks = append(checks,
+		metadataCheck{"agent", meta.Agent},
+		metadataCheck{"model", meta.Model},
+		metadataCheck{"environment", meta.Environment},
+	)
 	var mismatches []evalComparisonDiff
 	for _, check := range checks {
 		if check.diff.Base != check.diff.Candidate {
