@@ -11,8 +11,10 @@ git status --short
 echo "+ sed -n '1,180p' CONTRIBUTING.md"
 sed -n '1,180p' CONTRIBUTING.md >/tmp/update-minor-deps-contributing.txt
 
-echo "+ .agents/skills/update-minor-deps/scripts/update-go-deps.sh"
-.agents/skills/update-minor-deps/scripts/update-go-deps.sh
+echo "+ runme run update-go-deps"
+runme run update-go-deps
+echo "+ go mod tidy"
+go mod tidy
 
 if git diff --quiet -- go.mod go.sum; then
   echo "+ runme run lint test"
@@ -22,7 +24,7 @@ if git diff --quiet -- go.mod go.sum; then
     printf '# chore: update minor and patch dependencies (%s)\n\n' "$current_date"
     cat <<'PR'
 ## Summary
-- Ran `.agents/skills/update-minor-deps/scripts/update-go-deps.sh`.
+- Ran `runme run update-go-deps` and `go mod tidy`.
 - No root `go.mod` or `go.sum` updates were available.
 - No compatibility or test fixes were needed.
 
@@ -60,7 +62,7 @@ runme run lint test || final_status=$?
   printf '# chore: update minor and patch dependencies (%s)\n\n' "$current_date"
   cat <<'PR'
 ## Summary
-- Ran `.agents/skills/update-minor-deps/scripts/update-go-deps.sh`.
+- Ran `runme run update-go-deps` and `go mod tidy`.
 - Updated root dependency files: `go.mod` and `go.sum`.
 PR
   if [ "$final_status" -eq 0 ]; then

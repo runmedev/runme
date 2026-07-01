@@ -1,0 +1,10 @@
+{
+  "reward": 1,
+  "dependency_update": 1,
+  "scoped_changes": 1,
+  "skill_activation_evidence": 1,
+  "workflow_evidence": 1,
+  "validation_evidence": 1,
+  "pr_draft_quality": 1,
+  "no_real_pr_or_commit": 1
+}

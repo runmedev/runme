@@ -1,0 +1,81 @@
+{
+    "id": "f10b939b-96c6-423d-9b2c-b162a15bf9ff",
+    "started_at": "2026-06-30T16:10:46.959703",
+    "updated_at": "2026-06-30T16:14:31.775578",
+    "finished_at": "2026-06-30T16:14:31.775578",
+    "n_total_trials": 1,
+    "stats": {
+        "n_completed_trials": 1,
+        "n_errored_trials": 0,
+        "n_running_trials": 0,
+        "n_pending_trials": 0,
+        "n_cancelled_trials": 0,
+        "n_retries": 0,
+        "evals": {
+            "runme-codex__tasks": {
+                "n_trials": 1,
+                "n_errors": 0,
+                "metrics": [
+                    {
+                        "dependency_update": 1.0,
+                        "no_real_pr_or_commit": 1.0,
+                        "pr_draft_quality": 1.0,
+                        "reward": 1.0,
+                        "scoped_changes": 1.0,
+                        "skill_activation_evidence": 1.0,
+                        "validation_evidence": 1.0,
+                        "workflow_evidence": 1.0
+                    }
+                ],
+                "pass_at_k": {},
+                "reward_stats": {
+                    "reward": {
+                        "1": [
+                            "update-minor-deps__mLcaxLB"
+                        ]
+                    },
+                    "dependency_update": {
+                        "1": [
+                            "update-minor-deps__mLcaxLB"
+                        ]
+                    },
+                    "scoped_changes": {
+                        "1": [
+                            "update-minor-deps__mLcaxLB"
+                        ]
+                    },
+                    "skill_activation_evidence": {
+                        "1": [
+                            "update-minor-deps__mLcaxLB"
+                        ]
+                    },
+                    "workflow_evidence": {
+                        "1": [
+                            "update-minor-deps__mLcaxLB"
+                        ]
+                    },
+                    "validation_evidence": {
+                        "1": [
+                            "update-minor-deps__mLcaxLB"
+                        ]
+                    },
+                    "pr_draft_quality": {
+                        "1": [
+                            "update-minor-deps__mLcaxLB"
+                        ]
+                    },
+                    "no_real_pr_or_commit": {
+                        "1": [
+                            "update-minor-deps__mLcaxLB"
+                        ]
+                    }
+                },
+                "exception_stats": {}
+            }
+        },
+        "n_input_tokens": 545954,
+        "n_cache_tokens": 482688,
+        "n_output_tokens": 3730,
+        "cost_usd": null
+    }
+}

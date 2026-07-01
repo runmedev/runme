@@ -1,0 +1,8 @@
+{
+  "agent_log_dir": "/Users/sourishkrout/Projects/personal/visr/runme/.runme/evals/jobs/2026-06-30__16-10-46/update-minor-deps__mLcaxLB/agent",
+  "changed_files": [
+    "go.mod",
+    "go.sum"
+  ],
+  "pr_draft": "/Users/sourishkrout/Projects/personal/visr/runme/.runme/evals/jobs/2026-06-30__16-10-46/update-minor-deps__mLcaxLB/artifacts/pr.md"
+}

@@ -14,13 +14,14 @@ Perform the maintenance task that updates minor and patch dependencies, then fix
 1. Start from the repository root and inspect the working tree with `git status --short`. Do not overwrite unrelated user changes.
 2. Read `CONTRIBUTING.md` before running project commands. Prefer its named Runme commands over ad hoc equivalents.
 3. Create or use a branch named like `chore/minor-patch-dependencies`; add a date suffix if the branch already exists.
-4. Run `scripts/update-go-deps.sh` from this skill to execute the documented update command:
+4. Run the repository's documented dependency update command, then tidy the root module:
 
 ```sh
-.agents/skills/update-minor-deps/scripts/update-go-deps.sh
+runme run update-go-deps
+go mod tidy
 ```
 
-5. Review `go.mod` and `go.sum`. The expected baseline is dependency and checksum churn in the root module. Do not intentionally upgrade major versions or edit module paths unless the user asks.
+5. Review `go.mod` and `go.sum`; `git diff --stat -- go.mod go.sum` and `git diff -- go.mod go.sum` are useful for this. The expected baseline is dependency and checksum churn in the root module. Do not intentionally upgrade major versions or edit module paths unless the user asks.
 6. Run focused tests first for any touched or failing packages. Use failures to find real compatibility regressions, not to mask problems.
 7. Make narrowly scoped code or test fixes when the updated dependencies changed behavior. PR 1150 is the model: module updates plus small fixes for go-git/go-billy path-walk behavior and a stale Ctrl-C test input assumption.
 8. Run the required final validation after changes:
