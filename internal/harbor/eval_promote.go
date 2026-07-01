@@ -7,7 +7,10 @@ import (
 	"strings"
 )
 
-const defaultPromoteSubject = "Promote changes verified by task eval"
+const (
+	defaultPromoteSubject    = "Promote changes verified by task eval"
+	promoteComparisonBaseRef = "HEAD"
+)
 
 type EvalPromoteOptions struct {
 	JobsDir       string
@@ -98,12 +101,25 @@ func (p *EvalPromoter) Run(args []string) error {
 	if warning := newerPromotableJobWarning(jobsRoot, jobDir, candidate.Result, policy); warning != "" {
 		_, _ = fmt.Fprintf(p.opts.Stderr, "warning: %s under %s; newer eval jobs were skipped\n\n", warning, jobsRel)
 	}
-	message := renderPromoteCommitMessage(candidate.MessageData(p.opts.Message, p.opts.EvidenceOnly))
-
 	comparison, hasComparison, err := p.comparison(jobsRoot, candidate, gitClient)
 	if err != nil {
 		return err
 	}
+	messageData := candidate.MessageData(p.opts.Message, p.opts.EvidenceOnly)
+	if hasComparison {
+		baseCommit, err := gitClient.ResolveRef(promoteComparisonBaseRef)
+		if err != nil {
+			return err
+		}
+		messageData.comparison = newPromoteMessageComparison(
+			comparison,
+			baseCommit,
+			comparison.Gate().Blocking && p.opts.PromoteAnyway,
+		)
+	} else {
+		messageData.comparison = noBaselinePromoteMessageComparison()
+	}
+	message := renderPromoteCommitMessage(messageData)
 
 	if p.opts.DryRun {
 		files, err := gitClient.JobFiles(jobDir, p.opts.Artifacts)
@@ -128,7 +144,7 @@ func (p *EvalPromoter) Run(args []string) error {
 		p.renderDryRunComparison(comparison, hasComparison)
 		_, _ = fmt.Fprintln(p.opts.Stdout, evalOutputLabel(p.opts.Stdout, "Proposed commit message:"))
 		_, _ = fmt.Fprintln(p.opts.Stdout)
-		_, _ = fmt.Fprint(p.opts.Stdout, renderPromoteCommitMessage(candidate.MessageData(p.opts.Message, p.opts.EvidenceOnly)))
+		_, _ = fmt.Fprint(p.opts.Stdout, message)
 		return nil
 	}
 
@@ -181,14 +197,14 @@ func (p *EvalPromoter) comparison(jobsRoot string, candidate evalJobRef, gitClie
 	base, err := (evalJobStore{
 		jobsDir: jobsRoot,
 		git:     gitClient,
-	}).LatestTracked("HEAD")
+	}).LatestTracked(promoteComparisonBaseRef)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "no complete Git-tracked eval job found") {
 			return evalComparison{}, false, nil
 		}
 		return evalComparison{}, false, err
 	}
-	return newEvalComparison(base, candidate, "HEAD"), true, nil
+	return newEvalComparison(base, candidate, promoteComparisonBaseRef), true, nil
 }
 
 func (p *EvalPromoter) renderDryRunComparison(comparison evalComparison, ok bool) {

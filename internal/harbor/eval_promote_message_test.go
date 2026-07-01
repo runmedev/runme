@@ -45,9 +45,11 @@ func TestRenderPromoteCommitMessageUsesJobAndResultRollups(t *testing.T) {
 		"Model: gpt-5-codex",
 		"Environment: " + runmeEnvironmentImportPath,
 		"Job: completed=2/2, errors=0, evals=1",
+		"Comparison-Base: none",
+		"Promotion-Gate: not evaluated",
 		"Results:",
 		"dataset: reward=0.750",
-		"\nResults:\n dataset: reward=0.750\nJob: completed=2/2, errors=0, evals=1\n\nAgent: codex\n",
+		"\nResults:\n dataset: reward=0.750\nJob: completed=2/2, errors=0, evals=1\n\nComparison-Base: none\nPromotion-Gate: not evaluated\n\nAgent: codex\n",
 	} {
 		if !strings.Contains(msg, want) {
 			t.Fatalf("message missing %q:\n%s", want, msg)
@@ -68,6 +70,8 @@ func TestRenderPromoteCommitMessageUsesJobAndResultRollups(t *testing.T) {
 		"Results:",
 		"dataset: reward=0.750",
 		"Job: completed=2/2, errors=0, evals=1",
+		"Comparison-Base: none",
+		"Promotion-Gate: not evaluated",
 		"Agent: codex",
 		"Model: gpt-5-codex",
 		"Environment: "+runmeEnvironmentImportPath,

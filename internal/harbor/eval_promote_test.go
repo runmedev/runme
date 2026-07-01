@@ -176,6 +176,11 @@ func TestEvalPromoterDryRunShowsCompareGateWithoutFailing(t *testing.T) {
 		"Promotion gate: blocked",
 		"Reason: candidate regressed; rerun, inspect job/task details, or pass --promote-anyway to promote anyway",
 		"Proposed commit message:",
+		"Comparison-Base: jobs/2026-06-25__09-00-00 tracked in HEAD (baa34cbd)",
+		"Result-Delta:\n dataset: reward 0.750 -> 0.500  -0.250",
+		"Job-Delta: completed +0, errors +0, evals +0",
+		"Promotion-Gate: blocked",
+		"Promotion-Gate-Reason: candidate regressed; rerun, inspect job/task details, or pass --promote-anyway to promote anyway",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("output missing %q:\n%s", want, output)
@@ -183,6 +188,40 @@ func TestEvalPromoterDryRunShowsCompareGateWithoutFailing(t *testing.T) {
 	}
 	if gitClient.addCalled || gitClient.commitCalled {
 		t.Fatal("dry-run should not add or commit")
+	}
+}
+
+func TestEvalPromoterCommitMessageRecordsPassedComparison(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	baseDir := filepath.Join(jobsRoot, "2026-06-25__09-00-00")
+	jobDir := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	writePromoteJobWithReward(t, baseDir, "2026-06-25T09:00:00Z", 1, 1, 0, 0.5)
+	writePromoteJobWithReward(t, jobDir, "2026-06-25T10:00:00Z", 1, 1, 0, 0.75)
+
+	gitClient := &recordingPromoteGit{
+		root:        tmp,
+		staged:      []string{"main.go"},
+		trackedJobs: []evalJobRef{localCompareJob(t, tmp, baseDir, "tracked in test")},
+	}
+	promoter := NewEvalPromoter(EvalPromoteOptions{
+		JobsDir: jobsRoot,
+		Latest:  true,
+		Git:     gitClient,
+	})
+
+	if err := promoter.Run(nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"Comparison-Base: jobs/2026-06-25__09-00-00 tracked in HEAD (baa34cbd)",
+		"Result-Delta:\n dataset: reward 0.500 -> 0.750  +0.250",
+		"Job-Delta: completed +0, errors +0, evals +0",
+		"Promotion-Gate: passed",
+	} {
+		if !strings.Contains(gitClient.message, want) {
+			t.Fatalf("commit message missing %q:\n%s", want, gitClient.message)
+		}
 	}
 }
 
@@ -242,6 +281,16 @@ func TestEvalPromoterPromoteAnywayCommitsRegressedComparison(t *testing.T) {
 	}
 	if !gitClient.addCalled || !gitClient.commitCalled {
 		t.Fatal("expected add and commit")
+	}
+	for _, want := range []string{
+		"Comparison-Base: jobs/2026-06-25__09-00-00 tracked in HEAD (baa34cbd)",
+		"Result-Delta:\n dataset: reward 0.750 -> 0.500  -0.250",
+		"Promotion-Gate: overridden",
+		"Promotion-Gate-Reason: candidate regressed; rerun, inspect job/task details, or pass --promote-anyway to promote anyway",
+	} {
+		if !strings.Contains(gitClient.message, want) {
+			t.Fatalf("commit message missing %q:\n%s", want, gitClient.message)
+		}
 	}
 }
 
@@ -326,6 +375,9 @@ func TestEvalPromoterEvidenceOnlyCommitsJobWithoutStagedChanges(t *testing.T) {
 	}
 	if !strings.Contains(gitClient.message, "Promotion-Mode: eval-evidence-only") {
 		t.Fatalf("commit message missing evidence-only mode:\n%s", gitClient.message)
+	}
+	if !strings.Contains(gitClient.message, "Comparison-Base: none") {
+		t.Fatalf("commit message missing no-baseline comparison:\n%s", gitClient.message)
 	}
 }
 
@@ -463,6 +515,7 @@ type recordingPromoteGit struct {
 	root             string
 	staged           []string
 	trackedJobs      []evalJobRef
+	resolvedRef      string
 	stagedCalled     bool
 	addCalled        bool
 	jobFilesCalled   bool
@@ -485,6 +538,13 @@ func assertPlainProposedCommitMessage(t *testing.T, output string) {
 
 func (g *recordingPromoteGit) TrackedEvalJobs(string, string) ([]evalJobRef, error) {
 	return append([]evalJobRef(nil), g.trackedJobs...), nil
+}
+
+func (g *recordingPromoteGit) ResolveRef(string) (string, error) {
+	if g.resolvedRef != "" {
+		return g.resolvedRef, nil
+	}
+	return "baa34cbda7946f3646ce94b6c04e28ea6a6897cb", nil
 }
 
 func (g *recordingPromoteGit) StagedFiles() ([]string, error) {
