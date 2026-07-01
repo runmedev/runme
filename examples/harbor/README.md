@@ -56,11 +56,11 @@ a task directory inside the dataset, such as `simple-agent` or
 
 `runme eval` delegates to `runme-harbor`, so these examples remain compatible
 with the underlying `harbor run` workflow. The adapter supports `oracle`,
-`codex`, `claude-code`, and `openclaw` agents and runs local agent CLIs through
-`runme harbor stdio` by default. The default environment is `runme`; pass
-`--env runme` to select it explicitly. Passing a non-Runme Harbor environment,
-such as `--env docker`, delegates the selected environment and agent to Harbor
-without the Runme-specific agent wrappers.
+`antigravity-cli`, `codex`, `claude-code`, `cursor-cli`, and `openclaw` agents
+and runs local agent CLIs through `runme harbor stdio` by default. The default
+environment is `runme`; pass `--env runme` to select it explicitly. Passing a
+non-Runme Harbor environment, such as `--env docker`, delegates the selected
+environment and agent to Harbor without the Runme-specific agent wrappers.
 
 Set `--runme-bin` to use a specific Runme binary. Set `--runme-arg` one or more
 times to pass global Runme flags before `harbor stdio`.

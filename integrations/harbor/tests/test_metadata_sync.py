@@ -6,13 +6,12 @@ from harbor.models.job.config import JobConfig
 from harbor.models.trial.config import AgentConfig
 from harbor.models.trial.result import TrialResult
 
-from runme_harbor.cli import (
+from runme_harbor.metadata_sync import (
+    ANTIGRAVITY_IMPORT_PATH,
     CLAUDE_IMPORT_PATH,
     CODEX_IMPORT_PATH,
     CURSOR_IMPORT_PATH,
     ENVIRONMENT_IMPORT_PATH,
-)
-from runme_harbor.metadata_sync import (
     ORIGINAL_CONFIG_BACKUP,
     ORIGINAL_RESULT_BACKUP,
     sync_jobs_metadata,
@@ -116,6 +115,37 @@ def test_sync_jobs_metadata_uses_cursor_cli_import_path(tmp_path: Path) -> None:
     config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
     assert _agent_summaries(config) == [
         ("runme-cursor-cli", CURSOR_IMPORT_PATH, "cursor/composer-2")
+    ]
+    assert config.environment.import_path == ENVIRONMENT_IMPORT_PATH
+
+
+def test_sync_jobs_metadata_uses_antigravity_cli_import_path(tmp_path: Path) -> None:
+    job_dir = _write_job_config(
+        tmp_path,
+        agents=[
+            AgentConfig(
+                import_path=ANTIGRAVITY_IMPORT_PATH,
+                model_name="google/planned-model",
+            )
+        ],
+    )
+    _write_trial_result(
+        job_dir,
+        "trial-1",
+        agent_name="runme-antigravity-cli",
+        provider="google",
+        model_name="gemini-3-pro-preview",
+    )
+
+    assert sync_jobs_metadata(tmp_path) == 1
+
+    config = JobConfig.model_validate_json((job_dir / "config.json").read_text())
+    assert _agent_summaries(config) == [
+        (
+            "runme-antigravity-cli",
+            ANTIGRAVITY_IMPORT_PATH,
+            "google/gemini-3-pro-preview",
+        )
     ]
     assert config.environment.import_path == ENVIRONMENT_IMPORT_PATH
 

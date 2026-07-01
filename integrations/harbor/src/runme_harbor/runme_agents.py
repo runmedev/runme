@@ -5,7 +5,9 @@ import shutil
 import tempfile
 from hashlib import sha256
 from pathlib import Path
+from typing import Any
 
+from harbor.agents.installed.antigravity_cli import AntigravityCli
 from harbor.agents.installed.base import CliFlag, with_prompt_template
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
@@ -13,7 +15,106 @@ from harbor.agents.installed.cursor_cli import CursorCli
 from harbor.agents.installed.openclaw import OpenClaw
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
+from harbor.models.trajectories.trajectory import Trajectory
 from harbor.models.trial.paths import EnvironmentPaths
+
+
+class RunmeAntigravityCli(AntigravityCli):
+    """Antigravity CLI-backed Runme agent without container bootstrap.
+
+    Harbor's installed Antigravity agent assumes a disposable container and
+    installs Google's `agy` CLI during setup. Runme Harbor executes through
+    Runme's runtime, so this wrapper expects `agy` to already be available and
+    configured.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "runme-antigravity-cli"
+
+    async def install(self, environment: BaseEnvironment) -> None:
+        return None
+
+    async def setup(self, environment: BaseEnvironment) -> None:
+        return None
+
+    @with_prompt_template
+    async def run(
+        self,
+        instruction: str,
+        environment: BaseEnvironment,
+        context: AgentContext,
+    ) -> None:
+        escaped_instruction = shlex.quote(instruction)
+
+        if self.model_name and "/" not in self.model_name:
+            raise ValueError("Model name must be in the format provider/model_name")
+
+        model = self.model_name.split("/")[-1] if self.model_name else None
+
+        # Gemini CLI refuses to honor `--yolo` in an untrusted workspace and
+        # overrides approval mode back to "default".
+        env = {"GEMINI_CLI_TRUST_WORKSPACE": "true"}
+
+        auth_vars = [
+            "GEMINI_API_KEY",
+            "GOOGLE_APPLICATION_CREDENTIALS",
+            "GOOGLE_CLOUD_PROJECT",
+            "GOOGLE_CLOUD_LOCATION",
+            "GOOGLE_GENAI_USE_VERTEXAI",
+            "GOOGLE_API_KEY",
+        ]
+        for var in auth_vars:
+            if var in os.environ:
+                env[var] = os.environ[var]
+
+        skills_command = self._build_register_skills_command()
+        if skills_command:
+            await self.exec_as_agent(environment, command=skills_command, env=env)
+
+        settings_command, _ = self._build_settings_command(model)
+        if settings_command:
+            await self.exec_as_agent(environment, command=settings_command, env=env)
+
+        cli_flags = self.build_cli_flags()
+        extra_flags = (cli_flags + " ") if cli_flags else ""
+        try:
+            await self.exec_as_agent(
+                environment,
+                command=(
+                    'export PATH="$HOME/.local/bin:$PATH"\n'
+                    f"agy --dangerously-skip-permissions {extra_flags}"
+                    f"--prompt={escaped_instruction} "
+                    "2>&1 </dev/null | stdbuf -oL tee /logs/agent/antigravity-cli.txt"
+                ),
+                env=env,
+            )
+        finally:
+            try:
+                await self.exec_as_agent(
+                    environment,
+                    command=(
+                        "src=$(find ~/.agy/antigravity-cli/tmp -type f "
+                        "\\( -name 'session-*.jsonl' -o -name 'session-*.json' \\) "
+                        "-printf '%T@ %p\\n' 2>/dev/null | sort -nr | head -n1 "
+                        "| awk '{print $2}'); "
+                        'if [ -n "$src" ]; then '
+                        'cp "$src" "/logs/agent/antigravity-cli.trajectory.${src##*.}"; '
+                        "fi"
+                    ),
+                )
+            except Exception:
+                pass
+
+            self.populate_context_post_run(context)
+
+    def _convert_gemini_to_atif(self, gemini_trajectory: dict[str, Any]) -> Trajectory | None:
+        trajectory = super()._convert_gemini_to_atif(gemini_trajectory)
+        if trajectory is None:
+            return None
+        return trajectory.model_copy(
+            update={"agent": trajectory.agent.model_copy(update={"name": self.name()})}
+        )
 
 
 class RunmeClaudeCode(ClaudeCode):

@@ -13,6 +13,7 @@ const (
 
 var runmeAgentSpecs = []runmeAgentSpec{
 	{name: "oracle"},
+	{name: "antigravity-cli", importPath: "runme_harbor.runme_agents:RunmeAntigravityCli"},
 	{name: "codex", importPath: "runme_harbor.runme_agents:RunmeCodex"},
 	{name: "claude-code", importPath: "runme_harbor.runme_agents:RunmeClaudeCode"},
 	{name: "cursor-cli", importPath: "runme_harbor.runme_agents:RunmeCursorCli"},
