@@ -62,6 +62,13 @@ func TestEvalComparerJSONOutputIsSmallComparisonObject(t *testing.T) {
 	candidateDir := filepath.Join(jobsRoot, "new")
 	writePromoteJobWithReward(t, baseDir, "2026-06-25T09:00:00Z", 1, 1, 0, 0.5)
 	writePromoteJobWithReward(t, candidateDir, "2026-06-25T10:00:00Z", 1, 1, 0, 0.75)
+	config := `{
+		"datasets": [{"path": "dataset"}],
+		"agents": [{"name": "runme-codex", "model_name": "model"}],
+		"environment": {"type": "runme"}
+	}`
+	writeFile(t, filepath.Join(baseDir, "config.json"), config)
+	writeFile(t, filepath.Join(candidateDir, "config.json"), config)
 	t.Chdir(tmp)
 
 	var stdout bytes.Buffer
@@ -100,6 +107,13 @@ func TestEvalComparerJSONOutputIsSmallComparisonObject(t *testing.T) {
 	if _, ok := parsed["recommendation"]; !ok {
 		t.Fatalf("json missing recommendation: %#v", parsed)
 	}
+	metadata, ok := parsed["metadata"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("json metadata has unexpected shape: %#v", parsed["metadata"])
+	}
+	if _, ok := metadata["tasks"]; ok {
+		t.Fatalf("json should omit empty metadata tasks: %#v", metadata)
+	}
 }
 
 func TestBuildEvalComparisonReportsMetadataMismatches(t *testing.T) {
@@ -135,6 +149,42 @@ func TestBuildEvalComparisonReportsMetadataMismatches(t *testing.T) {
 	}
 	if gate := comparison.Gate(); gate.ReasonCode != promoteCompareGateReasonMetadata {
 		t.Fatalf("gate reason code = %q, want %q", gate.ReasonCode, promoteCompareGateReasonMetadata)
+	}
+}
+
+func TestBuildEvalComparisonReportsOneSidedTasksMetadata(t *testing.T) {
+	base := compareJob{
+		RelPath:   ".runme/evals/jobs/base",
+		ResultRel: ".runme/evals/jobs/base/result.json",
+		Result: promoteJobResult{
+			TotalTrials: 1,
+			Stats: promoteJobStats{
+				CompletedTrials: 1,
+				Evals: map[string]promoteEvalStats{
+					"oracle__dataset": {Metrics: []map[string]interface{}{{"reward": 1.0}}},
+				},
+			},
+		},
+		Config: promoteJobConfig{
+			Datasets: []promoteDatasetConfig{{Path: "dataset", TaskNames: []string{"one"}}},
+			Agents:   []promoteAgentConfig{{Name: "oracle", ModelName: "model"}},
+		},
+		Selection: "tracked",
+	}
+	candidate := base
+	candidate.RelPath = ".runme/evals/jobs/candidate"
+	candidate.ResultRel = ".runme/evals/jobs/candidate/result.json"
+	candidate.Config.Datasets = []promoteDatasetConfig{{Path: "dataset"}}
+
+	comparison := buildEvalComparison(base, candidate, "HEAD")
+	if comparison.Metadata.Tasks == nil {
+		t.Fatal("tasks metadata is nil, want one-sided diff")
+	}
+	if comparison.Metadata.Tasks.Base != "one" || comparison.Metadata.Tasks.Candidate != "" {
+		t.Fatalf("tasks metadata = %#v, want one -> empty", comparison.Metadata.Tasks)
+	}
+	if len(comparison.MetadataDiffs) != 1 || comparison.MetadataDiffs[0].Delta != "tasks" {
+		t.Fatalf("metadata diffs = %#v, want tasks diff", comparison.MetadataDiffs)
 	}
 }
 
