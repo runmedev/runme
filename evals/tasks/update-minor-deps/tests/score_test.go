@@ -138,6 +138,80 @@ func TestRewardDetailsJSONShape(t *testing.T) {
 	}
 }
 
+func TestTaskRoot(t *testing.T) {
+	t.Run("uses env", func(t *testing.T) {
+		t.Setenv(taskWorkdirEnv, "/tmp/task-workdir")
+
+		if got := taskRoot(); got != "/tmp/task-workdir" {
+			t.Fatalf("taskRoot() = %q, want /tmp/task-workdir", got)
+		}
+	})
+
+	t.Run("falls back to default", func(t *testing.T) {
+		t.Setenv(taskWorkdirEnv, "")
+
+		if got := taskRoot(); got != defaultRoot {
+			t.Fatalf("taskRoot() = %q, want %q", got, defaultRoot)
+		}
+	})
+}
+
+func TestRuntimePaths(t *testing.T) {
+	t.Run("uses env", func(t *testing.T) {
+		t.Setenv(agentLogDirEnv, "/tmp/agent")
+		t.Setenv(artifactsDirEnv, "/tmp/artifacts")
+		t.Setenv(verifierDirEnv, "/tmp/verifier")
+		t.Setenv(rewardPathEnv, "/tmp/reward.json")
+		t.Setenv(rewardDetailsPathEnv, "/tmp/reward-details.json")
+
+		if got := agentLogDir(); got != "/tmp/agent" {
+			t.Fatalf("agentLogDir() = %q, want /tmp/agent", got)
+		}
+		if got := artifactsDir(); got != "/tmp/artifacts" {
+			t.Fatalf("artifactsDir() = %q, want /tmp/artifacts", got)
+		}
+		if got := verifierDir(); got != "/tmp/verifier" {
+			t.Fatalf("verifierDir() = %q, want /tmp/verifier", got)
+		}
+		if got := prDraftPath(); got != "/tmp/artifacts/pr.md" {
+			t.Fatalf("prDraftPath() = %q, want /tmp/artifacts/pr.md", got)
+		}
+		if got := rewardPath(); got != "/tmp/reward.json" {
+			t.Fatalf("rewardPath() = %q, want /tmp/reward.json", got)
+		}
+		if got := rewardDetailsPath(); got != "/tmp/reward-details.json" {
+			t.Fatalf("rewardDetailsPath() = %q, want /tmp/reward-details.json", got)
+		}
+	})
+
+	t.Run("falls back to defaults", func(t *testing.T) {
+		t.Setenv(agentLogDirEnv, "")
+		t.Setenv(artifactsDirEnv, "")
+		t.Setenv(verifierDirEnv, "")
+		t.Setenv(rewardPathEnv, "")
+		t.Setenv(rewardDetailsPathEnv, "")
+
+		if got := agentLogDir(); got != defaultAgentLogDir {
+			t.Fatalf("agentLogDir() = %q, want %q", got, defaultAgentLogDir)
+		}
+		if got := artifactsDir(); got != defaultArtifactsDir {
+			t.Fatalf("artifactsDir() = %q, want %q", got, defaultArtifactsDir)
+		}
+		if got := verifierDir(); got != defaultVerifierDir {
+			t.Fatalf("verifierDir() = %q, want %q", got, defaultVerifierDir)
+		}
+		if got := prDraftPath(); got != defaultArtifactsDir+"/pr.md" {
+			t.Fatalf("prDraftPath() = %q, want %q", got, defaultArtifactsDir+"/pr.md")
+		}
+		if got := rewardPath(); got != defaultRewardPath {
+			t.Fatalf("rewardPath() = %q, want %q", got, defaultRewardPath)
+		}
+		if got := rewardDetailsPath(); got != defaultRewardDetails {
+			t.Fatalf("rewardDetailsPath() = %q, want %q", got, defaultRewardDetails)
+		}
+	})
+}
+
 func TestScoreDependencyUpdate(t *testing.T) {
 	t.Parallel()
 
