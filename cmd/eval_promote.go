@@ -22,6 +22,7 @@ var newEvalPromoter = func(opts harbor.EvalPromoteOptions) evalPromoter {
 type evalPromoteOptions struct {
 	jobsDir       string
 	job           string
+	datasetPath   string
 	latest        bool
 	dryRun        bool
 	evidenceOnly  bool
@@ -41,12 +42,18 @@ func evalPromoteCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "promote",
+		Use:   "promote [dataset-path]",
 		Short: "Commit staged changes with eval job evidence",
-		Args:  cobra.NoArgs,
+		Long: `Commit staged changes with eval job evidence.
+
+When dataset-path is omitted, runme eval promote uses ./` + harbor.DefaultEvalDatasetPath + `.`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.stdout = cmd.OutOrStdout()
 			opts.stderr = cmd.ErrOrStderr()
+			if len(args) > 0 {
+				opts.datasetPath = args[0]
+			}
 			return runEvalPromote(opts, args)
 		},
 	}
@@ -70,6 +77,7 @@ func runEvalPromote(opts evalPromoteOptions, args []string) error {
 	err := newEvalPromoter(harbor.EvalPromoteOptions{
 		JobsDir:       opts.jobsDir,
 		Job:           opts.job,
+		DatasetPath:   opts.datasetPath,
 		Latest:        opts.latest,
 		DryRun:        opts.dryRun,
 		EvidenceOnly:  opts.evidenceOnly,

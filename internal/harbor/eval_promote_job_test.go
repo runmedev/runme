@@ -71,7 +71,7 @@ func TestResolvePromoteJobLatestUsesHarborTimestamps(t *testing.T) {
 	if gotJobDir != cleanExistingPath(newJob) {
 		t.Fatalf("jobDir = %q, want %q", gotJobDir, cleanExistingPath(newJob))
 	}
-	if selection != "latest job under --jobs-dir" {
+	if selection != "latest job under --jobs-dir for dataset "+DefaultEvalDatasetPath {
 		t.Fatalf("selection = %q", selection)
 	}
 }
@@ -289,7 +289,10 @@ func writePromoteJobWithAgent(t *testing.T, jobDir, finishedAt, agent string, er
 	if err := os.WriteFile(filepath.Join(jobDir, "result.json"), []byte(result), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	config := `{"agents":[{"name":"` + agent + `"}]}`
+	config := `{
+		"datasets": [{"path": "` + DefaultEvalDatasetPath + `"}],
+		"agents": [{"name":"` + agent + `"}]
+	}`
 	if err := os.WriteFile(filepath.Join(jobDir, "config.json"), []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -317,7 +320,11 @@ func writeIncompletePromoteJob(t *testing.T, jobDir, finishedAt string, running,
 	if err := os.WriteFile(filepath.Join(jobDir, "result.json"), []byte(result), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(jobDir, "config.json"), []byte(`{"agents":[{"name":"codex"}]}`), 0o644); err != nil {
+	config := `{
+		"datasets": [{"path": "` + DefaultEvalDatasetPath + `"}],
+		"agents": [{"name":"codex"}]
+	}`
+	if err := os.WriteFile(filepath.Join(jobDir, "config.json"), []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }

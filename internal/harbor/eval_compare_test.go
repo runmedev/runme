@@ -55,6 +55,115 @@ func TestEvalComparerComparesTrackedBaseWithLatestLocalCandidate(t *testing.T) {
 	}
 }
 
+func TestEvalComparerDefaultsToDefaultDatasetPath(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	baseDir := filepath.Join(jobsRoot, "2026-06-25__09-00-00")
+	unrelatedBaseDir := filepath.Join(jobsRoot, "2026-06-25__11-00-00")
+	candidateDir := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	unrelatedCandidateDir := filepath.Join(jobsRoot, "2026-06-25__12-00-00")
+	writePromoteJobWithReward(t, baseDir, "2026-06-25T09:00:00Z", 1, 1, 0, 0.5)
+	writePromoteJobWithRewardForDataset(t, unrelatedBaseDir, "2026-06-25T11:00:00Z", "examples/other", 1, 1, 0, 1.0)
+	writePromoteJobWithReward(t, candidateDir, "2026-06-25T10:00:00Z", 1, 1, 0, 0.75)
+	writePromoteJobWithRewardForDataset(t, unrelatedCandidateDir, "2026-06-25T12:00:00Z", "examples/other", 1, 1, 0, 1.0)
+	t.Chdir(tmp)
+
+	var stdout bytes.Buffer
+	err := NewEvalComparer(EvalCompareOptions{
+		JobsDir: jobsRoot,
+		Stdout:  &stdout,
+		Git: fakeCompareGit{
+			root: cleanExistingPath(tmp),
+			jobs: []compareJob{
+				localCompareJob(t, tmp, unrelatedBaseDir, "tracked in test"),
+				localCompareJob(t, tmp, baseDir, "tracked in test"),
+			},
+		},
+	}).Run(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output := stdout.String()
+	for _, want := range []string{
+		"Base:   jobs/2026-06-25__09-00-00  tracked in HEAD",
+		"Latest: jobs/2026-06-25__10-00-00  local",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("output missing %q:\n%s", want, output)
+		}
+	}
+	if strings.Contains(output, "2026-06-25__11-00-00") || strings.Contains(output, "2026-06-25__12-00-00") {
+		t.Fatalf("output includes unrelated dataset job:\n%s", output)
+	}
+}
+
+func TestEvalComparerDatasetPathFiltersTrackedBaseAndLatestLocalCandidate(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	baseDir := filepath.Join(jobsRoot, "2026-06-25__09-00-00")
+	unrelatedBaseDir := filepath.Join(jobsRoot, "2026-06-25__11-00-00")
+	candidateDir := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	unrelatedCandidateDir := filepath.Join(jobsRoot, "2026-06-25__12-00-00")
+	writePromoteJobWithRewardForDataset(t, baseDir, "2026-06-25T09:00:00Z", "examples/target", 1, 1, 0, 0.5)
+	writePromoteJobWithRewardForDataset(t, unrelatedBaseDir, "2026-06-25T11:00:00Z", "examples/other", 1, 1, 0, 1.0)
+	writePromoteJobWithRewardForDataset(t, candidateDir, "2026-06-25T10:00:00Z", "examples/target", 1, 1, 0, 0.75)
+	writePromoteJobWithRewardForDataset(t, unrelatedCandidateDir, "2026-06-25T12:00:00Z", "examples/other", 1, 1, 0, 1.0)
+	t.Chdir(tmp)
+
+	var stdout bytes.Buffer
+	err := NewEvalComparer(EvalCompareOptions{
+		JobsDir:     jobsRoot,
+		DatasetPath: "examples/target",
+		Stdout:      &stdout,
+		Git: fakeCompareGit{
+			root: cleanExistingPath(tmp),
+			jobs: []compareJob{
+				localCompareJob(t, tmp, unrelatedBaseDir, "tracked in test"),
+				localCompareJob(t, tmp, baseDir, "tracked in test"),
+			},
+		},
+	}).Run(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Base:   jobs/2026-06-25__09-00-00  tracked in HEAD") ||
+		!strings.Contains(output, "Latest: jobs/2026-06-25__10-00-00  local") {
+		t.Fatalf("output selected wrong jobs:\n%s", output)
+	}
+	if strings.Contains(output, "2026-06-25__11-00-00") || strings.Contains(output, "2026-06-25__12-00-00") {
+		t.Fatalf("output includes unrelated dataset job:\n%s", output)
+	}
+}
+
+func TestEvalComparerExplicitJobMustMatchDatasetPath(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	baseDir := filepath.Join(jobsRoot, "2026-06-25__09-00-00")
+	jobDir := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	writePromoteJobWithRewardForDataset(t, baseDir, "2026-06-25T09:00:00Z", "examples/target", 1, 1, 0, 0.5)
+	writePromoteJobWithRewardForDataset(t, jobDir, "2026-06-25T10:00:00Z", "examples/other", 1, 1, 0, 0.75)
+	t.Chdir(tmp)
+
+	err := NewEvalComparer(EvalCompareOptions{
+		JobsDir:     jobsRoot,
+		Job:         jobDir,
+		DatasetPath: "examples/target",
+		Git: fakeCompareGit{
+			root: cleanExistingPath(tmp),
+			jobs: []compareJob{localCompareJob(t, tmp, baseDir, "tracked in test")},
+		},
+	}).Run(nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "does not match requested dataset examples/target") {
+		t.Fatalf("error = %q", err.Error())
+	}
+}
+
 func TestEvalComparerJSONOutputIsSmallComparisonObject(t *testing.T) {
 	tmp := t.TempDir()
 	jobsRoot := filepath.Join(tmp, "jobs")
@@ -63,7 +172,7 @@ func TestEvalComparerJSONOutputIsSmallComparisonObject(t *testing.T) {
 	writePromoteJobWithReward(t, baseDir, "2026-06-25T09:00:00Z", 1, 1, 0, 0.5)
 	writePromoteJobWithReward(t, candidateDir, "2026-06-25T10:00:00Z", 1, 1, 0, 0.75)
 	config := `{
-		"datasets": [{"path": "dataset"}],
+		"datasets": [{"path": "` + DefaultEvalDatasetPath + `"}],
 		"agents": [{"name": "runme-codex", "model_name": "model"}],
 		"environment": {"type": "runme"}
 	}`
@@ -898,10 +1007,20 @@ func localCompareJob(t *testing.T, root, jobDir, selection string) compareJob {
 
 func writePromoteJobWithReward(t *testing.T, jobDir, finishedAt string, total, completed, errors int, reward float64) {
 	t.Helper()
-	writePromoteJobWithRewardAgent(t, jobDir, finishedAt, "runme-codex", total, completed, errors, reward)
+	writePromoteJobWithRewardAgentForDataset(t, jobDir, finishedAt, "runme-codex", DefaultEvalDatasetPath, total, completed, errors, reward)
 }
 
 func writePromoteJobWithRewardAgent(t *testing.T, jobDir, finishedAt, agent string, total, completed, errors int, reward float64) {
+	t.Helper()
+	writePromoteJobWithRewardAgentForDataset(t, jobDir, finishedAt, agent, DefaultEvalDatasetPath, total, completed, errors, reward)
+}
+
+func writePromoteJobWithRewardForDataset(t *testing.T, jobDir, finishedAt, datasetPath string, total, completed, errors int, reward float64) {
+	t.Helper()
+	writePromoteJobWithRewardAgentForDataset(t, jobDir, finishedAt, "runme-codex", datasetPath, total, completed, errors, reward)
+}
+
+func writePromoteJobWithRewardAgentForDataset(t *testing.T, jobDir, finishedAt, agent, datasetPath string, total, completed, errors int, reward float64) {
 	t.Helper()
 	writePromoteJob(t, jobDir, finishedAt)
 	result := fmt.Sprintf(`{
@@ -923,8 +1042,18 @@ func writePromoteJobWithRewardAgent(t *testing.T, jobDir, finishedAt, agent stri
 	}`, finishedAt, finishedAt, finishedAt, total, completed, errors, agent, total, errors, reward)
 	writeFile(t, filepath.Join(jobDir, "result.json"), result)
 	config := `{
-		"datasets": [{"path": "dataset", "task_names": ["task"]}],
+		"datasets": [{"path": "` + datasetPath + `", "task_names": ["task"]}],
 		"agents": [{"name": "` + agent + `", "model_name": "model"}],
+		"environment": {"type": "runme"}
+	}`
+	writeFile(t, filepath.Join(jobDir, "config.json"), config)
+}
+
+func writePromoteJobConfigForDataset(t *testing.T, jobDir, datasetPath string) {
+	t.Helper()
+	config := `{
+		"datasets": [{"path": "` + datasetPath + `", "task_names": ["task"]}],
+		"agents": [{"name": "runme-codex", "model_name": "model"}],
 		"environment": {"type": "runme"}
 	}`
 	writeFile(t, filepath.Join(jobDir, "config.json"), config)

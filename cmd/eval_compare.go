@@ -22,6 +22,7 @@ var newEvalComparer = func(opts harbor.EvalCompareOptions) evalComparer {
 type evalCompareOptions struct {
 	jobsDir       string
 	job           string
+	datasetPath   string
 	base          string
 	format        string
 	includeOracle bool
@@ -39,24 +40,25 @@ func evalCompareCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "compare",
+		Use:   "compare [dataset-path]",
 		Short: "Compare the latest Git-tracked eval job with the latest local eval job",
-		Long: `Compare eval job execution summaries and matching eval results between
-the last Git-tracked eval job and a local candidate eval job. By default, the
-candidate is the newest local job under --jobs-dir. The command is read-only
-and prints an advisory recommendation based on job counters and overlapping
-result rewards. It does not promote, commit, or enforce policy.`,
-		Args: cobra.NoArgs,
+		Long: `Compare eval jobs for a dataset.
+
+When dataset-path is omitted, runme eval compare uses ./` + harbor.DefaultEvalDatasetPath + `.`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.stdout = cmd.OutOrStdout()
 			opts.stderr = cmd.ErrOrStderr()
+			if len(args) > 0 {
+				opts.datasetPath = args[0]
+			}
 			return runEvalCompare(opts, args)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&opts.jobsDir, "jobs-dir", "", "Eval jobs directory; defaults to .runme/evals/jobs under the project root")
-	flags.StringVar(&opts.job, "job", "", "Compare against a specific local eval job instead of the newest local job")
+	flags.StringVar(&opts.job, "job", "", "Compare against a specific local eval job")
 	flags.StringVar(&opts.base, "base", "HEAD", "Git ref used to find the tracked baseline eval job")
 	flags.StringVar(&opts.format, "format", "text", "Output format: text or json")
 	flags.BoolVar(&opts.includeOracle, "include-oracle", false, "Allow comparing eval jobs that only used Harbor's oracle agent")
@@ -69,6 +71,7 @@ func runEvalCompare(opts evalCompareOptions, args []string) error {
 	err := newEvalComparer(harbor.EvalCompareOptions{
 		JobsDir:       opts.jobsDir,
 		Job:           opts.job,
+		DatasetPath:   opts.datasetPath,
 		Base:          opts.base,
 		Format:        opts.format,
 		IncludeOracle: opts.includeOracle,

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/runmedev/runme/v3/internal/harbor"
@@ -26,6 +27,7 @@ func TestEvalPromoteCmdPassesOptionsToHarborPromoter(t *testing.T) {
 	cmd.SetErr(&stderr)
 	cmd.SetArgs([]string{
 		"promote",
+		"examples/harbor/datasets/runme-rewardkit",
 		"--jobs-dir", "jobs",
 		"--job", "jobs/job-1",
 		"--dry-run",
@@ -48,11 +50,12 @@ func TestEvalPromoteCmdPassesOptionsToHarborPromoter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(gotArgs, []string(nil)) {
+	if !reflect.DeepEqual(gotArgs, []string{"examples/harbor/datasets/runme-rewardkit"}) {
 		t.Fatalf("args = %#v", gotArgs)
 	}
 	if gotOpts.JobsDir != "jobs" ||
 		gotOpts.Job != "jobs/job-1" ||
+		gotOpts.DatasetPath != "examples/harbor/datasets/runme-rewardkit" ||
 		!gotOpts.DryRun ||
 		!gotOpts.EvidenceOnly ||
 		!gotOpts.Artifacts ||
@@ -64,6 +67,18 @@ func TestEvalPromoteCmdPassesOptionsToHarborPromoter(t *testing.T) {
 		gotOpts.Stdout != &stdout ||
 		gotOpts.Stderr != &stderr {
 		t.Fatalf("options = %#v", gotOpts)
+	}
+}
+
+func TestEvalPromoteCmdRejectsMultipleDatasetPaths(t *testing.T) {
+	cmd := evalCmd()
+	cmd.SetArgs([]string{"promote", "one", "two"})
+	restoreEvalPromoter(t, func(harbor.EvalPromoteOptions) evalPromoter {
+		return fakeEvalPromoter{}
+	})
+
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected error")
 	}
 }
 
@@ -82,6 +97,30 @@ func TestEvalPromoteCmdPassesLatest(t *testing.T) {
 
 	if !gotOpts.Latest {
 		t.Fatal("Latest = false, want true")
+	}
+}
+
+func TestEvalPromoteCmdHelpMentionsDatasetDefault(t *testing.T) {
+	cmd := evalCmd()
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetArgs([]string{"promote", "--help"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	output := stdout.String()
+	for _, want := range []string{
+		"Usage:\n  eval promote [dataset-path] [flags]",
+		"Commit staged changes with eval job evidence.",
+		"When dataset-path is omitted, runme eval promote uses ./" + harbor.DefaultEvalDatasetPath + ".",
+		"--job string        Eval job directory to promote",
+		"Promote the latest eval job under --jobs-dir",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("help output missing %q:\n%s", want, output)
+		}
 	}
 }
 

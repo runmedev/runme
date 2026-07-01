@@ -144,6 +144,137 @@ func TestEvalPromoterDoesNotWarnWhenNewerPromotableJobExists(t *testing.T) {
 	}
 }
 
+func TestEvalPromoterLatestDefaultsToDefaultDatasetPath(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	selectedJob := filepath.Join(jobsRoot, "2026-06-25__09-00-00")
+	unrelatedJob := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	writePromoteJob(t, selectedJob, "2026-06-25T09:00:00Z")
+	writePromoteJobWithRewardForDataset(t, unrelatedJob, "2026-06-25T10:00:00Z", "examples/other", 1, 1, 0, 1.0)
+
+	var stdout bytes.Buffer
+	gitClient := &recordingPromoteGit{
+		root:     tmp,
+		jobFiles: []string{"jobs/2026-06-25__09-00-00/result.json"},
+	}
+	promoter := NewEvalPromoter(EvalPromoteOptions{
+		JobsDir: jobsRoot,
+		Latest:  true,
+		DryRun:  true,
+		Stdout:  &stdout,
+		Git:     gitClient,
+	})
+
+	if err := promoter.Run(nil); err != nil {
+		t.Fatal(err)
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "Selected eval job: jobs/2026-06-25__09-00-00") {
+		t.Fatalf("stdout = %q", output)
+	}
+	if strings.Contains(output, "2026-06-25__10-00-00") {
+		t.Fatalf("stdout includes unrelated dataset job: %q", output)
+	}
+}
+
+func TestEvalPromoterLatestFiltersByDatasetPathAndComparisonBase(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	baseDir := filepath.Join(jobsRoot, "2026-06-25__09-00-00")
+	unrelatedBaseDir := filepath.Join(jobsRoot, "2026-06-25__11-00-00")
+	jobDir := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	unrelatedJobDir := filepath.Join(jobsRoot, "2026-06-25__12-00-00")
+	writePromoteJobWithRewardForDataset(t, baseDir, "2026-06-25T09:00:00Z", "examples/target", 1, 1, 0, 0.5)
+	writePromoteJobWithRewardForDataset(t, unrelatedBaseDir, "2026-06-25T11:00:00Z", "examples/other", 1, 1, 0, 1.0)
+	writePromoteJobWithRewardForDataset(t, jobDir, "2026-06-25T10:00:00Z", "examples/target", 1, 1, 0, 0.75)
+	writePromoteJobWithRewardForDataset(t, unrelatedJobDir, "2026-06-25T12:00:00Z", "examples/other", 1, 1, 0, 1.0)
+
+	var stdout bytes.Buffer
+	gitClient := &recordingPromoteGit{
+		root: tmp,
+		trackedJobs: []evalJobRef{
+			localCompareJob(t, tmp, unrelatedBaseDir, "tracked in test"),
+			localCompareJob(t, tmp, baseDir, "tracked in test"),
+		},
+		jobFiles: []string{"jobs/2026-06-25__10-00-00/result.json"},
+	}
+	promoter := NewEvalPromoter(EvalPromoteOptions{
+		JobsDir:     jobsRoot,
+		DatasetPath: "examples/target",
+		Latest:      true,
+		DryRun:      true,
+		Stdout:      &stdout,
+		Git:         gitClient,
+	})
+
+	if err := promoter.Run(nil); err != nil {
+		t.Fatal(err)
+	}
+	output := stdout.String()
+	for _, want := range []string{
+		"Selected eval job: jobs/2026-06-25__10-00-00",
+		"Base:   jobs/2026-06-25__09-00-00  tracked in HEAD",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("stdout missing %q:\n%s", want, output)
+		}
+	}
+	if strings.Contains(output, "2026-06-25__11-00-00") || strings.Contains(output, "2026-06-25__12-00-00") {
+		t.Fatalf("stdout includes unrelated dataset job:\n%s", output)
+	}
+}
+
+func TestEvalPromoterExplicitJobMustMatchDatasetPath(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	jobDir := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	writePromoteJobWithRewardForDataset(t, jobDir, "2026-06-25T10:00:00Z", "examples/other", 1, 1, 0, 0.75)
+
+	gitClient := &recordingPromoteGit{root: tmp}
+	promoter := NewEvalPromoter(EvalPromoteOptions{
+		JobsDir:     jobsRoot,
+		Job:         jobDir,
+		DatasetPath: "examples/target",
+		DryRun:      true,
+		Git:         gitClient,
+	})
+
+	err := promoter.Run(nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "does not match requested dataset examples/target") {
+		t.Fatalf("error = %q", err.Error())
+	}
+}
+
+func TestEvalPromoterNewerJobWarningIgnoresOtherDatasets(t *testing.T) {
+	tmp := t.TempDir()
+	jobsRoot := filepath.Join(tmp, "jobs")
+	selectedJob := filepath.Join(jobsRoot, "2026-06-25__09-00-00")
+	incompleteOtherDatasetJob := filepath.Join(jobsRoot, "2026-06-25__10-00-00")
+	writePromoteJob(t, selectedJob, "2026-06-25T09:00:00Z")
+	writeIncompletePromoteJob(t, incompleteOtherDatasetJob, "2026-06-25T10:00:00Z", 0, 1, 0)
+	writePromoteJobConfigForDataset(t, incompleteOtherDatasetJob, "examples/other")
+
+	var stderr bytes.Buffer
+	gitClient := &recordingPromoteGit{root: tmp}
+	promoter := NewEvalPromoter(EvalPromoteOptions{
+		JobsDir: jobsRoot,
+		Latest:  true,
+		DryRun:  true,
+		Stderr:  &stderr,
+		Git:     gitClient,
+	})
+
+	if err := promoter.Run(nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := stderr.String(); strings.Contains(got, "newer eval jobs were skipped") {
+		t.Fatalf("stderr = %q", got)
+	}
+}
+
 func TestEvalPromoterDryRunShowsCompareGateWithoutFailing(t *testing.T) {
 	tmp := t.TempDir()
 	jobsRoot := filepath.Join(tmp, "jobs")

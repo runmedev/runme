@@ -9,6 +9,7 @@ import (
 type EvalCompareOptions struct {
 	JobsDir       string
 	Job           string
+	DatasetPath   string
 	Base          string
 	Format        string
 	IncludeOracle bool
@@ -39,8 +40,11 @@ func NewEvalComparer(opts EvalCompareOptions) *EvalComparer {
 }
 
 func (c *EvalComparer) Run(args []string) error {
-	if len(args) > 0 {
-		return fmt.Errorf("accepts no arguments")
+	if len(args) > 1 {
+		return fmt.Errorf("accepts at most 1 dataset path, received %d", len(args))
+	}
+	if len(args) == 1 {
+		c.opts.DatasetPath = args[0]
 	}
 	if c.opts.Format != "text" && c.opts.Format != "json" {
 		return fmt.Errorf("unsupported format %q; expected text or json", c.opts.Format)
@@ -58,11 +62,16 @@ func (c *EvalComparer) Run(args []string) error {
 			return err
 		}
 	}
+	datasetFilter, err := newEvalDatasetFilter(c.opts.DatasetPath, gitClient)
+	if err != nil {
+		return err
+	}
 
 	base, err := resolveCompareBase(compareBaseOptions{
-		git:      gitClient,
-		baseRef:  c.opts.Base,
-		jobsRoot: paths.jobsDir,
+		git:           gitClient,
+		baseRef:       c.opts.Base,
+		jobsRoot:      paths.jobsDir,
+		datasetFilter: datasetFilter,
 	})
 	if err != nil {
 		return err
@@ -74,6 +83,7 @@ func (c *EvalComparer) Run(args []string) error {
 		includeOracle: c.opts.IncludeOracle,
 		allowErrors:   c.opts.AllowErrors,
 		git:           gitClient,
+		datasetFilter: datasetFilter,
 	})
 	if err != nil {
 		return err
