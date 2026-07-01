@@ -8,7 +8,7 @@ import (
 
 func main() {
 	cmd := exec.Cmd{
-		Path:   "/usr/local/bin/bash",
+		Path:   "/bin/sh",
 		Args:   []string{"-l", "-c", "python"},
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
