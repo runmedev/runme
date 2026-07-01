@@ -15,20 +15,8 @@ from urllib.request import url2pathname
 
 
 PACKAGE_NAME = "runme-harbor"
-ENVIRONMENT_IMPORT_PATH = "runme_harbor.environment:RunmeEnvironment"
-CODEX_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCodex"
-CLAUDE_IMPORT_PATH = "runme_harbor.runme_agents:RunmeClaudeCode"
-CURSOR_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCursorCli"
-OPENCLAW_IMPORT_PATH = "runme_harbor.runme_agents:RunmeOpenClaw"
 MIN_HARBOR_VERSION = (0, 16, 0)
 MAX_HARBOR_VERSION = (0, 17, 0)
-AGENT_ARGUMENTS = {
-    "oracle": ("--agent", "oracle"),
-    "codex": ("--agent", CODEX_IMPORT_PATH),
-    "claude-code": ("--agent", CLAUDE_IMPORT_PATH),
-    "cursor-cli": ("--agent", CURSOR_IMPORT_PATH),
-    "openclaw": ("--agent", OPENCLAW_IMPORT_PATH),
-}
 
 
 def main(argv: Sequence[str] | None = None) -> int:

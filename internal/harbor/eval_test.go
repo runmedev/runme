@@ -96,6 +96,34 @@ func TestRunEvalDelegatesOracle(t *testing.T) {
 	}
 }
 
+func TestRunEvalDelegatesAntigravityCli(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.Agent = "antigravity-cli"
+	opts.Model = "google/gemini-3-pro-preview"
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		"--path",
+		mustAbs(t, path),
+		"--jobs-dir", defaultJobsDir(t),
+		"--env", runmeEnvironmentImportPath,
+		"--agent", "runme_harbor.runme_agents:RunmeAntigravityCli",
+		"-y",
+		"--n-concurrent", "1",
+		"--model", "google/gemini-3-pro-preview",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
 func TestRunEvalDefaultsDatasetPath(t *testing.T) {
 	tmp := t.TempDir()
 	t.Chdir(tmp)

@@ -31,6 +31,10 @@ def test_main_version_flag_prints_package_version(
     assert capsys.readouterr().out == "runme-harbor 1.2.3\n\ninstall: package\n"
 
 
+def test_cli_does_not_own_agent_metadata_mapping() -> None:
+    assert not hasattr(cli, "AGENT_ARGUMENTS")
+
+
 def test_version_text_includes_install_and_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -78,10 +82,7 @@ def test_install_source_detects_editable_source(
 ) -> None:
     class FakeDistribution:
         def read_text(self, _name: str) -> str:
-            return (
-                '{"url":"file:///repo/integrations/harbor",'
-                '"dir_info":{"editable":true}}'
-            )
+            return '{"url":"file:///repo/integrations/harbor","dir_info":{"editable":true}}'
 
     monkeypatch.setattr(cli.importlib.metadata, "distribution", lambda _name: FakeDistribution())
 

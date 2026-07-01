@@ -10,11 +10,22 @@ from harbor.models.trajectories.trajectory import Trajectory
 from harbor.models.trial.config import AgentConfig
 from harbor.models.trial.result import ModelInfo, TrialResult
 
-from runme_harbor.cli import AGENT_ARGUMENTS, ENVIRONMENT_IMPORT_PATH
-
 
 ORIGINAL_CONFIG_BACKUP = "config.harbor.json"
 ORIGINAL_RESULT_BACKUP = "result.harbor.json"
+ENVIRONMENT_IMPORT_PATH = "runme_harbor.environment:RunmeEnvironment"
+ANTIGRAVITY_IMPORT_PATH = "runme_harbor.runme_agents:RunmeAntigravityCli"
+CLAUDE_IMPORT_PATH = "runme_harbor.runme_agents:RunmeClaudeCode"
+CODEX_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCodex"
+CURSOR_IMPORT_PATH = "runme_harbor.runme_agents:RunmeCursorCli"
+OPENCLAW_IMPORT_PATH = "runme_harbor.runme_agents:RunmeOpenClaw"
+RUNME_AGENT_IMPORT_PATHS = {
+    "runme-antigravity-cli": ANTIGRAVITY_IMPORT_PATH,
+    "runme-claude-code": CLAUDE_IMPORT_PATH,
+    "runme-codex": CODEX_IMPORT_PATH,
+    "runme-cursor-cli": CURSOR_IMPORT_PATH,
+    "runme-openclaw": OPENCLAW_IMPORT_PATH,
+}
 
 
 @dataclass(frozen=True)
@@ -58,16 +69,13 @@ def _sync_job_metadata(job_dir: Path) -> bool:
         return results_synced
 
     synced_agents = [
-        _synced_agent_config(agent, original_config=original_config)
-        for agent in observed_agents
+        _synced_agent_config(agent, original_config=original_config) for agent in observed_agents
     ]
     updates: dict[str, object] = {"agents": synced_agents}
     if _has_runme_agent(synced_agents):
         updates["environment"] = _synced_environment(config, original_config=original_config)
 
-    synced_config = config.model_copy(
-        update=updates
-    )
+    synced_config = config.model_copy(update=updates)
     synced_json = synced_config.model_dump_json(indent=4)
     current_json = config_path.read_text()
     if _same_json(current_json, synced_json):
@@ -171,9 +179,15 @@ def _synced_agent_config(
     original_config: JobConfig | None,
 ) -> AgentConfig:
     original_agent = _matching_original_agent(observed, original_config=original_config)
-    import_path = original_agent.import_path if original_agent else _runme_agent_import_paths().get(observed.name)
+    import_path = (
+        original_agent.import_path
+        if original_agent
+        else _runme_agent_import_paths().get(observed.name)
+    )
     if import_path:
-        return AgentConfig(name=observed.name, import_path=import_path, model_name=observed.model_name)
+        return AgentConfig(
+            name=observed.name, import_path=import_path, model_name=observed.model_name
+        )
     return AgentConfig(name=observed.name, model_name=observed.model_name)
 
 
@@ -212,17 +226,7 @@ def _synced_environment(
 
 
 def _runme_agent_import_paths() -> dict[str, str]:
-    agent_import_paths: dict[str, str] = {}
-    for args in AGENT_ARGUMENTS.values():
-        if len(args) != 2 or args[0] != "--agent":
-            continue
-        import_path = args[1]
-        if ":" not in import_path:
-            continue
-        agent_name = _agent_name_from_import_path(import_path)
-        if agent_name:
-            agent_import_paths[agent_name] = import_path
-    return agent_import_paths
+    return dict(RUNME_AGENT_IMPORT_PATHS)
 
 
 def _agent_name_from_import_path(import_path: str) -> str | None:
