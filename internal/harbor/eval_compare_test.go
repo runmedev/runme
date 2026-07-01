@@ -207,6 +207,176 @@ func TestBuildEvalComparisonMatchesResultsAcrossDifferentAgents(t *testing.T) {
 	}
 }
 
+func TestBuildEvalComparisonMatchesOldAndModelPrefixedResultKeys(t *testing.T) {
+	comparison := buildEvalComparison(compareJob{
+		RelPath:   ".runme/evals/jobs/base",
+		ResultRel: ".runme/evals/jobs/base/result.json",
+		Result: promoteJobResult{
+			TotalTrials: 1,
+			Stats: promoteJobStats{
+				CompletedTrials: 1,
+				Evals: map[string]promoteEvalStats{
+					"tasks": {Trials: 1, Metrics: []map[string]interface{}{{"reward": 0.5}}},
+				},
+			},
+		},
+		Config: promoteJobConfig{
+			Datasets: []promoteDatasetConfig{{Path: "evals/tasks"}},
+			Agents:   []promoteAgentConfig{{Name: "runme-codex", ModelName: "gpt-5.5"}},
+		},
+		Selection: "tracked",
+	}, compareJob{
+		RelPath:   ".runme/evals/jobs/candidate",
+		ResultRel: ".runme/evals/jobs/candidate/result.json",
+		Result: promoteJobResult{
+			TotalTrials: 1,
+			Stats: promoteJobStats{
+				CompletedTrials: 1,
+				Evals: map[string]promoteEvalStats{
+					"gpt-5.5__tasks": {Trials: 1, Metrics: []map[string]interface{}{{"reward": 0.75}}},
+				},
+			},
+		},
+		Config: promoteJobConfig{
+			Datasets: []promoteDatasetConfig{{Path: "evals/tasks"}},
+			Agents:   []promoteAgentConfig{{Name: "runme-codex", ModelName: "gpt-5.5"}},
+		},
+		Selection: "local",
+	}, "HEAD")
+
+	if len(comparison.Results.Comparisons) != 1 {
+		t.Fatalf("comparisons = %#v, want one normalized match", comparison.Results.Comparisons)
+	}
+	result := comparison.Results.Comparisons[0]
+	if result.Key != "tasks" {
+		t.Fatalf("result key = %q, want tasks", result.Key)
+	}
+	if result.BaseKey != "tasks" || result.CandidateKey != "gpt-5.5__tasks" {
+		t.Fatalf("raw result keys = %q/%q", result.BaseKey, result.CandidateKey)
+	}
+	if len(comparison.Results.BaseOnly) != 0 || len(comparison.Results.CandidateOnly) != 0 {
+		t.Fatalf("unexpected non-overlap rows: %#v", comparison.Results)
+	}
+
+	var stdout bytes.Buffer
+	if err := renderEvalComparisonText(&stdout, comparison); err != nil {
+		t.Fatal(err)
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "tasks: reward 0.500 -> 0.750  +0.250") {
+		t.Fatalf("output missing normalized result row:\n%s", output)
+	}
+	if strings.Contains(output, "no matching eval results") ||
+		strings.Contains(output, "base only:") ||
+		strings.Contains(output, "latest only:") {
+		t.Fatalf("output should not report non-overlap for model-prefixed keys:\n%s", output)
+	}
+}
+
+func TestBuildEvalComparisonMatchesProviderAndShortModelResultKeys(t *testing.T) {
+	comparison := buildEvalComparison(compareJob{
+		RelPath:   ".runme/evals/jobs/base",
+		ResultRel: ".runme/evals/jobs/base/result.json",
+		Result: promoteJobResult{
+			TotalTrials: 1,
+			Stats: promoteJobStats{
+				CompletedTrials: 1,
+				Evals: map[string]promoteEvalStats{
+					"gpt-5.5__tasks": {Trials: 1, Metrics: []map[string]interface{}{{"reward": 0.5}}},
+				},
+			},
+		},
+		Config: promoteJobConfig{
+			Datasets: []promoteDatasetConfig{{Path: "evals/tasks"}},
+			Agents:   []promoteAgentConfig{{Name: "runme-codex", ModelName: "openai/gpt-5.5"}},
+		},
+		Selection: "tracked",
+	}, compareJob{
+		RelPath:   ".runme/evals/jobs/candidate",
+		ResultRel: ".runme/evals/jobs/candidate/result.json",
+		Result: promoteJobResult{
+			TotalTrials: 1,
+			Stats: promoteJobStats{
+				CompletedTrials: 1,
+				Evals: map[string]promoteEvalStats{
+					"openai/gpt-5.5__tasks": {Trials: 1, Metrics: []map[string]interface{}{{"reward": 0.75}}},
+				},
+			},
+		},
+		Config: promoteJobConfig{
+			Datasets: []promoteDatasetConfig{{Path: "evals/tasks"}},
+			Agents:   []promoteAgentConfig{{Name: "runme-codex", ModelName: "openai/gpt-5.5"}},
+		},
+		Selection: "local",
+	}, "HEAD")
+
+	if len(comparison.Results.Comparisons) != 1 {
+		t.Fatalf("comparisons = %#v, want one normalized match", comparison.Results.Comparisons)
+	}
+	result := comparison.Results.Comparisons[0]
+	if result.Key != "tasks" {
+		t.Fatalf("result key = %q, want tasks", result.Key)
+	}
+	if result.BaseKey != "gpt-5.5__tasks" || result.CandidateKey != "openai/gpt-5.5__tasks" {
+		t.Fatalf("raw result keys = %q/%q", result.BaseKey, result.CandidateKey)
+	}
+	if len(comparison.Results.BaseOnly) != 0 || len(comparison.Results.CandidateOnly) != 0 {
+		t.Fatalf("unexpected non-overlap rows: %#v", comparison.Results)
+	}
+}
+
+func TestBuildEvalComparisonFallsBackToRawKeysWhenModelNormalizationCollides(t *testing.T) {
+	config := promoteJobConfig{
+		Datasets: []promoteDatasetConfig{{Path: "evals/tasks"}},
+		Agents: []promoteAgentConfig{
+			{Name: "runme-codex", ModelName: "gpt-5.5"},
+			{Name: "runme-claude-code", ModelName: "claude-opus-4"},
+		},
+	}
+	comparison := buildEvalComparison(compareJob{
+		RelPath:   ".runme/evals/jobs/base",
+		ResultRel: ".runme/evals/jobs/base/result.json",
+		Result: promoteJobResult{
+			TotalTrials: 2,
+			Stats: promoteJobStats{
+				CompletedTrials: 2,
+				Evals: map[string]promoteEvalStats{
+					"claude-opus-4__tasks": {Trials: 1, Metrics: []map[string]interface{}{{"reward": 0.6}}},
+					"gpt-5.5__tasks":       {Trials: 1, Metrics: []map[string]interface{}{{"reward": 0.5}}},
+				},
+			},
+		},
+		Config:    config,
+		Selection: "tracked",
+	}, compareJob{
+		RelPath:   ".runme/evals/jobs/candidate",
+		ResultRel: ".runme/evals/jobs/candidate/result.json",
+		Result: promoteJobResult{
+			TotalTrials: 2,
+			Stats: promoteJobStats{
+				CompletedTrials: 2,
+				Evals: map[string]promoteEvalStats{
+					"claude-opus-4__tasks": {Trials: 1, Metrics: []map[string]interface{}{{"reward": 0.7}}},
+					"gpt-5.5__tasks":       {Trials: 1, Metrics: []map[string]interface{}{{"reward": 0.75}}},
+				},
+			},
+		},
+		Config:    config,
+		Selection: "local",
+	}, "HEAD")
+
+	if len(comparison.Results.Comparisons) != 2 {
+		t.Fatalf("comparisons = %#v, want two raw-key matches", comparison.Results.Comparisons)
+	}
+	if comparison.Results.Comparisons[0].Key != "claude-opus-4__tasks" ||
+		comparison.Results.Comparisons[1].Key != "gpt-5.5__tasks" {
+		t.Fatalf("comparison keys = %#v, want raw model-prefixed keys", comparison.Results.Comparisons)
+	}
+	if len(comparison.Results.BaseOnly) != 0 || len(comparison.Results.CandidateOnly) != 0 {
+		t.Fatalf("unexpected non-overlap rows: %#v", comparison.Results)
+	}
+}
+
 func TestBuildEvalComparisonTreatsMissingRewardAsZero(t *testing.T) {
 	comparison := buildEvalComparison(compareJob{
 		RelPath:   ".runme/evals/jobs/base",

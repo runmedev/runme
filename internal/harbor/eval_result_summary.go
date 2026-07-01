@@ -74,6 +74,13 @@ func normalizedEvalResultEntries(result promoteJobResult, config promoteJobConfi
 func evalResultIdentity(key string, config promoteJobConfig) string {
 	for _, agent := range sortedAgentKeys(config.Agents) {
 		if result, ok := strings.CutPrefix(key, agent+"__"); ok {
+			key = result
+			break
+		}
+	}
+	for _, model := range sortedModelKeys(config.Agents) {
+		prefix, result, ok := strings.Cut(key, "__")
+		if ok && evalModelKeyMatches(prefix, model) {
 			return result
 		}
 	}
@@ -98,6 +105,50 @@ func sortedAgentKeys(agents []promoteAgentConfig) []string {
 		return keys[i] < keys[j]
 	})
 	return keys
+}
+
+func sortedModelKeys(agents []promoteAgentConfig) []string {
+	keys := make([]string, 0, len(agents))
+	seen := make(map[string]struct{}, len(agents)*2)
+	for _, agent := range agents {
+		model := strings.TrimSpace(agent.ModelName)
+		if model == "" {
+			continue
+		}
+		for _, key := range []string{model, shortModelName(model)} {
+			if key == "" {
+				continue
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			keys = append(keys, key)
+		}
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if len(keys[i]) != len(keys[j]) {
+			return len(keys[i]) > len(keys[j])
+		}
+		return keys[i] < keys[j]
+	})
+	return keys
+}
+
+func evalModelKeyMatches(segment, model string) bool {
+	if segment == model {
+		return true
+	}
+	segmentShort := shortModelName(segment)
+	modelShort := shortModelName(model)
+	return segmentShort != "" && modelShort != "" && segmentShort == modelShort
+}
+
+func shortModelName(model string) string {
+	if idx := strings.LastIndex(model, "/"); idx >= 0 {
+		return model[idx+1:]
+	}
+	return model
 }
 
 func sortedEvalResultEntryKeys(entries map[string]evalResultEntry) []string {
