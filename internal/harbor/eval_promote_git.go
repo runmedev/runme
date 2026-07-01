@@ -15,6 +15,7 @@ import (
 
 type promoteGit interface {
 	TrackedEvalJobs(string, string) ([]evalJobRef, error)
+	ResolveRef(string) (string, error)
 	StagedFiles() ([]string, error)
 	UnstagedFilesTouching([]string) ([]string, error)
 	LatestModTime([]string) (time.Time, error)
@@ -198,6 +199,14 @@ func (c *goGitPromoteClient) TrackedEvalJobs(baseRef, jobsRoot string) ([]evalJo
 		rel:  c.Rel,
 		tree: c.tree,
 	}.Jobs(baseRef, jobsRoot)
+}
+
+func (c *goGitPromoteClient) ResolveRef(ref string) (string, error) {
+	hash, err := c.repo.ResolveRevision(plumbing.Revision(ref))
+	if err != nil {
+		return "", err
+	}
+	return hash.String(), nil
 }
 
 func (c *goGitPromoteClient) tree(ref string) (*object.Tree, error) {
