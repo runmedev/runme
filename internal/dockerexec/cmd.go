@@ -90,11 +90,23 @@ func (c *Cmd) Start() error {
 	}
 
 	c.containerID = resp.ID
+
+	// Wait() owns container cleanup, but callers do not call Wait() when Start()
+	// returns an error, so remove the container here on any failed start.
+	started := false
+	defer func() {
+		if !started {
+			if rmErr := c.removeContainer(); rmErr != nil {
+				c.logger.Warn("failed to remove container after Start error", zap.Error(rmErr))
+			}
+		}
+	}()
+
 	c.waitRespC, c.waitErrC = c.docker.client.ContainerWait(
 		c.ctx,
 		c.containerID,
-		// It's ok to wait for the "removed" state
-		// because the container is started with auto-remove.
+		// Wait for the "next exit" state; the container is removed manually by
+		// Wait()/removeContainer() rather than by daemon auto-remove.
 		container.WaitConditionNextExit,
 	)
 
@@ -161,6 +173,7 @@ func (c *Cmd) Start() error {
 		Pid: inspect.State.Pid,
 	}
 
+	started = true
 	return nil
 }
 

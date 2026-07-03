@@ -227,6 +227,57 @@ def test_missing_nested_configured_workdir_stages_workspace_root(
     assert configured_workdir not in request["command"]
 
 
+def test_absolute_workdir_outside_app_falls_back_to_workspace_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    environment = _make_env(
+        tmp_path,
+        task_env_config=EnvironmentConfig(
+            workdir="/workspace",
+            env={"TASK_ENV": "yes"},
+        ),
+    )
+
+    # An absolute workdir outside /app cannot be mapped into the Harbor root and
+    # must not abort start(); RUNME_TASK_WORKDIR falls back to the workspace root.
+    asyncio.run(environment.start(force_build=False))
+
+    env = FakeClient.instances[0].requests[0]["start"]["env"]
+    assert f"RUNME_TASK_WORKDIR={tmp_path}" in env
+
+
+def test_missing_configured_workdir_does_not_recurse_into_trial_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    # Trial root lives under the workspace, so staging the whole workspace (the
+    # not-a-dir fallback) must not copy the trial dir into its own destination.
+    (tmp_path / "go.mod").write_text("module example.com/repo\n")
+
+    configured_workdir = "/app/does-not-exist"
+    environment = _make_env(
+        tmp_path,
+        workspace_root=tmp_path,
+        task_env_config=EnvironmentConfig(
+            workdir=configured_workdir,
+            env={"TASK_ENV": "yes"},
+        ),
+    )
+
+    asyncio.run(environment.start(force_build=False))
+
+    staged = tmp_path / "trial" / "workdir"
+    assert (staged / "go.mod").read_text() == "module example.com/repo\n"
+    assert not (staged / "trial").exists()
+
+
 def test_runtime_task_workdir_overrides_configured_env(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

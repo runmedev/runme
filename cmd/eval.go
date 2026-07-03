@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -119,15 +118,7 @@ func runEval(opts evalOptions, args []string) error {
 	if errors.Is(err, harbor.ErrRunmeHarborMissing) {
 		return fmt.Errorf("`runme eval` requires the optional Python package `runme-harbor`.\n\nInstall it with:\n  uv tool install runme-harbor\n\nThen retry:\n  runme eval\n\nOr pass a dataset path explicitly:\n  runme eval <dataset-path>")
 	}
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		return ExitCodeError{Code: exitErr.ExitCode(), Err: err}
-	}
-	var codeErr interface{ ExitCode() int }
-	if errors.As(err, &codeErr) {
-		return ExitCodeError{Code: codeErr.ExitCode(), Err: err}
-	}
-	return err
+	return asExitCodeError(err)
 }
 
 func validateEvalArgs(_ *cobra.Command, args []string) error {

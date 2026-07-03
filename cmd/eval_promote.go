@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"errors"
 	"io"
 	"os"
-	"os/exec"
 
 	"github.com/spf13/cobra"
 
@@ -89,16 +87,5 @@ func runEvalPromote(opts evalPromoteOptions, args []string) error {
 		Stdout:        opts.stdout,
 		Stderr:        opts.stderr,
 	}).Run(args)
-	if err == nil {
-		return nil
-	}
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		return ExitCodeError{Code: exitErr.ExitCode(), Err: err}
-	}
-	var codeErr interface{ ExitCode() int }
-	if errors.As(err, &codeErr) {
-		return ExitCodeError{Code: codeErr.ExitCode(), Err: err}
-	}
-	return err
+	return asExitCodeError(err)
 }

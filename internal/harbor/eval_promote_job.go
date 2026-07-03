@@ -147,12 +147,15 @@ func latestPromoteJob(jobsRoot string, policy promoteJobPolicy, datasetFilter ev
 			continue
 		}
 		timestamp := resultTimestamp(result)
-		info, _ := entry.Info()
+		var modTime time.Time
+		if info, err := entry.Info(); err == nil {
+			modTime = info.ModTime()
+		}
 		candidates = append(candidates, promoteJobCandidate{
 			dir:       dir,
 			name:      entry.Name(),
 			timestamp: timestamp,
-			modTime:   info.ModTime(),
+			modTime:   modTime,
 		})
 	}
 	if len(candidates) == 0 {
