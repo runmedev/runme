@@ -5,7 +5,6 @@ package dockerexec
 import (
 	"bytes"
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
@@ -48,10 +47,11 @@ func TestDockerCommandContext(t *testing.T) {
 	})
 
 	t.Run("CleanupOnStartError", func(t *testing.T) {
-		cmd := docker.CommandContext(context.Background(), "true")
-		// A bind source that does not exist makes ContainerStart fail after the
-		// container has already been created, exercising the Start() error path.
-		cmd.Dir = filepath.Join(workingDir, "does-not-exist")
+		// A nonexistent entrypoint is created successfully but fails at
+		// ContainerStart, exercising the Start() error path after the container
+		// already exists.
+		cmd := docker.CommandContext(context.Background(), "this-command-does-not-exist")
+		cmd.Dir = workingDir
 
 		require.Error(t, cmd.Start())
 		require.NotEmpty(t, cmd.containerID, "expected container to be created before the failure")
