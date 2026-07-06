@@ -46,6 +46,19 @@ func TestDockerCommandContext(t *testing.T) {
 		require.True(t, errdefs.IsNotFound(err), "expected container to be removed, got %v", err)
 	})
 
+	t.Run("CleanupOnStartError", func(t *testing.T) {
+		// A nonexistent entrypoint is created successfully but fails at
+		// ContainerStart, exercising the Start() error path after the container
+		// already exists.
+		cmd := docker.CommandContext(context.Background(), "this-command-does-not-exist")
+		cmd.Dir = workingDir
+
+		require.Error(t, cmd.Start())
+		require.NotEmpty(t, cmd.containerID, "expected container to be created before the failure")
+		_, err := docker.client.ContainerInspect(context.Background(), cmd.containerID)
+		require.True(t, errdefs.IsNotFound(err), "expected container to be removed after Start error, got %v", err)
+	})
+
 	t.Run("DebugLeavesContainer", func(t *testing.T) {
 		debugDocker, err := New(
 			&Options{

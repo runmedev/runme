@@ -310,7 +310,10 @@ class RunmeEnvironment(BaseEnvironment):
             source,
             target,
             symlinks=False,
-            ignore=_gitignore_filter(self._workspace_root),
+            # Exclude the trial root so that staging the whole workspace (the
+            # not-a-dir fallback above) cannot recurse into its own destination
+            # when self._root lives under the workspace.
+            ignore=_gitignore_filter(self._workspace_root, exclude=(self._root,)),
         )
         self._staged_workdir_remote = remote
         self._staged_workdir_host = target
@@ -318,7 +321,13 @@ class RunmeEnvironment(BaseEnvironment):
     def _resolved_task_workdir(self) -> Path:
         if self._staged_workdir_host:
             return self._staged_workdir_host
-        return self._map_remote_path(self.task_env_config.workdir or "/app")
+        try:
+            return self._map_remote_path(self.task_env_config.workdir or "/app")
+        except ValueError:
+            # A workdir that cannot be mapped into the Runme Harbor root (e.g. an
+            # absolute path outside /app) must not abort start(); fall back to the
+            # workspace root, matching the default for an unset workdir.
+            return self._workspace_root
 
     def _runtime_env(self) -> dict[str, str]:
         verifier_dir = self._root / "verifier"
@@ -487,12 +496,18 @@ def _env_map_to_list(*maps: dict[str, str] | None) -> list[str]:
     return [f"{key}={value}" for key, value in sorted(env.items())]
 
 
-def _gitignore_filter(workspace_root: Path):
+def _gitignore_filter(workspace_root: Path, exclude: tuple[Path, ...] = ()):
+    excluded_roots = {path.resolve() for path in exclude}
+
     def ignore(dir_path: str, names: list[str]) -> set[str]:
         ignored = set()
         base = Path(dir_path)
         for name in names:
-            if _is_git_ignored(workspace_root, base / name):
+            candidate = base / name
+            if excluded_roots and candidate.resolve() in excluded_roots:
+                ignored.add(name)
+                continue
+            if _is_git_ignored(workspace_root, candidate):
                 ignored.add(name)
         return ignored
 
