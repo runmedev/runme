@@ -1,0 +1,256 @@
+package harbor
+
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
+	tmp := t.TempDir()
+	var stdout bytes.Buffer
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:    tmp,
+		Description: "A useful task",
+		Authors:     []string{"Alice <alice@example.com>", "Bob"},
+		GitConfig:   noGitConfig,
+		Stdout:      &stdout,
+	})
+
+	if err := runner.Run([]string{"runmedev/my-task"}); err != nil {
+		t.Fatal(err)
+	}
+
+	taskDir := filepath.Join(tmp, "my-task")
+	for _, path := range []string{
+		"README.md",
+		"task.toml",
+		"instruction.md",
+		"environment/Dockerfile",
+		"workdir/.gitignore",
+		"workdir/.gitkeep",
+		"tests/test.sh",
+		"solution/solve.sh",
+	} {
+		if _, err := os.Stat(filepath.Join(taskDir, path)); err != nil {
+			t.Fatalf("%s missing: %v", path, err)
+		}
+	}
+
+	taskTOML := readFile(t, filepath.Join(taskDir, "task.toml"))
+	for _, want := range []string{
+		`schema_version = "1.3"`,
+		`name = "runmedev/my-task"`,
+		`description = "A useful task"`,
+		`{ name = "Alice", email = "alice@example.com" }`,
+		`{ name = "Bob" }`,
+		`workdir = "/app/workdir"`,
+	} {
+		if !strings.Contains(taskTOML, want) {
+			t.Fatalf("task.toml missing %q:\n%s", want, taskTOML)
+		}
+	}
+	if !strings.Contains(stdout.String(), "Author: Alice <alice@example.com>, Bob") {
+		t.Fatalf("stdout = %q", stdout.String())
+	}
+}
+
+func TestEvalTaskNewerDefaultsTasksDirUnderProjectRoot(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		Org:       "runmedev",
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+
+	if err := runner.Run([]string{"my-task"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(filepath.Join(tmp, DefaultEvalDatasetPath, "my-task", "task.toml")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEvalTaskNewerDefaultsAuthorFromGitConfig(t *testing.T) {
+	tmp := t.TempDir()
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir: tmp,
+		GitConfig: func(key string) (string, error) {
+			switch key {
+			case "user.name":
+				return "Sebastian", nil
+			case "user.email":
+				return "sebastian@example.com", nil
+			default:
+				return "", os.ErrNotExist
+			}
+		},
+		Stdout: &bytes.Buffer{},
+	})
+
+	if err := runner.Run([]string{"runmedev/my-task"}); err != nil {
+		t.Fatal(err)
+	}
+
+	taskTOML := readFile(t, filepath.Join(tmp, "my-task", "task.toml"))
+	if !strings.Contains(taskTOML, `{ name = "Sebastian", email = "sebastian@example.com" }`) {
+		t.Fatalf("task.toml = %s", taskTOML)
+	}
+}
+
+func TestEvalTaskNewerExplicitAuthorSkipsGitConfig(t *testing.T) {
+	tmp := t.TempDir()
+	called := false
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir: tmp,
+		Authors:  []string{"Alice"},
+		GitConfig: func(string) (string, error) {
+			called = true
+			return "", nil
+		},
+		Stdout: &bytes.Buffer{},
+	})
+
+	if err := runner.Run([]string{"runmedev/my-task"}); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("GitConfig was called")
+	}
+}
+
+func TestEvalTaskNewerRequiresOrgForBareName(t *testing.T) {
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  t.TempDir(),
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+
+	err := runner.Run([]string{"my-task"})
+	if err == nil || !strings.Contains(err.Error(), "missing an organization") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestEvalTaskNewerRejectsInvalidNames(t *testing.T) {
+	for _, name := range []string{
+		"runmedev/../bad",
+		"runmedev/",
+		"/bad",
+		"too/many/slashes",
+	} {
+		t.Run(name, func(t *testing.T) {
+			runner := NewEvalTaskNewer(EvalTaskNewOptions{
+				TasksDir:  t.TempDir(),
+				GitConfig: noGitConfig,
+				Stdout:    &bytes.Buffer{},
+			})
+			if err := runner.Run([]string{name}); err == nil {
+				t.Fatal("expected error")
+			}
+		})
+	}
+}
+
+func TestEvalTaskNewerExistingTargetRequiresForce(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.Mkdir(filepath.Join(tmp, "my-task"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  tmp,
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+
+	err := runner.Run([]string{"runmedev/my-task"})
+	if err == nil || !strings.Contains(err.Error(), "--force") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestEvalTaskNewerForceOverwritesOwnedFilesAndKeepsUnknownFiles(t *testing.T) {
+	tmp := t.TempDir()
+	taskDir := filepath.Join(tmp, "my-task")
+	if err := os.MkdirAll(taskDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(taskDir, "task.toml"), []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(taskDir, "notes.txt"), []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  tmp,
+		Force:     true,
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+	if err := runner.Run([]string{"runmedev/my-task"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := readFile(t, filepath.Join(taskDir, "notes.txt")); got != "keep" {
+		t.Fatalf("notes.txt = %q", got)
+	}
+	if got := readFile(t, filepath.Join(taskDir, "task.toml")); got == "old" {
+		t.Fatal("task.toml was not overwritten")
+	}
+}
+
+func TestEvalTaskNewerNoSolutionSkipsSolution(t *testing.T) {
+	tmp := t.TempDir()
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:   tmp,
+		NoSolution: true,
+		GitConfig:  noGitConfig,
+		Stdout:     &bytes.Buffer{},
+	})
+	if err := runner.Run([]string{"runmedev/my-task"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(tmp, "my-task", "solution", "solve.sh")); !os.IsNotExist(err) {
+		t.Fatalf("solution exists or stat failed unexpectedly: %v", err)
+	}
+}
+
+func TestEvalTaskNewerScriptsAreExecutable(t *testing.T) {
+	tmp := t.TempDir()
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  tmp,
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+	if err := runner.Run([]string{"runmedev/my-task"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"tests/test.sh", "solution/solve.sh"} {
+		info, err := os.Stat(filepath.Join(tmp, "my-task", path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Mode()&0o111 == 0 {
+			t.Fatalf("%s is not executable: %s", path, info.Mode())
+		}
+	}
+}
+
+func noGitConfig(string) (string, error) {
+	return "", os.ErrNotExist
+}
+
+func readFile(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}

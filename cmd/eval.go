@@ -89,6 +89,7 @@ When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetP
 	cmd.AddCommand(evalViewCmd())
 	cmd.AddCommand(evalPromoteCmd())
 	cmd.AddCommand(evalCompareCmd())
+	cmd.AddCommand(evalTaskCmd())
 
 	return cmd
 }
