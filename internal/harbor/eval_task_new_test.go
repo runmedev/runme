@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -222,6 +223,10 @@ func TestEvalTaskNewerNoSolutionSkipsSolution(t *testing.T) {
 }
 
 func TestEvalTaskNewerScriptsAreExecutable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows filesystems do not report Unix executable bits")
+	}
+
 	tmp := t.TempDir()
 	runner := NewEvalTaskNewer(EvalTaskNewOptions{
 		TasksDir:  tmp,
