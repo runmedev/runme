@@ -101,7 +101,7 @@ The kernel is used to run long running processes like shells and interacting wit
 				return err
 			}
 
-			_ = telemetry.ReportUnlessNoTracking(logger)
+			_ = telemetry.ReportKernelStartup(logger)
 
 			logger.Info("started listening", zap.String("addr", lis.Addr().String()))
 

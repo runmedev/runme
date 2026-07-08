@@ -23,16 +23,29 @@ import (
 var realHome = os.Getenv("HOME")
 
 func TestMain(m *testing.M) {
+	setNoTelemetryEnv()
+
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"runme": root,
 	}))
+}
+
+func setNoTelemetryEnv() {
+	_ = os.Setenv("DO_NOT_TRACK", "true")
+	_ = os.Setenv("SCARF_NO_ANALYTICS", "true")
+}
+
+func setupNoTelemetry(env *testscript.Env) error {
+	env.Setenv("DO_NOT_TRACK", "true")
+	env.Setenv("SCARF_NO_ANALYTICS", "true")
+	return nil
 }
 
 // setupWithRealHome provides a Setup function that preserves the real HOME.
 // This is needed for tools like asdf/nvm that use shims requiring $HOME.
 func setupWithRealHome(env *testscript.Env) error {
 	env.Setenv("HOME", realHome)
-	return nil
+	return setupNoTelemetry(env)
 }
 
 // TestRunme tests runme end-to-end using testscript.
@@ -51,6 +64,7 @@ func TestRunmeFlags(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/flags",
 		ContinueOnError: true,
+		Setup:           setupNoTelemetry,
 	})
 }
 
@@ -58,6 +72,7 @@ func TestRunmeTags(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/tags",
 		ContinueOnError: true,
+		Setup:           setupNoTelemetry,
 	})
 }
 
@@ -65,6 +80,7 @@ func TestRunmeRunAll(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/runall",
 		ContinueOnError: true,
+		Setup:           setupNoTelemetry,
 	})
 }
 
@@ -72,6 +88,7 @@ func TestRunmeBeta(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/beta",
 		ContinueOnError: true,
+		Setup:           setupNoTelemetry,
 	})
 }
 
@@ -83,6 +100,7 @@ func TestRunmeFilePermissions(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir:             "testdata/permissions",
 		ContinueOnError: true,
+		Setup:           setupNoTelemetry,
 	})
 }
 
@@ -92,6 +110,7 @@ func TestSkipPromptsWithinAPty(t *testing.T) {
 	defer os.Unsetenv("RUNME_VERBOSE")
 
 	cmd := exec.Command("go", "run", ".", "run", "skip-prompts-sample", "--chdir", "./examples/frontmatter/skipPrompts")
+	cmd.Env = append(os.Environ(), "DO_NOT_TRACK=true", "SCARF_NO_ANALYTICS=true")
 	ptmx, err := pty.StartWithAttrs(cmd, &pty.Winsize{Rows: 25, Cols: 80}, &syscall.SysProcAttr{})
 	require.NoError(t, err)
 	defer ptmx.Close()
