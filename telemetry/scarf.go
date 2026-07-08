@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -15,47 +13,91 @@ import (
 )
 
 const (
-	base   = "https://home.runme.dev/"
-	client = "Kernel"
+	baseURL = "https://home.runme.dev/"
+
+	envDoNotTrack       = "DO_NOT_TRACK"
+	envScarfNoAnalytics = "SCARF_NO_ANALYTICS"
 )
 
-type (
-	reporterFunc  func() error
-	lookupEnvFunc func(key string) (string, bool)
+type client string
+
+const (
+	clientKernel client = "Kernel"
+	clientCLI    client = "CLI"
 )
 
-var reporter reporterFunc
-
-func init() {
-	reporter = liveReporter
+type event struct {
+	client  client
+	name    string
+	props   map[string]string
+	timeout time.Duration
 }
 
-// Returns true if telemetry reporting is enabled, false otherwise.
-func ReportUnlessNoTracking(logger *zap.Logger) bool {
-	disablers := []string{"DO_NOT_TRACK", "SCARF_NO_ANALYTICS"}
+type reporter interface {
+	report(event event) bool
+}
 
-	for _, key := range disablers {
-		disabled, err := trackingDisabledForEnv(key)
-		if err == nil && disabled {
-			logger.Info(fmt.Sprintf("Telemetry reporting is disabled with %s", key))
-			return false
+type scarfReporter struct {
+	logger *zap.Logger
+	client *http.Client
+}
+
+type noopReporter struct{}
+
+func newReporter(logger *zap.Logger) reporter {
+	if TelemetryDisabledByUserOptOut() {
+		if logger != nil {
+			logger.Info("Telemetry reporting is disabled by user opt-out")
 		}
+		return noopReporter{}
 	}
 
-	logger.Info("Telemetry reporting is enabled")
+	return newScarfReporter(logger, http.DefaultClient)
+}
+
+func newScarfReporter(logger *zap.Logger, client *http.Client) reporter {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+	if client == nil {
+		client = http.DefaultClient
+	}
+
+	return &scarfReporter{
+		logger: logger,
+		client: client,
+	}
+}
+
+func (r *scarfReporter) report(event event) bool {
+	r.logger.Info("Telemetry reporting is enabled")
 
 	go func() {
-		err := reporter()
-		if err != nil {
-			logger.Warn("Error reporting telemetry", zap.Error(err))
+		if err := r.send(event); err != nil {
+			r.logger.Warn("Error reporting telemetry", zap.Error(err))
 		}
 	}()
 
 	return true
 }
 
+func (noopReporter) report(event) bool {
+	return false
+}
+
+func TelemetryDisabledByUserOptOut() bool {
+	for _, key := range []string{envDoNotTrack, envScarfNoAnalytics} {
+		disabled, err := trackingDisabledForEnv(key)
+		if err == nil && disabled {
+			return true
+		}
+	}
+
+	return false
+}
+
 func trackingDisabledForEnv(key string) (bool, error) {
-	val, err := strconv.ParseBool(os.Getenv(key))
+	val, err := strconv.ParseBool(getenv(key))
 	if err != nil {
 		return false, err
 	}
@@ -63,21 +105,26 @@ func trackingDisabledForEnv(key string) (bool, error) {
 	return val, nil
 }
 
-func liveReporter() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	encodedURL, err := buildURL(os.LookupEnv, client)
-	if err != nil {
-		return errors.Wrapf(err, "Error building telemtry URL")
+func (r *scarfReporter) send(event event) error {
+	timeout := event.timeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", encodedURL.String(), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	encodedURL, err := buildURL(baseURL, event)
+	if err != nil {
+		return errors.Wrapf(err, "Error building telemetry URL")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, encodedURL.String(), nil)
 	if err != nil {
 		return errors.Wrapf(err, "Error creating telemetry request")
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return errors.Wrapf(err, "Error sending telemetry request")
 	}
@@ -90,40 +137,32 @@ func liveReporter() error {
 	return nil
 }
 
-func buildURL(lookup lookupEnvFunc, client string) (*url.URL, error) {
-	baseAndClient := base + client
+func buildURL(base string, event event) (*url.URL, error) {
+	if event.client == "" {
+		return nil, fmt.Errorf("telemetry client is required")
+	}
 
-	props := []string{
-		"extname",
-		"extversion",
-		"remotename",
-		"appname",
-		"product",
-		"platform",
-		"uikind",
+	dst, err := url.Parse(base + string(event.client))
+	if err != nil {
+		return nil, err
 	}
 
 	params := url.Values{}
-	for _, p := range props {
-		addValue(lookup, &params, p)
+	if event.name != "" {
+		params.Add("event", event.name)
+	}
+	for key, value := range event.props {
+		if value != "" {
+			params.Add(key, value)
+		}
 	}
 
-	// until we have a non-extension-bundled reporting strategy, lets error
+	// Until we have a non-extension-bundled reporting strategy, let's error.
 	if len(params) == 0 {
 		return nil, fmt.Errorf("no telemetry properties provided")
 	}
 
-	dst, err := url.Parse(baseAndClient)
-	if err != nil {
-		return nil, err
-	}
 	dst.RawQuery = params.Encode()
 
 	return dst, nil
-}
-
-func addValue(lookup lookupEnvFunc, params *url.Values, prop string) {
-	if v, ok := lookup(fmt.Sprintf("TELEMETRY_%s", strings.ToUpper(prop))); ok {
-		params.Add(strings.ToLower(prop), v)
-	}
 }

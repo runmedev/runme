@@ -35,7 +35,7 @@ test/execute: TAGS ?= "" # e.g. TAGS="docker_enabled"
 # It depends on the build target because the runme binary
 # is used for tests, for example, "runme env dump".
 test/execute: build
-	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=60s -race=$(RACE) $(PKGS)
+	DO_NOT_TRACK=true SCARF_NO_ANALYTICS=true TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=60s -race=$(RACE) $(PKGS)
 
 .PHONY: test/coverage
 test/coverage: PKGS ?= "./..."
@@ -45,7 +45,7 @@ test/coverage: TAGS ?= "" # e.g. TAGS="docker_enabled"
 # It depends on the build target because the runme binary
 # is used for tests, for example, "runme env dump".
 test/coverage: build
-	TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=180s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
+	DO_NOT_TRACK=true SCARF_NO_ANALYTICS=true TZ=UTC go test -ldflags="$(LDTESTFLAGS)" -run="$(RUN)" -tags="$(TAGS)" -timeout=180s -covermode=atomic -coverprofile=cover.out -coverpkg=./... $(PKGS)
 
 .PHONY: test
 test: test/execute
@@ -69,7 +69,9 @@ test-docker/cleanup:
 .PHONY: test-docker/run
 test-docker/run:
 	docker run --rm \
+		-e DO_NOT_TRACK=true \
 		-e RUNME_TEST_ENV=docker \
+		-e SCARF_NO_ANALYTICS=true \
 		-e GOTOOLCHAIN=auto \
 		-v $(shell pwd):/workspace \
 		-v dev.runme.test-env-gocache:/root/.cache/go-build \

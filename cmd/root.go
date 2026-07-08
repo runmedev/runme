@@ -12,6 +12,7 @@ import (
 	"github.com/runmedev/runme/v3/internal/cmd/beta"
 	"github.com/runmedev/runme/v3/internal/extension"
 	agent "github.com/runmedev/runme/v3/pkg/agent/cmd"
+	"github.com/runmedev/runme/v3/telemetry"
 )
 
 var (
@@ -131,6 +132,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(agent.NewAgentCmd("runme-agent"))
 
 	cmd.SetUsageTemplate(getUsageTemplate(cmd))
+	telemetry.InstrumentCommandTree(&cmd)
 
 	return &cmd
 }

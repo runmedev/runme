@@ -26,7 +26,7 @@ func serverStartCmd() *cobra.Command {
 				) error {
 					defer logger.Sync()
 
-					_ = telemetry.ReportUnlessNoTracking(logger)
+					_ = telemetry.ReportKernelStartup(logger)
 
 					// When using a unix socket, we want to create a file with server's PID.
 					if path := pidFileNameFromAddr(cfg.Server.Address); path != "" {
