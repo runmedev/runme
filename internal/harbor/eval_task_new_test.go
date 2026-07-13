@@ -81,11 +81,12 @@ func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
 	if !strings.Contains(stdout.String(), "Author: Alice <alice@example.com>, Bob") {
 		t.Fatalf("stdout = %q", stdout.String())
 	}
-	stdoutText := filepath.ToSlash(stdout.String())
-	dockerfilePath := filepath.ToSlash(filepath.Join(taskDir, "environment", "Dockerfile"))
-	if !strings.Contains(stdoutText, "- Optional Docker setup (--env docker): "+dockerfilePath) {
-		t.Fatalf("stdout = %q", stdout.String())
-	}
+	assertSummaryPath(
+		t,
+		stdout.String(),
+		"- Optional Docker setup (--env docker): ",
+		filepath.Join(taskDir, "environment", "Dockerfile"),
+	)
 }
 
 func TestEvalTaskNewerDefaultsTasksDirUnderProjectRoot(t *testing.T) {
@@ -487,4 +488,21 @@ func readFile(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(data)
+}
+
+func assertSummaryPath(t *testing.T, stdout, prefix, wantPath string) {
+	t.Helper()
+	for _, line := range strings.Split(stdout, "\n") {
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		gotPath := strings.TrimSpace(strings.TrimPrefix(line, prefix))
+		gotClean := cleanExistingPath(gotPath)
+		wantClean := cleanExistingPath(wantPath)
+		if gotClean != wantClean {
+			t.Fatalf("%s path = %q, want %q\nstdout:\n%s", strings.TrimSpace(prefix), gotPath, wantPath, stdout)
+		}
+		return
+	}
+	t.Fatalf("stdout missing line with prefix %q:\n%s", prefix, stdout)
 }
