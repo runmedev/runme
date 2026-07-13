@@ -51,6 +51,12 @@ type taskTemplateData struct {
 	ContainerWorkdir string
 }
 
+type scaffoldFile struct {
+	template string
+	target   string
+	mode     os.FileMode
+}
+
 var authorPattern = regexp.MustCompile(`^(.+?)\s*<(.+?)>\s*$`)
 
 func NewEvalTaskNewer(opts EvalTaskNewOptions) *EvalTaskNewer {
@@ -109,7 +115,7 @@ func (r *EvalTaskNewer) Run(args []string) error {
 		EvalDatasetPath:  evalDatasetPath,
 		ContainerWorkdir: containerWorkdir,
 	}
-	if err := writeEvalTaskScaffold(taskDir, data, r.opts.NoSolution); err != nil {
+	if err := writeEvalTaskScaffold(taskDir, data, r.opts.NoSolution, r.opts.Force); err != nil {
 		return err
 	}
 
@@ -163,6 +169,9 @@ func resolveEvalTaskName(name, org string) (string, string, error) {
 		return "", "", errors.New("task name cannot be empty")
 	}
 	if strings.Contains(name, "/") {
+		if org != "" {
+			return "", "", fmt.Errorf("task name %q already includes an organization; do not pass --org", name)
+		}
 		parts := strings.Split(name, "/")
 		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 			return "", "", fmt.Errorf("task name must be in org/name format: %s", name)
@@ -265,12 +274,8 @@ func ensureEvalTaskTarget(taskDir string, force bool) error {
 	return err
 }
 
-func writeEvalTaskScaffold(taskDir string, data taskTemplateData, noSolution bool) error {
-	files := []struct {
-		template string
-		target   string
-		mode     os.FileMode
-	}{
+func writeEvalTaskScaffold(taskDir string, data taskTemplateData, noSolution, force bool) error {
+	files := []scaffoldFile{
 		{"README.md.tmpl", "README.md", 0o644},
 		{"task.toml.tmpl", "task.toml", 0o644},
 		{"instruction.md.tmpl", "instruction.md", 0o644},
@@ -279,15 +284,16 @@ func writeEvalTaskScaffold(taskDir string, data taskTemplateData, noSolution boo
 		{"tests/test.sh.tmpl", "tests/test.sh", 0o755},
 	}
 	if !noSolution {
-		files = append(files, struct {
-			template string
-			target   string
-			mode     os.FileMode
-		}{"solution/solve.sh.tmpl", "solution/solve.sh", 0o755})
+		files = append(files, scaffoldFile{"solution/solve.sh.tmpl", "solution/solve.sh", 0o755})
 	}
 
 	for _, file := range files {
 		if err := writeEvalTaskTemplate(taskDir, file.template, file.target, file.mode, data); err != nil {
+			return err
+		}
+	}
+	if noSolution && force {
+		if err := removeEvalTaskSolutionScaffold(taskDir); err != nil {
 			return err
 		}
 	}
@@ -297,6 +303,25 @@ func writeEvalTaskScaffold(taskDir string, data taskTemplateData, noSolution boo
 		return err
 	}
 	return os.WriteFile(workdirKeep, nil, 0o644) // #nosec G306 -- generated scaffold files should be user-readable.
+}
+
+func removeEvalTaskSolutionScaffold(taskDir string) error {
+	solutionDir := filepath.Join(taskDir, "solution")
+	solvePath := filepath.Join(solutionDir, "solve.sh")
+	if err := os.Remove(solvePath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	entries, err := os.ReadDir(solutionDir)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return os.Remove(solutionDir)
+	}
+	return nil
 }
 
 func writeEvalTaskSummary(w io.Writer, taskDir, authorSummary string, noSolution bool) error {

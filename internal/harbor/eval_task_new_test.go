@@ -247,6 +247,22 @@ func TestEvalTaskNewerRequiresOrgForBareName(t *testing.T) {
 	}
 }
 
+func TestEvalTaskNewerRejectsOrgFlagWithQualifiedName(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  tmp,
+		Org:       "other",
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+
+	err := runner.Run([]string{"runmedev/my-task"})
+	if err == nil || !strings.Contains(err.Error(), "already includes an organization") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
 func TestEvalTaskNewerRejectsInvalidNames(t *testing.T) {
 	for _, name := range []string{
 		"runmedev/../bad",
@@ -316,6 +332,40 @@ func TestEvalTaskNewerForceOverwritesOwnedFilesAndKeepsUnknownFiles(t *testing.T
 	}
 	if got := readFile(t, filepath.Join(taskDir, "task.toml")); got == "old" {
 		t.Fatal("task.toml was not overwritten")
+	}
+}
+
+func TestEvalTaskNewerForceNoSolutionRemovesOwnedSolutionFile(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	taskDir := filepath.Join(tmp, "my-task")
+	solutionDir := filepath.Join(taskDir, "solution")
+	if err := os.MkdirAll(solutionDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(solutionDir, "solve.sh"), []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(solutionDir, "notes.txt"), []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:   tmp,
+		Force:      true,
+		NoSolution: true,
+		GitConfig:  noGitConfig,
+		Stdout:     &bytes.Buffer{},
+	})
+	if err := runner.Run([]string{"runmedev/my-task"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(filepath.Join(solutionDir, "solve.sh")); !os.IsNotExist(err) {
+		t.Fatalf("solution/solve.sh exists or stat failed unexpectedly: %v", err)
+	}
+	if got := readFile(t, filepath.Join(solutionDir, "notes.txt")); got != "keep" {
+		t.Fatalf("solution/notes.txt = %q", got)
 	}
 }
 
