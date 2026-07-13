@@ -1,3 +1,9 @@
 # {{ .FullName }}
 
 Runme eval task scaffold.
+
+Run this task with an agent:
+
+```sh
+runme eval {{ .EvalDatasetPath }} --task-dir {{ .ShortName }} --agent claude-code
+```

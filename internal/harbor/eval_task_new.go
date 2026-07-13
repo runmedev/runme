@@ -47,6 +47,7 @@ type taskTemplateData struct {
 	Description      string
 	Authors          []taskAuthor
 	AuthorSummary    string
+	EvalDatasetPath  string
 	ContainerWorkdir string
 }
 
@@ -94,6 +95,10 @@ func (r *EvalTaskNewer) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	evalDatasetPath, err := evalTaskDatasetPath(paths.baseDir, paths.tasksDir)
+	if err != nil {
+		return err
+	}
 
 	data := taskTemplateData{
 		FullName:         fullName,
@@ -101,6 +106,7 @@ func (r *EvalTaskNewer) Run(args []string) error {
 		Description:      r.opts.Description,
 		Authors:          authors,
 		AuthorSummary:    formatAuthors(authors),
+		EvalDatasetPath:  evalDatasetPath,
 		ContainerWorkdir: containerWorkdir,
 	}
 	if err := writeEvalTaskScaffold(taskDir, data, r.opts.NoSolution); err != nil {
@@ -138,6 +144,16 @@ func evalTaskContainerWorkdir(baseDir, taskDir string) (string, error) {
 		return "", fmt.Errorf("eval task directory must be under workspace root %s to map to /app: %s", baseDir, taskDir)
 	}
 	return "/app/" + filepath.ToSlash(filepath.Join(rel, "workdir")), nil
+}
+
+func evalTaskDatasetPath(baseDir, tasksDir string) (string, error) {
+	baseDir = cleanExistingPath(baseDir)
+	tasksDir = cleanExistingPath(tasksDir)
+	rel := relativePathUnder(baseDir, tasksDir)
+	if rel == "" {
+		return "", fmt.Errorf("eval tasks directory must be under workspace root %s: %s", baseDir, tasksDir)
+	}
+	return filepath.ToSlash(rel), nil
 }
 
 func resolveEvalTaskName(name, org string) (string, string, error) {

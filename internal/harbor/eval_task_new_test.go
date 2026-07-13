@@ -57,6 +57,10 @@ func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
 			t.Fatalf("task.toml missing %q:\n%s", want, taskTOML)
 		}
 	}
+	readme := readFile(t, filepath.Join(taskDir, "README.md"))
+	if !strings.Contains(readme, `runme eval evals/tasks --task-dir my-task --agent claude-code`) {
+		t.Fatalf("README.md = %s", readme)
+	}
 	dockerfile := readFile(t, filepath.Join(taskDir, "environment", "Dockerfile"))
 	if !strings.Contains(dockerfile, "WORKDIR /app/evals/tasks/my-task/workdir") {
 		t.Fatalf("Dockerfile = %s", dockerfile)
@@ -131,6 +135,10 @@ func TestEvalTaskNewerUsesRelativeTasksDirForContainerWorkdir(t *testing.T) {
 	dockerfile := readFile(t, filepath.Join(taskDir, "environment", "Dockerfile"))
 	if !strings.Contains(dockerfile, "WORKDIR "+want) {
 		t.Fatalf("Dockerfile = %s", dockerfile)
+	}
+	readme := readFile(t, filepath.Join(taskDir, "README.md"))
+	if !strings.Contains(readme, `runme eval examples/harbor/datasets/custom --task-dir my-task --agent claude-code`) {
+		t.Fatalf("README.md = %s", readme)
 	}
 }
 
