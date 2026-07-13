@@ -33,6 +33,7 @@ type EvalTaskNewer struct {
 
 type evalTaskNewPaths struct {
 	tasksDir string
+	baseDir  string
 }
 
 type taskAuthor struct {
@@ -41,11 +42,12 @@ type taskAuthor struct {
 }
 
 type taskTemplateData struct {
-	FullName      string
-	ShortName     string
-	Description   string
-	Authors       []taskAuthor
-	AuthorSummary string
+	FullName         string
+	ShortName        string
+	Description      string
+	Authors          []taskAuthor
+	AuthorSummary    string
+	ContainerWorkdir string
 }
 
 var authorPattern = regexp.MustCompile(`^(.+?)\s*<(.+?)>\s*$`)
@@ -88,13 +90,18 @@ func (r *EvalTaskNewer) Run(args []string) error {
 	if err := ensureEvalTaskTarget(taskDir, r.opts.Force); err != nil {
 		return err
 	}
+	containerWorkdir, err := evalTaskContainerWorkdir(paths.baseDir, taskDir)
+	if err != nil {
+		return err
+	}
 
 	data := taskTemplateData{
-		FullName:      fullName,
-		ShortName:     shortName,
-		Description:   r.opts.Description,
-		Authors:       authors,
-		AuthorSummary: formatAuthors(authors),
+		FullName:         fullName,
+		ShortName:        shortName,
+		Description:      r.opts.Description,
+		Authors:          authors,
+		AuthorSummary:    formatAuthors(authors),
+		ContainerWorkdir: containerWorkdir,
 	}
 	if err := writeEvalTaskScaffold(taskDir, data, r.opts.NoSolution); err != nil {
 		return err
@@ -115,12 +122,22 @@ func resolveEvalTaskNewPaths(tasksDir string) (evalTaskNewPaths, error) {
 		tasksDir = DefaultEvalDatasetPath
 	}
 	if filepath.IsAbs(tasksDir) {
-		return evalTaskNewPaths{tasksDir: cleanExistingPath(tasksDir)}, nil
+		return evalTaskNewPaths{tasksDir: cleanExistingPath(tasksDir), baseDir: baseDir}, nil
 	}
 	if tasksDir == DefaultEvalDatasetPath {
-		return evalTaskNewPaths{tasksDir: filepath.Join(baseDir, tasksDir)}, nil
+		return evalTaskNewPaths{tasksDir: filepath.Join(baseDir, tasksDir), baseDir: baseDir}, nil
 	}
-	return evalTaskNewPaths{tasksDir: filepath.Clean(filepath.Join(invocationCwd, tasksDir))}, nil
+	return evalTaskNewPaths{tasksDir: filepath.Clean(filepath.Join(invocationCwd, tasksDir)), baseDir: baseDir}, nil
+}
+
+func evalTaskContainerWorkdir(baseDir, taskDir string) (string, error) {
+	baseDir = cleanExistingPath(baseDir)
+	taskDir = cleanExistingPath(taskDir)
+	rel := relativePathUnder(baseDir, taskDir)
+	if rel == "" || rel == "." {
+		return "", fmt.Errorf("eval task directory must be under workspace root %s to map to /app: %s", baseDir, taskDir)
+	}
+	return "/app/" + filepath.ToSlash(filepath.Join(rel, "workdir")), nil
 }
 
 func resolveEvalTaskName(name, org string) (string, string, error) {

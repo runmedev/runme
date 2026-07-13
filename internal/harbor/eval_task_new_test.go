@@ -11,9 +11,11 @@ import (
 
 func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
 	tmp := t.TempDir()
+	t.Chdir(tmp)
+	tasksDir := filepath.Join(tmp, DefaultEvalDatasetPath)
 	var stdout bytes.Buffer
 	runner := NewEvalTaskNewer(EvalTaskNewOptions{
-		TasksDir:    tmp,
+		TasksDir:    tasksDir,
 		Description: "A useful task",
 		Authors:     []string{"Alice <alice@example.com>", "Bob"},
 		GitConfig:   noGitConfig,
@@ -24,7 +26,7 @@ func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	taskDir := filepath.Join(tmp, "my-task")
+	taskDir := filepath.Join(tasksDir, "my-task")
 	for _, path := range []string{
 		"README.md",
 		"task.toml",
@@ -47,11 +49,15 @@ func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
 		`description = "A useful task"`,
 		`{ name = "Alice", email = "alice@example.com" }`,
 		`{ name = "Bob" }`,
-		`workdir = "/app/workdir"`,
+		`workdir = "/app/evals/tasks/my-task/workdir"`,
 	} {
 		if !strings.Contains(taskTOML, want) {
 			t.Fatalf("task.toml missing %q:\n%s", want, taskTOML)
 		}
+	}
+	dockerfile := readFile(t, filepath.Join(taskDir, "environment", "Dockerfile"))
+	if !strings.Contains(dockerfile, "WORKDIR /app/evals/tasks/my-task/workdir") {
+		t.Fatalf("Dockerfile = %s", dockerfile)
 	}
 	if !strings.Contains(stdout.String(), "Author: Alice <alice@example.com>, Bob") {
 		t.Fatalf("stdout = %q", stdout.String())
@@ -75,10 +81,82 @@ func TestEvalTaskNewerDefaultsTasksDirUnderProjectRoot(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(tmp, DefaultEvalDatasetPath, "my-task", "task.toml")); err != nil {
 		t.Fatal(err)
 	}
+	taskTOML := readFile(t, filepath.Join(tmp, DefaultEvalDatasetPath, "my-task", "task.toml"))
+	if !strings.Contains(taskTOML, `workdir = "/app/evals/tasks/my-task/workdir"`) {
+		t.Fatalf("task.toml = %s", taskTOML)
+	}
+}
+
+func TestEvalTaskNewerUsesRelativeTasksDirForContainerWorkdir(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  filepath.Join("examples", "harbor", "datasets", "custom"),
+		Org:       "runmedev",
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+
+	if err := runner.Run([]string{"my-task"}); err != nil {
+		t.Fatal(err)
+	}
+
+	taskDir := filepath.Join(tmp, "examples", "harbor", "datasets", "custom", "my-task")
+	want := `/app/examples/harbor/datasets/custom/my-task/workdir`
+	taskTOML := readFile(t, filepath.Join(taskDir, "task.toml"))
+	if !strings.Contains(taskTOML, `workdir = "`+want+`"`) {
+		t.Fatalf("task.toml = %s", taskTOML)
+	}
+	dockerfile := readFile(t, filepath.Join(taskDir, "environment", "Dockerfile"))
+	if !strings.Contains(dockerfile, "WORKDIR "+want) {
+		t.Fatalf("Dockerfile = %s", dockerfile)
+	}
+}
+
+func TestEvalTaskNewerUsesAbsoluteTasksDirInsideWorkspaceForContainerWorkdir(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	tasksDir := filepath.Join(tmp, "custom", "tasks")
+
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  tasksDir,
+		Org:       "runmedev",
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+
+	if err := runner.Run([]string{"my-task"}); err != nil {
+		t.Fatal(err)
+	}
+
+	taskTOML := readFile(t, filepath.Join(tasksDir, "my-task", "task.toml"))
+	if !strings.Contains(taskTOML, `workdir = "/app/custom/tasks/my-task/workdir"`) {
+		t.Fatalf("task.toml = %s", taskTOML)
+	}
+}
+
+func TestEvalTaskNewerRejectsTasksDirOutsideWorkspace(t *testing.T) {
+	workspace := t.TempDir()
+	t.Chdir(workspace)
+	externalTasksDir := filepath.Join(t.TempDir(), "tasks")
+
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  externalTasksDir,
+		Org:       "runmedev",
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+
+	err := runner.Run([]string{"my-task"})
+	if err == nil || !strings.Contains(err.Error(), "must be under workspace root") {
+		t.Fatalf("error = %v", err)
+	}
 }
 
 func TestEvalTaskNewerDefaultsAuthorFromGitConfig(t *testing.T) {
 	tmp := t.TempDir()
+	t.Chdir(tmp)
 	runner := NewEvalTaskNewer(EvalTaskNewOptions{
 		TasksDir: tmp,
 		GitConfig: func(key string) (string, error) {
@@ -106,6 +184,7 @@ func TestEvalTaskNewerDefaultsAuthorFromGitConfig(t *testing.T) {
 
 func TestEvalTaskNewerExplicitAuthorSkipsGitConfig(t *testing.T) {
 	tmp := t.TempDir()
+	t.Chdir(tmp)
 	called := false
 	runner := NewEvalTaskNewer(EvalTaskNewOptions{
 		TasksDir: tmp,
@@ -126,8 +205,10 @@ func TestEvalTaskNewerExplicitAuthorSkipsGitConfig(t *testing.T) {
 }
 
 func TestEvalTaskNewerRequiresOrgForBareName(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 	runner := NewEvalTaskNewer(EvalTaskNewOptions{
-		TasksDir:  t.TempDir(),
+		TasksDir:  tmp,
 		GitConfig: noGitConfig,
 		Stdout:    &bytes.Buffer{},
 	})
@@ -146,8 +227,10 @@ func TestEvalTaskNewerRejectsInvalidNames(t *testing.T) {
 		"too/many/slashes",
 	} {
 		t.Run(name, func(t *testing.T) {
+			tmp := t.TempDir()
+			t.Chdir(tmp)
 			runner := NewEvalTaskNewer(EvalTaskNewOptions{
-				TasksDir:  t.TempDir(),
+				TasksDir:  tmp,
 				GitConfig: noGitConfig,
 				Stdout:    &bytes.Buffer{},
 			})
@@ -160,6 +243,7 @@ func TestEvalTaskNewerRejectsInvalidNames(t *testing.T) {
 
 func TestEvalTaskNewerExistingTargetRequiresForce(t *testing.T) {
 	tmp := t.TempDir()
+	t.Chdir(tmp)
 	if err := os.Mkdir(filepath.Join(tmp, "my-task"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -177,6 +261,7 @@ func TestEvalTaskNewerExistingTargetRequiresForce(t *testing.T) {
 
 func TestEvalTaskNewerForceOverwritesOwnedFilesAndKeepsUnknownFiles(t *testing.T) {
 	tmp := t.TempDir()
+	t.Chdir(tmp)
 	taskDir := filepath.Join(tmp, "my-task")
 	if err := os.MkdirAll(taskDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -208,6 +293,7 @@ func TestEvalTaskNewerForceOverwritesOwnedFilesAndKeepsUnknownFiles(t *testing.T
 
 func TestEvalTaskNewerNoSolutionSkipsSolution(t *testing.T) {
 	tmp := t.TempDir()
+	t.Chdir(tmp)
 	runner := NewEvalTaskNewer(EvalTaskNewOptions{
 		TasksDir:   tmp,
 		NoSolution: true,
@@ -228,6 +314,7 @@ func TestEvalTaskNewerScriptsAreExecutable(t *testing.T) {
 	}
 
 	tmp := t.TempDir()
+	t.Chdir(tmp)
 	runner := NewEvalTaskNewer(EvalTaskNewOptions{
 		TasksDir:  tmp,
 		GitConfig: noGitConfig,

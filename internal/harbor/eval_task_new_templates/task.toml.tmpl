@@ -26,7 +26,7 @@ timeout_sec = 600.0
 network_mode = "public"
 build_timeout_sec = 600.0
 os = "linux"
-workdir = "/app/workdir"
+workdir = {{ tomlString .ContainerWorkdir }}
 mcp_servers = []
 
 [environment.env]
