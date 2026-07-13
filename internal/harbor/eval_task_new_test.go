@@ -2,7 +2,9 @@ package harbor
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -58,6 +60,19 @@ func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
 	dockerfile := readFile(t, filepath.Join(taskDir, "environment", "Dockerfile"))
 	if !strings.Contains(dockerfile, "WORKDIR /app/evals/tasks/my-task/workdir") {
 		t.Fatalf("Dockerfile = %s", dockerfile)
+	}
+	testScript := readFile(t, filepath.Join(taskDir, "tests", "test.sh"))
+	for _, want := range []string{
+		`RUNME_VERIFIER_DIR`,
+		`RUNME_REWARD_PATH`,
+		`test-stdout.txt`,
+		`tee "$stdout_path"`,
+		`{"reward": 0.0}`,
+		`/app/evals/tasks/my-task/workdir`,
+	} {
+		if !strings.Contains(testScript, want) {
+			t.Fatalf("tests/test.sh missing %q:\n%s", want, testScript)
+		}
 	}
 	if !strings.Contains(stdout.String(), "Author: Alice <alice@example.com>, Bob") {
 		t.Fatalf("stdout = %q", stdout.String())
@@ -331,6 +346,67 @@ func TestEvalTaskNewerScriptsAreExecutable(t *testing.T) {
 		if info.Mode()&0o111 == 0 {
 			t.Fatalf("%s is not executable: %s", path, info.Mode())
 		}
+	}
+}
+
+func TestEvalTaskNewerGeneratedVerifierWritesRewardAndStdout(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("generated verifier script requires a Unix shell")
+	}
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash not found")
+	}
+
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	runner := NewEvalTaskNewer(EvalTaskNewOptions{
+		TasksDir:  tmp,
+		GitConfig: noGitConfig,
+		Stdout:    &bytes.Buffer{},
+	})
+	if err := runner.Run([]string{"runmedev/my-task"}); err != nil {
+		t.Fatal(err)
+	}
+
+	verifierDir := filepath.Join(tmp, "verifier")
+	rewardPath := filepath.Join(verifierDir, "reward.json")
+	workdir := filepath.Join(tmp, "my-task", "workdir")
+	cmd := exec.Command(bash, filepath.Join(tmp, "my-task", "tests", "test.sh"))
+	cmd.Env = append(
+		os.Environ(),
+		"RUNME_VERIFIER_DIR="+verifierDir,
+		"RUNME_REWARD_PATH="+rewardPath,
+		"RUNME_TASK_NAME=my-task",
+		"RUNME_TASK_WORKDIR="+workdir,
+	)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("generated verifier failed: %v\n%s", err, output)
+	}
+
+	var rewards map[string]float64
+	if err := json.Unmarshal([]byte(readFile(t, rewardPath)), &rewards); err != nil {
+		t.Fatal(err)
+	}
+	if got := rewards["reward"]; got != 0.0 {
+		t.Fatalf("reward = %v, want 0.0", got)
+	}
+
+	stdout := readFile(t, filepath.Join(verifierDir, "test-stdout.txt"))
+	for _, want := range []string{
+		"Verifier started for my-task",
+		"Task workdir: " + workdir,
+		"Reward written to: " + rewardPath,
+		"Reward: 0.0",
+		"Verifier completed successfully",
+	} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("test-stdout.txt missing %q:\n%s", want, stdout)
+		}
+	}
+	if string(output) != stdout {
+		t.Fatalf("stdout mirror mismatch\noutput:\n%s\nfile:\n%s", output, stdout)
 	}
 }
 
