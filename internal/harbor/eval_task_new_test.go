@@ -77,6 +77,9 @@ func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
 	if !strings.Contains(stdout.String(), "Author: Alice <alice@example.com>, Bob") {
 		t.Fatalf("stdout = %q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), "- Optional Docker setup (--env docker): "+filepath.Join(taskDir, "environment", "Dockerfile")) {
+		t.Fatalf("stdout = %q", stdout.String())
+	}
 }
 
 func TestEvalTaskNewerDefaultsTasksDirUnderProjectRoot(t *testing.T) {

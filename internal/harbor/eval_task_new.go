@@ -294,7 +294,7 @@ func writeEvalTaskSummary(w io.Writer, taskDir, authorSummary string, noSolution
 		lines,
 		"Next steps:\n",
 		fmt.Sprintf("- Add your instruction to: %s\n", filepath.Join(taskDir, "instruction.md")),
-		fmt.Sprintf("- Define any task setup in: %s\n", filepath.Join(taskDir, "environment", "Dockerfile")),
+		fmt.Sprintf("- Optional Docker setup (--env docker): %s\n", filepath.Join(taskDir, "environment", "Dockerfile")),
 		fmt.Sprintf("- Use the test script to generate a reward: %s\n", filepath.Join(taskDir, "tests", "test.sh")),
 	)
 	if !noSolution {
