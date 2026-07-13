@@ -7,6 +7,12 @@ cwd: ../..
 These examples exercise Runme through Harbor's custom environment interface via
 `runme eval`.
 
+Create a new Runme-shaped eval task scaffold:
+
+```sh {"name":"new-eval-task"}
+runme eval task new runmedev/my-task
+```
+
 Run the smoke task with the oracle, which uses the known-good solution:
 
 ```sh {"name":"smoke-oracle"}

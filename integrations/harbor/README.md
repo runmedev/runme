@@ -5,6 +5,9 @@ Harbor's environment interface to a local `runme harbor stdio` process.
 
 Runme Harbor builds on the upstream Harbor Python package.
 
+Task scaffolding is handled by the Go CLI through `runme eval task new`; this
+package stays focused on runtime integration.
+
 ## Install
 
 Install the adapter as an isolated Python CLI tool:
