@@ -397,16 +397,19 @@ func TestEvalTaskNewerGeneratedVerifierWritesRewardAndStdout(t *testing.T) {
 	}
 
 	stdout := readFile(t, filepath.Join(verifierDir, "test-stdout.txt"))
-	for _, want := range []string{
+	wantStdout := strings.Join([]string{
 		"Verifier started for my-task",
 		"Task workdir: " + workdir,
+		"",
+		"Checking stub success condition: implement real checks before expecting this task to pass",
 		"Reward written to: " + rewardPath,
 		"Reward: 0.0",
+		"",
 		"Verifier completed successfully",
-	} {
-		if !strings.Contains(stdout, want) {
-			t.Fatalf("test-stdout.txt missing %q:\n%s", want, stdout)
-		}
+		"",
+	}, "\n")
+	if stdout != wantStdout {
+		t.Fatalf("test-stdout.txt = %q, want %q", stdout, wantStdout)
 	}
 	if string(output) != stdout {
 		t.Fatalf("stdout mirror mismatch\noutput:\n%s\nfile:\n%s", output, stdout)
