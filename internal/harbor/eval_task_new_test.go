@@ -58,7 +58,7 @@ func TestEvalTaskNewerCreatesExpectedScaffold(t *testing.T) {
 		}
 	}
 	readme := readFile(t, filepath.Join(taskDir, "README.md"))
-	if !strings.Contains(readme, `runme eval evals/tasks --task-dir my-task --agent claude-code`) {
+	if !strings.Contains(readme, `runme eval --task-dir my-task --agent claude-code`) {
 		t.Fatalf("README.md = %s", readme)
 	}
 	dockerfile := readFile(t, filepath.Join(taskDir, "environment", "Dockerfile"))

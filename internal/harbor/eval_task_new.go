@@ -48,6 +48,7 @@ type taskTemplateData struct {
 	Authors          []taskAuthor
 	AuthorSummary    string
 	EvalDatasetPath  string
+	EvalCommand      string
 	ContainerWorkdir string
 }
 
@@ -113,6 +114,7 @@ func (r *EvalTaskNewer) Run(args []string) error {
 		Authors:          authors,
 		AuthorSummary:    formatAuthors(authors),
 		EvalDatasetPath:  evalDatasetPath,
+		EvalCommand:      evalTaskRunCommand(evalDatasetPath, shortName),
 		ContainerWorkdir: containerWorkdir,
 	}
 	if err := writeEvalTaskScaffold(taskDir, data, r.opts.NoSolution, r.opts.Force); err != nil {
@@ -160,6 +162,13 @@ func evalTaskDatasetPath(baseDir, tasksDir string) (string, error) {
 		return "", fmt.Errorf("eval tasks directory must be under workspace root %s: %s", baseDir, tasksDir)
 	}
 	return filepath.ToSlash(rel), nil
+}
+
+func evalTaskRunCommand(evalDatasetPath, shortName string) string {
+	if evalDatasetPath == filepath.ToSlash(DefaultEvalDatasetPath) {
+		return fmt.Sprintf("runme eval --task-dir %s --agent claude-code", shortName)
+	}
+	return fmt.Sprintf("runme eval %s --task-dir %s --agent claude-code", evalDatasetPath, shortName)
 }
 
 func resolveEvalTaskName(name, org string) (string, string, error) {
