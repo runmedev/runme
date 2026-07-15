@@ -9,7 +9,6 @@ go 1.26.3
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260709200747-435963d16310.1
 	buf.build/go/protovalidate v1.2.0
-	cloud.google.com/go/secretmanager v1.20.0
 	connectrpc.com/connect v1.20.0
 	connectrpc.com/cors v0.1.0
 	connectrpc.com/grpchealth v1.5.0
@@ -35,7 +34,6 @@ require (
 	github.com/golang/mock v1.7.0-rc.1
 	github.com/google/go-github/v45 v45.2.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/graphql-go/graphql v0.8.1
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jhump/protoreflect v1.18.0
 	github.com/jlewi/monogo v0.0.0-20241216141120-2e83e825aa81
@@ -51,10 +49,10 @@ require (
 	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260709214304-372b2d56e470
 	github.com/rogpeppe/go-internal v1.15.0
 	github.com/rs/cors v1.11.1
+	github.com/runmedev/owl v0.0.0-20260715153416-0640cb229250
 	github.com/spf13/viper v1.21.0
 	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915
 	github.com/vektah/gqlparser/v2 v2.5.36
-	github.com/xo/dburl v0.24.2
 	github.com/yuin/goldmark v1.8.4
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0
 	go.opentelemetry.io/otel v1.44.0
@@ -67,7 +65,6 @@ require (
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/term v0.45.0
-	google.golang.org/api v0.288.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260713224248-f5fc221cf8c4
 	google.golang.org/protobuf v1.36.11
 	mvdan.cc/sh/v3 v3.13.1
@@ -86,6 +83,7 @@ require (
 	cloud.google.com/go/iam v1.12.0 // indirect
 	cloud.google.com/go/logging v1.19.0 // indirect
 	cloud.google.com/go/longrunning v1.2.0 // indirect
+	cloud.google.com/go/secretmanager v1.20.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -146,6 +144,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.18 // indirect
 	github.com/googleapis/gax-go/v2 v2.23.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
+	github.com/graphql-go/graphql v0.8.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-version v1.9.0 // indirect
@@ -181,6 +180,7 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/xo/dburl v0.24.2 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -196,6 +196,7 @@ require (
 	golang.org/x/telemetry v0.0.0-20260708182218-49f421fb7959 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
+	google.golang.org/api v0.288.0 // indirect
 	google.golang.org/genproto v0.0.0-20260713224248-f5fc221cf8c4 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260713224248-f5fc221cf8c4 // indirect
 	gvisor.dev/gvisor v0.0.0-20250318191406-9e676ea1de20 // indirect
@@ -246,7 +247,7 @@ require (
 	github.com/elliotchance/orderedmap v1.8.0
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/go-playground/assert/v2 v2.2.0
-	github.com/go-playground/validator/v10 v10.30.3
+	github.com/go-playground/validator/v10 v10.30.3 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0

@@ -26,10 +26,11 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/runmedev/owl/pkg/owl"
+
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
 	commandpkg "github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/internal/lru"
-	"github.com/runmedev/runme/v3/internal/owl"
 	"github.com/runmedev/runme/v3/internal/rbuffer"
 	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/project"

@@ -27,8 +27,9 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/runmedev/owl/pkg/owl"
+
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
-	"github.com/runmedev/runme/v3/internal/owl"
 	"github.com/runmedev/runme/v3/internal/testutils"
 	"github.com/runmedev/runme/v3/internal/testutils/log"
 	"github.com/runmedev/runme/v3/internal/ulid"

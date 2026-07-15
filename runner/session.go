@@ -6,12 +6,13 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/runmedev/owl/pkg/owl"
 	"go.uber.org/zap"
 
 	"github.com/runmedev/runme/v3/internal/lru"
-	"github.com/runmedev/runme/v3/internal/owl"
 	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/project"
+	rcontext "github.com/runmedev/runme/v3/runner/context"
 )
 
 var owlStoreDefault = false
@@ -332,7 +333,7 @@ func (es *owlEnvStorer) notifySubscribers() {
 }
 
 func (es *owlEnvStorer) updateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error {
-	if err := es.owlStore.Update(context, newOrUpdated, deleted); err != nil {
+	if err := es.owlStore.Update(owlContext(context), newOrUpdated, deleted); err != nil {
 		return err
 	}
 	es.notifySubscribers()
@@ -340,7 +341,7 @@ func (es *owlEnvStorer) updateStore(context context.Context, envs []string, newO
 }
 
 func (es *owlEnvStorer) addEnvs(context context.Context, envs []string) error {
-	if err := es.owlStore.Update(context, envs, nil); err != nil {
+	if err := es.owlStore.Update(owlContext(context), envs, nil); err != nil {
 		return err
 	}
 	es.notifySubscribers()
@@ -362,7 +363,7 @@ func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {
 
 func (es *owlEnvStorer) setEnv(context context.Context, k string, v string) error {
 	// todo(sebastian): add checking env length inside Update
-	err := es.owlStore.Update(context, []string{fmt.Sprintf("%s=%s", k, v)}, nil)
+	err := es.owlStore.Update(owlContext(context), []string{fmt.Sprintf("%s=%s", k, v)}, nil)
 	if err != nil {
 		return err
 	}
@@ -386,4 +387,17 @@ const sessionListCapacity = 1024
 
 func newSessionList() *sessionList {
 	return lru.NewCache[*Session](sessionListCapacity)
+}
+
+func owlContext(ctx context.Context) context.Context {
+	execInfo, ok := rcontext.ExecutionInfoFromContext(ctx)
+	if !ok {
+		return ctx
+	}
+
+	return owl.ContextWithExecutionInfo(ctx, owl.ExecutionInfo{
+		KnownID:     execInfo.KnownID,
+		KnownName:   execInfo.KnownName,
+		ExecContext: execInfo.ExecContext,
+	})
 }
