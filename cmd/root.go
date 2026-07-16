@@ -11,6 +11,7 @@ import (
 
 	"github.com/runmedev/runme/v3/internal/cmd/beta"
 	"github.com/runmedev/runme/v3/internal/extension"
+	"github.com/runmedev/runme/v3/internal/version"
 	agent "github.com/runmedev/runme/v3/pkg/agent/cmd"
 	"github.com/runmedev/runme/v3/telemetry"
 )
@@ -38,6 +39,7 @@ func Root() *cobra.Command {
 		Use:           "runme",
 		Short:         "Execute commands directly from a README",
 		Long:          "Runme executes commands inside your runbooks, docs, and READMEs. Parses commands\ndirectly from markdown files to make them executable.",
+		Version:       version.BaseVersionInfo(),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -129,6 +131,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(shellCmd())
 	cmd.AddCommand(tokenCmd())
 	cmd.AddCommand(tuiCmd)
+	cmd.AddCommand(versionCmd())
 	cmd.AddCommand(agent.NewAgentCmd("runme-agent"))
 
 	cmd.SetUsageTemplate(getUsageTemplate(cmd))

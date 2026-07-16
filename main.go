@@ -8,7 +8,6 @@ import (
 	"runtime/pprof"
 
 	"github.com/runmedev/runme/v3/cmd"
-	"github.com/runmedev/runme/v3/internal/version"
 )
 
 func main() {
@@ -17,7 +16,6 @@ func main() {
 
 func root() (status int) {
 	root := cmd.Root()
-	root.Version = version.BaseVersionInfo()
 
 	rootWithCPUProfile(func() {
 		if err := root.Execute(); err != nil {
