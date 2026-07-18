@@ -91,8 +91,83 @@ func (s *Streams) error(ctx context.Context, code code.Code, err error) {
 	}
 }
 
-func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc *Connection) error {
+func validateRequestEnvelope(ctx context.Context, auth *iam.AuthContext, runID string, req *streamv1.WebsocketRequest) error {
+	if err := auth.AuthorizeRequest(ctx, req); err != nil {
+		return errors.Wrap(err, "unauthorized request")
+	}
+	if req.GetRunId() != runID {
+		return errors.New("RunID mismatch")
+	}
+	if req.GetKnownId() == "" {
+		return errors.New("KnownID cannot be empty")
+	}
+	return nil
+}
+
+func (s *Streams) authorizeRequest(ctx context.Context, streamID string, runID string, sc *Connection, req *streamv1.WebsocketRequest) error {
 	log := logs.FromContextWithTrace(ctx)
+	if err := validateRequestEnvelope(ctx, s.auth, runID, req); err != nil {
+		log.Error(err, "Could not authorize request", "streamID", streamID, "runID", req.GetRunId())
+		sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, err)
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.knownID == "" {
+		s.knownID = req.GetKnownId()
+	}
+	if req.GetKnownId() != s.knownID {
+		err := errors.New("KnownID mismatch")
+		log.Error(err, "KnownID mismatch", "streamID", streamID, "knownID", req.GetKnownId(), "expectedKnownID", s.knownID)
+		sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, err)
+		return err
+	}
+	return nil
+}
+
+func (s *Streams) handleRequest(ctx context.Context, streamID string, runID string, sc *Connection, req *streamv1.WebsocketRequest) error {
+	log := logs.FromContextWithTrace(ctx)
+	log.Info("Received socket request", "streamID", streamID, "runID", req.GetRunId())
+
+	// Ping requests intentionally omit identity fields to keep heartbeat payloads
+	// small. All application messages are authenticated and bound to the run and
+	// cell that own this multiplexer.
+	if req.GetPing() == nil {
+		if err := s.authorizeRequest(ctx, streamID, runID, sc, req); err != nil {
+			return err
+		}
+	}
+
+	if req.GetOpenRunRequest() != nil {
+		err := errors.New("OpenRunRequest must be the first application message")
+		sc.ErrorMessage(ctx, code.Code_FAILED_PRECONDITION, err)
+		return err
+	}
+
+	// Handle protocol-level ping.
+	if req.GetPing() != nil {
+		pong := &streamv1.Pong{Timestamp: req.GetPing().GetTimestamp()}
+		resp := &streamv1.WebsocketResponse{Pong: pong}
+		if err := sc.WriteWebsocketResponse(ctx, resp); err != nil {
+			log.Error(err, "Could not send pong response")
+			return err
+		}
+		return nil
+	}
+
+	// Only authorized requests are forwarded to the multiplexer.
+	s.authedWebsocketRequests <- req
+	return nil
+}
+
+func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc *Connection, initialRequest *streamv1.WebsocketRequest) error {
+	log := logs.FromContextWithTrace(ctx)
+	if initialRequest != nil {
+		if err := s.handleRequest(ctx, streamID, runID, sc, initialRequest); err != nil {
+			return err
+		}
+	}
 
 	for {
 		log.Info("Reading socket requests", "streamID", streamID)
@@ -102,50 +177,9 @@ func (s *Streams) receive(ctx context.Context, streamID string, runID string, sc
 			return err
 		}
 
-		log.Info("Received socket request", "streamID", streamID, "runID", req.GetRunId())
-
-		// Return error to reject the connection if the socket request is not authorized.
-		if err := s.auth.AuthorizeRequest(ctx, req); err != nil {
-			log.Error(err, "Could not authorize request", "streamID", streamID, "runID", req.GetRunId())
-			sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, errors.New("Unauthorized request"))
+		if err := s.handleRequest(ctx, streamID, runID, sc, req); err != nil {
 			return err
 		}
-
-		// Skip if request is explicitly ping-only.
-		if req.GetPing() == nil && req.GetPayload() != nil {
-			// Check if context runID matches the authorized one in the request.
-			if req.GetRunId() != runID {
-				log.Error(err, "RunID mismatch", "streamID", streamID, "runID", req.GetRunId(), "expectedRunID", runID)
-				sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, errors.New("RunID mismatch"))
-				return err
-			}
-
-			// Set the known ID if it is not already set.
-			if s.knownID == "" {
-				s.knownID = req.GetKnownId()
-			}
-
-			// Check if the knownID matches the one in the request.
-			if s.knownID == "" || req.GetKnownId() != s.knownID {
-				log.Error(err, "KnownID mismatch", "streamID", streamID, "knownID", req.GetKnownId(), "expectedKnownID", s.knownID)
-				sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, errors.New("KnownID mismatch"))
-				return err
-			}
-		}
-
-		// Handle protocol-level ping
-		if req.GetPing() != nil {
-			pong := &streamv1.Pong{Timestamp: req.GetPing().GetTimestamp()}
-			resp := &streamv1.WebsocketResponse{Pong: pong}
-			err := sc.WriteWebsocketResponse(ctx, resp)
-			if err != nil {
-				log.Error(err, "Could not send pong response")
-			}
-			continue // Do not forward ping to multiplexer
-		}
-
-		// Only authorized requests are forwarded to the multiplexer.
-		s.authedWebsocketRequests <- req
 	}
 }
 

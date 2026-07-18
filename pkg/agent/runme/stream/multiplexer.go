@@ -102,7 +102,7 @@ func NewMultiplexer(ctx context.Context, runID string, auth *iam.AuthContext, ru
 	return m
 }
 
-func (m *Multiplexer) acceptConnection(streamID string, sc *Connection) error {
+func (m *Multiplexer) acceptConnection(streamID string, sc *Connection, initialRequest *streamv1.WebsocketRequest) error {
 	log := logs.FromContextWithTrace(m.ctx)
 
 	if err := m.streams.createStream(streamID, sc); err != nil {
@@ -113,7 +113,7 @@ func (m *Multiplexer) acceptConnection(streamID string, sc *Connection) error {
 	m.tap.ClientConnect(streamID)
 
 	// Start a goroutine to receive requests for a specific stream.
-	go m.receiveRequests(streamID, sc)
+	go m.receiveRequests(streamID, sc, initialRequest)
 
 	// Start a goroutine to enforce a timeout with an interval for inactivity per stream.
 	go m.startInactivityTimeout(MultiplexerTimeout, MultiplexerInterval)
@@ -122,7 +122,7 @@ func (m *Multiplexer) acceptConnection(streamID string, sc *Connection) error {
 }
 
 // receiveRequests handles receiving socket requests for a specific stream in a goroutine.
-func (m *Multiplexer) receiveRequests(streamID string, sc *Connection) {
+func (m *Multiplexer) receiveRequests(streamID string, sc *Connection, initialRequest *streamv1.WebsocketRequest) {
 	tracer := otel.Tracer("github.com/runmedev/runme/v3/pkg/agent/runme/stream")
 	ctx, span := tracer.Start(m.ctx, "Multiplexer.receiveRequests")
 	// todo(sebastian): ideally we set attributes from the context so we don't have set them every time.
@@ -138,7 +138,7 @@ func (m *Multiplexer) receiveRequests(streamID string, sc *Connection) {
 	}()
 	log := logs.FromContextWithTrace(ctx)
 
-	if err := m.streams.receive(ctx, streamID, m.runID, sc); err != nil {
+	if err := m.streams.receive(ctx, streamID, m.runID, sc, initialRequest); err != nil {
 		closeErr, ok := err.(*websocket.CloseError)
 		if !ok {
 			log.Error(err, "Unexpected error while receiving socket requests")

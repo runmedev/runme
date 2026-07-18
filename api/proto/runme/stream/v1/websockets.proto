@@ -23,11 +23,41 @@ message Pong {
   int64 timestamp = 1;
 }
 
+// RunIntent distinguishes creating a new run from attaching a new stream to an
+// existing run. Legacy clients omit OpenRunRequest and retain the original
+// create-or-attach behavior.
+enum RunIntent {
+  RUN_INTENT_UNSPECIFIED = 0;
+  RUN_INTENT_START = 1;
+  RUN_INTENT_RESUME = 2;
+}
+
+// RunState is the authoritative state returned when opening a negotiated run.
+// Completed state can be added once the runner retains terminal results.
+enum RunState {
+  RUN_STATE_UNSPECIFIED = 0;
+  RUN_STATE_CREATED = 1;
+  RUN_STATE_RUNNING = 2;
+}
+
+// OpenRunRequest must be the first application message sent by a negotiated
+// client. The client must wait for OpenRunResponse before sending heartbeats or
+// execution requests.
+message OpenRunRequest {
+  RunIntent intent = 1;
+}
+
+// OpenRunResponse confirms that the stream was bound to the requested run.
+message OpenRunResponse {
+  RunState state = 1;
+}
+
 // WebsocketRequest defines the message sent by the client over a websocket.
 // The request is a union of types that indicate the type of message.
 message WebsocketRequest {
   oneof payload {
     runme.runner.v2.ExecuteRequest execute_request = 1;
+    OpenRunRequest open_run_request = 2;
     // Add other payloads here as needed.
   }
 
@@ -54,6 +84,7 @@ message WebsocketRequest {
 message WebsocketResponse {
   oneof payload {
     runme.runner.v2.ExecuteResponse execute_response = 1;
+    OpenRunResponse open_run_response = 2;
     // Add other payloads here as needed.
   }
 

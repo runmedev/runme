@@ -76,6 +76,33 @@ func dialWebSocket(ts *httptest.Server, runID string) (*Connection, *http.Respon
 	return NewConnection(c), r, nil
 }
 
+func writeWebsocketRequest(t *testing.T, sc *Connection, req *streamv1.WebsocketRequest) {
+	t.Helper()
+	data, err := protojson.Marshal(req)
+	if err != nil {
+		t.Fatalf("marshal websocket request: %v", err)
+	}
+	if err := sc.WriteMessage(websocket.TextMessage, data); err != nil {
+		t.Fatalf("write websocket request: %v", err)
+	}
+}
+
+func negotiateRun(t *testing.T, sc *Connection, runID string, knownID string, intent streamv1.RunIntent) *streamv1.WebsocketResponse {
+	t.Helper()
+	writeWebsocketRequest(t, sc, &streamv1.WebsocketRequest{
+		RunId:   runID,
+		KnownId: knownID,
+		Payload: &streamv1.WebsocketRequest_OpenRunRequest{
+			OpenRunRequest: &streamv1.OpenRunRequest{Intent: intent},
+		},
+	})
+	resp, err := sc.ReadWebsocketResponse(context.Background())
+	if err != nil {
+		t.Fatalf("read open run response: %v", err)
+	}
+	return resp
+}
+
 func TestWebSocketHandler_Handler_SwitchingProtocols(t *testing.T) {
 	h := &WebSocketHandler{
 		runner: &runme.Runner{Server: newMockRunmeServer()},
@@ -384,6 +411,123 @@ func TestRunmeHandler_Roundtrip(t *testing.T) {
 	}
 }
 
+func TestRunmeHandler_NegotiatedStartAndResume(t *testing.T) {
+	started := make(chan struct{})
+	finish := make(chan struct{})
+	mockRunmeServer := newMockRunmeServer()
+	mockRunmeServer.SetResponder(func() error {
+		close(started)
+		<-finish
+		mockRunmeServer.executeResponses <- &v2.ExecuteResponse{
+			ExitCode: &wrapperspb.UInt32Value{Value: 0},
+		}
+		return nil
+	})
+
+	h := NewWebSocketHandler(
+		&runme.Runner{Server: mockRunmeServer},
+		&iam.AuthContext{Checker: &iam.AllowAllChecker{}},
+		WithClientGracePeriod(100*time.Millisecond),
+	)
+	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
+	defer ts.Close()
+
+	runID := ulid.GenerateID()
+	knownID := ulid.GenerateID()
+	startConn, _, err := dialWebSocket(ts, runID)
+	if err != nil {
+		t.Fatalf("dial start websocket: %v", err)
+	}
+	defer func() { _ = startConn.Close() }()
+
+	startResp := negotiateRun(t, startConn, runID, knownID, streamv1.RunIntent_RUN_INTENT_START)
+	if got := startResp.GetOpenRunResponse().GetState(); got != streamv1.RunState_RUN_STATE_CREATED {
+		t.Fatalf("start state = %s, want CREATED", got)
+	}
+
+	writeWebsocketRequest(t, startConn, &streamv1.WebsocketRequest{
+		RunId:   runID,
+		KnownId: knownID,
+		Payload: &streamv1.WebsocketRequest_ExecuteRequest{
+			ExecuteRequest: &v2.ExecuteRequest{
+				Config: &v2.ProgramConfig{
+					KnownId: knownID,
+					Source: &v2.ProgramConfig_Commands{
+						Commands: &v2.ProgramConfig_CommandList{Items: []string{"sleep", "1"}},
+					},
+				},
+			},
+		},
+	})
+
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for execution to start")
+	}
+
+	resumeConn, _, err := dialWebSocket(ts, runID)
+	if err != nil {
+		t.Fatalf("dial resume websocket: %v", err)
+	}
+	defer func() { _ = resumeConn.Close() }()
+	resumeResp := negotiateRun(t, resumeConn, runID, knownID, streamv1.RunIntent_RUN_INTENT_RESUME)
+	if got := resumeResp.GetOpenRunResponse().GetState(); got != streamv1.RunState_RUN_STATE_RUNNING {
+		t.Fatalf("resume state = %s, want RUNNING", got)
+	}
+
+	duplicateConn, _, err := dialWebSocket(ts, runID)
+	if err != nil {
+		t.Fatalf("dial duplicate start websocket: %v", err)
+	}
+	defer func() { _ = duplicateConn.Close() }()
+	duplicateResp := negotiateRun(t, duplicateConn, runID, knownID, streamv1.RunIntent_RUN_INTENT_START)
+	if got := duplicateResp.GetStatus().GetCode(); got != code.Code_ALREADY_EXISTS {
+		t.Fatalf("duplicate start status = %s, want ALREADY_EXISTS", got)
+	}
+
+	close(finish)
+	for _, conn := range []*Connection{startConn, resumeConn} {
+		for {
+			resp, err := conn.ReadWebsocketResponse(context.Background())
+			if err != nil {
+				t.Fatalf("read execution response: %v", err)
+			}
+			if resp.GetExecuteResponse().GetExitCode() != nil {
+				break
+			}
+		}
+	}
+}
+
+func TestRunmeHandler_NegotiatedResumeMissing(t *testing.T) {
+	h := NewWebSocketHandler(
+		&runme.Runner{Server: newMockRunmeServer()},
+		&iam.AuthContext{Checker: &iam.AllowAllChecker{}},
+	)
+	ts := httptest.NewServer(http.HandlerFunc(h.Handler))
+	defer ts.Close()
+
+	runID := ulid.GenerateID()
+	sc, _, err := dialWebSocket(ts, runID)
+	if err != nil {
+		t.Fatalf("dial resume websocket: %v", err)
+	}
+	defer func() { _ = sc.Close() }()
+
+	resp := negotiateRun(t, sc, runID, ulid.GenerateID(), streamv1.RunIntent_RUN_INTENT_RESUME)
+	if got := resp.GetStatus().GetCode(); got != code.Code_NOT_FOUND {
+		t.Fatalf("missing resume status = %s, want NOT_FOUND", got)
+	}
+
+	h.mu.Lock()
+	_, exists := h.runs[runID]
+	h.mu.Unlock()
+	if exists {
+		t.Fatal("missing resume created a multiplexer")
+	}
+}
+
 // Tests that the multiplexer closes after the inactivity timeout.
 func TestRunmeHandler_InactivityTimeout(t *testing.T) {
 	// Save and restore original timeout values for this test.
@@ -420,6 +564,17 @@ func TestRunmeHandler_InactivityTimeout(t *testing.T) {
 	sc, _, err := dialWebSocket(ts, runID)
 	if err != nil {
 		t.Errorf("Failed to dial websocket: %v", err)
+	}
+	pingTimestamp := time.Now().UnixMilli()
+	writeWebsocketRequest(t, sc, &streamv1.WebsocketRequest{
+		Ping: &streamv1.Ping{Timestamp: pingTimestamp},
+	})
+	pong, err := sc.ReadWebsocketResponse(context.Background())
+	if err != nil {
+		t.Fatalf("read initial pong: %v", err)
+	}
+	if got := pong.GetPong().GetTimestamp(); got != pingTimestamp {
+		t.Fatalf("pong timestamp = %d, want %d", got, pingTimestamp)
 	}
 
 	time.Sleep(MultiplexerTimeout + MultiplexerInterval + ClientGracePeriod)

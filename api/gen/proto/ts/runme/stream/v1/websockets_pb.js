@@ -10,6 +10,49 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { ExecuteResponse } from "../../runner/v2/runner_pb";
 import { ExecuteRequest } from "../../runner/v2/runner_pb";
 import { Code } from "../../../google/rpc/code_pb";
+/**
+ * RunIntent distinguishes creating a new run from attaching a new stream to an
+ * existing run. Legacy clients omit OpenRunRequest and retain the original
+ * create-or-attach behavior.
+ *
+ * @generated from protobuf enum runme.stream.v1.RunIntent
+ */
+export var RunIntent;
+(function (RunIntent) {
+    /**
+     * @generated from protobuf enum value: RUN_INTENT_UNSPECIFIED = 0;
+     */
+    RunIntent[RunIntent["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: RUN_INTENT_START = 1;
+     */
+    RunIntent[RunIntent["START"] = 1] = "START";
+    /**
+     * @generated from protobuf enum value: RUN_INTENT_RESUME = 2;
+     */
+    RunIntent[RunIntent["RESUME"] = 2] = "RESUME";
+})(RunIntent || (RunIntent = {}));
+/**
+ * RunState is the authoritative state returned when opening a negotiated run.
+ * Completed state can be added once the runner retains terminal results.
+ *
+ * @generated from protobuf enum runme.stream.v1.RunState
+ */
+export var RunState;
+(function (RunState) {
+    /**
+     * @generated from protobuf enum value: RUN_STATE_UNSPECIFIED = 0;
+     */
+    RunState[RunState["UNSPECIFIED"] = 0] = "UNSPECIFIED";
+    /**
+     * @generated from protobuf enum value: RUN_STATE_CREATED = 1;
+     */
+    RunState[RunState["CREATED"] = 1] = "CREATED";
+    /**
+     * @generated from protobuf enum value: RUN_STATE_RUNNING = 2;
+     */
+    RunState[RunState["RUNNING"] = 2] = "RUNNING";
+})(RunState || (RunState = {}));
 // @generated message type with reflection information, may provide speed optimized methods
 class WebsocketStatus$Type extends MessageType {
     constructor() {
@@ -160,10 +203,105 @@ class Pong$Type extends MessageType {
  */
 export const Pong = new Pong$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class OpenRunRequest$Type extends MessageType {
+    constructor() {
+        super("runme.stream.v1.OpenRunRequest", [
+            { no: 1, name: "intent", kind: "enum", T: () => ["runme.stream.v1.RunIntent", RunIntent, "RUN_INTENT_"] }
+        ]);
+    }
+    create(value) {
+        const message = globalThis.Object.create((this.messagePrototype));
+        message.intent = 0;
+        if (value !== undefined)
+            reflectionMergePartial(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* runme.stream.v1.RunIntent intent */ 1:
+                    message.intent = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+        /* runme.stream.v1.RunIntent intent = 1; */
+        if (message.intent !== 0)
+            writer.tag(1, WireType.Varint).int32(message.intent);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.stream.v1.OpenRunRequest
+ */
+export const OpenRunRequest = new OpenRunRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenRunResponse$Type extends MessageType {
+    constructor() {
+        super("runme.stream.v1.OpenRunResponse", [
+            { no: 1, name: "state", kind: "enum", T: () => ["runme.stream.v1.RunState", RunState, "RUN_STATE_"] }
+        ]);
+    }
+    create(value) {
+        const message = globalThis.Object.create((this.messagePrototype));
+        message.state = 0;
+        if (value !== undefined)
+            reflectionMergePartial(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* runme.stream.v1.RunState state */ 1:
+                    message.state = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+        /* runme.stream.v1.RunState state = 1; */
+        if (message.state !== 0)
+            writer.tag(1, WireType.Varint).int32(message.state);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.stream.v1.OpenRunResponse
+ */
+export const OpenRunResponse = new OpenRunResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class WebsocketRequest$Type extends MessageType {
     constructor() {
         super("runme.stream.v1.WebsocketRequest", [
             { no: 1, name: "execute_request", kind: "message", oneof: "payload", T: () => ExecuteRequest },
+            { no: 2, name: "open_run_request", kind: "message", oneof: "payload", T: () => OpenRunRequest },
             { no: 100, name: "ping", kind: "message", T: () => Ping },
             { no: 200, name: "authorization", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 210, name: "known_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -189,6 +327,12 @@ class WebsocketRequest$Type extends MessageType {
                     message.payload = {
                         oneofKind: "executeRequest",
                         executeRequest: ExecuteRequest.internalBinaryRead(reader, reader.uint32(), options, message.payload.executeRequest)
+                    };
+                    break;
+                case /* runme.stream.v1.OpenRunRequest open_run_request */ 2:
+                    message.payload = {
+                        oneofKind: "openRunRequest",
+                        openRunRequest: OpenRunRequest.internalBinaryRead(reader, reader.uint32(), options, message.payload.openRunRequest)
                     };
                     break;
                 case /* runme.stream.v1.Ping ping */ 100:
@@ -218,6 +362,9 @@ class WebsocketRequest$Type extends MessageType {
         /* runme.runner.v2.ExecuteRequest execute_request = 1; */
         if (message.payload.oneofKind === "executeRequest")
             ExecuteRequest.internalBinaryWrite(message.payload.executeRequest, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* runme.stream.v1.OpenRunRequest open_run_request = 2; */
+        if (message.payload.oneofKind === "openRunRequest")
+            OpenRunRequest.internalBinaryWrite(message.payload.openRunRequest, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* runme.stream.v1.Ping ping = 100; */
         if (message.ping)
             Ping.internalBinaryWrite(message.ping, writer.tag(100, WireType.LengthDelimited).fork(), options).join();
@@ -245,6 +392,7 @@ class WebsocketResponse$Type extends MessageType {
     constructor() {
         super("runme.stream.v1.WebsocketResponse", [
             { no: 1, name: "execute_response", kind: "message", oneof: "payload", T: () => ExecuteResponse },
+            { no: 2, name: "open_run_response", kind: "message", oneof: "payload", T: () => OpenRunResponse },
             { no: 100, name: "pong", kind: "message", T: () => Pong },
             { no: 200, name: "status", kind: "message", T: () => WebsocketStatus },
             { no: 210, name: "known_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -269,6 +417,12 @@ class WebsocketResponse$Type extends MessageType {
                     message.payload = {
                         oneofKind: "executeResponse",
                         executeResponse: ExecuteResponse.internalBinaryRead(reader, reader.uint32(), options, message.payload.executeResponse)
+                    };
+                    break;
+                case /* runme.stream.v1.OpenRunResponse open_run_response */ 2:
+                    message.payload = {
+                        oneofKind: "openRunResponse",
+                        openRunResponse: OpenRunResponse.internalBinaryRead(reader, reader.uint32(), options, message.payload.openRunResponse)
                     };
                     break;
                 case /* runme.stream.v1.Pong pong */ 100:
@@ -298,6 +452,9 @@ class WebsocketResponse$Type extends MessageType {
         /* runme.runner.v2.ExecuteResponse execute_response = 1; */
         if (message.payload.oneofKind === "executeResponse")
             ExecuteResponse.internalBinaryWrite(message.payload.executeResponse, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* runme.stream.v1.OpenRunResponse open_run_response = 2; */
+        if (message.payload.oneofKind === "openRunResponse")
+            OpenRunResponse.internalBinaryWrite(message.payload.openRunResponse, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* runme.stream.v1.Pong pong = 100; */
         if (message.pong)
             Pong.internalBinaryWrite(message.pong, writer.tag(100, WireType.LengthDelimited).fork(), options).join();

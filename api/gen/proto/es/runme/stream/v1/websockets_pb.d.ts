@@ -2,7 +2,7 @@
 // @generated from file runme/stream/v1/websockets.proto (package runme.stream.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 import type { Code, CodeJson } from "../../../google/rpc/code_pb";
 import type { ExecuteRequest, ExecuteRequestJson, ExecuteResponse, ExecuteResponseJson } from "../../runner/v2/runner_pb";
@@ -113,6 +113,70 @@ export declare type PongJson = {
 export declare const PongSchema: GenMessage<Pong, {jsonType: PongJson}>;
 
 /**
+ * OpenRunRequest must be the first application message sent by a negotiated
+ * client. The client must wait for OpenRunResponse before sending heartbeats or
+ * execution requests.
+ *
+ * @generated from message runme.stream.v1.OpenRunRequest
+ */
+export declare type OpenRunRequest = Message<"runme.stream.v1.OpenRunRequest"> & {
+  /**
+   * @generated from field: runme.stream.v1.RunIntent intent = 1;
+   */
+  intent: RunIntent;
+};
+
+/**
+ * OpenRunRequest must be the first application message sent by a negotiated
+ * client. The client must wait for OpenRunResponse before sending heartbeats or
+ * execution requests.
+ *
+ * @generated from message runme.stream.v1.OpenRunRequest
+ */
+export declare type OpenRunRequestJson = {
+  /**
+   * @generated from field: runme.stream.v1.RunIntent intent = 1;
+   */
+  intent?: RunIntentJson;
+};
+
+/**
+ * Describes the message runme.stream.v1.OpenRunRequest.
+ * Use `create(OpenRunRequestSchema)` to create a new message.
+ */
+export declare const OpenRunRequestSchema: GenMessage<OpenRunRequest, {jsonType: OpenRunRequestJson}>;
+
+/**
+ * OpenRunResponse confirms that the stream was bound to the requested run.
+ *
+ * @generated from message runme.stream.v1.OpenRunResponse
+ */
+export declare type OpenRunResponse = Message<"runme.stream.v1.OpenRunResponse"> & {
+  /**
+   * @generated from field: runme.stream.v1.RunState state = 1;
+   */
+  state: RunState;
+};
+
+/**
+ * OpenRunResponse confirms that the stream was bound to the requested run.
+ *
+ * @generated from message runme.stream.v1.OpenRunResponse
+ */
+export declare type OpenRunResponseJson = {
+  /**
+   * @generated from field: runme.stream.v1.RunState state = 1;
+   */
+  state?: RunStateJson;
+};
+
+/**
+ * Describes the message runme.stream.v1.OpenRunResponse.
+ * Use `create(OpenRunResponseSchema)` to create a new message.
+ */
+export declare const OpenRunResponseSchema: GenMessage<OpenRunResponse, {jsonType: OpenRunResponseJson}>;
+
+/**
  * WebsocketRequest defines the message sent by the client over a websocket.
  * The request is a union of types that indicate the type of message.
  *
@@ -124,12 +188,18 @@ export declare type WebsocketRequest = Message<"runme.stream.v1.WebsocketRequest
    */
   payload: {
     /**
-     * Add other payloads here as needed.
-     *
      * @generated from field: runme.runner.v2.ExecuteRequest execute_request = 1;
      */
     value: ExecuteRequest;
     case: "executeRequest";
+  } | {
+    /**
+     * Add other payloads here as needed.
+     *
+     * @generated from field: runme.stream.v1.OpenRunRequest open_run_request = 2;
+     */
+    value: OpenRunRequest;
+    case: "openRunRequest";
   } | { case: undefined; value?: undefined };
 
   /**
@@ -174,11 +244,16 @@ export declare type WebsocketRequest = Message<"runme.stream.v1.WebsocketRequest
  */
 export declare type WebsocketRequestJson = {
   /**
-   * Add other payloads here as needed.
-   *
    * @generated from field: runme.runner.v2.ExecuteRequest execute_request = 1;
    */
   executeRequest?: ExecuteRequestJson;
+
+  /**
+   * Add other payloads here as needed.
+   *
+   * @generated from field: runme.stream.v1.OpenRunRequest open_run_request = 2;
+   */
+  openRunRequest?: OpenRunRequestJson;
 
   /**
    * Protocol-level ping for frontend heartbeat. Unlike websocket servers which
@@ -232,12 +307,18 @@ export declare type WebsocketResponse = Message<"runme.stream.v1.WebsocketRespon
    */
   payload: {
     /**
-     * Add other payloads here as needed.
-     *
      * @generated from field: runme.runner.v2.ExecuteResponse execute_response = 1;
      */
     value: ExecuteResponse;
     case: "executeResponse";
+  } | {
+    /**
+     * Add other payloads here as needed.
+     *
+     * @generated from field: runme.stream.v1.OpenRunResponse open_run_response = 2;
+     */
+    value: OpenRunResponse;
+    case: "openRunResponse";
   } | { case: undefined; value?: undefined };
 
   /**
@@ -280,11 +361,16 @@ export declare type WebsocketResponse = Message<"runme.stream.v1.WebsocketRespon
  */
 export declare type WebsocketResponseJson = {
   /**
-   * Add other payloads here as needed.
-   *
    * @generated from field: runme.runner.v2.ExecuteResponse execute_response = 1;
    */
   executeResponse?: ExecuteResponseJson;
+
+  /**
+   * Add other payloads here as needed.
+   *
+   * @generated from field: runme.stream.v1.OpenRunResponse open_run_response = 2;
+   */
+  openRunResponse?: OpenRunResponseJson;
 
   /**
    * Protocol-level pong for frontend heartbeat. Once the server receives
@@ -323,3 +409,78 @@ export declare type WebsocketResponseJson = {
  * Use `create(WebsocketResponseSchema)` to create a new message.
  */
 export declare const WebsocketResponseSchema: GenMessage<WebsocketResponse, {jsonType: WebsocketResponseJson}>;
+
+/**
+ * RunIntent distinguishes creating a new run from attaching a new stream to an
+ * existing run. Legacy clients omit OpenRunRequest and retain the original
+ * create-or-attach behavior.
+ *
+ * @generated from enum runme.stream.v1.RunIntent
+ */
+export enum RunIntent {
+  /**
+   * @generated from enum value: RUN_INTENT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: RUN_INTENT_START = 1;
+   */
+  START = 1,
+
+  /**
+   * @generated from enum value: RUN_INTENT_RESUME = 2;
+   */
+  RESUME = 2,
+}
+
+/**
+ * RunIntent distinguishes creating a new run from attaching a new stream to an
+ * existing run. Legacy clients omit OpenRunRequest and retain the original
+ * create-or-attach behavior.
+ *
+ * @generated from enum runme.stream.v1.RunIntent
+ */
+export declare type RunIntentJson = "RUN_INTENT_UNSPECIFIED" | "RUN_INTENT_START" | "RUN_INTENT_RESUME";
+
+/**
+ * Describes the enum runme.stream.v1.RunIntent.
+ */
+export declare const RunIntentSchema: GenEnum<RunIntent, RunIntentJson>;
+
+/**
+ * RunState is the authoritative state returned when opening a negotiated run.
+ * Completed state can be added once the runner retains terminal results.
+ *
+ * @generated from enum runme.stream.v1.RunState
+ */
+export enum RunState {
+  /**
+   * @generated from enum value: RUN_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: RUN_STATE_CREATED = 1;
+   */
+  CREATED = 1,
+
+  /**
+   * @generated from enum value: RUN_STATE_RUNNING = 2;
+   */
+  RUNNING = 2,
+}
+
+/**
+ * RunState is the authoritative state returned when opening a negotiated run.
+ * Completed state can be added once the runner retains terminal results.
+ *
+ * @generated from enum runme.stream.v1.RunState
+ */
+export declare type RunStateJson = "RUN_STATE_UNSPECIFIED" | "RUN_STATE_CREATED" | "RUN_STATE_RUNNING";
+
+/**
+ * Describes the enum runme.stream.v1.RunState.
+ */
+export declare const RunStateSchema: GenEnum<RunState, RunStateJson>;
+

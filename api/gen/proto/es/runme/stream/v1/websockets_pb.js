@@ -2,7 +2,7 @@
 // @generated from file runme/stream/v1/websockets.proto (package runme.stream.v1, syntax proto3)
 /* eslint-disable */
 
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, tsEnum } from "@bufbuild/protobuf/codegenv2";
 import { file_google_rpc_code } from "../../../google/rpc/code_pb";
 import { file_runme_runner_v2_runner } from "../../runner/v2/runner_pb";
 
@@ -10,7 +10,7 @@ import { file_runme_runner_v2_runner } from "../../runner/v2/runner_pb";
  * Describes the file runme/stream/v1/websockets.proto.
  */
 export const file_runme_stream_v1_websockets = /*@__PURE__*/
-  fileDesc("CiBydW5tZS9zdHJlYW0vdjEvd2Vic29ja2V0cy5wcm90bxIPcnVubWUuc3RyZWFtLnYxIkIKD1dlYnNvY2tldFN0YXR1cxIeCgRjb2RlGAEgASgOMhAuZ29vZ2xlLnJwYy5Db2RlEg8KB21lc3NhZ2UYAiABKAkiGQoEUGluZxIRCgl0aW1lc3RhbXAYASABKAMiGQoEUG9uZxIRCgl0aW1lc3RhbXAYASABKAMiugEKEFdlYnNvY2tldFJlcXVlc3QSOgoPZXhlY3V0ZV9yZXF1ZXN0GAEgASgLMh8ucnVubWUucnVubmVyLnYyLkV4ZWN1dGVSZXF1ZXN0SAASIwoEcGluZxhkIAEoCzIVLnJ1bm1lLnN0cmVhbS52MS5QaW5nEhYKDWF1dGhvcml6YXRpb24YyAEgASgJEhEKCGtub3duX2lkGNIBIAEoCRIPCgZydW5faWQY3AEgASgJQgkKB3BheWxvYWQi2AEKEVdlYnNvY2tldFJlc3BvbnNlEjwKEGV4ZWN1dGVfcmVzcG9uc2UYASABKAsyIC5ydW5tZS5ydW5uZXIudjIuRXhlY3V0ZVJlc3BvbnNlSAASIwoEcG9uZxhkIAEoCzIVLnJ1bm1lLnN0cmVhbS52MS5Qb25nEjEKBnN0YXR1cxjIASABKAsyIC5ydW5tZS5zdHJlYW0udjEuV2Vic29ja2V0U3RhdHVzEhEKCGtub3duX2lkGNIBIAEoCRIPCgZydW5faWQY3AEgASgJQgkKB3BheWxvYWRCSFpGZ2l0aHViLmNvbS9ydW5tZWRldi9ydW5tZS92My9hcGkvZ2VuL3Byb3RvL2dvL3J1bm1lL3N0cmVhbS92MTtzdHJlYW12MWIGcHJvdG8z", [file_google_rpc_code, file_runme_runner_v2_runner]);
+  fileDesc("CiBydW5tZS9zdHJlYW0vdjEvd2Vic29ja2V0cy5wcm90bxIPcnVubWUuc3RyZWFtLnYxIkIKD1dlYnNvY2tldFN0YXR1cxIeCgRjb2RlGAEgASgOMhAuZ29vZ2xlLnJwYy5Db2RlEg8KB21lc3NhZ2UYAiABKAkiGQoEUGluZxIRCgl0aW1lc3RhbXAYASABKAMiGQoEUG9uZxIRCgl0aW1lc3RhbXAYASABKAMiPAoOT3BlblJ1blJlcXVlc3QSKgoGaW50ZW50GAEgASgOMhoucnVubWUuc3RyZWFtLnYxLlJ1bkludGVudCI7Cg9PcGVuUnVuUmVzcG9uc2USKAoFc3RhdGUYASABKA4yGS5ydW5tZS5zdHJlYW0udjEuUnVuU3RhdGUi9wEKEFdlYnNvY2tldFJlcXVlc3QSOgoPZXhlY3V0ZV9yZXF1ZXN0GAEgASgLMh8ucnVubWUucnVubmVyLnYyLkV4ZWN1dGVSZXF1ZXN0SAASOwoQb3Blbl9ydW5fcmVxdWVzdBgCIAEoCzIfLnJ1bm1lLnN0cmVhbS52MS5PcGVuUnVuUmVxdWVzdEgAEiMKBHBpbmcYZCABKAsyFS5ydW5tZS5zdHJlYW0udjEuUGluZxIWCg1hdXRob3JpemF0aW9uGMgBIAEoCRIRCghrbm93bl9pZBjSASABKAkSDwoGcnVuX2lkGNwBIAEoCUIJCgdwYXlsb2FkIpcCChFXZWJzb2NrZXRSZXNwb25zZRI8ChBleGVjdXRlX3Jlc3BvbnNlGAEgASgLMiAucnVubWUucnVubmVyLnYyLkV4ZWN1dGVSZXNwb25zZUgAEj0KEW9wZW5fcnVuX3Jlc3BvbnNlGAIgASgLMiAucnVubWUuc3RyZWFtLnYxLk9wZW5SdW5SZXNwb25zZUgAEiMKBHBvbmcYZCABKAsyFS5ydW5tZS5zdHJlYW0udjEuUG9uZxIxCgZzdGF0dXMYyAEgASgLMiAucnVubWUuc3RyZWFtLnYxLldlYnNvY2tldFN0YXR1cxIRCghrbm93bl9pZBjSASABKAkSDwoGcnVuX2lkGNwBIAEoCUIJCgdwYXlsb2FkKlQKCVJ1bkludGVudBIaChZSVU5fSU5URU5UX1VOU1BFQ0lGSUVEEAASFAoQUlVOX0lOVEVOVF9TVEFSVBABEhUKEVJVTl9JTlRFTlRfUkVTVU1FEAIqUwoIUnVuU3RhdGUSGQoVUlVOX1NUQVRFX1VOU1BFQ0lGSUVEEAASFQoRUlVOX1NUQVRFX0NSRUFURUQQARIVChFSVU5fU1RBVEVfUlVOTklORxACQkhaRmdpdGh1Yi5jb20vcnVubWVkZXYvcnVubWUvdjMvYXBpL2dlbi9wcm90by9nby9ydW5tZS9zdHJlYW0vdjE7c3RyZWFtdjFiBnByb3RvMw", [file_google_rpc_code, file_runme_runner_v2_runner]);
 
 /**
  * Describes the message runme.stream.v1.WebsocketStatus.
@@ -34,15 +34,61 @@ export const PongSchema = /*@__PURE__*/
   messageDesc(file_runme_stream_v1_websockets, 2);
 
 /**
+ * Describes the message runme.stream.v1.OpenRunRequest.
+ * Use `create(OpenRunRequestSchema)` to create a new message.
+ */
+export const OpenRunRequestSchema = /*@__PURE__*/
+  messageDesc(file_runme_stream_v1_websockets, 3);
+
+/**
+ * Describes the message runme.stream.v1.OpenRunResponse.
+ * Use `create(OpenRunResponseSchema)` to create a new message.
+ */
+export const OpenRunResponseSchema = /*@__PURE__*/
+  messageDesc(file_runme_stream_v1_websockets, 4);
+
+/**
  * Describes the message runme.stream.v1.WebsocketRequest.
  * Use `create(WebsocketRequestSchema)` to create a new message.
  */
 export const WebsocketRequestSchema = /*@__PURE__*/
-  messageDesc(file_runme_stream_v1_websockets, 3);
+  messageDesc(file_runme_stream_v1_websockets, 5);
 
 /**
  * Describes the message runme.stream.v1.WebsocketResponse.
  * Use `create(WebsocketResponseSchema)` to create a new message.
  */
 export const WebsocketResponseSchema = /*@__PURE__*/
-  messageDesc(file_runme_stream_v1_websockets, 4);
+  messageDesc(file_runme_stream_v1_websockets, 6);
+
+/**
+ * Describes the enum runme.stream.v1.RunIntent.
+ */
+export const RunIntentSchema = /*@__PURE__*/
+  enumDesc(file_runme_stream_v1_websockets, 0);
+
+/**
+ * RunIntent distinguishes creating a new run from attaching a new stream to an
+ * existing run. Legacy clients omit OpenRunRequest and retain the original
+ * create-or-attach behavior.
+ *
+ * @generated from enum runme.stream.v1.RunIntent
+ */
+export const RunIntent = /*@__PURE__*/
+  tsEnum(RunIntentSchema);
+
+/**
+ * Describes the enum runme.stream.v1.RunState.
+ */
+export const RunStateSchema = /*@__PURE__*/
+  enumDesc(file_runme_stream_v1_websockets, 1);
+
+/**
+ * RunState is the authoritative state returned when opening a negotiated run.
+ * Completed state can be added once the runner retains terminal results.
+ *
+ * @generated from enum runme.stream.v1.RunState
+ */
+export const RunState = /*@__PURE__*/
+  tsEnum(RunStateSchema);
+
