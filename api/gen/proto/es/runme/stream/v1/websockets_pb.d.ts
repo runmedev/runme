@@ -483,4 +483,3 @@ export declare type RunStateJson = "RUN_STATE_UNSPECIFIED" | "RUN_STATE_CREATED"
  * Describes the enum runme.stream.v1.RunState.
  */
 export declare const RunStateSchema: GenEnum<RunState, RunStateJson>;
-
