@@ -50,6 +50,30 @@ export interface Pong {
     timestamp: string;
 }
 /**
+ * OpenRunRequest must be the first application message sent by a negotiated
+ * client. The client must wait for OpenRunResponse before sending heartbeats or
+ * execution requests.
+ *
+ * @generated from protobuf message runme.stream.v1.OpenRunRequest
+ */
+export interface OpenRunRequest {
+    /**
+     * @generated from protobuf field: runme.stream.v1.RunIntent intent = 1
+     */
+    intent: RunIntent;
+}
+/**
+ * OpenRunResponse confirms that the stream was bound to the requested run.
+ *
+ * @generated from protobuf message runme.stream.v1.OpenRunResponse
+ */
+export interface OpenRunResponse {
+    /**
+     * @generated from protobuf field: runme.stream.v1.RunState state = 1
+     */
+    state: RunState;
+}
+/**
  * WebsocketRequest defines the message sent by the client over a websocket.
  * The request is a union of types that indicate the type of message.
  *
@@ -65,6 +89,12 @@ export interface WebsocketRequest {
          * @generated from protobuf field: runme.runner.v2.ExecuteRequest execute_request = 1
          */
         executeRequest: ExecuteRequest;
+    } | {
+        oneofKind: "openRunRequest";
+        /**
+         * @generated from protobuf field: runme.stream.v1.OpenRunRequest open_run_request = 2
+         */
+        openRunRequest: OpenRunRequest;
     } | {
         oneofKind: undefined;
     };
@@ -115,6 +145,12 @@ export interface WebsocketResponse {
          */
         executeResponse: ExecuteResponse;
     } | {
+        oneofKind: "openRunResponse";
+        /**
+         * @generated from protobuf field: runme.stream.v1.OpenRunResponse open_run_response = 2
+         */
+        openRunResponse: OpenRunResponse;
+    } | {
         oneofKind: undefined;
     };
     /**
@@ -144,6 +180,47 @@ export interface WebsocketResponse {
      * @generated from protobuf field: string run_id = 220
      */
     runId: string;
+}
+/**
+ * RunIntent distinguishes creating a new run from attaching a new stream to an
+ * existing run. Legacy clients omit OpenRunRequest and retain the original
+ * create-or-attach behavior.
+ *
+ * @generated from protobuf enum runme.stream.v1.RunIntent
+ */
+export declare enum RunIntent {
+    /**
+     * @generated from protobuf enum value: RUN_INTENT_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: RUN_INTENT_START = 1;
+     */
+    START = 1,
+    /**
+     * @generated from protobuf enum value: RUN_INTENT_RESUME = 2;
+     */
+    RESUME = 2
+}
+/**
+ * RunState is the authoritative state returned when opening a negotiated run.
+ * Completed state can be added once the runner retains terminal results.
+ *
+ * @generated from protobuf enum runme.stream.v1.RunState
+ */
+export declare enum RunState {
+    /**
+     * @generated from protobuf enum value: RUN_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: RUN_STATE_CREATED = 1;
+     */
+    CREATED = 1,
+    /**
+     * @generated from protobuf enum value: RUN_STATE_RUNNING = 2;
+     */
+    RUNNING = 2
 }
 declare class WebsocketStatus$Type extends MessageType<WebsocketStatus> {
     constructor();
@@ -175,6 +252,26 @@ declare class Pong$Type extends MessageType<Pong> {
  * @generated MessageType for protobuf message runme.stream.v1.Pong
  */
 export declare const Pong: Pong$Type;
+declare class OpenRunRequest$Type extends MessageType<OpenRunRequest> {
+    constructor();
+    create(value?: PartialMessage<OpenRunRequest>): OpenRunRequest;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenRunRequest): OpenRunRequest;
+    internalBinaryWrite(message: OpenRunRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message runme.stream.v1.OpenRunRequest
+ */
+export declare const OpenRunRequest: OpenRunRequest$Type;
+declare class OpenRunResponse$Type extends MessageType<OpenRunResponse> {
+    constructor();
+    create(value?: PartialMessage<OpenRunResponse>): OpenRunResponse;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenRunResponse): OpenRunResponse;
+    internalBinaryWrite(message: OpenRunResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message runme.stream.v1.OpenRunResponse
+ */
+export declare const OpenRunResponse: OpenRunResponse$Type;
 declare class WebsocketRequest$Type extends MessageType<WebsocketRequest> {
     constructor();
     create(value?: PartialMessage<WebsocketRequest>): WebsocketRequest;

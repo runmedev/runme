@@ -9,7 +9,9 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	"google.golang.org/genproto/googleapis/rpc/code"
 
+	streamv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1"
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
 	"github.com/runmedev/runme/v3/pkg/agent/runme"
@@ -119,7 +121,23 @@ func (h *WebSocketHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	sc := NewConnection(conn)
 
-	multiplex, created, err := h.handleConnection(ctx, runID, streamID, sc)
+	initialRequest, err := sc.ReadWebsocketRequest(ctx)
+	if err != nil {
+		log.Error(err, "Could not read initial websocket request")
+		return
+	}
+
+	var multiplex *Multiplexer
+	var created bool
+	if initialRequest.GetOpenRunRequest() != nil {
+		multiplex, created, err = h.handleNegotiatedConnection(ctx, runID, streamID, sc, initialRequest)
+		if err != nil {
+			log.Error(err, "Could not negotiate websocket connection")
+			return
+		}
+	} else {
+		multiplex, created, err = h.handleConnection(ctx, runID, streamID, sc, initialRequest)
+	}
 	if err != nil {
 		log.Error(err, "Could not handle websocket connection")
 		_ = sc.Error("Could not handle websocket connection")
@@ -136,7 +154,7 @@ func (h *WebSocketHandler) Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleConnection accepts a websocket connection as a stream into a multiplexer.
-func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, streamID string, sc *Connection) (*Multiplexer, bool, error) {
+func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, streamID string, sc *Connection, initialRequest *streamv1.WebsocketRequest) (*Multiplexer, bool, error) {
 	log := logs.FromContextWithTrace(ctx)
 	log.Info("WebSocketHandler.handleConnection", "runID", runID, "streamID", streamID)
 
@@ -147,21 +165,12 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 	created := false
 	multiplex, ok := h.runs[runID]
 	if !ok {
-		var tap StreamTap
-		if h.tapFactory != nil {
-			tap = h.tapFactory(runID)
-		}
-		var options *MultiplexerOptions
-		if h.clientGracePeriod != nil {
-			options = &MultiplexerOptions{ClientGracePeriod: *h.clientGracePeriod}
-		}
-
-		multiplex = NewMultiplexer(ctx, runID, h.auth, h.runner, tap, h.preprocessor, options)
+		multiplex = h.newMultiplexer(ctx, runID)
 		h.runs[runID] = multiplex
 		created = true
 	}
 
-	if err := multiplex.acceptConnection(streamID, sc); err != nil {
+	if err := multiplex.acceptConnection(streamID, sc, initialRequest); err != nil {
 		if created {
 			delete(h.runs, runID)
 		}
@@ -169,6 +178,90 @@ func (h *WebSocketHandler) handleConnection(ctx context.Context, runID string, s
 	}
 
 	return multiplex, created, nil
+}
+
+// handleNegotiatedConnection binds a stream only after the client explicitly
+// identifies whether it is starting or resuming a run. Protocol-level errors
+// are sent to the client before this method returns.
+func (h *WebSocketHandler) handleNegotiatedConnection(ctx context.Context, runID string, streamID string, sc *Connection, req *streamv1.WebsocketRequest) (*Multiplexer, bool, error) {
+	if err := validateRequestEnvelope(ctx, h.auth, runID, req); err != nil {
+		sc.ErrorMessage(ctx, code.Code_PERMISSION_DENIED, err)
+		return nil, false, err
+	}
+
+	intent := req.GetOpenRunRequest().GetIntent()
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	multiplex, exists := h.runs[runID]
+	created := false
+	state := streamv1.RunState_RUN_STATE_UNSPECIFIED
+	switch intent {
+	case streamv1.RunIntent_RUN_INTENT_START:
+		if exists {
+			err := errors.New("run already exists")
+			sc.ErrorMessage(ctx, code.Code_ALREADY_EXISTS, err)
+			return nil, false, err
+		}
+		multiplex = h.newMultiplexer(ctx, runID)
+		h.runs[runID] = multiplex
+		created = true
+		state = streamv1.RunState_RUN_STATE_CREATED
+	case streamv1.RunIntent_RUN_INTENT_RESUME:
+		if !exists {
+			err := errors.New("run not found")
+			sc.ErrorMessage(ctx, code.Code_NOT_FOUND, err)
+			return nil, false, err
+		}
+		state = streamv1.RunState_RUN_STATE_RUNNING
+	default:
+		err := errors.New("run intent must be START or RESUME")
+		sc.ErrorMessage(ctx, code.Code_INVALID_ARGUMENT, err)
+		return nil, false, err
+	}
+
+	if err := multiplex.streams.authorizeRequest(ctx, streamID, runID, sc, req); err != nil {
+		if created {
+			delete(h.runs, runID)
+		}
+		return nil, false, err
+	}
+	if err := multiplex.acceptConnection(streamID, sc, nil); err != nil {
+		if created {
+			delete(h.runs, runID)
+		}
+		sc.ErrorMessage(ctx, code.Code_INTERNAL, err)
+		return nil, false, errors.Wrap(err, "could not accept negotiated connection")
+	}
+
+	resp := &streamv1.WebsocketResponse{
+		Status: &streamv1.WebsocketStatus{Code: code.Code_OK},
+		Payload: &streamv1.WebsocketResponse_OpenRunResponse{
+			OpenRunResponse: &streamv1.OpenRunResponse{State: state},
+		},
+	}
+	if err := sc.WriteWebsocketResponse(ctx, resp); err != nil {
+		multiplex.streams.removeStream(ctx, streamID)
+		if created {
+			delete(h.runs, runID)
+		}
+		return nil, false, errors.Wrap(err, "could not acknowledge negotiated connection")
+	}
+
+	return multiplex, created, nil
+}
+
+// newMultiplexer constructs a run while h.mu is held by the caller.
+func (h *WebSocketHandler) newMultiplexer(ctx context.Context, runID string) *Multiplexer {
+	var tap StreamTap
+	if h.tapFactory != nil {
+		tap = h.tapFactory(runID)
+	}
+	var options *MultiplexerOptions
+	if h.clientGracePeriod != nil {
+		options = &MultiplexerOptions{ClientGracePeriod: *h.clientGracePeriod}
+	}
+	return NewMultiplexer(ctx, runID, h.auth, h.runner, tap, h.preprocessor, options)
 }
 
 // Shutdown cancels all active multiplexers and waits until each one completes

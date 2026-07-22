@@ -25,6 +25,109 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// RunIntent distinguishes creating a new run from attaching a new stream to an
+// existing run. Legacy clients omit OpenRunRequest and retain the original
+// create-or-attach behavior.
+type RunIntent int32
+
+const (
+	RunIntent_RUN_INTENT_UNSPECIFIED RunIntent = 0
+	RunIntent_RUN_INTENT_START       RunIntent = 1
+	RunIntent_RUN_INTENT_RESUME      RunIntent = 2
+)
+
+// Enum value maps for RunIntent.
+var (
+	RunIntent_name = map[int32]string{
+		0: "RUN_INTENT_UNSPECIFIED",
+		1: "RUN_INTENT_START",
+		2: "RUN_INTENT_RESUME",
+	}
+	RunIntent_value = map[string]int32{
+		"RUN_INTENT_UNSPECIFIED": 0,
+		"RUN_INTENT_START":       1,
+		"RUN_INTENT_RESUME":      2,
+	}
+)
+
+func (x RunIntent) Enum() *RunIntent {
+	p := new(RunIntent)
+	*p = x
+	return p
+}
+
+func (x RunIntent) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RunIntent) Descriptor() protoreflect.EnumDescriptor {
+	return file_runme_stream_v1_websockets_proto_enumTypes[0].Descriptor()
+}
+
+func (RunIntent) Type() protoreflect.EnumType {
+	return &file_runme_stream_v1_websockets_proto_enumTypes[0]
+}
+
+func (x RunIntent) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RunIntent.Descriptor instead.
+func (RunIntent) EnumDescriptor() ([]byte, []int) {
+	return file_runme_stream_v1_websockets_proto_rawDescGZIP(), []int{0}
+}
+
+// RunState is the authoritative state returned when opening a negotiated run.
+// Completed state can be added once the runner retains terminal results.
+type RunState int32
+
+const (
+	RunState_RUN_STATE_UNSPECIFIED RunState = 0
+	RunState_RUN_STATE_CREATED     RunState = 1
+	RunState_RUN_STATE_RUNNING     RunState = 2
+)
+
+// Enum value maps for RunState.
+var (
+	RunState_name = map[int32]string{
+		0: "RUN_STATE_UNSPECIFIED",
+		1: "RUN_STATE_CREATED",
+		2: "RUN_STATE_RUNNING",
+	}
+	RunState_value = map[string]int32{
+		"RUN_STATE_UNSPECIFIED": 0,
+		"RUN_STATE_CREATED":     1,
+		"RUN_STATE_RUNNING":     2,
+	}
+)
+
+func (x RunState) Enum() *RunState {
+	p := new(RunState)
+	*p = x
+	return p
+}
+
+func (x RunState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RunState) Descriptor() protoreflect.EnumDescriptor {
+	return file_runme_stream_v1_websockets_proto_enumTypes[1].Descriptor()
+}
+
+func (RunState) Type() protoreflect.EnumType {
+	return &file_runme_stream_v1_websockets_proto_enumTypes[1]
+}
+
+func (x RunState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RunState.Descriptor instead.
+func (RunState) EnumDescriptor() ([]byte, []int) {
+	return file_runme_stream_v1_websockets_proto_rawDescGZIP(), []int{1}
+}
+
 // Represents websocket-level status (e.g., for auth, protocol, or other errors).
 type WebsocketStatus struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -168,6 +271,98 @@ func (x *Pong) GetTimestamp() int64 {
 	return 0
 }
 
+// OpenRunRequest must be the first application message sent by a negotiated
+// client. The client must wait for OpenRunResponse before sending heartbeats or
+// execution requests.
+type OpenRunRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Intent        RunIntent              `protobuf:"varint,1,opt,name=intent,proto3,enum=runme.stream.v1.RunIntent" json:"intent,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenRunRequest) Reset() {
+	*x = OpenRunRequest{}
+	mi := &file_runme_stream_v1_websockets_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenRunRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenRunRequest) ProtoMessage() {}
+
+func (x *OpenRunRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runme_stream_v1_websockets_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenRunRequest.ProtoReflect.Descriptor instead.
+func (*OpenRunRequest) Descriptor() ([]byte, []int) {
+	return file_runme_stream_v1_websockets_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *OpenRunRequest) GetIntent() RunIntent {
+	if x != nil {
+		return x.Intent
+	}
+	return RunIntent_RUN_INTENT_UNSPECIFIED
+}
+
+// OpenRunResponse confirms that the stream was bound to the requested run.
+type OpenRunResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	State         RunState               `protobuf:"varint,1,opt,name=state,proto3,enum=runme.stream.v1.RunState" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenRunResponse) Reset() {
+	*x = OpenRunResponse{}
+	mi := &file_runme_stream_v1_websockets_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenRunResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenRunResponse) ProtoMessage() {}
+
+func (x *OpenRunResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runme_stream_v1_websockets_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenRunResponse.ProtoReflect.Descriptor instead.
+func (*OpenRunResponse) Descriptor() ([]byte, []int) {
+	return file_runme_stream_v1_websockets_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *OpenRunResponse) GetState() RunState {
+	if x != nil {
+		return x.State
+	}
+	return RunState_RUN_STATE_UNSPECIFIED
+}
+
 // WebsocketRequest defines the message sent by the client over a websocket.
 // The request is a union of types that indicate the type of message.
 type WebsocketRequest struct {
@@ -175,6 +370,7 @@ type WebsocketRequest struct {
 	// Types that are valid to be assigned to Payload:
 	//
 	//	*WebsocketRequest_ExecuteRequest
+	//	*WebsocketRequest_OpenRunRequest
 	Payload isWebsocketRequest_Payload `protobuf_oneof:"payload"`
 	// Protocol-level ping for frontend heartbeat. Unlike websocket servers which
 	// have a spec-integral heartbeat (https://developer.mozilla.org/en-US/docs/Web/API/WebWebsockets_API/Writing_WebWebsocket_servers#pings_and_pongs_the_heartbeat_of_websockets),
@@ -195,7 +391,7 @@ type WebsocketRequest struct {
 
 func (x *WebsocketRequest) Reset() {
 	*x = WebsocketRequest{}
-	mi := &file_runme_stream_v1_websockets_proto_msgTypes[3]
+	mi := &file_runme_stream_v1_websockets_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -207,7 +403,7 @@ func (x *WebsocketRequest) String() string {
 func (*WebsocketRequest) ProtoMessage() {}
 
 func (x *WebsocketRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_stream_v1_websockets_proto_msgTypes[3]
+	mi := &file_runme_stream_v1_websockets_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -220,7 +416,7 @@ func (x *WebsocketRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebsocketRequest.ProtoReflect.Descriptor instead.
 func (*WebsocketRequest) Descriptor() ([]byte, []int) {
-	return file_runme_stream_v1_websockets_proto_rawDescGZIP(), []int{3}
+	return file_runme_stream_v1_websockets_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *WebsocketRequest) GetPayload() isWebsocketRequest_Payload {
@@ -234,6 +430,15 @@ func (x *WebsocketRequest) GetExecuteRequest() *v2.ExecuteRequest {
 	if x != nil {
 		if x, ok := x.Payload.(*WebsocketRequest_ExecuteRequest); ok {
 			return x.ExecuteRequest
+		}
+	}
+	return nil
+}
+
+func (x *WebsocketRequest) GetOpenRunRequest() *OpenRunRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*WebsocketRequest_OpenRunRequest); ok {
+			return x.OpenRunRequest
 		}
 	}
 	return nil
@@ -272,10 +477,16 @@ type isWebsocketRequest_Payload interface {
 }
 
 type WebsocketRequest_ExecuteRequest struct {
-	ExecuteRequest *v2.ExecuteRequest `protobuf:"bytes,1,opt,name=execute_request,json=executeRequest,proto3,oneof"` // Add other payloads here as needed.
+	ExecuteRequest *v2.ExecuteRequest `protobuf:"bytes,1,opt,name=execute_request,json=executeRequest,proto3,oneof"`
+}
+
+type WebsocketRequest_OpenRunRequest struct {
+	OpenRunRequest *OpenRunRequest `protobuf:"bytes,2,opt,name=open_run_request,json=openRunRequest,proto3,oneof"` // Add other payloads here as needed.
 }
 
 func (*WebsocketRequest_ExecuteRequest) isWebsocketRequest_Payload() {}
+
+func (*WebsocketRequest_OpenRunRequest) isWebsocketRequest_Payload() {}
 
 // WebsocketResponse defines the message sent by the server over a websocket.
 // The response is a union of types that indicate the type of message.
@@ -284,6 +495,7 @@ type WebsocketResponse struct {
 	// Types that are valid to be assigned to Payload:
 	//
 	//	*WebsocketResponse_ExecuteResponse
+	//	*WebsocketResponse_OpenRunResponse
 	Payload isWebsocketResponse_Payload `protobuf_oneof:"payload"`
 	// Protocol-level pong for frontend heartbeat. Once the server receives
 	// a ping, it will send a pong response with the exact same timestamp.
@@ -302,7 +514,7 @@ type WebsocketResponse struct {
 
 func (x *WebsocketResponse) Reset() {
 	*x = WebsocketResponse{}
-	mi := &file_runme_stream_v1_websockets_proto_msgTypes[4]
+	mi := &file_runme_stream_v1_websockets_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -314,7 +526,7 @@ func (x *WebsocketResponse) String() string {
 func (*WebsocketResponse) ProtoMessage() {}
 
 func (x *WebsocketResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_stream_v1_websockets_proto_msgTypes[4]
+	mi := &file_runme_stream_v1_websockets_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -327,7 +539,7 @@ func (x *WebsocketResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebsocketResponse.ProtoReflect.Descriptor instead.
 func (*WebsocketResponse) Descriptor() ([]byte, []int) {
-	return file_runme_stream_v1_websockets_proto_rawDescGZIP(), []int{4}
+	return file_runme_stream_v1_websockets_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *WebsocketResponse) GetPayload() isWebsocketResponse_Payload {
@@ -341,6 +553,15 @@ func (x *WebsocketResponse) GetExecuteResponse() *v2.ExecuteResponse {
 	if x != nil {
 		if x, ok := x.Payload.(*WebsocketResponse_ExecuteResponse); ok {
 			return x.ExecuteResponse
+		}
+	}
+	return nil
+}
+
+func (x *WebsocketResponse) GetOpenRunResponse() *OpenRunResponse {
+	if x != nil {
+		if x, ok := x.Payload.(*WebsocketResponse_OpenRunResponse); ok {
+			return x.OpenRunResponse
 		}
 	}
 	return nil
@@ -379,10 +600,16 @@ type isWebsocketResponse_Payload interface {
 }
 
 type WebsocketResponse_ExecuteResponse struct {
-	ExecuteResponse *v2.ExecuteResponse `protobuf:"bytes,1,opt,name=execute_response,json=executeResponse,proto3,oneof"` // Add other payloads here as needed.
+	ExecuteResponse *v2.ExecuteResponse `protobuf:"bytes,1,opt,name=execute_response,json=executeResponse,proto3,oneof"`
+}
+
+type WebsocketResponse_OpenRunResponse struct {
+	OpenRunResponse *OpenRunResponse `protobuf:"bytes,2,opt,name=open_run_response,json=openRunResponse,proto3,oneof"` // Add other payloads here as needed.
 }
 
 func (*WebsocketResponse_ExecuteResponse) isWebsocketResponse_Payload() {}
+
+func (*WebsocketResponse_OpenRunResponse) isWebsocketResponse_Payload() {}
 
 var File_runme_stream_v1_websockets_proto protoreflect.FileDescriptor
 
@@ -395,21 +622,35 @@ const file_runme_stream_v1_websockets_proto_rawDesc = "" +
 	"\x04Ping\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\"$\n" +
 	"\x04Pong\x12\x1c\n" +
-	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\"\xef\x01\n" +
+	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\"D\n" +
+	"\x0eOpenRunRequest\x122\n" +
+	"\x06intent\x18\x01 \x01(\x0e2\x1a.runme.stream.v1.RunIntentR\x06intent\"B\n" +
+	"\x0fOpenRunResponse\x12/\n" +
+	"\x05state\x18\x01 \x01(\x0e2\x19.runme.stream.v1.RunStateR\x05state\"\xbc\x02\n" +
 	"\x10WebsocketRequest\x12J\n" +
-	"\x0fexecute_request\x18\x01 \x01(\v2\x1f.runme.runner.v2.ExecuteRequestH\x00R\x0eexecuteRequest\x12)\n" +
+	"\x0fexecute_request\x18\x01 \x01(\v2\x1f.runme.runner.v2.ExecuteRequestH\x00R\x0eexecuteRequest\x12K\n" +
+	"\x10open_run_request\x18\x02 \x01(\v2\x1f.runme.stream.v1.OpenRunRequestH\x00R\x0eopenRunRequest\x12)\n" +
 	"\x04ping\x18d \x01(\v2\x15.runme.stream.v1.PingR\x04ping\x12%\n" +
 	"\rauthorization\x18\xc8\x01 \x01(\tR\rauthorization\x12\x1a\n" +
 	"\bknown_id\x18\xd2\x01 \x01(\tR\aknownId\x12\x16\n" +
 	"\x06run_id\x18\xdc\x01 \x01(\tR\x05runIdB\t\n" +
-	"\apayload\"\x87\x02\n" +
+	"\apayload\"\xd7\x02\n" +
 	"\x11WebsocketResponse\x12M\n" +
-	"\x10execute_response\x18\x01 \x01(\v2 .runme.runner.v2.ExecuteResponseH\x00R\x0fexecuteResponse\x12)\n" +
+	"\x10execute_response\x18\x01 \x01(\v2 .runme.runner.v2.ExecuteResponseH\x00R\x0fexecuteResponse\x12N\n" +
+	"\x11open_run_response\x18\x02 \x01(\v2 .runme.stream.v1.OpenRunResponseH\x00R\x0fopenRunResponse\x12)\n" +
 	"\x04pong\x18d \x01(\v2\x15.runme.stream.v1.PongR\x04pong\x129\n" +
 	"\x06status\x18\xc8\x01 \x01(\v2 .runme.stream.v1.WebsocketStatusR\x06status\x12\x1a\n" +
 	"\bknown_id\x18\xd2\x01 \x01(\tR\aknownId\x12\x16\n" +
 	"\x06run_id\x18\xdc\x01 \x01(\tR\x05runIdB\t\n" +
-	"\apayloadBHZFgithub.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1;streamv1b\x06proto3"
+	"\apayload*T\n" +
+	"\tRunIntent\x12\x1a\n" +
+	"\x16RUN_INTENT_UNSPECIFIED\x10\x00\x12\x14\n" +
+	"\x10RUN_INTENT_START\x10\x01\x12\x15\n" +
+	"\x11RUN_INTENT_RESUME\x10\x02*S\n" +
+	"\bRunState\x12\x19\n" +
+	"\x15RUN_STATE_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11RUN_STATE_CREATED\x10\x01\x12\x15\n" +
+	"\x11RUN_STATE_RUNNING\x10\x02BHZFgithub.com/runmedev/runme/v3/api/gen/proto/go/runme/stream/v1;streamv1b\x06proto3"
 
 var (
 	file_runme_stream_v1_websockets_proto_rawDescOnce sync.Once
@@ -424,31 +665,40 @@ func file_runme_stream_v1_websockets_proto_rawDescGZIP() []byte {
 }
 
 var (
-	file_runme_stream_v1_websockets_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-	file_runme_stream_v1_websockets_proto_goTypes  = []any{
-		(*WebsocketStatus)(nil),    // 0: runme.stream.v1.WebsocketStatus
-		(*Ping)(nil),               // 1: runme.stream.v1.Ping
-		(*Pong)(nil),               // 2: runme.stream.v1.Pong
-		(*WebsocketRequest)(nil),   // 3: runme.stream.v1.WebsocketRequest
-		(*WebsocketResponse)(nil),  // 4: runme.stream.v1.WebsocketResponse
-		(code.Code)(0),             // 5: google.rpc.Code
-		(*v2.ExecuteRequest)(nil),  // 6: runme.runner.v2.ExecuteRequest
-		(*v2.ExecuteResponse)(nil), // 7: runme.runner.v2.ExecuteResponse
+	file_runme_stream_v1_websockets_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+	file_runme_stream_v1_websockets_proto_msgTypes  = make([]protoimpl.MessageInfo, 7)
+	file_runme_stream_v1_websockets_proto_goTypes   = []any{
+		(RunIntent)(0),             // 0: runme.stream.v1.RunIntent
+		(RunState)(0),              // 1: runme.stream.v1.RunState
+		(*WebsocketStatus)(nil),    // 2: runme.stream.v1.WebsocketStatus
+		(*Ping)(nil),               // 3: runme.stream.v1.Ping
+		(*Pong)(nil),               // 4: runme.stream.v1.Pong
+		(*OpenRunRequest)(nil),     // 5: runme.stream.v1.OpenRunRequest
+		(*OpenRunResponse)(nil),    // 6: runme.stream.v1.OpenRunResponse
+		(*WebsocketRequest)(nil),   // 7: runme.stream.v1.WebsocketRequest
+		(*WebsocketResponse)(nil),  // 8: runme.stream.v1.WebsocketResponse
+		(code.Code)(0),             // 9: google.rpc.Code
+		(*v2.ExecuteRequest)(nil),  // 10: runme.runner.v2.ExecuteRequest
+		(*v2.ExecuteResponse)(nil), // 11: runme.runner.v2.ExecuteResponse
 	}
 )
 
 var file_runme_stream_v1_websockets_proto_depIdxs = []int32{
-	5, // 0: runme.stream.v1.WebsocketStatus.code:type_name -> google.rpc.Code
-	6, // 1: runme.stream.v1.WebsocketRequest.execute_request:type_name -> runme.runner.v2.ExecuteRequest
-	1, // 2: runme.stream.v1.WebsocketRequest.ping:type_name -> runme.stream.v1.Ping
-	7, // 3: runme.stream.v1.WebsocketResponse.execute_response:type_name -> runme.runner.v2.ExecuteResponse
-	2, // 4: runme.stream.v1.WebsocketResponse.pong:type_name -> runme.stream.v1.Pong
-	0, // 5: runme.stream.v1.WebsocketResponse.status:type_name -> runme.stream.v1.WebsocketStatus
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	9,  // 0: runme.stream.v1.WebsocketStatus.code:type_name -> google.rpc.Code
+	0,  // 1: runme.stream.v1.OpenRunRequest.intent:type_name -> runme.stream.v1.RunIntent
+	1,  // 2: runme.stream.v1.OpenRunResponse.state:type_name -> runme.stream.v1.RunState
+	10, // 3: runme.stream.v1.WebsocketRequest.execute_request:type_name -> runme.runner.v2.ExecuteRequest
+	5,  // 4: runme.stream.v1.WebsocketRequest.open_run_request:type_name -> runme.stream.v1.OpenRunRequest
+	3,  // 5: runme.stream.v1.WebsocketRequest.ping:type_name -> runme.stream.v1.Ping
+	11, // 6: runme.stream.v1.WebsocketResponse.execute_response:type_name -> runme.runner.v2.ExecuteResponse
+	6,  // 7: runme.stream.v1.WebsocketResponse.open_run_response:type_name -> runme.stream.v1.OpenRunResponse
+	4,  // 8: runme.stream.v1.WebsocketResponse.pong:type_name -> runme.stream.v1.Pong
+	2,  // 9: runme.stream.v1.WebsocketResponse.status:type_name -> runme.stream.v1.WebsocketStatus
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_runme_stream_v1_websockets_proto_init() }
@@ -456,24 +706,27 @@ func file_runme_stream_v1_websockets_proto_init() {
 	if File_runme_stream_v1_websockets_proto != nil {
 		return
 	}
-	file_runme_stream_v1_websockets_proto_msgTypes[3].OneofWrappers = []any{
+	file_runme_stream_v1_websockets_proto_msgTypes[5].OneofWrappers = []any{
 		(*WebsocketRequest_ExecuteRequest)(nil),
+		(*WebsocketRequest_OpenRunRequest)(nil),
 	}
-	file_runme_stream_v1_websockets_proto_msgTypes[4].OneofWrappers = []any{
+	file_runme_stream_v1_websockets_proto_msgTypes[6].OneofWrappers = []any{
 		(*WebsocketResponse_ExecuteResponse)(nil),
+		(*WebsocketResponse_OpenRunResponse)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runme_stream_v1_websockets_proto_rawDesc), len(file_runme_stream_v1_websockets_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   5,
+			NumEnums:      2,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_runme_stream_v1_websockets_proto_goTypes,
 		DependencyIndexes: file_runme_stream_v1_websockets_proto_depIdxs,
+		EnumInfos:         file_runme_stream_v1_websockets_proto_enumTypes,
 		MessageInfos:      file_runme_stream_v1_websockets_proto_msgTypes,
 	}.Build()
 	File_runme_stream_v1_websockets_proto = out.File
