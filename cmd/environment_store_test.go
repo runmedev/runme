@@ -93,7 +93,17 @@ func TestMaterializeDotenvSpecTypeProposals(t *testing.T) {
 
 	materialized, err := materializeDotenvSpecTypeProposals(specFile, "API_KEY=\"Api Key\" # Secret\n")
 	assert.NoError(t, err)
-	assert.Equal(t, "API_URL=\"API URL\" # Plain\nAPI_KEY=\"Api Key\" # Secret\n", materialized)
+	assert.Equal(t, "API_URL=\"API URL\" # Plain\n\nAPI_KEY=\"Api Key\" # Secret\n", materialized)
+
+	assert.NoError(t, os.WriteFile(specFile, []byte("API_URL=\"API URL\" # Plain\n"), 0o600))
+	materialized, err = materializeDotenvSpecTypeProposals(specFile, "API_KEY=\"Api Key\" # Secret\n")
+	assert.NoError(t, err)
+	assert.Equal(t, "API_URL=\"API URL\" # Plain\n\nAPI_KEY=\"Api Key\" # Secret\n", materialized)
+
+	assert.NoError(t, os.WriteFile(specFile, []byte("API_URL=\"API URL\" # Plain\n\n"), 0o600))
+	materialized, err = materializeDotenvSpecTypeProposals(specFile, "API_KEY=\"Api Key\" # Secret\n")
+	assert.NoError(t, err)
+	assert.Equal(t, "API_URL=\"API URL\" # Plain\n\nAPI_KEY=\"Api Key\" # Secret\n", materialized)
 }
 
 func owlSnapshotEnv(name string, typeID string) owlcmd.SnapshotEnv {

@@ -449,6 +449,8 @@ github.com/runmedev/owl v1.0.2-0.20260724232832-e01f6967dfb0 h1:4oTqb6pS7vZwfxug
 github.com/runmedev/owl v1.0.2-0.20260724232832-e01f6967dfb0/go.mod h1:j9dHba3PZdEasw/CqycYvRyysO/gwfoWOq4p2jMfvNY=
 github.com/runmedev/owl v1.0.2-0.20260724233743-cde7c559ac2e h1:Uoq/fJ+pwvEhI07mzGmtil1kev4LcHB1R3nvqULkiFE=
 github.com/runmedev/owl v1.0.2-0.20260724233743-cde7c559ac2e/go.mod h1:j9dHba3PZdEasw/CqycYvRyysO/gwfoWOq4p2jMfvNY=
+github.com/runmedev/owl v1.0.2-0.20260724234530-38ae3be1f141 h1:KYN83AdkxCmdE5xrRLxg47ImA7yKatv8agJnJLd6eX0=
+github.com/runmedev/owl v1.0.2-0.20260724234530-38ae3be1f141/go.mod h1:j9dHba3PZdEasw/CqycYvRyysO/gwfoWOq4p2jMfvNY=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sagikazarmark/locafero v0.12.0 h1:/NQhBAkUb4+fH1jivKHWusDYFjMOOKU88eegjfxfHb4=
 github.com/sagikazarmark/locafero v0.12.0/go.mod h1:sZh36u/YSZ918v0Io+U9ogLYQJ9tLLBmM4eneO6WwsI=
