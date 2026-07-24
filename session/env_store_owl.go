@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/runmedev/owl/pkg/owl"
-
-	rcontext "github.com/runmedev/runme/v3/runner/context"
 )
 
 type envStoreOwl struct {
@@ -30,17 +28,17 @@ func newOwlStore() (*envStoreOwl, error) {
 var _ EnvStore = new(envStoreOwl)
 
 func (s *envStoreOwl) Load(source string, envs ...string) error {
-	return s.owlStore.LoadEnvs(source, envs...)
+	return s.owlStore.LoadDotenvLines(source, envs...)
 }
 
 func (s *envStoreOwl) Merge(context context.Context, envs ...string) error {
-	return s.owlStore.Update(owlContext(context), envs, nil)
+	return s.owlStore.Update(context, envs, nil)
 }
 
 func (s *envStoreOwl) Get(k string) (string, bool) {
 	// todo(sebastian): return error?
-	if v, ok, err := s.owlStore.InsecureGet(k); err == nil {
-		return v, ok
+	if v, ok, err := s.owlStore.Get(k, owl.GetPolicy{Reveal: true}); err == nil {
+		return v.Value, ok
 	}
 
 	return "", false
@@ -51,26 +49,13 @@ func (s *envStoreOwl) Set(context context.Context, k, v string) error {
 		return ErrEnvTooLarge
 	}
 
-	return s.owlStore.Update(owlContext(context), []string{k + "=" + v}, nil)
+	return s.owlStore.Update(context, []string{k + "=" + v}, nil)
 }
 
 func (s *envStoreOwl) Delete(context context.Context, k string) error {
-	return s.owlStore.Update(owlContext(context), nil, []string{k})
+	return s.owlStore.Update(context, nil, []string{k})
 }
 
 func (s *envStoreOwl) Items() ([]string, error) {
-	return s.owlStore.InsecureValues()
-}
-
-func owlContext(ctx context.Context) context.Context {
-	execInfo, ok := rcontext.ExecutionInfoFromContext(ctx)
-	if !ok {
-		return ctx
-	}
-
-	return owl.ContextWithExecutionInfo(ctx, owl.ExecutionInfo{
-		KnownID:     execInfo.KnownID,
-		KnownName:   execInfo.KnownName,
-		ExecContext: execInfo.ExecContext,
-	})
+	return s.owlStore.Dotenv(owl.DotenvPolicy{Insecure: true})
 }

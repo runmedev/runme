@@ -5,7 +5,6 @@ package runner
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net"
 	"os"
@@ -1285,26 +1284,17 @@ func Test_runnerConformsOpinionatedEnvVarNaming(t *testing.T) {
 }
 
 func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T) {
-	var snapshot owl.SetVarItems
-	require.NoError(t, json.Unmarshal([]byte(`[
+	snapshot := []owl.SnapshotItem{
 		{
-			"var": {
-				"key": "FOO",
-				"origin": "test",
-				"created": "2026-06-17T18:46:21Z"
-			},
-			"value": {
-				"original": "bar",
-				"resolved": "bar",
-				"status": "LITERAL"
-			},
-			"spec": {
-				"name": "Plain",
-				"required": true,
-				"description": "desc"
-			}
-		}
-	]`), &snapshot))
+			Name:          "FOO",
+			Origin:        owl.Source{Name: "test"},
+			OriginalValue: "bar",
+			Value:         "bar",
+			Type:          owl.TypeCorePlain,
+			Visibility:    owl.VisibilityLiteral,
+			Description:   "desc",
+		},
+	}
 
 	core, observedLogs := observer.New(zap.WarnLevel)
 	msg := &runnerv1.MonitorEnvStoreResponse{}
@@ -1313,7 +1303,7 @@ func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T
 
 	envs := msg.GetSnapshot().GetEnvs()
 	require.Len(t, envs, 1)
-	assert.Equal(t, "2026-06-17T18:46:21Z", envs[0].CreateTime)
+	assert.Empty(t, envs[0].CreateTime)
 	assert.Empty(t, envs[0].UpdateTime)
 	assert.Equal(t, runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL, envs[0].Status)
 
