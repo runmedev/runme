@@ -276,3 +276,5 @@ tool (
 	honnef.co/go/tools/cmd/staticcheck
 	mvdan.cc/gofumpt
 )
+
+replace github.com/runmedev/owl => ../owl
