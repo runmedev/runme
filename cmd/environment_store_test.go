@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -80,6 +82,18 @@ func TestRenderDotenvSpecTypeProposals(t *testing.T) {
 		`SERVICE_HOST="Service Host"                                           # Host`,
 		"",
 	}, "\n"), rendered)
+}
+
+func TestMaterializeDotenvSpecTypeProposals(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	specFile := filepath.Join(dir, ".env.spec")
+	assert.NoError(t, os.WriteFile(specFile, []byte(`API_URL="API URL" # Plain`), 0o600))
+
+	materialized, err := materializeDotenvSpecTypeProposals(specFile, "API_KEY=\"Api Key\" # Secret\n")
+	assert.NoError(t, err)
+	assert.Equal(t, "API_URL=\"API URL\" # Plain\nAPI_KEY=\"Api Key\" # Secret\n", materialized)
 }
 
 func owlSnapshotEnv(name string, typeID string) owlcmd.SnapshotEnv {
