@@ -133,15 +133,19 @@ func (c *runmeOwlStoreClient) Type(ctx context.Context, req owlcmd.TypeRequest) 
 		if env.Explicit {
 			continue
 		}
-		suggested, reason := suggestSnapshotPrimitiveType(env)
-		if !includeSnapshotTypeProposal(req, suggested) {
+		suggested, reason, ok := suggestSnapshotPrimitiveType(env)
+		if !includeSnapshotTypeProposal(req, ok) {
 			continue
+		}
+		confidence := "heuristic"
+		if !ok {
+			confidence = "none"
 		}
 		proposals = append(proposals, owlcmd.TypeProposal{
 			Key:           env.Name,
 			CurrentType:   normalizeSnapshotType(env.Type),
 			SuggestedType: suggested,
-			Confidence:    "heuristic",
+			Confidence:    confidence,
 			Reason:        reason,
 			Description:   descriptionForEnvKey(env.Name),
 		})
@@ -165,8 +169,8 @@ func (c *runmeOwlStoreClient) Type(ctx context.Context, req owlcmd.TypeRequest) 
 	return &owlcmd.TypeResult{Proposals: proposals, Rendered: rendered}, nil
 }
 
-func includeSnapshotTypeProposal(req owlcmd.TypeRequest, suggested string) bool {
-	return req.All || suggested != "core/plain"
+func includeSnapshotTypeProposal(req owlcmd.TypeRequest, suggested bool) bool {
+	return req.All || suggested
 }
 
 func (c *runmeOwlStoreClient) runnerClient() (runnerv1.RunnerServiceClient, func(), error) {
@@ -186,7 +190,7 @@ func (c *runmeOwlStoreClient) runnerClient() (runnerv1.RunnerServiceClient, func
 	return runnerv1.NewRunnerServiceClient(conn), func() { _ = conn.Close() }, nil
 }
 
-func suggestSnapshotPrimitiveType(env owlcmd.SnapshotEnv) (string, string) {
+func suggestSnapshotPrimitiveType(env owlcmd.SnapshotEnv) (string, string, bool) {
 	upper := strings.ToUpper(env.Name)
 	switch {
 	case strings.Contains(upper, "PASSWORD"),
@@ -194,15 +198,15 @@ func suggestSnapshotPrimitiveType(env owlcmd.SnapshotEnv) (string, string) {
 		strings.Contains(upper, "TOKEN"),
 		strings.Contains(upper, "API_KEY"),
 		strings.Contains(upper, "PRIVATE_KEY"):
-		return "core/secret", "key name suggests sensitive value"
+		return "core/secret", "key name suggests sensitive value", true
 	case upper == "URL" || strings.HasSuffix(upper, "_URL") || strings.Contains(upper, "URL_"):
-		return "core/url", "key name suggests URL"
+		return "core/url", "key name suggests URL", true
 	case upper == "HOST" || strings.HasSuffix(upper, "_HOST") || strings.Contains(upper, "HOST_"):
-		return "core/host", "key name suggests host"
+		return "core/host", "key name suggests host", true
 	case upper == "PORT" || strings.HasSuffix(upper, "_PORT") || strings.Contains(upper, "PORT_"):
-		return "core/port", "key name suggests port"
+		return "core/port", "key name suggests port", true
 	default:
-		return "core/plain", "default primitive type"
+		return "", "no primitive type heuristic matched", false
 	}
 }
 
@@ -212,6 +216,9 @@ func renderDotenvSpecTypeProposals(proposals []owlcmd.TypeProposal) string {
 	}
 	var b strings.Builder
 	for _, proposal := range proposals {
+		if proposal.SuggestedType == "" {
+			continue
+		}
 		_, _ = b.WriteString(proposal.Key)
 		_, _ = b.WriteString("=")
 		_, _ = b.WriteString(quoteDotenvSpecDescription(proposal.Description))
