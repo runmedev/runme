@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -117,6 +119,49 @@ func (c *runmeOwlStoreClient) Check(ctx context.Context, _ owlcmd.CheckRequest) 
 	return &owlcmd.CheckResult{OK: true}, nil
 }
 
+func (c *runmeOwlStoreClient) Type(ctx context.Context, req owlcmd.TypeRequest) (*owlcmd.TypeResult, error) {
+	if req.SpecPath == "" {
+		req.SpecPath = ".env.spec"
+	}
+	snapshot, err := c.Snapshot(ctx, owlcmd.SnapshotRequest{All: true})
+	if err != nil {
+		return nil, err
+	}
+
+	proposals := make([]owlcmd.TypeProposal, 0, len(snapshot.Envs))
+	for _, env := range snapshot.Envs {
+		if env.Explicit {
+			continue
+		}
+		suggested, reason := suggestSnapshotPrimitiveType(env)
+		proposals = append(proposals, owlcmd.TypeProposal{
+			Key:           env.Name,
+			CurrentType:   normalizeSnapshotType(env.Type),
+			SuggestedType: suggested,
+			Confidence:    "heuristic",
+			Reason:        reason,
+			Description:   descriptionForEnvKey(env.Name),
+		})
+	}
+	sort.SliceStable(proposals, func(i, j int) bool {
+		return proposals[i].Key < proposals[j].Key
+	})
+
+	rendered := renderDotenvSpecTypeProposals(proposals)
+	if req.Output != "" {
+		if err := os.WriteFile(req.Output, []byte(rendered), 0o600); err != nil {
+			return nil, err
+		}
+	}
+	if req.Fix {
+		if err := appendDotenvSpecTypeProposals(req.SpecPath, rendered); err != nil {
+			return nil, err
+		}
+	}
+
+	return &owlcmd.TypeResult{Proposals: proposals, Rendered: rendered}, nil
+}
+
 func (c *runmeOwlStoreClient) runnerClient() (runnerv1.RunnerServiceClient, func(), error) {
 	tlsConfig, err := runmetls.LoadClientConfigFromDir(c.storeFlags.tlsDir)
 	if err != nil {
@@ -132,6 +177,98 @@ func (c *runmeOwlStoreClient) runnerClient() (runnerv1.RunnerServiceClient, func
 	}
 
 	return runnerv1.NewRunnerServiceClient(conn), func() { _ = conn.Close() }, nil
+}
+
+func suggestSnapshotPrimitiveType(env owlcmd.SnapshotEnv) (string, string) {
+	upper := strings.ToUpper(env.Name)
+	switch {
+	case strings.Contains(upper, "PASSWORD"),
+		strings.Contains(upper, "SECRET"),
+		strings.Contains(upper, "TOKEN"),
+		strings.Contains(upper, "API_KEY"),
+		strings.Contains(upper, "PRIVATE_KEY"):
+		return "core/secret", "key name suggests sensitive value"
+	case upper == "URL" || strings.HasSuffix(upper, "_URL") || strings.Contains(upper, "URL_"):
+		return "core/url", "key name suggests URL"
+	case upper == "HOST" || strings.HasSuffix(upper, "_HOST") || strings.Contains(upper, "HOST_"):
+		return "core/host", "key name suggests host"
+	case upper == "PORT" || strings.HasSuffix(upper, "_PORT") || strings.Contains(upper, "PORT_"):
+		return "core/port", "key name suggests port"
+	default:
+		return "core/plain", "default primitive type"
+	}
+}
+
+func renderDotenvSpecTypeProposals(proposals []owlcmd.TypeProposal) string {
+	if len(proposals) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, proposal := range proposals {
+		_, _ = b.WriteString(proposal.Key)
+		_, _ = b.WriteString("=")
+		_, _ = b.WriteString(quoteDotenvSpecDescription(proposal.Description))
+		_, _ = b.WriteString(" # ")
+		_, _ = b.WriteString(dotenvSpecTypeName(proposal.SuggestedType))
+		if proposal.Required {
+			_ = b.WriteByte('!')
+		}
+		_ = b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func appendDotenvSpecTypeProposals(path string, rendered string) error {
+	if rendered == "" {
+		return nil
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	var b strings.Builder
+	_, _ = b.Write(raw)
+	if len(raw) > 0 && !strings.HasSuffix(string(raw), "\n") {
+		_ = b.WriteByte('\n')
+	}
+	_, _ = b.WriteString(rendered)
+	return os.WriteFile(path, []byte(b.String()), 0o600)
+}
+
+func dotenvSpecTypeName(typeID string) string {
+	switch normalizeSnapshotType(typeID) {
+	case "core/secret":
+		return "Secret"
+	case "core/url":
+		return "Url"
+	case "core/host":
+		return "Host"
+	case "core/port":
+		return "Port"
+	case "core/plain":
+		return "Plain"
+	default:
+		return "Opaque"
+	}
+}
+
+func normalizeSnapshotType(typeID string) string {
+	return strings.TrimPrefix(typeID, "https://owl.runme.dev/v1/types/")
+}
+
+func quoteDotenvSpecDescription(s string) string {
+	return `"` + strings.ReplaceAll(strings.ReplaceAll(s, `\`, `\\`), `"`, `\"`) + `"`
+}
+
+func descriptionForEnvKey(key string) string {
+	words := strings.Split(strings.ToLower(strings.ReplaceAll(key, "_", " ")), " ")
+	for i, word := range words {
+		if word == "" {
+			continue
+		}
+		words[i] = strings.ToUpper(word[:1]) + word[1:]
+	}
+	return strings.Join(words, " ")
 }
 
 func (c *runmeOwlStoreClient) sessionID(ctx context.Context, runnerClient runnerv1.RunnerServiceClient) (string, error) {
