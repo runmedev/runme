@@ -908,11 +908,12 @@ func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorE
 	}
 
 	for _, item := range snapshot {
+		sourceName := snapshotSourceName(item)
 		es := &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 			Name:          item.Name,
 			Description:   item.Description,
 			Spec:          string(item.Type),
-			Origin:        item.Origin.Name,
+			Origin:        sourceName,
 			OriginalValue: item.OriginalValue,
 			ResolvedValue: item.Value,
 			Status:        monitorEnvStoreStatusFromVisibility(item.Visibility),
@@ -923,7 +924,7 @@ func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorE
 			logger.Warn(
 				"env store snapshot item has no update timestamp",
 				zap.String("name", item.Name),
-				zap.String("origin", item.Origin.Name),
+				zap.String("origin", sourceName),
 			)
 		}
 		for _, diagnostic := range item.Diagnostics {
@@ -942,6 +943,13 @@ func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorE
 	}
 
 	return nil
+}
+
+func snapshotSourceName(item owl.SnapshotItem) string {
+	if item.Source.Name != "" {
+		return item.Source.Name
+	}
+	return item.Origin.Name
 }
 
 func monitorEnvStoreStatusFromVisibility(visibility owl.Visibility) runnerv1.MonitorEnvStoreResponseSnapshot_Status {

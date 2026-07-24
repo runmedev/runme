@@ -13,6 +13,7 @@ import (
 	"github.com/runmedev/runme/v3/internal/lru"
 	"github.com/runmedev/runme/v3/internal/ulid"
 	"github.com/runmedev/runme/v3/project"
+	rcontext "github.com/runmedev/runme/v3/runner/context"
 )
 
 var owlStoreDefault = false
@@ -304,16 +305,16 @@ func (es *owlEnvStorer) notifySubscribers() {
 	}
 }
 
-func (es *owlEnvStorer) updateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error {
-	if err := es.owlStore.Update(context, newOrUpdated, deleted); err != nil {
+func (es *owlEnvStorer) updateStore(ctx context.Context, envs []string, newOrUpdated []string, deleted []string) error {
+	if err := es.owlStore.Update(owlContext(ctx), newOrUpdated, deleted); err != nil {
 		return err
 	}
 	es.notifySubscribers()
 	return nil
 }
 
-func (es *owlEnvStorer) addEnvs(context context.Context, envs []string) error {
-	if err := es.owlStore.Update(context, envs, nil); err != nil {
+func (es *owlEnvStorer) addEnvs(ctx context.Context, envs []string) error {
+	if err := es.owlStore.Update(owlContext(ctx), envs, nil); err != nil {
 		return err
 	}
 	es.notifySubscribers()
@@ -333,9 +334,9 @@ func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {
 	return vals, nil
 }
 
-func (es *owlEnvStorer) setEnv(context context.Context, k string, v string) error {
+func (es *owlEnvStorer) setEnv(ctx context.Context, k string, v string) error {
 	// todo(sebastian): add checking env length inside Update
-	err := es.owlStore.Update(context, []string{fmt.Sprintf("%s=%s", k, v)}, nil)
+	err := es.owlStore.Update(owlContext(ctx), []string{fmt.Sprintf("%s=%s", k, v)}, nil)
 	if err != nil {
 		return err
 	}
@@ -366,4 +367,17 @@ const sessionListCapacity = 1024
 
 func newSessionList() *sessionList {
 	return lru.NewCache[*Session](sessionListCapacity)
+}
+
+func owlContext(ctx context.Context) context.Context {
+	execInfo, ok := rcontext.ExecutionInfoFromContext(ctx)
+	if !ok {
+		return ctx
+	}
+
+	return owl.ContextWithExecutionInfo(ctx, owl.ExecutionInfo{
+		KnownID:     execInfo.KnownID,
+		KnownName:   execInfo.KnownName,
+		ExecContext: execInfo.ExecContext,
+	})
 }

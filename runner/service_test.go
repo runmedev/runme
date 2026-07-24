@@ -1312,3 +1312,24 @@ func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T
 	assert.Equal(t, "FOO", logs[0].ContextMap()["name"])
 	assert.Equal(t, "test", logs[0].ContextMap()["origin"])
 }
+
+func Test_convertToMonitorEnvStoreResponse_usesSnapshotSource(t *testing.T) {
+	snapshot := []owl.SnapshotItem{
+		{
+			Name:       "FOO",
+			Source:     owl.Source{Name: "#cell-name"},
+			Origin:     owl.Source{Name: ".env"},
+			Value:      "bar",
+			Type:       owl.TypeCorePlain,
+			Visibility: owl.VisibilityLiteral,
+			UpdatedAt:  time.Date(2026, 7, 24, 19, 45, 0, 0, time.UTC),
+		},
+	}
+	msg := &runnerv1.MonitorEnvStoreResponse{}
+
+	require.NoError(t, convertToMonitorEnvStoreResponse(zap.NewNop(), msg, snapshot))
+
+	envs := msg.GetSnapshot().GetEnvs()
+	require.Len(t, envs, 1)
+	assert.Equal(t, "#cell-name", envs[0].Origin)
+}
