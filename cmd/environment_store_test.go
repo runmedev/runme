@@ -36,24 +36,31 @@ func TestSnapshotEnvsFromProtoMarksExplicitRows(t *testing.T) {
 func TestSnapshotTypeProposalHelpers(t *testing.T) {
 	t.Parallel()
 
-	suggested, reason := suggestSnapshotPrimitiveType(owlSnapshotEnv("API_KEY", "https://owl.runme.dev/v1/types/core/opaque"))
+	suggested, reason, ok := suggestSnapshotPrimitiveType(owlSnapshotEnv("API_KEY", "https://owl.runme.dev/v1/types/core/opaque"))
 	assert.Equal(t, "core/secret", suggested)
 	assert.Equal(t, "key name suggests sensitive value", reason)
+	assert.True(t, ok)
 
-	suggested, reason = suggestSnapshotPrimitiveType(owlSnapshotEnv("SERVICE_HOST", "core/opaque"))
+	suggested, reason, ok = suggestSnapshotPrimitiveType(owlSnapshotEnv("SERVICE_HOST", "core/opaque"))
 	assert.Equal(t, "core/host", suggested)
 	assert.Equal(t, "key name suggests host", reason)
+	assert.True(t, ok)
+
+	suggested, reason, ok = suggestSnapshotPrimitiveType(owlSnapshotEnv("TARGET_PLATFORM", "core/opaque"))
+	assert.Empty(t, suggested)
+	assert.Equal(t, "no primitive type heuristic matched", reason)
+	assert.False(t, ok)
 
 	assert.Equal(t, "core/opaque", normalizeSnapshotType("https://owl.runme.dev/v1/types/core/opaque"))
 	assert.Equal(t, "Host", dotenvSpecTypeName("core/host"))
 }
 
-func TestIncludeSnapshotTypeProposalSkipsDefaultPlainUnlessAll(t *testing.T) {
+func TestIncludeSnapshotTypeProposalSkipsNoSuggestionUnlessAll(t *testing.T) {
 	t.Parallel()
 
-	assert.False(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{}, "core/plain"))
-	assert.True(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{All: true}, "core/plain"))
-	assert.True(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{}, "core/secret"))
+	assert.False(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{}, false))
+	assert.True(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{All: true}, false))
+	assert.True(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{}, true))
 }
 
 func TestRenderDotenvSpecTypeProposals(t *testing.T) {
@@ -61,6 +68,7 @@ func TestRenderDotenvSpecTypeProposals(t *testing.T) {
 
 	rendered := renderDotenvSpecTypeProposals([]owlcmd.TypeProposal{
 		{Key: "API_KEY", SuggestedType: "core/secret", Description: "Api Key"},
+		{Key: "TARGET_PLATFORM", SuggestedType: "", Description: "Target Platform"},
 		{Key: "SERVICE_HOST", SuggestedType: "core/host", Description: "Service Host"},
 	})
 
