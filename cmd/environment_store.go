@@ -160,11 +160,20 @@ func snapshotEnvsFromProto(envs []*runnerv1.MonitorEnvStoreResponseSnapshot_Snap
 			Description: env.GetDescription(),
 			Type:        env.GetSpec(),
 			Source:      env.GetOrigin(),
+			Explicit:    snapshotExplicitFromProto(env),
 			Visibility:  snapshotVisibilityFromProto(env.GetStatus()),
 			Diagnostics: snapshotDiagnosticsFromProto(env.GetErrors()),
 		})
 	}
 	return result
+}
+
+func snapshotExplicitFromProto(env *runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv) bool {
+	if env.GetDescription() != "" || env.GetIsRequired() {
+		return true
+	}
+	spec := env.GetSpec()
+	return spec != "" && spec != "Opaque" && spec != "https://owl.runme.dev/v1/types/core/opaque"
 }
 
 func snapshotVisibilityFromProto(status runnerv1.MonitorEnvStoreResponseSnapshot_Status) string {
