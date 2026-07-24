@@ -278,8 +278,14 @@ func materializeDotenvSpecTypeProposals(path string, rendered string) (string, e
 	}
 	var b strings.Builder
 	_, _ = b.Write(raw)
-	if len(raw) > 0 && !strings.HasSuffix(string(raw), "\n") {
-		_ = b.WriteByte('\n')
+	if len(raw) > 0 {
+		switch {
+		case strings.HasSuffix(string(raw), "\n\n"):
+		case strings.HasSuffix(string(raw), "\n"):
+			_ = b.WriteByte('\n')
+		default:
+			_, _ = b.WriteString("\n\n")
+		}
 	}
 	_, _ = b.WriteString(rendered)
 	return b.String(), nil
