@@ -48,6 +48,14 @@ func TestSnapshotTypeProposalHelpers(t *testing.T) {
 	assert.Equal(t, "Host", dotenvSpecTypeName("core/host"))
 }
 
+func TestIncludeSnapshotTypeProposalSkipsDefaultPlainUnlessAll(t *testing.T) {
+	t.Parallel()
+
+	assert.False(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{}, "core/plain"))
+	assert.True(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{All: true}, "core/plain"))
+	assert.True(t, includeSnapshotTypeProposal(owlcmd.TypeRequest{}, "core/secret"))
+}
+
 func TestRenderDotenvSpecTypeProposals(t *testing.T) {
 	t.Parallel()
 

@@ -134,6 +134,9 @@ func (c *runmeOwlStoreClient) Type(ctx context.Context, req owlcmd.TypeRequest) 
 			continue
 		}
 		suggested, reason := suggestSnapshotPrimitiveType(env)
+		if !includeSnapshotTypeProposal(req, suggested) {
+			continue
+		}
 		proposals = append(proposals, owlcmd.TypeProposal{
 			Key:           env.Name,
 			CurrentType:   normalizeSnapshotType(env.Type),
@@ -160,6 +163,10 @@ func (c *runmeOwlStoreClient) Type(ctx context.Context, req owlcmd.TypeRequest) 
 	}
 
 	return &owlcmd.TypeResult{Proposals: proposals, Rendered: rendered}, nil
+}
+
+func includeSnapshotTypeProposal(req owlcmd.TypeRequest, suggested string) bool {
+	return req.All || suggested != "core/plain"
 }
 
 func (c *runmeOwlStoreClient) runnerClient() (runnerv1.RunnerServiceClient, func(), error) {
