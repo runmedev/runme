@@ -846,7 +846,7 @@ func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, sr
 	}
 
 	ctx, cancel := context.WithCancel(srv.Context())
-	snapshotc := make(chan owl.SetVarItems)
+	snapshotc := make(chan []owl.SnapshotItem)
 	errc := make(chan error, 1)
 	defer close(errc)
 	wg := sync.WaitGroup{}
@@ -901,52 +901,35 @@ func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, sr
 	return err
 }
 
-func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorEnvStoreResponse, snapshot owl.SetVarItems) error {
+func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorEnvStoreResponse, snapshot []owl.SnapshotItem) error {
 	envsSnapshot := make([]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv, 0, len(snapshot))
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
 	for _, item := range snapshot {
-		status := runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
-		// todo(sebastian): once more final use enums in SetVarResult
-		switch item.Value.Status {
-		case "HIDDEN":
-			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN
-		case "MASKED":
-			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED
-		case "LITERAL":
-			status = runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL
-		default:
-			// noop
-		}
 		es := &runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
-			Name:          item.Var.Key,
-			Description:   item.Spec.Description,
-			Spec:          item.Spec.Name,
-			IsRequired:    item.Spec.Required,
-			Origin:        item.Var.Origin,
-			OriginalValue: item.Value.Original,
-			ResolvedValue: item.Value.Resolved,
-			Status:        status,
-			CreateTime:    formatOptionalTime(item.Var.Created),
-			UpdateTime:    formatOptionalTime(item.Var.Updated),
+			Name:          item.Name,
+			Description:   item.Description,
+			Spec:          string(item.Type),
+			Origin:        item.Origin.Name,
+			OriginalValue: item.OriginalValue,
+			ResolvedValue: item.Value,
+			Status:        monitorEnvStoreStatusFromVisibility(item.Visibility),
+			UpdateTime:    formatTime(item.UpdatedAt),
 			Errors:        []*runnerv1.MonitorEnvStoreResponseSnapshot_Error{},
 		}
-		if item.Var.Updated == nil {
+		if item.UpdatedAt.IsZero() {
 			logger.Warn(
 				"env store snapshot item has no update timestamp",
-				zap.String("name", item.Var.Key),
-				zap.String("origin", item.Var.Origin),
+				zap.String("name", item.Name),
+				zap.String("origin", item.Origin.Name),
 			)
 		}
-		for _, verr := range item.Errors {
-			if verr.Code < 0 {
-				return fmt.Errorf("negative error code: %d", verr.Code)
-			}
+		for _, diagnostic := range item.Diagnostics {
 			es.Errors = append(es.Errors, &runnerv1.MonitorEnvStoreResponseSnapshot_Error{
-				Code:    uint32(verr.Code),
-				Message: verr.Message,
+				Code:    0,
+				Message: diagnosticMessage(diagnostic),
 			})
 		}
 		envsSnapshot = append(envsSnapshot, es)
@@ -961,8 +944,38 @@ func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorE
 	return nil
 }
 
-func formatOptionalTime(t *time.Time) string {
-	if t == nil {
+func monitorEnvStoreStatusFromVisibility(visibility owl.Visibility) runnerv1.MonitorEnvStoreResponseSnapshot_Status {
+	switch visibility {
+	case owl.VisibilityLiteral:
+		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL
+	case owl.VisibilityMasked:
+		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED
+	case owl.VisibilityHidden, owl.VisibilityUnresolved:
+		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN
+	default:
+		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
+	}
+}
+
+func diagnosticMessage(diagnostic owl.Diagnostic) string {
+	parts := []string{}
+	if diagnostic.Severity != "" {
+		parts = append(parts, string(diagnostic.Severity))
+	}
+	if diagnostic.Code != "" {
+		parts = append(parts, diagnostic.Code)
+	}
+	if diagnostic.Key != "" {
+		parts = append(parts, diagnostic.Key)
+	}
+	if diagnostic.Message != "" {
+		parts = append(parts, diagnostic.Message)
+	}
+	return strings.Join(parts, " ")
+}
+
+func formatTime(t time.Time) string {
+	if t.IsZero() {
 		return ""
 	}
 	return t.Format(time.RFC3339)

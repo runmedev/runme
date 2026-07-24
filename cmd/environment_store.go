@@ -108,10 +108,13 @@ func (c *runmeOwlStoreClient) Check(ctx context.Context, _ owlcmd.CheckRequest) 
 	if err != nil {
 		errStr := err.Error()
 		parts := strings.Split(errStr, "Unknown desc = ")
-		return &owlcmd.CheckResult{Message: fmt.Sprintf("Error: %s", parts[len(parts)-1])}, nil
+		return &owlcmd.CheckResult{
+			OK:          false,
+			Diagnostics: []string{fmt.Sprintf("Error: %s", parts[len(parts)-1])},
+		}, nil
 	}
 
-	return &owlcmd.CheckResult{Message: "Success"}, nil
+	return &owlcmd.CheckResult{OK: true}, nil
 }
 
 func (c *runmeOwlStoreClient) runnerClient() (runnerv1.RunnerServiceClient, func(), error) {
@@ -152,28 +155,38 @@ func snapshotEnvsFromProto(envs []*runnerv1.MonitorEnvStoreResponseSnapshot_Snap
 	result := make([]owlcmd.SnapshotEnv, 0, len(envs))
 	for _, env := range envs {
 		result = append(result, owlcmd.SnapshotEnv{
-			Name:          env.GetName(),
-			OriginalValue: env.GetOriginalValue(),
-			ResolvedValue: env.GetResolvedValue(),
-			Description:   env.GetDescription(),
-			Spec:          env.GetSpec(),
-			Origin:        env.GetOrigin(),
-			Status:        snapshotStatusFromProto(env.GetStatus()),
-			UpdateTime:    env.GetUpdateTime(),
+			Name:        env.GetName(),
+			Value:       env.GetResolvedValue(),
+			Description: env.GetDescription(),
+			Type:        env.GetSpec(),
+			Source:      env.GetOrigin(),
+			Visibility:  snapshotVisibilityFromProto(env.GetStatus()),
+			Diagnostics: snapshotDiagnosticsFromProto(env.GetErrors()),
 		})
 	}
 	return result
 }
 
-func snapshotStatusFromProto(status runnerv1.MonitorEnvStoreResponseSnapshot_Status) string {
+func snapshotVisibilityFromProto(status runnerv1.MonitorEnvStoreResponseSnapshot_Status) string {
 	switch status {
 	case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN:
-		return "HIDDEN"
+		return "hidden"
 	case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED:
-		return "MASKED"
+		return "masked"
 	case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL:
-		return "LITERAL"
+		return "literal"
 	default:
-		return "UNSPECIFIED"
+		return "unspecified"
 	}
+}
+
+func snapshotDiagnosticsFromProto(errors []*runnerv1.MonitorEnvStoreResponseSnapshot_Error) []string {
+	if len(errors) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(errors))
+	for _, err := range errors {
+		result = append(result, err.GetMessage())
+	}
+	return result
 }
