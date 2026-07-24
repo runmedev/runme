@@ -214,17 +214,37 @@ func renderDotenvSpecTypeProposals(proposals []owlcmd.TypeProposal) string {
 	if len(proposals) == 0 {
 		return ""
 	}
-	var b strings.Builder
+	type renderedProposal struct {
+		left     string
+		typeName string
+		required bool
+	}
+	rendered := make([]renderedProposal, 0, len(proposals))
+	maxLeftWidth := 0
 	for _, proposal := range proposals {
 		if proposal.SuggestedType == "" {
 			continue
 		}
-		_, _ = b.WriteString(proposal.Key)
-		_, _ = b.WriteString("=")
-		_, _ = b.WriteString(quoteDotenvSpecDescription(proposal.Description))
-		_, _ = b.WriteString(" # ")
-		_, _ = b.WriteString(dotenvSpecTypeName(proposal.SuggestedType))
-		if proposal.Required {
+		left := proposal.Key + "=" + quoteDotenvSpecDescription(proposal.Description)
+		rendered = append(rendered, renderedProposal{
+			left:     left,
+			typeName: dotenvSpecTypeName(proposal.SuggestedType),
+			required: proposal.Required,
+		})
+		if len(left) > maxLeftWidth {
+			maxLeftWidth = len(left)
+		}
+	}
+	if len(rendered) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, proposal := range rendered {
+		_, _ = b.WriteString(proposal.left)
+		_, _ = b.WriteString(strings.Repeat(" ", maxLeftWidth-len(proposal.left)+1))
+		_, _ = b.WriteString("# ")
+		_, _ = b.WriteString(proposal.typeName)
+		if proposal.required {
 			_ = b.WriteByte('!')
 		}
 		_ = b.WriteByte('\n')

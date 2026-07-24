@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -67,12 +68,18 @@ func TestRenderDotenvSpecTypeProposals(t *testing.T) {
 	t.Parallel()
 
 	rendered := renderDotenvSpecTypeProposals([]owlcmd.TypeProposal{
-		{Key: "API_KEY", SuggestedType: "core/secret", Description: "Api Key"},
+		{Key: "GITHUB_TOKEN", SuggestedType: "core/secret", Description: "The GitHub token to use for API requests."},
+		{Key: "RUNME_TEST_TOKEN", SuggestedType: "core/secret", Description: "The Runme test token to use for integration tests."},
 		{Key: "TARGET_PLATFORM", SuggestedType: "", Description: "Target Platform"},
 		{Key: "SERVICE_HOST", SuggestedType: "core/host", Description: "Service Host"},
 	})
 
-	assert.Equal(t, "API_KEY=\"Api Key\" # Secret\nSERVICE_HOST=\"Service Host\" # Host\n", rendered)
+	assert.Equal(t, strings.Join([]string{
+		`GITHUB_TOKEN="The GitHub token to use for API requests."              # Secret`,
+		`RUNME_TEST_TOKEN="The Runme test token to use for integration tests." # Secret`,
+		`SERVICE_HOST="Service Host"                                           # Host`,
+		"",
+	}, "\n"), rendered)
 }
 
 func owlSnapshotEnv(name string, typeID string) owlcmd.SnapshotEnv {
