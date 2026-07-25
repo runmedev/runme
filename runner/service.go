@@ -946,10 +946,7 @@ func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorE
 }
 
 func snapshotSourceName(item owl.SnapshotItem) string {
-	if item.Source.Name != "" {
-		return item.Source.Name
-	}
-	return item.Origin.Name
+	return item.Source.Name
 }
 
 func monitorEnvStoreStatusFromVisibility(visibility owl.Visibility) runnerv1.MonitorEnvStoreResponseSnapshot_Status {
