@@ -3,12 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -18,8 +16,6 @@ import (
 	"golang.org/x/net/http2/h2c"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
 
 	"github.com/runmedev/runme/v3/pkg/agent/api"
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
@@ -49,7 +45,6 @@ type Server struct {
 	telemetry        *config.TelemetryConfig
 	serverConfig     *config.AssistantServerConfig
 	configDir        string
-	webAppConfig     *agentv1.WebAppConfig
 	hServer          *http.Server
 	engine           http.Handler
 	shutdownComplete chan bool
@@ -57,7 +52,6 @@ type Server struct {
 	parser           *runme.Parser
 	checker          iam.Checker
 	registerHandlers RegisterHandlers
-	assetsFS         fs.FS
 	wsHandler        *stream.WebSocketHandler
 	tapFactory       stream.TapFactory
 }
@@ -68,14 +62,10 @@ type (
 		Telemetry *config.TelemetryConfig
 		Server    *config.AssistantServerConfig
 		ConfigDir string
-		WebApp    *agentv1.WebAppConfig
 		IAMPolicy *api.IAMPolicy
 		// RegisterHandlers is a callback that allows you to register additional handlers in the server.
 		// These could be regular HTTP handlers or proto services.
 		RegisterHandlers RegisterHandlers
-		// AssetsFileSystemProvider is an optional asset filesystem provider. If nil, a default implementation
-		// will be used when static assets are configured.
-		AssetsFileSystemProvider AssetsFileSystemProvider
 		// TapFactory creates a StreamTap for each new multiplexer run.
 		// If nil, no recording is performed.
 		TapFactory stream.TapFactory
@@ -144,35 +134,14 @@ func NewServer(opts Options) (*Server, error) {
 		checker = &iam.AllowAllChecker{}
 	}
 
-	// Determine whether we want to serve the SPA and if so configure it.
-	// We only initialize SPA assets when static assets are configured (or when a custom provider is injected).
-	var assetsFS fs.FS
-	staticAssetsConfigured := strings.TrimSpace(opts.Server.StaticAssets) != ""
-	if staticAssetsConfigured || opts.AssetsFileSystemProvider != nil {
-		log.Info("Enabling SPA serving", "staticAssetsConfigured", staticAssetsConfigured, "hasCustomProvider", opts.AssetsFileSystemProvider != nil)
-		provider := opts.AssetsFileSystemProvider
-		if provider == nil {
-			provider = NewDefaultAssetsFileSystemProvider(opts.Server.StaticAssets)
-		}
-		if fs, err := provider.GetAssetsFileSystem(); err == nil {
-			assetsFS = fs
-		} else {
-			return nil, errors.Wrapf(err, "Failed to get asset handler")
-		}
-	} else {
-		log.Info("SPA serving is disabled", "staticAssetsConfigured", staticAssetsConfigured, "hasCustomProvider", opts.AssetsFileSystemProvider != nil)
-	}
-
 	s := &Server{
 		telemetry:        opts.Telemetry,
 		serverConfig:     opts.Server,
 		configDir:        opts.ConfigDir,
-		webAppConfig:     opts.WebApp,
 		runner:           runner,
 		parser:           parser,
 		checker:          checker,
 		registerHandlers: opts.RegisterHandlers,
-		assetsFS:         assetsFS,
 		tapFactory:       opts.TapFactory,
 	}
 	return s, nil
@@ -312,8 +281,7 @@ func (s *Server) registerServices() error {
 	// Register auth routes if OIDC is configured
 	if oidc != nil {
 		if oidc.DoClientExchange() {
-			log.Info("OIDC is configured; callback will be handled on client")
-			mux.HandleFunc(iam.OIDCPathPrefix+"/callback", s.serveIndexHTML)
+			log.Info("OIDC is configured; callback is handled by the independently hosted client")
 		} else {
 			log.Info("OIDC is configured; registering auth routes")
 			if err := RegisterAuthRoutes(oidc, mux); err != nil {
@@ -382,18 +350,6 @@ func (s *Server) registerServices() error {
 		}
 	}
 
-	// Enable the single page app only when assets are configured.
-	if s.assetsFS != nil {
-		// Handle the single page app and assets unprotected
-		log.Info("Single page app is enabled")
-		singlePageApp, err := s.singlePageAppHandler()
-		if err != nil {
-			return errors.Wrapf(err, "Failed to serve single page app")
-		}
-		mux.Handle("/", singlePageApp)
-	} else {
-		log.Info("Single page app is disabled")
-	}
 	s.engine = mux
 
 	return nil

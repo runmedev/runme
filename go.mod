@@ -66,7 +66,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260727163830-6c54dddc4772
 	google.golang.org/protobuf v1.36.11
 	mvdan.cc/sh/v3 v3.13.1
-	oras.land/oras-go/v2 v2.6.2
 	sigs.k8s.io/kustomize/kyaml v0.21.1
 )
 
@@ -110,7 +109,6 @@ require (
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
-	github.com/go-cmd/cmd v1.4.3 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

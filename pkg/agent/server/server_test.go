@@ -51,8 +51,9 @@ func Test_HealthCheck(t *testing.T) {
 	cfg := app.GetConfig()
 	c := *cfg
 	c.AssistantServer = &config.AssistantServerConfig{
-		Port:         9080,
-		StaticAssets: cfg.AssistantServer.StaticAssets,
+		Port:          9080,
+		RunnerService: true,
+		ParserService: true,
 	}
 
 	go func() {

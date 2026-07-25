@@ -26,9 +26,9 @@ func NewServeCmd(appName string) *cobra.Command {
 				return err
 			}
 
-			if keys := app.AppConfig.GetConfig().DeprecatedAgentConfigKeys(); len(keys) > 0 {
+			if keys := app.AppConfig.GetConfig().DeprecatedConfigKeys(); len(keys) > 0 {
 				log := zapr.NewLogger(zap.L())
-				log.Info("Legacy agent configuration is deprecated and ignored", "keys", keys)
+				log.Info("Legacy configuration is deprecated and ignored", "keys", keys)
 			}
 
 			if err := app.SetupOTEL(); err != nil {
@@ -47,7 +47,6 @@ func NewServeCmd(appName string) *cobra.Command {
 				Server:    app.AppConfig.AssistantServer,
 				ConfigDir: app.AppConfig.GetConfigDir(),
 				IAMPolicy: app.AppConfig.IAMPolicy,
-				WebApp:    app.AppConfig.WebApp,
 			}
 			s, err := server.NewServer(*serverOptions)
 			if err != nil {

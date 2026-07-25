@@ -91,7 +91,11 @@ cloudAssistant:
   model: legacy-model
 assistantServer:
   agentService: true
+  staticAssets: /tmp/legacy-assets
+  webAppURL: http://localhost:5173
   runnerService: true
+webApp:
+  reconnect: true
 `))
 	if err != nil {
 		t.Fatalf("Failed to read deprecated configuration: %v", err)
@@ -112,8 +116,8 @@ assistantServer:
 		t.Fatalf("Expected deprecated agentService configuration to be preserved")
 	}
 
-	gotKeys := strings.Join(cfg.DeprecatedAgentConfigKeys(), ",")
-	wantKeys := "openai,cloudAssistant,assistantServer.agentService"
+	gotKeys := strings.Join(cfg.DeprecatedConfigKeys(), ",")
+	wantKeys := "openai,cloudAssistant,webApp,assistantServer.agentService,assistantServer.staticAssets,assistantServer.webAppURL"
 	if gotKeys != wantKeys {
 		t.Fatalf("Expected deprecated keys %q, got %q", wantKeys, gotKeys)
 	}
