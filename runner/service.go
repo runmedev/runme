@@ -955,8 +955,10 @@ func monitorEnvStoreStatusFromVisibility(visibility owl.Visibility) runnerv1.Mon
 		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL
 	case owl.VisibilityMasked:
 		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED
-	case owl.VisibilityHidden, owl.VisibilityUnresolved:
+	case owl.VisibilityHidden:
 		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN
+	case owl.VisibilityUnresolved:
+		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
 	default:
 		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
 	}

@@ -1352,5 +1352,5 @@ func Test_convertToMonitorEnvStoreResponse_doesNotUseSnapshotOriginAsSource(t *t
 	envs := msg.GetSnapshot().GetEnvs()
 	require.Len(t, envs, 1)
 	assert.Empty(t, envs[0].Origin)
-	assert.Equal(t, runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN, envs[0].Status)
+	assert.Equal(t, runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED, envs[0].Status)
 }
