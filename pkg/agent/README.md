@@ -1,15 +1,13 @@
 # Runme Agent
 
-This is a quickstart to get you up and running to work on Runme Agent.
+The `pkg/agent` package contains the Go server used by the Runme web
+application. It provides runner and parser services, optional authentication,
+and static asset hosting. WebMCP is the supported integration path for browser
+automation.
 
-./pkg/agent contains the golang server
-The client side web application intended to be served by the golang server lives here https://github.com/runmedev/web and distributed via npm.
+## Quickstart
 
-## Quickstart Setup
-
-### Configure OpenAI
-
-Create a minimal configuration file `~/.runme-agent/config.yaml`
+Create a minimal configuration file at `~/.runme-agent/config.yaml`:
 
 ```yaml
 apiVersion: ""
@@ -18,65 +16,53 @@ logging:
   level: debug
   sinks:
     - path: stderr
-openai:
-  apiKeyFile: /Users/${USER}/.runme-agent/openai_key_file
-cloudAssistant:
-  vectorStores:
-    - ${VSID} # e.g. vs_67e5xxxxcabxfakexxxe13b2fcd7e612, get your own from OpenAI
 assistantServer:
   port: 8080
-  httpMaxReadTimeout: 0s
-  httpMaxWriteTimeout: 0s
-  staticAssets: /workspaces/runme-web/packages/react-components/dist/app # bundled version of https://github.com/runmedev/web
-  agentService: true
+  staticAssets: /workspaces/runme-web/app/dist
   runnerService: true
+  parserService: true
   corsOrigins:
     - "http://localhost:5173"
-    - "http://localhost:3000"
     - "http://localhost:8080"
 ```
 
-- set **apiKeyFile** to the path of your OpenAI API key
-- set **vectoreStores** to contain the ID of your OpenAI API vector store
-- Change the path to the static assets to the location where you checked out the repository
+Set `assistantServer.staticAssets` to the built web application:
 
 ```sh
-runme agent config set assistantServer.staticAssets=$(PWD)/web/dist
+runme agent config set assistantServer.staticAssets=$(PWD)/web/app/dist
 ```
 
-### Build the static assets
+Build the static assets:
 
 ```sh
-git clone http://github.com/runmedev/web runme-web
+git clone https://github.com/runmedev/web runme-web
 cd runme-web
 runme run setup clean build
 ```
 
-### Start the server
+Start the server:
 
 ```bash {"name":"serve"}
 runme agent serve
 ```
 
-Open up `https://localhost:8443`.
+Open `http://localhost:8080`.
 
-### Development Mode
+## Development mode
 
-If you make changes to the UI you need to rerun `npm run build` to recompile the static assets.
-However, you don't need to restart the GoLang server; it is sufficient to refresh the page to pick up the
-latest static assets.
+Rebuild the web application after UI changes. The Go server does not need to be
+restarted; refresh the page to load the updated assets.
 
-## Local Tracing
+## Local tracing
 
-It's handy to have local tracing for debugging. Make sure to configure the OTLP
-endpoint in the config.yaml file.
+Configure an OTLP endpoint in `config.yaml`:
 
 ```yaml
 telemetry:
   otlpHTTPEndpoint: localhost:4318
 ```
 
-### Run Jaeger locally
+Start Jaeger locally:
 
 ```sh {"name":"jaeger"}
 docker run --rm --name jaeger \

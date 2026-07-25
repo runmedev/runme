@@ -107,9 +107,6 @@ type Config struct {
 	Logging    Logging          `json:"logging" yaml:"logging"`
 	Telemetry  *TelemetryConfig `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
 
-	OpenAI *OpenAIConfig `json:"openai,omitempty" yaml:"openai,omitempty"`
-
-	CloudAssistant  *CloudAssistantConfig  `json:"cloudAssistant,omitempty" yaml:"cloudAssistant,omitempty"`
 	AssistantServer *AssistantServerConfig `json:"assistantServer,omitempty" yaml:"assistantServer,omitempty"`
 
 	// WebAppConfig is the configuration for the web application.
@@ -120,28 +117,6 @@ type Config struct {
 
 	// configFile is the configuration file used
 	configFile string
-}
-
-type CloudAssistantConfig struct {
-	// VectorStores is the list of vector stores to use
-	VectorStores []string `json:"vectorStores,omitempty" yaml:"vectorStores,omitempty"`
-	AgentCookie  string   `json:"agentCookie,omitempty" yaml:"agentCookie,omitempty"`
-	TargetURL    string   `json:"targetUrl,omitempty" yaml:"targetUrl,omitempty"`
-	Model        string   `json:"model,omitempty" yaml:"model,omitempty"`
-}
-
-type OpenAIConfig struct {
-	// APIKeyFile is the file containing the OpenAI API key.
-	// Optional when the client supplies an OAuth access token per request.
-	APIKeyFile string `json:"apiKeyFile,omitempty" yaml:"apiKeyFile,omitempty"`
-
-	// Organization is the OpenAI organization to use
-	// Only needs to be set if using OAuth and not using an APIKey.
-	Organization string `json:"organization,omitempty" yaml:"organization,omitempty"`
-
-	// Project is the OpenAI project to use
-	// Only needs to be set if using OAuth and not using an APIKey.
-	Project string `json:"project,omitempty" yaml:"project,omitempty"`
 }
 
 type Logging struct {
@@ -420,9 +395,6 @@ type AssistantServerConfig struct {
 	// StaticAssets is the path to the static assets to serve
 	StaticAssets string `json:"staticAssets" yaml:"staticAssets"`
 
-	// AgentService starts the agent messages service if true. Defaults to true.
-	AgentService *bool `json:"agentService,omitempty" yaml:"agentService,omitempty"`
-
 	// RunnerService starts the Runme runner service if true otherwise it doesn't start the runner service.
 	RunnerService bool `json:"runnerService" yaml:"runnerService"`
 
@@ -530,13 +502,6 @@ func (c *AssistantServerConfig) GetPort() int {
 		return 8080
 	}
 	return c.Port
-}
-
-func (c *AssistantServerConfig) GetAgentService() bool {
-	if c.AgentService == nil {
-		return true
-	}
-	return *c.AgentService
 }
 
 func (c *AssistantServerConfig) GetHttpMaxReadTimeout() time.Duration {

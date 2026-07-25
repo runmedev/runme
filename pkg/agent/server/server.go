@@ -17,13 +17,9 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	"github.com/runmedev/runme/v3/pkg/agent/ai"
-	"github.com/runmedev/runme/v3/pkg/agent/codex"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
 
 	"github.com/runmedev/runme/v3/pkg/agent/api"
 	"github.com/runmedev/runme/v3/pkg/agent/iam"
@@ -49,15 +45,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Server is the main server for the cloud assistant
-type codexComponents struct {
-	proxy        http.Handler
-	bridge       *codex.ToolBridge
-	tokenManager *codex.SessionTokenManager
-	mcpHandler   http.Handler
-	process      *codex.ProcessManager
-}
-
 type Server struct {
 	telemetry        *config.TelemetryConfig
 	serverConfig     *config.AssistantServerConfig
@@ -68,13 +55,11 @@ type Server struct {
 	shutdownComplete chan bool
 	runner           *runme.Runner
 	parser           *runme.Parser
-	agent            agentv1connect.MessagesServiceHandler
 	checker          iam.Checker
 	registerHandlers RegisterHandlers
 	assetsFS         fs.FS
 	wsHandler        *stream.WebSocketHandler
 	tapFactory       stream.TapFactory
-	codex            codexComponents
 }
 
 type (
@@ -89,7 +74,7 @@ type (
 		// These could be regular HTTP handlers or proto services.
 		RegisterHandlers RegisterHandlers
 		// AssetsFileSystemProvider is an optional asset filesystem provider. If nil, a default implementation
-		// will be used when the agent is enabled.
+		// will be used when static assets are configured.
 		AssetsFileSystemProvider AssetsFileSystemProvider
 		// TapFactory creates a StreamTap for each new multiplexer run.
 		// If nil, no recording is performed.
@@ -98,16 +83,13 @@ type (
 )
 
 // NewServer creates a new server
-func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Server, error) {
+func NewServer(opts Options) (*Server, error) {
 	log := zapr.NewLogger(zap.L())
 	if opts.Server == nil {
 		opts.Server = &config.AssistantServerConfig{}
 	}
-	if agent == nil {
-		if !opts.Server.RunnerService && !opts.Server.ParserService {
-			return nil, errors.New("agent, runner, and parser services are all disabled")
-		}
-		log.Info("Agent is nil; continuing without AI service")
+	if !opts.Server.RunnerService && !opts.Server.ParserService {
+		return nil, errors.New("runner and parser services are both disabled")
 	}
 
 	var runner *runme.Runner
@@ -166,7 +148,7 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 	// We only initialize SPA assets when static assets are configured (or when a custom provider is injected).
 	var assetsFS fs.FS
 	staticAssetsConfigured := strings.TrimSpace(opts.Server.StaticAssets) != ""
-	if agent != nil && (staticAssetsConfigured || opts.AssetsFileSystemProvider != nil) {
+	if staticAssetsConfigured || opts.AssetsFileSystemProvider != nil {
 		log.Info("Enabling SPA serving", "staticAssetsConfigured", staticAssetsConfigured, "hasCustomProvider", opts.AssetsFileSystemProvider != nil)
 		provider := opts.AssetsFileSystemProvider
 		if provider == nil {
@@ -178,7 +160,7 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 			return nil, errors.Wrapf(err, "Failed to get asset handler")
 		}
 	} else {
-		log.Info("SPA serving is disabled", "agentNil", agent == nil, "staticAssetsConfigured", staticAssetsConfigured, "hasCustomProvider", opts.AssetsFileSystemProvider != nil)
+		log.Info("SPA serving is disabled", "staticAssetsConfigured", staticAssetsConfigured, "hasCustomProvider", opts.AssetsFileSystemProvider != nil)
 	}
 
 	s := &Server{
@@ -188,7 +170,6 @@ func NewServer(opts Options, agent agentv1connect.MessagesServiceHandler) (*Serv
 		webAppConfig:     opts.WebApp,
 		runner:           runner,
 		parser:           parser,
-		agent:            agent,
 		checker:          checker,
 		registerHandlers: opts.RegisterHandlers,
 		assetsFS:         assetsFS,
@@ -343,49 +324,6 @@ func (s *Server) registerServices() error {
 		log.Info("OIDC is not configured; auth routes will not be registered")
 	}
 
-	if s.agent != nil {
-		aiSvcPath, aiSvcHandler := agentv1connect.NewMessagesServiceHandler(s.agent, connect.WithInterceptors(interceptors...))
-		log.Info("Setting up AI service", "path", aiSvcPath)
-		// Protect the AI messages service
-		mux.HandleProtected(aiSvcPath, aiSvcHandler, s.checker, api.AgentUserRole)
-
-		if _, ok := s.agent.(*ai.Agent); ok {
-			codexAuth := &iam.AuthContext{
-				OIDC:    oidc,
-				Checker: s.checker,
-				Role:    api.AgentUserRole,
-			}
-			codexBridge := codex.NewToolBridge(codexAuth)
-			codexTokenManager := codex.NewSessionTokenManager(0)
-			codexMCPHandler, err := codex.NewStreamableMCPHandler(codexBridge, codexTokenManager)
-			if err != nil {
-				return errors.Wrap(err, "failed to initialize codex notebook MCP handler")
-			}
-			codexProcess := codex.NewProcessManager("", nil, nil)
-			codexProxy, err := codex.NewAppServerProxyHandler(codexProcess, codexTokenManager, codexAuth)
-			if err != nil {
-				return errors.Wrap(err, "failed to initialize codex app-server proxy handler")
-			}
-
-			s.codex = codexComponents{
-				proxy:        codexProxy,
-				bridge:       codexBridge,
-				tokenManager: codexTokenManager,
-				mcpHandler:   codexMCPHandler,
-				process:      codexProcess,
-			}
-
-			mux.Handle("/codex/app-server/ws", otelhttp.NewHandler(codexProxy, "/codex/app-server/ws"))
-			mux.Handle("/codex/ws", otelhttp.NewHandler(http.HandlerFunc(codexBridge.HandleWebsocket), "/codex/ws"))
-			// This endpoint is intended for local codex app-server access and is protected by app-server bearer tokens.
-			mux.Handle("/mcp/notebooks", otelhttp.NewHandler(codexMCPHandler, "/mcp/notebooks"))
-		} else {
-			log.Info("Agent does not support codex integration", "type", fmt.Sprintf("%T", s.agent))
-		}
-	} else {
-		log.Info("AI service is disabled", "agentNil", s.agent == nil)
-	}
-
 	if s.parser != nil {
 		parserSvcPath, parserSvcHandler := parserv1connect.NewParserServiceHandler(s.parser, connect.WithInterceptors(interceptors...))
 		log.Info("Setting up parser service", "path", parserSvcPath)
@@ -499,18 +437,6 @@ func (s *Server) shutdown() {
 		}
 		log.Info("WebSocket handler shutdown complete")
 	}
-	if s.codex.bridge != nil {
-		s.codex.bridge.Shutdown()
-		log.Info("Cancelled codex bridge")
-	}
-	if s.codex.process != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := s.codex.process.Stop(ctx); err != nil {
-			log.Error(err, "Error stopping codex process")
-		}
-	}
-
 	if s.hServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
