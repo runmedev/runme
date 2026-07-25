@@ -5,6 +5,28 @@ application. It provides runner and parser services, optional authentication,
 and static asset hosting. WebMCP is the supported integration path for browser
 automation.
 
+Despite its historical package name, this is not an AI-only server. Runme Web
+depends on it for normal notebook and cell execution.
+
+## Server responsibilities
+
+The server provides the runtime services required by Runme Web:
+
+- `/ws` is the bidirectional WebSocket transport used to execute cells and
+  stream terminal input and output. It is available when
+  `assistantServer.runnerService` is enabled.
+- The Runner service manages execution sessions and related runner operations.
+- The Parser service parses and serializes notebook content when
+  `assistantServer.parserService` is enabled.
+- The Jupyter proxy manages Jupyter servers and forwards kernel channel
+  WebSockets.
+- Optional OIDC authentication, authorization, telemetry, and static web asset
+  hosting are provided by the same HTTP server.
+
+These services remain supported. The legacy AI messages, ChatKit, and
+app-server bridge endpoints have been removed independently of the execution
+server.
+
 ## Quickstart
 
 Create a minimal configuration file at `~/.runme-agent/config.yaml`:
