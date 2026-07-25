@@ -1287,7 +1287,7 @@ func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T
 	snapshot := []owl.SnapshotItem{
 		{
 			Name:          "FOO",
-			Origin:        owl.Source{Name: "test"},
+			Source:        owl.Source{Name: "test"},
 			OriginalValue: "bar",
 			Value:         "bar",
 			Type:          owl.TypeCorePlain,
@@ -1332,4 +1332,25 @@ func Test_convertToMonitorEnvStoreResponse_usesSnapshotSource(t *testing.T) {
 	envs := msg.GetSnapshot().GetEnvs()
 	require.Len(t, envs, 1)
 	assert.Equal(t, "#cell-name", envs[0].Origin)
+}
+
+func Test_convertToMonitorEnvStoreResponse_doesNotUseSnapshotOriginAsSource(t *testing.T) {
+	snapshot := []owl.SnapshotItem{
+		{
+			Name:       "MISSING_TOKEN",
+			Origin:     owl.Source{Name: ".env.spec"},
+			Value:      "[unset]",
+			Type:       owl.TypeCoreSecret,
+			Visibility: owl.VisibilityUnresolved,
+			UpdatedAt:  time.Date(2026, 7, 24, 19, 45, 0, 0, time.UTC),
+		},
+	}
+	msg := &runnerv1.MonitorEnvStoreResponse{}
+
+	require.NoError(t, convertToMonitorEnvStoreResponse(zap.NewNop(), msg, snapshot))
+
+	envs := msg.GetSnapshot().GetEnvs()
+	require.Len(t, envs, 1)
+	assert.Empty(t, envs[0].Origin)
+	assert.Equal(t, runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN, envs[0].Status)
 }
