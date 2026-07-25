@@ -48,6 +48,19 @@ runme agent serve
 
 Open `http://localhost:8080`.
 
+## Deprecated configuration compatibility
+
+The `openai`, `cloudAssistant`, and `assistantServer.agentService` keys are
+accepted for a transition release so existing configuration files continue to
+load. The server ignores these keys and logs a deprecation notice when they are
+present. Remove them from personal and deployment configuration files before a
+later release removes the compatibility fields.
+
+Published legacy agent protobuf schemas and generated clients remain available
+during the same transition, but the server no longer registers their services.
+Consumers should stop calling those endpoints before the schemas are removed
+in a later breaking release.
+
 ## Development mode
 
 Rebuild the web application after UI changes. The Go server does not need to be

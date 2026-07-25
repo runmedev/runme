@@ -107,6 +107,14 @@ type Config struct {
 	Logging    Logging          `json:"logging" yaml:"logging"`
 	Telemetry  *TelemetryConfig `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
 
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The server ignores this configuration.
+	OpenAI *OpenAIConfig `json:"openai,omitempty" yaml:"openai,omitempty"`
+
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The server ignores this configuration.
+	CloudAssistant *CloudAssistantConfig `json:"cloudAssistant,omitempty" yaml:"cloudAssistant,omitempty"`
+
 	AssistantServer *AssistantServerConfig `json:"assistantServer,omitempty" yaml:"assistantServer,omitempty"`
 
 	// WebAppConfig is the configuration for the web application.
@@ -117,6 +125,25 @@ type Config struct {
 
 	// configFile is the configuration file used
 	configFile string
+}
+
+// CloudAssistantConfig is retained for configuration compatibility.
+//
+// Deprecated: the server ignores this configuration.
+type CloudAssistantConfig struct {
+	VectorStores []string `json:"vectorStores,omitempty" yaml:"vectorStores,omitempty"`
+	AgentCookie  string   `json:"agentCookie,omitempty" yaml:"agentCookie,omitempty"`
+	TargetURL    string   `json:"targetUrl,omitempty" yaml:"targetUrl,omitempty"`
+	Model        string   `json:"model,omitempty" yaml:"model,omitempty"`
+}
+
+// OpenAIConfig is retained for configuration compatibility.
+//
+// Deprecated: the server ignores this configuration.
+type OpenAIConfig struct {
+	APIKeyFile   string `json:"apiKeyFile,omitempty" yaml:"apiKeyFile,omitempty"`
+	Organization string `json:"organization,omitempty" yaml:"organization,omitempty"`
+	Project      string `json:"project,omitempty" yaml:"project,omitempty"`
 }
 
 type Logging struct {
@@ -207,6 +234,22 @@ func (c *Config) IsValid() []string {
 	problems := make([]string, 0, 1)
 
 	return problems
+}
+
+// DeprecatedAgentConfigKeys returns legacy configuration keys that were
+// explicitly provided but are no longer used by the server.
+func (c *Config) DeprecatedAgentConfigKeys() []string {
+	keys := make([]string, 0, 3)
+	if c.OpenAI != nil {
+		keys = append(keys, "openai")
+	}
+	if c.CloudAssistant != nil {
+		keys = append(keys, "cloudAssistant")
+	}
+	if c.AssistantServer != nil && c.AssistantServer.AgentService != nil {
+		keys = append(keys, "assistantServer.agentService")
+	}
+	return keys
 }
 
 func (c *Config) UseHoneycomb() bool {
@@ -395,6 +438,10 @@ type AssistantServerConfig struct {
 	// StaticAssets is the path to the static assets to serve
 	StaticAssets string `json:"staticAssets" yaml:"staticAssets"`
 
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The server ignores this setting.
+	AgentService *bool `json:"agentService,omitempty" yaml:"agentService,omitempty"`
+
 	// RunnerService starts the Runme runner service if true otherwise it doesn't start the runner service.
 	RunnerService bool `json:"runnerService" yaml:"runnerService"`
 
@@ -502,6 +549,16 @@ func (c *AssistantServerConfig) GetPort() int {
 		return 8080
 	}
 	return c.Port
+}
+
+// GetAgentService returns the legacy agent service setting.
+//
+// Deprecated: the server ignores this setting.
+func (c *AssistantServerConfig) GetAgentService() bool {
+	if c.AgentService == nil {
+		return true
+	}
+	return *c.AgentService
 }
 
 func (c *AssistantServerConfig) GetHttpMaxReadTimeout() time.Duration {

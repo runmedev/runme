@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package agent.codex.v1;
+
+import "agent/tools/v1/notebooks.proto";
+
+option go_package = "github.com/runmedev/runme/v3/api/gen/proto/go/agent/codex/v1;codexv1";
+
+// NotebookToolCallRequest is sent by the server to the browser over /codex/ws.
+message NotebookToolCallRequest {
+  string bridge_call_id = 1;
+  agent.tools.v1.ToolCallInput input = 2;
+}
+
+// NotebookToolCallResponse is sent by the browser to the server over /codex/ws.
+message NotebookToolCallResponse {
+  string bridge_call_id = 1;
+  agent.tools.v1.ToolCallOutput output = 2;
+  string error = 3;
+}
+
+// WebsocketRequest defines messages sent by the client over /codex/ws.
+message WebsocketRequest {
+  oneof payload {
+    NotebookToolCallResponse notebook_tool_call_response = 1;
+  }
+}
+
+// WebsocketResponse defines messages sent by the server over /codex/ws.
+message WebsocketResponse {
+  oneof payload {
+    NotebookToolCallRequest notebook_tool_call_request = 1;
+  }
+}

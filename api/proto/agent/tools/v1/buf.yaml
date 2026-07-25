@@ -1,0 +1,4 @@
+version: v1
+name: buf.build/runmedev/runme-tools
+deps:
+  - buf.build/runmedev/runme

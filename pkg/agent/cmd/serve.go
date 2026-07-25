@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
@@ -22,6 +24,11 @@ func NewServeCmd(appName string) *cobra.Command {
 
 			if err := app.SetupServerLogging(); err != nil {
 				return err
+			}
+
+			if keys := app.AppConfig.GetConfig().DeprecatedAgentConfigKeys(); len(keys) > 0 {
+				log := zapr.NewLogger(zap.L())
+				log.Info("Legacy agent configuration is deprecated and ignored", "keys", keys)
 			}
 
 			if err := app.SetupOTEL(); err != nil {

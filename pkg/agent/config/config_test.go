@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -73,6 +74,67 @@ func Test_ConfigAutomaticEnvVars(t *testing.T) {
 
 	if cfg.Logging.Level != expected {
 		t.Fatalf("Expected logging level to be %q, but got %q", expected, cfg.Logging.Level)
+	}
+}
+
+func Test_DeprecatedAgentConfigurationIsAccepted(t *testing.T) {
+	v := viper.New()
+	v.SetConfigType("yaml")
+	err := v.ReadConfig(strings.NewReader(`
+openai:
+  apiKeyFile: /tmp/legacy-key
+  organization: legacy-org
+  project: legacy-project
+cloudAssistant:
+  vectorStores:
+    - legacy-store
+  model: legacy-model
+assistantServer:
+  agentService: true
+  runnerService: true
+`))
+	if err != nil {
+		t.Fatalf("Failed to read deprecated configuration: %v", err)
+	}
+
+	cfg, err := getConfigFromViper(v)
+	if err != nil {
+		t.Fatalf("Failed to load deprecated configuration: %v", err)
+	}
+
+	if cfg.OpenAI == nil || cfg.OpenAI.APIKeyFile != "/tmp/legacy-key" {
+		t.Fatalf("Expected deprecated openai configuration to be preserved")
+	}
+	if cfg.CloudAssistant == nil || cfg.CloudAssistant.Model != "legacy-model" {
+		t.Fatalf("Expected deprecated cloudAssistant configuration to be preserved")
+	}
+	if cfg.AssistantServer == nil || !cfg.AssistantServer.GetAgentService() {
+		t.Fatalf("Expected deprecated agentService configuration to be preserved")
+	}
+
+	gotKeys := strings.Join(cfg.DeprecatedAgentConfigKeys(), ",")
+	wantKeys := "openai,cloudAssistant,assistantServer.agentService"
+	if gotKeys != wantKeys {
+		t.Fatalf("Expected deprecated keys %q, got %q", wantKeys, gotKeys)
+	}
+}
+
+func Test_AssistantServerConfig_GetAgentService(t *testing.T) {
+	cfg := &AssistantServerConfig{}
+	if !cfg.GetAgentService() {
+		t.Fatalf("expected default agent service to be enabled")
+	}
+
+	disabled := false
+	cfg.AgentService = &disabled
+	if cfg.GetAgentService() {
+		t.Fatalf("expected agent service to be disabled when explicitly set false")
+	}
+
+	enabled := true
+	cfg.AgentService = &enabled
+	if !cfg.GetAgentService() {
+		t.Fatalf("expected agent service to be enabled when explicitly set true")
 	}
 }
 

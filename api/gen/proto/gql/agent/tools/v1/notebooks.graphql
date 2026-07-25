@@ -1,0 +1,43 @@
+"""
+ NotebookService defines methods the AI can use to interact with the notebook.
+ This is used to generate JSON schemas that can be used to define tool calls (or potentially) MCP
+ server. Using https://github.com/redpanda-data/protoc-gen-go-mcp.
+
+ use the script api/proto/agent/tools/v1/build_tool_mcps.sh to build the go code with the JSONSchemas.
+
+ It looks like only comments on the method get translated into the description.
+
+"""
+directive @NotebookService on FIELD_DEFINITION
+input ExecuteCodeRequestInput {
+	code: String
+}
+type ExecuteCodeResponse {
+	"""
+	 output contains merged stdout/stderr in execution order.
+
+	"""
+	output: String
+}
+type Mutation {
+	"""
+	 ExecuteCode runs JavaScript in the current Runme AppKernel runtime and returns one merged
+	 stdout/stderr string.
+
+	 Use ExecuteCode for every notebook or Runme action. Do not ask for dedicated notebook mutation
+	 tools; instead write JavaScript that calls the runtime helpers exposed inside AppKernel:
+	   - await help() to inspect the top-level helper API.
+	   - await notebooks.help() or await notebooks.help("<method>") to inspect notebook APIs.
+	   - await notebooks.list(), await notebooks.get(), await notebooks.update(...),
+	     await notebooks.execute(...), and related helper methods to inspect and mutate notebooks.
+	   - use console.log(...) to return concise status and requested values to the user.
+
+	 Prefer small, precise JS snippets and use top-level await for async helper calls so the command
+	 finishes only after notebook operations and executions complete.
+
+	"""
+	notebookServiceExecuteCode(in: ExecuteCodeRequestInput): ExecuteCodeResponse
+}
+type Query {
+	dummy: Boolean
+}
