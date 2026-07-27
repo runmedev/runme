@@ -606,7 +606,7 @@ wheels = [
 
 [[package]]
 name = "harbor"
-version = "0.17.1"
+version = "0.20.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dirhash" },
@@ -619,6 +619,7 @@ dependencies = [
     { name = "pathspec" },
     { name = "platformdirs" },
     { name = "pydantic" },
+    { name = "pyjwt" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -630,9 +631,9 @@ dependencies = [
     { name = "typer" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/83/2f/6ae61b6c03ca20966a5003b204abdfed75918792866c2c0a1feddadca088/harbor-0.17.1.tar.gz", hash = "sha256:ec796576b856090bdcc4d759b94c9b205bd0f9bb4334632ef33d27e5af10c86e", size = 1429228, upload-time = "2026-07-03T23:08:57.354Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/da/5a26998c6e7d9455321ab39bc8e9122993892ece13c3ad4f2b0de986aaf6/harbor-0.20.0.tar.gz", hash = "sha256:e2e5e88f772690fd121553ca34fd5d6dd6b4aaa51c8fae635abc84b112303112", size = 1590870, upload-time = "2026-07-18T21:25:22.578Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/fd/a7a311c0c1b2cf08947c68c8a743c1212ea65b0081a5264887baf12c3eac/harbor-0.17.1-py3-none-any.whl", hash = "sha256:70ec59ecb4af254bf74f1825e34fc8e06e13e4b3a50baca316907cea4344e155", size = 1625462, upload-time = "2026-07-03T23:08:55.504Z" },
+    { url = "https://files.pythonhosted.org/packages/76/03/b6617f32385295729f3af0ae0d512cf87ba4793b9ce462ea020d776a9025/harbor-0.20.0-py3-none-any.whl", hash = "sha256:4b7e48223aea2384cdb8c9eff35eaebd482fc9b1ec09f8193a121c47356ff19a", size = 1792416, upload-time = "2026-07-18T21:25:19.206Z" },
 ]
 
 [[package]]
@@ -1753,7 +1754,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "harbor", specifier = ">=0.16,<0.18" },
+    { name = "harbor", specifier = ">=0.16,<0.21" },
     { name = "protobuf", specifier = ">=7.35.1" },
 ]
 
