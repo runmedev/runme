@@ -11,18 +11,38 @@ from rewardkit import criterion
 
 _DEFAULT_AGENT_TRAJECTORY = Path("/logs/agent/trajectory.json")
 _LINT_COMMAND_PATTERN = re.compile(
-    r"(?:^|&&|\|\||;|\n|[\"']cmd[\"']\s*:\s*[\"'])"
+    r"(?:^|&&|\|\||;|\n|[\"']?cmd[\"']?\s*:\s*[\"'])"
     r"\s*runme\s+run\s+lint(?=\s|[\"'`;|&)]|$)"
 )
 _TERMINAL_STATUS_PATTERNS = (
     re.compile(r"\bTask lint exited with code (-?\d+)\b", re.IGNORECASE),
     re.compile(r"\b(?:Process|Command) exited with code (-?\d+)\b", re.IGNORECASE),
     re.compile(r"\bExit code:\s*(-?\d+)\b", re.IGNORECASE),
+    re.compile(r"""["']exit_code["']\s*:\s*(-?\d+)""", re.IGNORECASE),
 )
-_RUNNING_SESSION_PATTERN = re.compile(
-    r"\b(?:Process|Script) running with (?:session|cell) ID ([\w.-]+)\b",
+_RUNNING_SESSION_PATTERNS = (
+    re.compile(
+        r"\b(?:Process|Script) running with (?:session|cell) ID ([\w.-]+)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"""["']session_id["']\s*:\s*["']?([\w.-]+)["']?""",
+        re.IGNORECASE,
+    ),
+)
+_SCRIPT_COMPLETED_PATTERN = re.compile(r"\bScript completed\b", re.IGNORECASE)
+_MOVED_TO_BACKGROUND_PATTERN = re.compile(
+    r"\bmoved to the background\b", re.IGNORECASE
+)
+_TASK_NOTIFICATION_PATTERN = re.compile(
+    r"<task-notification>(.*?)</task-notification>",
+    re.DOTALL,
+)
+_TASK_NOTIFICATION_EXIT_PATTERN = re.compile(
+    r"\bexit code\s+(-?\d+)\b",
     re.IGNORECASE,
 )
+_TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled", "cancelled"})
 _SHELL_ARGUMENT_KEYS = frozenset({"cmd", "command", "script"})
 
 
@@ -147,13 +167,18 @@ def _running_sessions(value: object) -> set[str]:
     return {
         match.group(1)
         for text in _strings(value)
-        for match in _RUNNING_SESSION_PATTERN.finditer(text)
+        for pattern in _RUNNING_SESSION_PATTERNS
+        for match in pattern.finditer(text)
     }
 
 
 def _references_session(value: object, sessions: set[str]) -> bool:
     if isinstance(value, (str, int)):
-        return str(value) in sessions
+        text = str(value)
+        return any(
+            re.search(rf"(?<![\w.-]){re.escape(session)}(?![\w.-])", text)
+            for session in sessions
+        )
     if isinstance(value, dict):
         return any(_references_session(nested, sessions) for nested in value.values())
     if isinstance(value, list):
@@ -186,6 +211,66 @@ def _linked_results(step: dict[str, object], call_id: object) -> list[dict[str, 
     ]
 
 
+def _synchronous_success(results: list[dict[str, object]]) -> bool:
+    for result in results:
+        extra = result.get("extra")
+        if not isinstance(extra, dict) or extra.get("tool_result_is_error") is not False:
+            continue
+        if any(
+            _MOVED_TO_BACKGROUND_PATTERN.search(text) for text in _strings(result)
+        ):
+            continue
+
+        metadata = extra.get("tool_result_metadata")
+        if not isinstance(metadata, dict):
+            continue
+        tool_result = metadata.get("tool_use_result")
+        if isinstance(tool_result, dict) and (
+            tool_result.get("interrupted") is True
+            or "backgroundTaskId" in tool_result
+            or "timedOutAfterMs" in tool_result
+        ):
+            continue
+
+        return True
+
+    return False
+
+
+def _background_task_id(results: list[dict[str, object]]) -> str | None:
+    for result in results:
+        extra = result.get("extra")
+        if not isinstance(extra, dict) or extra.get("tool_result_is_error") is not False:
+            continue
+        metadata = extra.get("tool_result_metadata")
+        if not isinstance(metadata, dict):
+            continue
+        tool_result = metadata.get("tool_use_result")
+        if not isinstance(tool_result, dict):
+            continue
+        task_id = tool_result.get("backgroundTaskId")
+        if isinstance(task_id, str) and task_id:
+            return task_id
+    return None
+
+
+def _task_notification(message: object) -> dict[str, str] | None:
+    if not isinstance(message, str):
+        return None
+    notification = _TASK_NOTIFICATION_PATTERN.search(message)
+    if notification is None:
+        return None
+
+    fields: dict[str, str] = {}
+    body = notification.group(1)
+    for tag in ("task-id", "tool-use-id", "status", "summary"):
+        match = re.search(rf"<{tag}>\s*(.*?)\s*</{tag}>", body, re.DOTALL)
+        if match is None:
+            return None
+        fields[tag] = match.group(1)
+    return fields
+
+
 def _lint_validation_score(workspace: Path) -> float:
     del workspace
 
@@ -197,10 +282,41 @@ def _lint_validation_score(workspace: Path) -> float:
         return 0.0
 
     active_sessions: set[str] = set()
+    pending_background: tuple[str, str] | None = None
     for step in trajectory.get("steps", []):
-        if not isinstance(step, dict) or step.get("source") != "agent":
+        if not isinstance(step, dict):
             continue
 
+        if step.get("source") == "user" and pending_background is not None:
+            notification = _task_notification(step.get("message"))
+            if notification is None:
+                continue
+
+            task_id, tool_call_id = pending_background
+            if (
+                notification["task-id"] != task_id
+                or notification["tool-use-id"] != tool_call_id
+            ):
+                continue
+
+            status = notification["status"].strip().lower()
+            exit_match = _TASK_NOTIFICATION_EXIT_PATTERN.search(
+                notification["summary"]
+            )
+            if (
+                status == "completed"
+                and exit_match is not None
+                and int(exit_match.group(1)) == 0
+            ):
+                return 1.0
+            if status in _TERMINAL_TASK_STATUSES or (
+                exit_match is not None and int(exit_match.group(1)) != 0
+            ):
+                pending_background = None
+            continue
+
+        if step.get("source") != "agent":
+            continue
         tool_calls = step.get("tool_calls")
         if not isinstance(tool_calls, list):
             continue
@@ -217,12 +333,25 @@ def _lint_validation_score(workspace: Path) -> float:
 
             if runs_lint:
                 active_sessions.clear()
+                pending_background = None
                 status = _terminal_status(results)
                 if status is not None:
                     if status == 0:
                         return 1.0
                     continue
-                active_sessions.update(_running_sessions(results))
+                running_sessions = _running_sessions(results)
+                active_sessions.update(running_sessions)
+                background_task_id = _background_task_id(results)
+                tool_call_id = tool_call.get("tool_call_id")
+                if background_task_id is not None and isinstance(tool_call_id, str):
+                    pending_background = (background_task_id, tool_call_id)
+                if not running_sessions and _synchronous_success(results):
+                    return 1.0
+                if not running_sessions and any(
+                    _SCRIPT_COMPLETED_PATTERN.search(text)
+                    for text in _strings(results)
+                ):
+                    return 1.0
                 continue
 
             if active_sessions and _starts_shell_command(arguments):
@@ -236,7 +365,13 @@ def _lint_validation_score(workspace: Path) -> float:
                         return 1.0
                     active_sessions.clear()
                     continue
-                active_sessions.update(_running_sessions(results))
+                running_sessions = _running_sessions(results)
+                active_sessions.update(running_sessions)
+                if not running_sessions and any(
+                    _SCRIPT_COMPLETED_PATTERN.search(text)
+                    for text in _strings(results)
+                ):
+                    return 1.0
 
     return 0.0
 

@@ -31,8 +31,12 @@ def _step(
     function_name: str,
     arguments: dict[str, object],
     content: str,
+    result_extra: dict[str, object] | None = None,
 ) -> dict[str, object]:
     call_id = f"call-{step_id}"
+    result = {"source_call_id": call_id, "content": content}
+    if result_extra is not None:
+        result["extra"] = result_extra
     return {
         "step_id": step_id,
         "source": "agent",
@@ -44,7 +48,7 @@ def _step(
             }
         ],
         "observation": {
-            "results": [{"source_call_id": call_id, "content": content}]
+            "results": [result]
         },
     }
 
@@ -54,6 +58,56 @@ def _score(criteria, monkeypatch, tmp_path: Path, steps: list[dict[str, object]]
     trajectory.write_text(json.dumps({"schema_version": "ATIF-v1.7", "steps": steps}))
     monkeypatch.setenv("RUNME_AGENT_TRAJECTORY", str(trajectory))
     return criteria._lint_validation_score(tmp_path)
+
+
+def _background_lint_step(
+    step_id: int = 1,
+    task_id: str = "lint-task",
+) -> dict[str, object]:
+    return _step(
+        step_id,
+        "Bash",
+        {"command": "runme run lint", "timeout": 120000},
+        (
+            "Command did not complete within its 120s timeout and was moved "
+            f"to the background (ID: {task_id})."
+        ),
+        {
+            "tool_result_metadata": {
+                "tool_use_result": {
+                    "interrupted": False,
+                    "backgroundTaskId": task_id,
+                    "timedOutAfterMs": 120000,
+                },
+                "raw_tool_result": {"is_error": False},
+            },
+            "tool_result_is_error": False,
+        },
+    )
+
+
+def _task_notification_step(
+    step_id: int = 2,
+    task_id: str = "lint-task",
+    tool_use_id: str = "call-1",
+    status: str = "completed",
+    exit_code: int | None = 0,
+    source: str = "user",
+) -> dict[str, object]:
+    exit_summary = "" if exit_code is None else f" (exit code {exit_code})"
+    return {
+        "step_id": step_id,
+        "source": source,
+        "message": (
+            "<task-notification>\n"
+            f"<task-id>{task_id}</task-id>\n"
+            f"<tool-use-id>{tool_use_id}</tool-use-id>\n"
+            f"<status>{status}</status>\n"
+            f'<summary>Background command "runme run lint" '
+            f"{status}{exit_summary}</summary>\n"
+            "</task-notification>"
+        ),
+    }
 
 
 @pytest.mark.parametrize(
@@ -99,6 +153,101 @@ def test_lint_validation_follows_async_session(
     assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
 
 
+def test_lint_validation_accepts_terra_cell_completion(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _step(
+            1,
+            "exec",
+            {
+                "input": (
+                    'const r = await tools.exec_command({"cmd":"runme run lint"}); '
+                    "text(r.output);"
+                )
+            },
+            "Script running with cell ID 4\nWall time 11.0 seconds\nOutput:\n",
+        ),
+        _step(
+            2,
+            "wait",
+            {"cell_id": "4", "yield_time_ms": 30000},
+            "Script completed\nWall time 17.4 seconds\nOutput:\n",
+        ),
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
+
+
+def test_lint_validation_accepts_luna_structured_status(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _step(
+            1,
+            "exec",
+            {
+                "input": (
+                    'const r = await tools.exec_command({cmd:"runme run lint"}); '
+                    "text(JSON.stringify(r));"
+                )
+            },
+            (
+                "Script completed\nWall time 1.2 seconds\nOutput:\n"
+                '\'{"session_id":38781,"output":"gofumpt"}\''
+            ),
+        ),
+        _step(
+            2,
+            "exec",
+            {
+                "input": (
+                    "const r = await tools.write_stdin({session_id:38781}); "
+                    "text(JSON.stringify(r));"
+                )
+            },
+            (
+                "Script completed\nWall time 8.0 seconds\nOutput:\n"
+                '\'{"exit_code":0,"output":""}\''
+            ),
+        ),
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
+
+
+def test_lint_validation_accepts_sonnet_synchronous_success(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _step(
+            1,
+            "Bash",
+            {"command": "runme run lint", "timeout": 300000},
+            "gofumpt\ngoimports\nrevive",
+            {
+                "tool_result_metadata": {
+                    "tool_use_result": {
+                        "stdout": "gofumpt\ngoimports\nrevive",
+                        "stderr": "",
+                        "interrupted": False,
+                    },
+                    "raw_tool_result": {"is_error": False},
+                },
+                "tool_result_is_error": False,
+            },
+        )
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
+
+
 @pytest.mark.parametrize("status", ["Process exited with code 1", "Exit code: 2"])
 def test_lint_validation_rejects_failure(
     criteria,
@@ -107,6 +256,204 @@ def test_lint_validation_rejects_failure(
     status: str,
 ) -> None:
     steps = [_step(1, "shell", {"cmd": "runme run lint"}, status)]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+def test_lint_validation_rejects_haiku_background_launch(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [_background_lint_step()]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+def test_lint_validation_accepts_correlated_background_completion(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [_background_lint_step(), _task_notification_step()]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
+
+
+@pytest.mark.parametrize(
+    ("task_id", "tool_use_id"),
+    [
+        ("other-task", "call-1"),
+        ("lint-task", "other-call"),
+    ],
+)
+def test_lint_validation_ignores_uncorrelated_background_completion(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+    task_id: str,
+    tool_use_id: str,
+) -> None:
+    steps = [
+        _background_lint_step(),
+        _task_notification_step(task_id=task_id, tool_use_id=tool_use_id),
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+@pytest.mark.parametrize(
+    ("status", "exit_code"),
+    [
+        ("completed", 1),
+        ("completed", None),
+        ("failed", 0),
+        ("cancelled", 0),
+        ("canceled", 0),
+    ],
+)
+def test_lint_validation_rejects_unsuccessful_background_completion(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+    status: str,
+    exit_code: int | None,
+) -> None:
+    steps = [
+        _background_lint_step(),
+        _task_notification_step(status=status, exit_code=exit_code),
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+def test_lint_validation_clears_correlated_background_failure(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _background_lint_step(),
+        _task_notification_step(status="failed", exit_code=1),
+        _task_notification_step(step_id=3),
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+def test_lint_validation_ignores_agent_background_completion_spoof(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _background_lint_step(),
+        _task_notification_step(source="agent"),
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+def test_lint_validation_ignores_ordinary_user_completion_claim(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _background_lint_step(),
+        {
+            "step_id": 2,
+            "source": "user",
+            "message": "The lint task completed with exit code 0.",
+        },
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+def test_lint_validation_clears_background_attempt_on_new_lint_run(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _background_lint_step(),
+        _step(2, "Bash", {"command": "runme run lint"}, "Process exited with code 1"),
+        _task_notification_step(step_id=3),
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+@pytest.mark.parametrize(
+    ("is_error", "interrupted"),
+    [
+        (True, False),
+        (False, True),
+    ],
+)
+def test_lint_validation_rejects_failed_or_interrupted_tool_result(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+    is_error: bool,
+    interrupted: bool,
+) -> None:
+    steps = [
+        _step(
+            1,
+            "Bash",
+            {"command": "runme run lint"},
+            "lint output",
+            {
+                "tool_result_metadata": {
+                    "tool_use_result": {"interrupted": interrupted},
+                    "raw_tool_result": {"is_error": is_error},
+                },
+                "tool_result_is_error": is_error,
+            },
+        )
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+def test_lint_validation_rejects_structured_failure_despite_completion(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _step(
+            1,
+            "exec",
+            {"input": 'tools.exec_command({cmd:"runme run lint"})'},
+            (
+                "Script completed\nWall time 1.0 seconds\nOutput:\n"
+                '\'{"exit_code":1,"output":"lint failed"}\''
+            ),
+        )
+    ]
+
+    assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
+
+
+def test_lint_validation_rejects_completion_while_session_is_running(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    steps = [
+        _step(
+            1,
+            "exec",
+            {"input": 'tools.exec_command({cmd:"runme run lint"})'},
+            (
+                "Script completed\nWall time 1.0 seconds\nOutput:\n"
+                '\'{"session_id":38781,"output":"gofumpt"}\''
+            ),
+        )
+    ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
