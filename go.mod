@@ -49,7 +49,7 @@ require (
 	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260709214304-372b2d56e470
 	github.com/rogpeppe/go-internal v1.15.0
 	github.com/rs/cors v1.11.1
-	github.com/runmedev/owl v1.0.2-0.20260727162135-283c5346932d
+	github.com/runmedev/owl v1.0.2-0.20260727163318-bc2a2f08918e
 	github.com/spf13/viper v1.21.0
 	github.com/stateful/godotenv v0.0.0-20240309032207-c7bc0b812915
 	github.com/vektah/gqlparser/v2 v2.5.36
