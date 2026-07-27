@@ -18,7 +18,8 @@ Use `runme list` to see all available named commands. Key development commands:
 ```bash
 runme run build         # Build CLI binary to ./runme
 runme run setup         # Install dev tools (gofumpt, revive, etc.)
-runme run lint          # Run full linting suite
+runme run lint          # Run formatting and routine lint checks
+runme run check         # Run the complete lint and analysis suite
 runme run test          # Run all tests (unsets env vars, clears cache, builds first)
 runme run test-docker   # Run tests in Docker (for integration tests with Python/Node)
 runme run server-dev    # Run server in dev mode on 127.0.0.1:9999

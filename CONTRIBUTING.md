@@ -126,14 +126,20 @@ python3 -m pip install pre-commit
 
 ## Linting
 
-Like many complex go projects, this project uses a variety of linting tools to ensure code quality and prevent regressions! The main linter (revive) can be run with:
+Like many complex Go projects, this project uses a variety of linting tools to ensure code quality and prevent regressions. Run the formatting and routine lint checks with:
 
 ```sh {"id":"01HF7BT3HEQBTBM9SSTKQENPT3","interactive":"false","name":"lint"}
 make lint
 make fmt
 ```
 
-The rest of the project's linting suite can be run with:
+The slower static-analysis, vet, lock, and security checks can be run separately with `make analyze`. Run the complete non-test quality suite with:
+
+```sh {"name":"check"}
+make check
+```
+
+The project's pre-commit hooks can be run with:
 
 ```sh {"id":"01HF7BT3HEQBTBM9SSTPGWHF1K"}
 pre-commit run --files */**

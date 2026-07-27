@@ -129,10 +129,16 @@ lint:
 		-formatter friendly \
 		-exclude pkg/agent/... \
 		./...
+
+.PHONY: analyze
+analyze:
 	go tool staticcheck ./...
-	go tool gosec -quiet -exclude=G110,G115,G204,G304,G404 -exclude-dir=pkg/agent -exclude-generated ./...
 	go vet -stdmethods=false ./...
 	go vet -vettool=$(shell go env GOPATH)/bin/checklocks $(shell go list ./... | grep -v '^github.com/runmedev/runme/v3/pkg/agent')
+	go tool gosec -quiet -exclude=G110,G115,G204,G304,G404 -exclude-dir=pkg/agent -exclude-generated ./...
+
+.PHONY: check
+check: lint analyze
 
 .PHONY: pre-commit
 pre-commit: build wasm test lint
