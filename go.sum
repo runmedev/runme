@@ -431,14 +431,8 @@ github.com/rogpeppe/go-internal v1.15.0 h1:D0RCU5rMAp+SpgkiNdrjfJ+LX4J1M32V2NeCY
 github.com/rogpeppe/go-internal v1.15.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
 github.com/rs/cors v1.11.1 h1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=
 github.com/rs/cors v1.11.1/go.mod h1:XyqrcTp5zjWr1wsJ8PIRZssZ8b/WMcMf71DJnit4EMU=
-github.com/runmedev/owl v1.0.2-0.20260725005903-15f6c331a32e h1:KzZ2Va/gBOzuQ55TElEceAriaHfcNRLL9FdvE4KVwpU=
-github.com/runmedev/owl v1.0.2-0.20260725005903-15f6c331a32e/go.mod h1:j9dHba3PZdEasw/CqycYvRyysO/gwfoWOq4p2jMfvNY=
-github.com/runmedev/owl v1.0.2-0.20260725011006-a58d17cfbb4d h1:ksUlhtc/3MfDGekVTTpJkYqQgqqQNPK4JSYAxPO25ps=
-github.com/runmedev/owl v1.0.2-0.20260725011006-a58d17cfbb4d/go.mod h1:j9dHba3PZdEasw/CqycYvRyysO/gwfoWOq4p2jMfvNY=
-github.com/runmedev/owl v1.0.2-0.20260725011605-eb5fab79e5a1 h1:DIBH1bRS+Nt7l/dl1nuGcbFsYMOxbKDpKJ1E2vR/hXE=
-github.com/runmedev/owl v1.0.2-0.20260725011605-eb5fab79e5a1/go.mod h1:j9dHba3PZdEasw/CqycYvRyysO/gwfoWOq4p2jMfvNY=
-github.com/runmedev/owl v1.0.2-0.20260725013433-c47cf16291e8 h1:653zga0vc905aVPSKcqH2TaCaIXmsJcHhzkf7wTBwQY=
-github.com/runmedev/owl v1.0.2-0.20260725013433-c47cf16291e8/go.mod h1:j9dHba3PZdEasw/CqycYvRyysO/gwfoWOq4p2jMfvNY=
+github.com/runmedev/owl v1.0.2-0.20260727162135-283c5346932d h1:fZzd8YA+bTR/N87YCcQrRVRw9hTrSi7m8YP3MDmGcnE=
+github.com/runmedev/owl v1.0.2-0.20260727162135-283c5346932d/go.mod h1:j9dHba3PZdEasw/CqycYvRyysO/gwfoWOq4p2jMfvNY=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sagikazarmark/locafero v0.12.0 h1:/NQhBAkUb4+fH1jivKHWusDYFjMOOKU88eegjfxfHb4=
 github.com/sagikazarmark/locafero v0.12.0/go.mod h1:sZh36u/YSZ918v0Io+U9ogLYQJ9tLLBmM4eneO6WwsI=
