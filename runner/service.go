@@ -958,6 +958,9 @@ func monitorEnvStoreStatusFromVisibility(visibility owl.Visibility) runnerv1.Mon
 	case owl.VisibilityHidden:
 		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN
 	case owl.VisibilityUnresolved:
+		// Legacy monitor snapshots have no explicit unresolved/unset status.
+		// Keep using UNSPECIFIED as the wire value and let clients render it as
+		// unresolved rather than exposing the proto default name.
 		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
 	default:
 		return runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED
