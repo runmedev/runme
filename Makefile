@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 
+GO_FILES := git ls-files -z --cached --others --exclude-standard -- '*.go'
 GO_ROOT := $(shell go env GOROOT)
 GIT_SHA := $(shell git rev-parse HEAD)
 GIT_SHA_SHORT := $(shell git rev-parse --short HEAD)
@@ -107,8 +108,8 @@ install/dev:
 
 .PHONY: fmt
 fmt:
-	@go tool gofumpt -w .
-	@go tool goimports -local="github.com/runmedev/runme" -w -l .
+	@$(GO_FILES) | xargs -0 go tool gofumpt -w
+	@$(GO_FILES) | xargs -0 go tool goimports -local="github.com/runmedev/runme" -w -l
 
 .PHONY: generate
 generate: _generate fmt
@@ -119,10 +120,10 @@ _generate:
 
 .PHONY: lint
 lint:
-	@# "gofumpt -d ." does not return non-zero exit code if there are changes
-	test -z "$$(git ls-files '*.go' | xargs go tool gofumpt -d)"
-	@# "goimports -d ." does not return non-zero exit code if there are changes
-	test -z $(shell go tool goimports -local="github.com/runmedev/runme" -l .)
+	@# "gofumpt -d" does not return non-zero exit code if there are changes
+	test -z "$$($(GO_FILES) | xargs -0 go tool gofumpt -d)"
+	@# "goimports -d" does not return non-zero exit code if there are changes
+	test -z "$$($(GO_FILES) | xargs -0 go tool goimports -local="github.com/runmedev/runme" -l)"
 	go tool revive \
 		-config revive.toml \
 		-formatter friendly \
