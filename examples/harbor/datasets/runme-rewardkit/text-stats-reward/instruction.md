@@ -25,3 +25,15 @@ Create a script that:
 ```
 
 The `sample.txt` file is already present in the working directory.
+
+## Validation
+
+This is an isolated example task, so do not run the repository's full test suite.
+After creating the files and generating `results.json`, run:
+
+```sh
+runme run lint
+```
+
+Allow the command to finish and do not suppress its output. `runme run test` is
+not required for this task.
