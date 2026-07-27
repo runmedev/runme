@@ -36,6 +36,49 @@ func TestSnapshotEnvsFromProtoMarksExplicitRows(t *testing.T) {
 	assert.False(t, byName["HOME"])
 }
 
+func TestSnapshotEnvsFromProtoMapsVisibilityAndDisplayValue(t *testing.T) {
+	t.Parallel()
+
+	envs := snapshotEnvsFromProto([]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
+		{
+			Name:   "RUNME_TEST_TOKEN",
+			Spec:   "https://owl.runme.dev/v1/types/core/secret",
+			Status: runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED,
+		},
+		{
+			Name:          "GITHUB_TOKEN",
+			Spec:          "https://owl.runme.dev/v1/types/core/secret",
+			ResolvedValue: "[masked]",
+			Status:        runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED,
+		},
+		{
+			Name:          "API_URL",
+			Spec:          "https://owl.runme.dev/v1/types/core/plain",
+			ResolvedValue: "https://api.example.com",
+			Status:        runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL,
+		},
+		{
+			Name:   "DATABASE_URL",
+			Spec:   "https://owl.runme.dev/v1/types/core/opaque",
+			Status: runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN,
+		},
+	})
+
+	byName := make(map[string]owlcmd.SnapshotEnv, len(envs))
+	for _, env := range envs {
+		byName[env.Name] = env
+	}
+
+	assert.Equal(t, "[unset]", byName["RUNME_TEST_TOKEN"].Value)
+	assert.Equal(t, "unresolved", byName["RUNME_TEST_TOKEN"].Visibility)
+	assert.Equal(t, "[masked]", byName["GITHUB_TOKEN"].Value)
+	assert.Equal(t, "masked", byName["GITHUB_TOKEN"].Visibility)
+	assert.Equal(t, "https://api.example.com", byName["API_URL"].Value)
+	assert.Equal(t, "literal", byName["API_URL"].Visibility)
+	assert.Equal(t, "[hidden]", byName["DATABASE_URL"].Value)
+	assert.Equal(t, "hidden", byName["DATABASE_URL"].Visibility)
+}
+
 func TestSnapshotTypeProposalHelpers(t *testing.T) {
 	t.Parallel()
 

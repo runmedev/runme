@@ -347,18 +347,35 @@ func (c *runmeOwlStoreClient) sessionID(ctx context.Context, runnerClient runner
 func snapshotEnvsFromProto(envs []*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv) []owlcmd.SnapshotEnv {
 	result := make([]owlcmd.SnapshotEnv, 0, len(envs))
 	for _, env := range envs {
+		visibility := snapshotVisibilityFromProto(env.GetStatus())
 		result = append(result, owlcmd.SnapshotEnv{
 			Name:        env.GetName(),
-			Value:       env.GetResolvedValue(),
+			Value:       snapshotValueFromProto(env.GetResolvedValue(), visibility),
 			Description: env.GetDescription(),
 			Type:        env.GetSpec(),
 			Source:      env.GetOrigin(),
 			Explicit:    snapshotExplicitFromProto(env),
-			Visibility:  snapshotVisibilityFromProto(env.GetStatus()),
+			Visibility:  visibility,
 			Diagnostics: snapshotDiagnosticsFromProto(env.GetErrors()),
 		})
 	}
 	return result
+}
+
+func snapshotValueFromProto(value string, visibility string) string {
+	if value != "" {
+		return value
+	}
+	switch visibility {
+	case "unresolved":
+		return "[unset]"
+	case "masked":
+		return "[masked]"
+	case "hidden":
+		return "[hidden]"
+	default:
+		return value
+	}
 }
 
 func snapshotExplicitFromProto(env *runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv) bool {
@@ -378,7 +395,7 @@ func snapshotVisibilityFromProto(status runnerv1.MonitorEnvStoreResponseSnapshot
 	case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL:
 		return "literal"
 	default:
-		return "unspecified"
+		return "unresolved"
 	}
 }
 
