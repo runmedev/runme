@@ -2,10 +2,19 @@
 
 import importlib.util
 import json
+import os
+import re
 import subprocess
 from pathlib import Path
 
 from rewardkit import criterion
+
+_DEFAULT_AGENT_TRAJECTORY = Path("/logs/agent/trajectory.json")
+_LINT_COMMAND_PATTERN = re.compile(
+    r"(?:^|&&|\|\||;|\n|[\"']cmd[\"']\s*:\s*[\"'])"
+    r"\s*runme\s+run\s+lint(?=\s|[\"'`;|&)]|$)"
+)
+_LINT_SUCCESS_PATTERN = re.compile(r"Task lint exited with code 0")
 
 
 def _load_module(workspace: Path, name: str):
@@ -99,6 +108,60 @@ def _structure_score(workspace: Path) -> float:
     ) / 3
 
 
+def _agent_trajectory_path() -> Path:
+    configured = os.environ.get("RUNME_AGENT_TRAJECTORY")
+    return Path(configured) if configured else _DEFAULT_AGENT_TRAJECTORY
+
+
+def _strings(value: object):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for nested in value.values():
+            yield from _strings(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _strings(nested)
+
+
+def _lint_validation_score(workspace: Path) -> float:
+    del workspace
+
+    try:
+        trajectory = json.loads(_agent_trajectory_path().read_text())
+    except (OSError, ValueError):
+        return 0.0
+    if not isinstance(trajectory, dict):
+        return 0.0
+
+    command_seen = False
+    success_seen = False
+    for step in trajectory.get("steps", []):
+        if not isinstance(step, dict) or step.get("source") != "agent":
+            continue
+
+        tool_calls = step.get("tool_calls")
+        if isinstance(tool_calls, list):
+            for tool_call in tool_calls:
+                if not isinstance(tool_call, dict):
+                    continue
+                arguments = tool_call.get("arguments")
+                if any(_LINT_COMMAND_PATTERN.search(text) for text in _strings(arguments)):
+                    command_seen = True
+
+        observation = step.get("observation")
+        if any(_LINT_SUCCESS_PATTERN.search(text) for text in _strings(observation)):
+            success_seen = True
+
+    return float(command_seen and success_seen)
+
+
+def _gated_reward_score(workspace: Path) -> float:
+    if _lint_validation_score(workspace) == 0.0:
+        return 0.0
+    return (_correctness_score(workspace) + _structure_score(workspace)) / 2
+
+
 @criterion(shared=True)
 def word_count_correct(workspace: Path) -> float:
     try:
@@ -123,3 +186,13 @@ def correctness(workspace: Path) -> float:
 @criterion(shared=True)
 def structure(workspace: Path) -> float:
     return _structure_score(workspace)
+
+
+@criterion(shared=True)
+def lint_validation(workspace: Path) -> float:
+    return _lint_validation_score(workspace)
+
+
+@criterion(shared=True)
+def gated_reward(workspace: Path) -> float:
+    return _gated_reward_score(workspace)
