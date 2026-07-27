@@ -5,7 +5,6 @@ package runner
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net"
 	"os"
@@ -1285,26 +1284,17 @@ func Test_runnerConformsOpinionatedEnvVarNaming(t *testing.T) {
 }
 
 func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T) {
-	var snapshot owl.SetVarItems
-	require.NoError(t, json.Unmarshal([]byte(`[
+	snapshot := []owl.SnapshotItem{
 		{
-			"var": {
-				"key": "FOO",
-				"origin": "test",
-				"created": "2026-06-17T18:46:21Z"
-			},
-			"value": {
-				"original": "bar",
-				"resolved": "bar",
-				"status": "LITERAL"
-			},
-			"spec": {
-				"name": "Plain",
-				"required": true,
-				"description": "desc"
-			}
-		}
-	]`), &snapshot))
+			Name:          "FOO",
+			Source:        owl.Source{Name: "test"},
+			OriginalValue: "bar",
+			Value:         "bar",
+			Type:          owl.TypeCorePlain,
+			Visibility:    owl.VisibilityLiteral,
+			Description:   "desc",
+		},
+	}
 
 	core, observedLogs := observer.New(zap.WarnLevel)
 	msg := &runnerv1.MonitorEnvStoreResponse{}
@@ -1313,7 +1303,7 @@ func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T
 
 	envs := msg.GetSnapshot().GetEnvs()
 	require.Len(t, envs, 1)
-	assert.Equal(t, "2026-06-17T18:46:21Z", envs[0].CreateTime)
+	assert.Empty(t, envs[0].CreateTime)
 	assert.Empty(t, envs[0].UpdateTime)
 	assert.Equal(t, runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL, envs[0].Status)
 
@@ -1321,4 +1311,47 @@ func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T
 	require.Len(t, logs, 1)
 	assert.Equal(t, "FOO", logs[0].ContextMap()["name"])
 	assert.Equal(t, "test", logs[0].ContextMap()["origin"])
+}
+
+func Test_convertToMonitorEnvStoreResponse_usesSnapshotSource(t *testing.T) {
+	snapshot := []owl.SnapshotItem{
+		{
+			Name:       "FOO",
+			Source:     owl.Source{Name: "#cell-name"},
+			Origin:     owl.Source{Name: ".env"},
+			Value:      "bar",
+			Type:       owl.TypeCorePlain,
+			Visibility: owl.VisibilityLiteral,
+			UpdatedAt:  time.Date(2026, 7, 24, 19, 45, 0, 0, time.UTC),
+		},
+	}
+	msg := &runnerv1.MonitorEnvStoreResponse{}
+
+	require.NoError(t, convertToMonitorEnvStoreResponse(zap.NewNop(), msg, snapshot))
+
+	envs := msg.GetSnapshot().GetEnvs()
+	require.Len(t, envs, 1)
+	assert.Equal(t, "#cell-name", envs[0].Origin)
+}
+
+func Test_convertToMonitorEnvStoreResponse_doesNotUseSnapshotOriginAsSource(t *testing.T) {
+	snapshot := []owl.SnapshotItem{
+		{
+			Name:       "MISSING_TOKEN",
+			Origin:     owl.Source{Name: ".env.spec"},
+			Value:      "[unset]",
+			Type:       owl.TypeCoreSecret,
+			Visibility: owl.VisibilityUnresolved,
+			UpdatedAt:  time.Date(2026, 7, 24, 19, 45, 0, 0, time.UTC),
+		},
+	}
+	msg := &runnerv1.MonitorEnvStoreResponse{}
+
+	require.NoError(t, convertToMonitorEnvStoreResponse(zap.NewNop(), msg, snapshot))
+
+	envs := msg.GetSnapshot().GetEnvs()
+	require.Len(t, envs, 1)
+	assert.Empty(t, envs[0].Origin)
+	assert.Equal(t, "[unset]", envs[0].ResolvedValue)
+	assert.Equal(t, runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED, envs[0].Status)
 }

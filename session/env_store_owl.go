@@ -30,36 +30,36 @@ func newOwlStore() (*envStoreOwl, error) {
 var _ EnvStore = new(envStoreOwl)
 
 func (s *envStoreOwl) Load(source string, envs ...string) error {
-	return s.owlStore.LoadEnvs(source, envs...)
+	return s.owlStore.LoadDotenvLines(source, envs...)
 }
 
-func (s *envStoreOwl) Merge(context context.Context, envs ...string) error {
-	return s.owlStore.Update(owlContext(context), envs, nil)
+func (s *envStoreOwl) Merge(ctx context.Context, envs ...string) error {
+	return s.owlStore.Update(owlContext(ctx), envs, nil)
 }
 
 func (s *envStoreOwl) Get(k string) (string, bool) {
 	// todo(sebastian): return error?
-	if v, ok, err := s.owlStore.InsecureGet(k); err == nil {
-		return v, ok
+	if v, ok, err := s.owlStore.Get(k, owl.GetPolicy{Reveal: true}); err == nil {
+		return v.Value, ok
 	}
 
 	return "", false
 }
 
-func (s *envStoreOwl) Set(context context.Context, k, v string) error {
+func (s *envStoreOwl) Set(ctx context.Context, k, v string) error {
 	if len(k)+len(v) > MaxEnvSizeInBytes {
 		return ErrEnvTooLarge
 	}
 
-	return s.owlStore.Update(owlContext(context), []string{k + "=" + v}, nil)
+	return s.owlStore.Update(owlContext(ctx), []string{k + "=" + v}, nil)
 }
 
-func (s *envStoreOwl) Delete(context context.Context, k string) error {
-	return s.owlStore.Update(owlContext(context), nil, []string{k})
+func (s *envStoreOwl) Delete(ctx context.Context, k string) error {
+	return s.owlStore.Update(owlContext(ctx), nil, []string{k})
 }
 
 func (s *envStoreOwl) Items() ([]string, error) {
-	return s.owlStore.InsecureValues()
+	return s.owlStore.Dotenv(owl.DotenvPolicy{Insecure: true})
 }
 
 func owlContext(ctx context.Context) context.Context {

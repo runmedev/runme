@@ -1,11 +1,17 @@
 package runner
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/runmedev/owl/pkg/owl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+
+	"github.com/runmedev/runme/v3/project"
 )
 
 func Test_SessionList(t *testing.T) {
@@ -124,4 +130,41 @@ func Test_SessionList(t *testing.T) {
 
 		list.Delete(session2)
 	})
+}
+
+func TestOwlSessionTreatsEmptySensitiveEnvAsUnresolved(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dir, ".env.spec"),
+		[]byte("RUNME_TEST_TOKEN=\"The Runme test token to use for integration tests.\" # Secret\n"),
+		0o600,
+	))
+	proj, err := project.NewDirProject(dir)
+	require.NoError(t, err)
+
+	sess, err := NewSessionWithStore([]string{"RUNME_TEST_TOKEN="}, proj, true, zap.NewNop())
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	snapshotc := make(chan []owl.SnapshotItem)
+	require.NoError(t, sess.Subscribe(ctx, snapshotc))
+
+	snapshot := <-snapshotc
+	byName := snapshotItemsByName(snapshot)
+	require.Contains(t, byName, "RUNME_TEST_TOKEN")
+
+	assert.Equal(t, "[unset]", byName["RUNME_TEST_TOKEN"].Value)
+	assert.Empty(t, byName["RUNME_TEST_TOKEN"].OriginalValue)
+	assert.Equal(t, owl.VisibilityUnresolved, byName["RUNME_TEST_TOKEN"].Visibility)
+}
+
+func snapshotItemsByName(items []owl.SnapshotItem) map[string]owl.SnapshotItem {
+	result := make(map[string]owl.SnapshotItem, len(items))
+	for _, item := range items {
+		result[item.Name] = item
+	}
+	return result
 }
