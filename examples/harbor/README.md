@@ -67,6 +67,9 @@ and runs local agent CLIs through `runme harbor stdio` by default. The default
 environment is `runme`; pass `--env runme` to select it explicitly. Passing a
 non-Runme Harbor environment, such as `--env docker`, delegates the selected
 environment and agent to Harbor without the Runme-specific agent wrappers.
+Runme environments default to one concurrent trial because they share the host
+workspace. Other environments use Harbor's concurrency default. Override either
+behavior with passthrough arguments such as `-- --n-concurrent 4`.
 
 Set `--runme-bin` to use a specific Runme binary. Set `--runme-arg` one or more
 times to pass global Runme flags before `harbor stdio`.

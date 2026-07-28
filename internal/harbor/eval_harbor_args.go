@@ -60,7 +60,7 @@ func (b harborRunArgsBuilder) Build() ([]string, error) {
 	}
 
 	extraArgs := b.extraArgs()
-	if !concurrencyHarborFlag.Present(extraArgs) {
+	if usesRunmeEnvironment(b.opts.Env) && !concurrencyHarborFlag.Present(extraArgs) {
 		args = append(args, "--n-concurrent", "1")
 	}
 	args = append(args, extraArgs...)

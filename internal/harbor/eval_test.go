@@ -817,13 +817,61 @@ func TestRunEvalDelegatesNonRunmeEnvWithoutPreflight(t *testing.T) {
 		"--env", "docker",
 		"--agent", "codex",
 		"-y",
-		"--n-concurrent", "1",
 	}
 	if len(calls) != 2 {
 		t.Fatalf("calls = %#v, want delegate and metadata sync", calls)
 	}
 	if !reflect.DeepEqual(calls[0].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[0].args, want)
+	}
+}
+
+func TestRunEvalPreservesPassthroughConcurrency(t *testing.T) {
+	for _, tt := range []struct {
+		name         string
+		env          string
+		delegatedEnv string
+		passthrough  []string
+		delegateCall int
+	}{
+		{
+			name:         "runme long flag",
+			delegatedEnv: runmeEnvironmentImportPath,
+			passthrough:  []string{"--n-concurrent", "3"},
+			delegateCall: 1,
+		},
+		{
+			name:         "docker short flag",
+			env:          "docker",
+			delegatedEnv: "docker",
+			passthrough:  []string{"-n", "3"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			path := t.TempDir()
+			var calls []recordedCommand
+			opts := testEvalOptions(t, &calls, io.Discard)
+			opts.Env = tt.env
+
+			err := NewEvalRunner(opts).Run(append([]string{path}, tt.passthrough...))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			want := []string{
+				"run",
+				"--path",
+				mustAbs(t, path),
+				"--jobs-dir", defaultJobsDir(t),
+				"--env", tt.delegatedEnv,
+				"--agent", "oracle",
+				"-y",
+			}
+			want = append(want, tt.passthrough...)
+			if !reflect.DeepEqual(calls[tt.delegateCall].args, want) {
+				t.Fatalf("args = %#v, want %#v", calls[tt.delegateCall].args, want)
+			}
+		})
 	}
 }
 
