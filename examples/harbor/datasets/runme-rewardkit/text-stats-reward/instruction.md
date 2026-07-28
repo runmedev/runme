@@ -35,5 +35,7 @@ After creating the files and generating `results.json`, run:
 runme run lint
 ```
 
-Allow the command to finish and do not suppress its output. `runme run test` is
-not required for this task.
+Run the command in the foreground with a timeout of 480 seconds, wait for it to
+finish, and do not suppress its output. If the environment moves it to the
+background, wait for that exact background task's completion notification
+before proceeding. `runme run test` is not required for this task.
