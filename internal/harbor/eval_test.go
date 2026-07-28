@@ -124,6 +124,32 @@ func TestRunEvalDelegatesAntigravityCli(t *testing.T) {
 	}
 }
 
+func TestRunEvalDelegatesNop(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.Agent = "nop"
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		"--path",
+		mustAbs(t, path),
+		"--jobs-dir", defaultJobsDir(t),
+		"--env", runmeEnvironmentImportPath,
+		"--agent", "nop",
+		"-y",
+		"--n-concurrent", "1",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
 func TestRunEvalDefaultsDatasetPath(t *testing.T) {
 	tmp := t.TempDir()
 	t.Chdir(tmp)

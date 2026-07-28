@@ -62,11 +62,12 @@ a task directory inside the dataset, such as `simple-agent` or
 
 `runme eval` delegates to `runme-harbor`, so these examples remain compatible
 with the underlying `harbor run` workflow. The adapter supports `oracle`,
-`antigravity-cli`, `codex`, `claude-code`, `cursor-cli`, and `openclaw` agents
-and runs local agent CLIs through `runme harbor stdio` by default. The default
-environment is `runme`; pass `--env runme` to select it explicitly. Passing a
-non-Runme Harbor environment, such as `--env docker`, delegates the selected
-environment and agent to Harbor without the Runme-specific agent wrappers.
+`nop`, `antigravity-cli`, `codex`, `claude-code`, `cursor-cli`, and `openclaw`
+agents and runs local agent CLIs through `runme harbor stdio` by default. The
+default environment is `runme`; pass `--env runme` to select it explicitly.
+Passing a non-Runme Harbor environment, such as `--env docker`, delegates the
+selected environment and agent to Harbor without the Runme-specific agent
+wrappers.
 Runme environments default to one concurrent trial because they share the host
 workspace. Other environments use Harbor's concurrency default. Override either
 behavior with passthrough arguments such as `-- --n-concurrent 4`.
