@@ -45,7 +45,7 @@ require (
 	github.com/openai/openai-go v1.12.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/otiai10/copy v1.14.1
-	github.com/prometheus/client_golang v1.24.0
+	github.com/prometheus/client_golang v1.24.1
 	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260709214304-372b2d56e470
 	github.com/rogpeppe/go-internal v1.15.0
 	github.com/rs/cors v1.11.1
@@ -166,7 +166,7 @@ require (
 	github.com/petermattis/goid v0.0.0-20260716134002-a9b348f0a2b9 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.70.0 // indirect
+	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/redpanda-data/common-go/api v0.0.0-20260721155203-6b59ae26b6d6 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
