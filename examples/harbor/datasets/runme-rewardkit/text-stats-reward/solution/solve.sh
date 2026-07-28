@@ -38,3 +38,4 @@ Path("results.json").write_text(json.dumps(results, indent=2))
 PY
 
 python analyze.py
+runme run lint

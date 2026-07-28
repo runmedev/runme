@@ -20,13 +20,12 @@ jobs:
           go-version-file: go.mod
       - name: Install dependencies
         run: make install/dev
-      # It duplicates running linter from pre-commit
-      # but as revive is set up differently, we want
-      # to make sure that `make lint` also works.
-      - name: Run lint from Makefile
-        run: make lint
+      - name: Run checks from Makefile
+        run: make check
       - uses: actions/setup-python@v3
       - uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: lint
 
   harbor-python:
     runs-on: ubuntu-latest

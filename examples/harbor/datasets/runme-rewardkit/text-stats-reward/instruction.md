@@ -25,3 +25,17 @@ Create a script that:
 ```
 
 The `sample.txt` file is already present in the working directory.
+
+## Validation
+
+This is an isolated example task, so do not run the repository's full test suite.
+After creating the files and generating `results.json`, run:
+
+```sh
+runme run lint
+```
+
+Run the command in the foreground with a timeout of 480 seconds, wait for it to
+finish, and do not suppress its output. If the environment moves it to the
+background, wait for that exact background task's completion notification
+before proceeding. `runme run test` is not required for this task.

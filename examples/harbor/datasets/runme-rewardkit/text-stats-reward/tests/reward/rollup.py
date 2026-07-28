@@ -2,5 +2,4 @@
 
 from rewardkit import criteria
 
-criteria.correctness(weight=1.0)
-criteria.structure(weight=1.0)
+criteria.gated_reward(weight=1.0)
