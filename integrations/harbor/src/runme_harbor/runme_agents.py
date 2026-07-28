@@ -78,12 +78,16 @@ class RunmeAntigravityCli(AntigravityCli):
 
         cli_flags = self.build_cli_flags()
         extra_flags = (cli_flags + " ") if cli_flags else ""
+        # The agy Go CLI selects its model from the --model flag; the ~/.agy
+        # settings.json written above is read only by the legacy CLI, so pass
+        # an explicitly configured model through to the current CLI.
+        model_flag = f"--model {shlex.quote(model)} " if model else ""
         try:
             await self.exec_as_agent(
                 environment,
                 command=(
                     'export PATH="$HOME/.local/bin:$PATH"\n'
-                    f"agy --dangerously-skip-permissions {extra_flags}"
+                    f"agy --new-project --dangerously-skip-permissions {model_flag}{extra_flags}"
                     f"--prompt={escaped_instruction} "
                     "2>&1 </dev/null | stdbuf -oL tee /logs/agent/antigravity-cli.txt"
                 ),
