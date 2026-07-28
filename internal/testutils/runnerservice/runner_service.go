@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 
@@ -16,7 +16,7 @@ import (
 func New(t *testing.T) (_ *bufconn.Listener, stop func()) {
 	t.Helper()
 
-	logger := zaptest.NewLogger(t)
+	logger := zap.NewNop()
 	factory := command.NewFactory(command.WithLogger(logger))
 
 	runnerService, err := runnerv2service.NewRunnerService(factory, logger)
