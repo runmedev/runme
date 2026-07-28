@@ -39,7 +39,40 @@ var newEvalRunner = func(opts harbor.EvalOptions) evalRunner {
 	return harbor.NewEvalRunner(opts)
 }
 
+// NewEvalCmd returns the full runme eval command group.
+func NewEvalCmd() *cobra.Command {
+	cmd := newEvalRunCmd(
+		"eval [dataset-path] [flags] [-- harbor-flags...]",
+		"Run Harbor eval tasks with Runme",
+		fmt.Sprintf(`Run Harbor eval tasks with Runme.
+
+When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetPath),
+	)
+
+	cmd.AddCommand(NewEvalViewCmd())
+	cmd.AddCommand(evalPromoteCmd())
+	cmd.AddCommand(evalCompareCmd())
+	cmd.AddCommand(NewEvalTaskCmd())
+
+	return cmd
+}
+
+// NewEvalRunCmd returns the standalone eval runner command for reuse as an alias.
+func NewEvalRunCmd() *cobra.Command {
+	return newEvalRunCmd(
+		"run [dataset-path] [flags] [-- harbor-flags...]",
+		"Run Harbor eval tasks with Runme",
+		fmt.Sprintf(`Run Harbor eval tasks with Runme.
+
+When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetPath),
+	)
+}
+
 func evalCmd() *cobra.Command {
+	return NewEvalCmd()
+}
+
+func newEvalRunCmd(use, short, long string) *cobra.Command {
 	opts := evalOptions{
 		agent:   "oracle",
 		jobsDir: harbor.DefaultEvalJobsDir,
@@ -48,12 +81,10 @@ func evalCmd() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "eval [dataset-path] [flags] [-- harbor-flags...]",
-		Short: "Run Harbor eval tasks with Runme",
-		Long: fmt.Sprintf(`Run Harbor eval tasks with Runme.
-
-When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetPath),
-		Args: validateEvalArgs,
+		Use:   use,
+		Short: short,
+		Long:  long,
+		Args:  validateEvalArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.stdout = cmd.OutOrStdout()
 			opts.stderr = cmd.ErrOrStderr()
@@ -85,11 +116,6 @@ When dataset-path is omitted, runme eval uses ./%s.`, harbor.DefaultEvalDatasetP
 	flags.StringArrayVar(&opts.runmeArgs, "runme-arg", nil, "Additional Runme argument used by the Harbor environment")
 	flags.StringVar(&opts.runmeHarbor, "runme-harbor-bin", "", "runme-harbor executable")
 	flags.BoolVar(&opts.debug, "debug", false, "Print delegated commands")
-
-	cmd.AddCommand(evalViewCmd())
-	cmd.AddCommand(evalPromoteCmd())
-	cmd.AddCommand(evalCompareCmd())
-	cmd.AddCommand(evalTaskCmd())
 
 	return cmd
 }

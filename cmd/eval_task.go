@@ -28,18 +28,20 @@ type evalTaskNewOptions struct {
 	stderr      io.Writer
 }
 
-func evalTaskCmd() *cobra.Command {
+// NewEvalTaskCmd returns the eval task command group.
+func NewEvalTaskCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "task",
 		Short: "Manage Harbor eval tasks",
 	}
 
-	cmd.AddCommand(evalTaskNewCmd())
+	cmd.AddCommand(NewEvalTaskNewCmd())
 
 	return cmd
 }
 
-func evalTaskNewCmd() *cobra.Command {
+// NewEvalTaskNewCmd returns the eval task scaffold command.
+func NewEvalTaskNewCmd() *cobra.Command {
 	opts := evalTaskNewOptions{
 		tasksDir: harbor.DefaultEvalDatasetPath,
 		stdout:   os.Stdout,

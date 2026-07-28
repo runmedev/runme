@@ -117,7 +117,7 @@ func Root() *cobra.Command {
 
 	cmd.AddCommand(codeServerCmd())
 	cmd.AddCommand(environmentCmd())
-	cmd.AddCommand(evalCmd())
+	cmd.AddCommand(NewEvalCmd())
 	cmd.AddCommand(fmtCmd())
 	cmd.AddCommand(harborCmd())
 	cmd.AddCommand(listCmd())

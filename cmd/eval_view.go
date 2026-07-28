@@ -29,7 +29,8 @@ type evalViewOptions struct {
 	stderr      io.Writer
 }
 
-func evalViewCmd() *cobra.Command {
+// NewEvalViewCmd returns the eval jobs dashboard command.
+func NewEvalViewCmd() *cobra.Command {
 	opts := evalViewOptions{
 		stdout: os.Stdout,
 		stderr: os.Stderr,

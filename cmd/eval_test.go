@@ -176,6 +176,44 @@ func TestEvalCmdHelpIncludesDefaultDatasetPath(t *testing.T) {
 	}
 }
 
+func TestExportedEvalConstructorsReturnFreshCommands(t *testing.T) {
+	tests := []struct {
+		name string
+		new  func() commandNamer
+		want string
+	}{
+		{name: "eval", new: func() commandNamer { return NewEvalCmd() }, want: "eval"},
+		{name: "run", new: func() commandNamer { return NewEvalRunCmd() }, want: "run"},
+		{name: "view", new: func() commandNamer { return NewEvalViewCmd() }, want: "view"},
+		{name: "task", new: func() commandNamer { return NewEvalTaskCmd() }, want: "task"},
+		{name: "task new", new: func() commandNamer { return NewEvalTaskNewCmd() }, want: "new"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			first := tt.new()
+			second := tt.new()
+			if first == second {
+				t.Fatal("constructor returned the same command instance twice")
+			}
+			if first.Name() != tt.want {
+				t.Fatalf("Name() = %q, want %q", first.Name(), tt.want)
+			}
+			if second.Name() != tt.want {
+				t.Fatalf("second Name() = %q, want %q", second.Name(), tt.want)
+			}
+		})
+	}
+}
+
+func TestEvalRunCmdDoesNotExposeNestedEvalCommands(t *testing.T) {
+	cmd := NewEvalRunCmd()
+
+	if len(cmd.Commands()) != 0 {
+		t.Fatalf("eval run alias should not expose subcommands: got %v", cmd.Commands())
+	}
+}
+
 func TestEvalCmdRejectsMultipleDatasetPaths(t *testing.T) {
 	cmd := evalCmd()
 	cmd.SetArgs([]string{"first", "second"})
@@ -224,6 +262,10 @@ type evalRunnerFunc func([]string) error
 
 func (f evalRunnerFunc) Run(args []string) error {
 	return f(args)
+}
+
+type commandNamer interface {
+	Name() string
 }
 
 func restoreEvalRunner(t *testing.T, fn func(harbor.EvalOptions) evalRunner) {
