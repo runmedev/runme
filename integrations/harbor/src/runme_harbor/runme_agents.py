@@ -83,7 +83,7 @@ class RunmeAntigravityCli(AntigravityCli):
                 environment,
                 command=(
                     'export PATH="$HOME/.local/bin:$PATH"\n'
-                    f"agy --dangerously-skip-permissions {extra_flags}"
+                    f"agy --new-project --dangerously-skip-permissions {extra_flags}"
                     f"--prompt={escaped_instruction} "
                     "2>&1 </dev/null | stdbuf -oL tee /logs/agent/antigravity-cli.txt"
                 ),
