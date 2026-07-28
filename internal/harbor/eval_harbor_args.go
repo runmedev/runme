@@ -13,6 +13,7 @@ const (
 
 var runmeAgentSpecs = []runmeAgentSpec{
 	{name: "oracle"},
+	{name: "nop"},
 	{name: "antigravity-cli", importPath: "runme_harbor.runme_agents:RunmeAntigravityCli"},
 	{name: "codex", importPath: "runme_harbor.runme_agents:RunmeCodex"},
 	{name: "claude-code", importPath: "runme_harbor.runme_agents:RunmeClaudeCode"},
@@ -60,7 +61,7 @@ func (b harborRunArgsBuilder) Build() ([]string, error) {
 	}
 
 	extraArgs := b.extraArgs()
-	if !concurrencyHarborFlag.Present(extraArgs) {
+	if usesRunmeEnvironment(b.opts.Env) && !concurrencyHarborFlag.Present(extraArgs) {
 		args = append(args, "--n-concurrent", "1")
 	}
 	args = append(args, extraArgs...)
