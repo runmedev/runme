@@ -64,6 +64,7 @@ def test_runme_antigravity_cli_uses_ambient_user_auth(
     assert "settings.json" in calls[0][0]
     assert 'export PATH="$HOME/.local/bin:$PATH"' in calls[1][0]
     assert "\nagy --new-project --dangerously-skip-permissions " in calls[1][0]
+    assert "--model gemini-3-pro-preview " in calls[1][0]
     assert "--prompt='write result.txt'" in calls[1][0]
     assert "/logs/agent/antigravity-cli.txt" in calls[1][0]
     assert "find ~/.agy/antigravity-cli/tmp" in calls[2][0]
@@ -97,6 +98,7 @@ def test_runme_antigravity_cli_can_use_local_default_model(tmp_path: Path) -> No
     assert 'export PATH="$HOME/.local/bin:$PATH"' in calls[1][0]
     assert "\nagy --new-project --dangerously-skip-permissions " in calls[1][0]
     assert "defaultModel" not in calls[0][0]
+    assert "--model " not in calls[1][0]
     assert "--prompt='write result.txt'" in calls[1][0]
 
 
