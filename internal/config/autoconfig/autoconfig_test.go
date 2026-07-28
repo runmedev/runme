@@ -3,6 +3,8 @@ package autoconfig
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -76,17 +78,11 @@ server: null
 		builder := NewBuilder()
 		temp := t.TempDir()
 
-		err := os.WriteFile(filepath.Join(temp, "README.md"), []byte("Hello, World!"), 0o644)
+		readmePath := filepath.Join(temp, "README.md")
+		err := os.WriteFile(readmePath, []byte("Hello, World!"), 0o644)
 		require.NoError(t, err)
 
-		configRootFS := fstest.MapFS{
-			"runme.yaml": {
-				Data: []byte(`version: v1alpha1
-project:
-  filename: ` + filepath.Join(temp, "README.md") + `
-`),
-			},
-		}
+		configRootFS := testServerConfig(t, readmePath, false)
 		err = builder.Decorate(
 			func() (*config.Loader, error) {
 				return config.NewLoader([]string{"runme.yaml"}, configRootFS), nil
@@ -121,17 +117,11 @@ project:
 		builder := NewBuilder()
 		temp := t.TempDir()
 
-		err := os.WriteFile(filepath.Join(temp, "README.md"), []byte("Hello, World!"), 0o644)
+		readmePath := filepath.Join(temp, "README.md")
+		err := os.WriteFile(readmePath, []byte("Hello, World!"), 0o644)
 		require.NoError(t, err)
 
-		configRootFS := fstest.MapFS{
-			"runme.yaml": {
-				Data: []byte(`version: v1alpha1
-project:
-  filename: ` + filepath.Join(temp, "README.md") + `
-`),
-			},
-		}
+		configRootFS := testServerConfig(t, readmePath, true)
 		err = builder.Decorate(
 			func() (*config.Loader, error) {
 				return config.NewLoader([]string{"runme.yaml"}, configRootFS), nil
@@ -163,23 +153,72 @@ project:
 	})
 }
 
+func testServerConfig(t *testing.T, readmePath string, tlsEnabled bool) fstest.MapFS {
+	t.Helper()
+
+	return fstest.MapFS{
+		"runme.yaml": {
+			Data: []byte(fmt.Sprintf(`version: v1alpha1
+project:
+  filename: %s
+server:
+  address: %s
+  tls:
+    enabled: %t
+  max_message_size: 33554432
+`, readmePath, testServerAddress(t), tlsEnabled)),
+		},
+	}
+}
+
+func testServerAddress(t *testing.T) string {
+	t.Helper()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, listener.Close())
+	}()
+
+	return listener.Addr().String()
+}
+
 func checkHealth(client healthv1.HealthClient) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	var (
 		resp *healthv1.HealthCheckResponse
 		err  error
 	)
 
-	for i := 0; i < 5; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		resp, err = client.Check(ctx, &healthv1.HealthCheckRequest{})
-		if err != nil || resp.Status != healthv1.HealthCheckResponse_SERVING {
-			cancel()
-			time.Sleep(time.Millisecond * 100)
-			continue
-		}
-		cancel()
-		break
-	}
+	delay := 50 * time.Millisecond
+	const maxDelay = 500 * time.Millisecond
 
-	return err
+	for {
+		attemptCtx, attemptCancel := context.WithTimeout(ctx, time.Second)
+		resp, err = client.Check(attemptCtx, &healthv1.HealthCheckRequest{})
+		attemptCancel()
+		if err == nil && resp.GetStatus() == healthv1.HealthCheckResponse_SERVING {
+			return nil
+		}
+
+		jitter := time.Duration(rand.Int64N(int64(delay / 2)))
+		timer := time.NewTimer(delay + jitter)
+
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			if err != nil {
+				return errors.WithMessage(err, "timed out waiting for health")
+			}
+			return errors.Errorf("timed out waiting for health: status = %s", resp.GetStatus())
+		case <-timer.C:
+		}
+
+		delay *= 2
+		if delay > maxDelay {
+			delay = maxDelay
+		}
+	}
 }
