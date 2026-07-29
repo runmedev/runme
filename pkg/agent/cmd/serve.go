@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"errors"
-
+	"github.com/go-logr/zapr"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
-	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/server"
@@ -28,41 +26,16 @@ func NewServeCmd(appName string) *cobra.Command {
 				return err
 			}
 
+			if keys := app.AppConfig.GetConfig().DeprecatedConfigKeys(); len(keys) > 0 {
+				log := zapr.NewLogger(zap.L())
+				log.Info("Legacy configuration is deprecated and ignored", "keys", keys)
+			}
+
 			if err := app.SetupOTEL(); err != nil {
 				return err
 			}
 			if app.AppConfig.AssistantServer == nil {
 				app.AppConfig.AssistantServer = &config.AssistantServerConfig{}
-			}
-
-			var agent agentv1connect.MessagesServiceHandler
-			if app.AppConfig.AssistantServer.GetAgentService() {
-				agentOptions := &ai.AgentOptions{}
-				if app.AppConfig.CloudAssistant == nil {
-					return errors.New("cloudAssistant config is required when assistantServer.agentService is enabled")
-				}
-				if err := agentOptions.FromAssistantConfig(*app.AppConfig.CloudAssistant); err != nil {
-					return err
-				}
-
-				if app.AppConfig.OpenAI == nil {
-					// OpenAI access tokens will be provided by the client per request.
-					agentOptions.Client = ai.NewClientWithoutKey()
-				} else {
-					client, err := ai.NewClient(*app.AppConfig.OpenAI)
-					if err != nil {
-						return err
-					}
-					agentOptions.Client = client
-					agentOptions.OAuthOpenAIOrganization = app.AppConfig.OpenAI.Organization
-					agentOptions.OAuthOpenAIProject = app.AppConfig.OpenAI.Project
-				}
-
-				var err error
-				agent, err = ai.NewAgent(*agentOptions)
-				if err != nil {
-					return err
-				}
 			}
 
 			if err := ensureTLSCertificate(app); err != nil {
@@ -74,9 +47,8 @@ func NewServeCmd(appName string) *cobra.Command {
 				Server:    app.AppConfig.AssistantServer,
 				ConfigDir: app.AppConfig.GetConfigDir(),
 				IAMPolicy: app.AppConfig.IAMPolicy,
-				WebApp:    app.AppConfig.WebApp,
 			}
-			s, err := server.NewServer(*serverOptions, agent)
+			s, err := server.NewServer(*serverOptions)
 			if err != nil {
 				return err
 			}

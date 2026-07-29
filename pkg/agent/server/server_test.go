@@ -16,7 +16,6 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/jlewi/monogo/networking"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
@@ -24,10 +23,6 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	agentv1 "github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1"
-	"github.com/runmedev/runme/v3/api/gen/proto/go/agent/v1/agentv1connect"
-
-	"github.com/runmedev/runme/v3/pkg/agent/ai"
 	"github.com/runmedev/runme/v3/pkg/agent/application"
 	"github.com/runmedev/runme/v3/pkg/agent/config"
 	"github.com/runmedev/runme/v3/pkg/agent/logs"
@@ -56,8 +51,9 @@ func Test_HealthCheck(t *testing.T) {
 	cfg := app.GetConfig()
 	c := *cfg
 	c.AssistantServer = &config.AssistantServerConfig{
-		Port:         9080,
-		StaticAssets: cfg.AssistantServer.StaticAssets,
+		Port:          9080,
+		RunnerService: true,
+		ParserService: true,
 	}
 
 	go func() {
@@ -69,187 +65,6 @@ func Test_HealthCheck(t *testing.T) {
 		t.Fatalf("Error waiting for server; %v", err)
 	}
 	t.Logf("Server started")
-}
-
-func Test_GenerateCells(t *testing.T) {
-	SkipIfMissing(t, "RUN_MANUAL_TESTS")
-
-	app := application.NewApp(testAppName)
-	err := app.LoadConfig(nil)
-	if err != nil {
-		t.Fatalf("Error loading config; %v", err)
-	}
-	cfg := app.GetConfig()
-
-	if err := app.SetupLogging(); err != nil {
-		t.Fatalf("Error setting up logging; %v", err)
-	}
-
-	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
-
-	port, err := networking.GetFreePort()
-	if err != nil {
-		t.Fatalf("Error getting free port; %v", err)
-	}
-
-	if cfg.AssistantServer == nil {
-		cfg.AssistantServer = &config.AssistantServerConfig{}
-	}
-	cfg.AssistantServer.Port = port
-
-	go func() {
-		if err := setupAndRunServer(*cfg); err != nil {
-			log.Error(err, "Error running server")
-		}
-	}()
-
-	// N.B. There's probably a race condition here because the client might start before the server is fully up.
-	// Or maybe that's implicitly handled because the connection won't succeed until the server is up?
-	addr, err := waitForServer(*cfg)
-	if err != nil {
-		t.Fatalf("Error waiting for server; %v", err)
-	}
-
-	log.Info("Server started")
-	cells, err := runAIClient(addr)
-	if err != nil {
-		t.Fatalf("Error running client for addres %v; %v", addr, err)
-	}
-
-	if len(cells) < 2 {
-		t.Errorf("Expected at least 2 cells; got %d cells", len(cells))
-	}
-
-	// Ensure there is a filesearch results cell and that the filenames are set. This is intended
-	// to catch various bugs with the SDK;
-	hasFSCell := false
-	for _, b := range cells {
-		if b.Kind == parserv1.CellKind_CELL_KIND_TOOL || b.Kind == parserv1.CellKind_CELL_KIND_DOC_RESULTS {
-			hasFSCell = true
-
-			if len(b.DocResults) <= 0 {
-				t.Errorf("FileSearchResults cell has no results")
-			}
-
-			for _, r := range b.DocResults {
-				if r.FileName == "" {
-					t.Errorf("DocResults cell has empty filename")
-				}
-			}
-		}
-	}
-
-	if !hasFSCell {
-		t.Errorf("There was no DocResults cell in the results.")
-	}
-}
-
-func runAIClient(baseURL string) (map[string]*parserv1.Cell, error) {
-	log := zapr.NewLoggerWithOptions(zap.L(), zapr.AllowZapFields(true))
-
-	cells := make(map[string]*parserv1.Cell)
-
-	Cell := parserv1.Cell{
-		Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
-		Value: "This is a cell",
-	}
-
-	log.Info("Cell", logs.ZapProto("cell", &Cell))
-
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		log.Error(err, "Failed to parse URL")
-		return cells, errors.Wrapf(err, "Failed to parse URL")
-	}
-
-	var client agentv1connect.MessagesServiceClient
-
-	// Mimic what the frontend does
-	options := []connect.ClientOption{connect.WithGRPCWeb()}
-	if u.Scheme == "https" {
-		// Configure the TLS settings
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true, // Set to true only for testing; otherwise validate the server's certificate
-		}
-
-		client = agentv1connect.NewMessagesServiceClient(
-			&http.Client{
-				Transport: &http2.Transport{
-					TLSClientConfig: tlsConfig,
-					DialTLSContext: func(ctx context.Context, network, addr string, config *tls.Config) (net.Conn, error) {
-						// Create a secure connection with TLS
-						return tls.Dial(network, addr, config)
-					},
-				},
-			},
-			baseURL,
-			options...,
-		)
-	} else {
-		client = agentv1connect.NewMessagesServiceClient(
-			&http.Client{
-				Transport: &http2.Transport{
-					AllowHTTP: true,
-					DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-						// Use the standard Dial function to create a plain TCP connection
-						return net.Dial(network, u.Host)
-					},
-				},
-			},
-			baseURL,
-			options...,
-		)
-	}
-
-	contents := "Show me all the AKS clusters at OpenAI"
-	if os.Getenv("GITHUB_REPOSITORY_OWNER") == "runmedev" {
-		contents = "launch a psql session against the staging database as documented"
-	}
-
-	ctx := context.Background()
-	genReq := &agentv1.GenerateRequest{
-		Cells: []*parserv1.Cell{
-			{
-				Kind:  parserv1.CellKind_CELL_KIND_MARKUP,
-				Role:  parserv1.CellRole_CELL_ROLE_USER,
-				Value: contents,
-			},
-		},
-	}
-	req := connect.NewRequest(genReq)
-
-	stream, err := client.Generate(ctx, req)
-	if err != nil {
-		return cells, errors.Wrapf(err, "Failed to create generate stream")
-	}
-
-	// Receive responses
-	for stream.Receive() {
-		response := stream.Msg()
-
-		for _, cell := range response.Cells {
-			cells[cell.RefId] = cell
-
-			options := protojson.MarshalOptions{
-				Multiline: true,
-				Indent:    "  ", // Two spaces for indentation
-			}
-
-			// Marshal the protobuf message to JSON
-			jsonData, err := options.Marshal(cell)
-			if err != nil {
-				log.Error(err, "Failed to marshal cell to JSON")
-			} else {
-				log.Info("Cell", "cell", string(jsonData))
-			}
-		}
-
-	}
-
-	if stream.Err() != nil {
-		return cells, errors.Wrapf(stream.Err(), "Error receiving response")
-	}
-	return cells, nil
 }
 
 func Test_ExecuteWithRunmeStream(t *testing.T) {
@@ -322,29 +137,11 @@ func Test_ExecuteWithRunmeConcurrent(t *testing.T) {
 func setupAndRunServer(cfg config.Config) error {
 	log := zapr.NewLogger(zap.L())
 
-	client, err := ai.NewClient(*cfg.OpenAI)
-	if err != nil {
-		return errors.Wrap(err, "Failed to create client")
-	}
-
-	agentOptions := &ai.AgentOptions{}
-
-	if err := agentOptions.FromAssistantConfig(*cfg.CloudAssistant); err != nil {
-		return err
-	}
-
-	agentOptions.Client = client
-
-	agent, err := ai.NewAgent(*agentOptions)
-	if err != nil {
-		return err
-	}
-
 	serverOptions := &Options{
 		Telemetry: cfg.Telemetry,
 		Server:    cfg.AssistantServer,
 	}
-	srv, err := NewServer(*serverOptions, agent)
+	srv, err := NewServer(*serverOptions)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create server")
 	}

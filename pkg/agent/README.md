@@ -1,15 +1,35 @@
 # Runme Agent
 
-This is a quickstart to get you up and running to work on Runme Agent.
+The `pkg/agent` package contains the Go server used by the Runme web
+application. It provides runner and parser services, optional authentication,
+and Jupyter proxying. WebMCP is the supported integration path for browser
+automation. The web application is built and hosted independently.
 
-./pkg/agent contains the golang server
-The client side web application intended to be served by the golang server lives here https://github.com/runmedev/web and distributed via npm.
+Despite its historical package name, this is not an AI-only server. Runme Web
+depends on it for normal notebook and cell execution.
 
-## Quickstart Setup
+## Server responsibilities
 
-### Configure OpenAI
+The server provides the runtime services required by Runme Web:
 
-Create a minimal configuration file `~/.runme-agent/config.yaml`
+- `/ws` is the bidirectional WebSocket transport used to execute cells and
+  stream terminal input and output. It is available when
+  `assistantServer.runnerService` is enabled.
+- The Runner service manages execution sessions and related runner operations.
+- The Parser service parses and serializes notebook content when
+  `assistantServer.parserService` is enabled.
+- The Jupyter proxy manages Jupyter servers and forwards kernel channel
+  WebSockets.
+- Optional OIDC authentication, authorization, and telemetry are provided by
+  the same HTTP server.
+
+These services remain supported. The legacy AI messages, ChatKit, and
+app-server bridge endpoints have been removed independently of the execution
+server.
+
+## Quickstart
+
+Create a minimal configuration file at `~/.runme-agent/config.yaml`:
 
 ```yaml
 apiVersion: ""
@@ -18,65 +38,47 @@ logging:
   level: debug
   sinks:
     - path: stderr
-openai:
-  apiKeyFile: /Users/${USER}/.runme-agent/openai_key_file
-cloudAssistant:
-  vectorStores:
-    - ${VSID} # e.g. vs_67e5xxxxcabxfakexxxe13b2fcd7e612, get your own from OpenAI
 assistantServer:
   port: 8080
-  httpMaxReadTimeout: 0s
-  httpMaxWriteTimeout: 0s
-  staticAssets: /workspaces/runme-web/packages/react-components/dist/app # bundled version of https://github.com/runmedev/web
-  agentService: true
   runnerService: true
+  parserService: true
   corsOrigins:
     - "http://localhost:5173"
-    - "http://localhost:3000"
-    - "http://localhost:8080"
 ```
 
-- set **apiKeyFile** to the path of your OpenAI API key
-- set **vectoreStores** to contain the ID of your OpenAI API vector store
-- Change the path to the static assets to the location where you checked out the repository
-
-```sh
-runme agent config set assistantServer.staticAssets=$(PWD)/web/dist
-```
-
-### Build the static assets
-
-```sh
-git clone http://github.com/runmedev/web runme-web
-cd runme-web
-runme run setup clean build
-```
-
-### Start the server
+Start the server:
 
 ```bash {"name":"serve"}
 runme agent serve
 ```
 
-Open up `https://localhost:8443`.
+Runme Web is served separately. Configure its runner endpoint to use this
+server's WebSocket endpoint, for example `ws://localhost:8080/ws`.
 
-### Development Mode
+## Deprecated configuration compatibility
 
-If you make changes to the UI you need to rerun `npm run build` to recompile the static assets.
-However, you don't need to restart the GoLang server; it is sufficient to refresh the page to pick up the
-latest static assets.
+The `openai`, `cloudAssistant`, `webApp`, `assistantServer.agentService`,
+`assistantServer.staticAssets`, and `assistantServer.webAppURL` keys are
+accepted for a transition release so existing configuration files continue to
+load. The server ignores these keys and logs a deprecation notice when they
+are present. Remove them from personal and deployment configuration files
+before a later release removes the compatibility fields.
 
-## Local Tracing
+Published legacy agent protobuf schemas and generated clients remain available
+during the same transition, but the server no longer registers their services.
+Consumers should stop calling those endpoints before the schemas are removed
+in a later breaking release.
 
-It's handy to have local tracing for debugging. Make sure to configure the OTLP
-endpoint in the config.yaml file.
+## Local tracing
+
+Configure an OTLP endpoint in `config.yaml`:
 
 ```yaml
 telemetry:
   otlpHTTPEndpoint: localhost:4318
 ```
 
-### Run Jaeger locally
+Start Jaeger locally:
 
 ```sh {"name":"jaeger"}
 docker run --rm --name jaeger \

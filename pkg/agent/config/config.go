@@ -107,12 +107,19 @@ type Config struct {
 	Logging    Logging          `json:"logging" yaml:"logging"`
 	Telemetry  *TelemetryConfig `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
 
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The server ignores this configuration.
 	OpenAI *OpenAIConfig `json:"openai,omitempty" yaml:"openai,omitempty"`
 
-	CloudAssistant  *CloudAssistantConfig  `json:"cloudAssistant,omitempty" yaml:"cloudAssistant,omitempty"`
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The server ignores this configuration.
+	CloudAssistant *CloudAssistantConfig `json:"cloudAssistant,omitempty" yaml:"cloudAssistant,omitempty"`
+
 	AssistantServer *AssistantServerConfig `json:"assistantServer,omitempty" yaml:"assistantServer,omitempty"`
 
-	// WebAppConfig is the configuration for the web application.
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The independently hosted web application no longer reads
+	// configuration from this server.
 	WebApp *agentv1.WebAppConfig `json:"webApp,omitempty" yaml:"webApp,omitempty"`
 
 	// IAMPolicy is the IAM policy for the service. It only matters if OIDC is enabled in the AssistantServerConfig.
@@ -122,26 +129,23 @@ type Config struct {
 	configFile string
 }
 
+// CloudAssistantConfig is retained for configuration compatibility.
+//
+// Deprecated: the server ignores this configuration.
 type CloudAssistantConfig struct {
-	// VectorStores is the list of vector stores to use
 	VectorStores []string `json:"vectorStores,omitempty" yaml:"vectorStores,omitempty"`
 	AgentCookie  string   `json:"agentCookie,omitempty" yaml:"agentCookie,omitempty"`
 	TargetURL    string   `json:"targetUrl,omitempty" yaml:"targetUrl,omitempty"`
 	Model        string   `json:"model,omitempty" yaml:"model,omitempty"`
 }
 
+// OpenAIConfig is retained for configuration compatibility.
+//
+// Deprecated: the server ignores this configuration.
 type OpenAIConfig struct {
-	// APIKeyFile is the file containing the OpenAI API key.
-	// Optional when the client supplies an OAuth access token per request.
-	APIKeyFile string `json:"apiKeyFile,omitempty" yaml:"apiKeyFile,omitempty"`
-
-	// Organization is the OpenAI organization to use
-	// Only needs to be set if using OAuth and not using an APIKey.
+	APIKeyFile   string `json:"apiKeyFile,omitempty" yaml:"apiKeyFile,omitempty"`
 	Organization string `json:"organization,omitempty" yaml:"organization,omitempty"`
-
-	// Project is the OpenAI project to use
-	// Only needs to be set if using OAuth and not using an APIKey.
-	Project string `json:"project,omitempty" yaml:"project,omitempty"`
+	Project      string `json:"project,omitempty" yaml:"project,omitempty"`
 }
 
 type Logging struct {
@@ -232,6 +236,51 @@ func (c *Config) IsValid() []string {
 	problems := make([]string, 0, 1)
 
 	return problems
+}
+
+// DeprecatedConfigKeys returns legacy configuration keys that were
+// explicitly provided but are no longer used by the server.
+func (c *Config) DeprecatedConfigKeys() []string {
+	keys := make([]string, 0, 6)
+	if c.OpenAI != nil {
+		keys = append(keys, "openai")
+	}
+	if c.CloudAssistant != nil {
+		keys = append(keys, "cloudAssistant")
+	}
+	if c.WebApp != nil {
+		keys = append(keys, "webApp")
+	}
+	if c.AssistantServer != nil {
+		if c.AssistantServer.AgentService != nil {
+			keys = append(keys, "assistantServer.agentService")
+		}
+		if c.AssistantServer.StaticAssets != "" {
+			keys = append(keys, "assistantServer.staticAssets")
+		}
+		if c.AssistantServer.WebAppURL != "" {
+			keys = append(keys, "assistantServer.webAppURL")
+		}
+	}
+	return keys
+}
+
+// DeprecatedAgentConfigKeys returns deprecated agent configuration keys.
+//
+// Deprecated: use DeprecatedConfigKeys to include all ignored compatibility
+// fields.
+func (c *Config) DeprecatedAgentConfigKeys() []string {
+	keys := make([]string, 0, 3)
+	if c.OpenAI != nil {
+		keys = append(keys, "openai")
+	}
+	if c.CloudAssistant != nil {
+		keys = append(keys, "cloudAssistant")
+	}
+	if c.AssistantServer != nil && c.AssistantServer.AgentService != nil {
+		keys = append(keys, "assistantServer.agentService")
+	}
+	return keys
 }
 
 func (c *Config) UseHoneycomb() bool {
@@ -412,15 +461,15 @@ type AssistantServerConfig struct {
 	// HttpMaxWriteTimeout is the max write duration.
 	HttpMaxWriteTimeout time.Duration `json:"httpMaxWriteTimeout" yaml:"httpMaxWriteTimeout"`
 
-	// CorsOrigins is a list of allowed origins for CORS requests. For static assets,
-	// CORS is the only protection, so origins must be explicitly allowlisted; "*" will be removed
-	// for the static assets.
+	// CorsOrigins is a list of allowed origins for CORS requests.
 	CorsOrigins []string `json:"corsOrigins" yaml:"corsOrigins"`
 
-	// StaticAssets is the path to the static assets to serve
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The server no longer serves static web assets.
 	StaticAssets string `json:"staticAssets" yaml:"staticAssets"`
 
-	// AgentService starts the agent messages service if true. Defaults to true.
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The server ignores this setting.
 	AgentService *bool `json:"agentService,omitempty" yaml:"agentService,omitempty"`
 
 	// RunnerService starts the Runme runner service if true otherwise it doesn't start the runner service.
@@ -438,9 +487,8 @@ type AssistantServerConfig struct {
 	// TLSConfig is the TLS configuration
 	TLSConfig *TLSConfig `json:"tlsConfig,omitempty" yaml:"tlsConfig,omitempty"`
 
-	// webAppURL is an optional URL to use for the SPA rather than serving it out of the server.
-	// if configured the server will redirect to that URL for the SPA.
-	// This is primarily useful during development when the SPA could be running on a separate development server.
+	// Deprecated: retained temporarily so existing configuration files continue
+	// to load. The server no longer serves or redirects to the web application.
 	WebAppURL string `json:"webAppURL" yaml:"webAppURL"`
 }
 
@@ -532,6 +580,9 @@ func (c *AssistantServerConfig) GetPort() int {
 	return c.Port
 }
 
+// GetAgentService returns the legacy agent service setting.
+//
+// Deprecated: the server ignores this setting.
 func (c *AssistantServerConfig) GetAgentService() bool {
 	if c.AgentService == nil {
 		return true
