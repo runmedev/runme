@@ -35,12 +35,10 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/jhump/protoreflect v1.18.0
 	github.com/jlewi/monogo v0.0.0-20241216141120-2e83e825aa81
-	github.com/mark3labs/mcp-go v0.57.0
 	github.com/mattn/go-isatty v0.0.24
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/muesli/cancelreader v0.2.2
 	github.com/oklog/ulid/v2 v2.1.2
-	github.com/openai/openai-go v1.12.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/otiai10/copy v1.14.1
 	github.com/prometheus/client_golang v1.24.1
@@ -130,7 +128,6 @@ require (
 	github.com/goccy/go-yaml v1.11.3 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/cel-go v0.30.0 // indirect
 	github.com/google/generative-ai-go v0.19.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
