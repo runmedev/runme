@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/spf13/cobra"
+)
 
 func TestHarborCommandShape(t *testing.T) {
 	root := Root()
@@ -27,5 +31,32 @@ func TestHarborCommandShape(t *testing.T) {
 	}
 	if stdio.Use != "stdio" {
 		t.Fatalf("stdio Use = %q, want stdio", stdio.Use)
+	}
+}
+
+func TestNewHarborCmdReturnsFreshHiddenCommand(t *testing.T) {
+	first := NewHarborCmd()
+	second := NewHarborCmd()
+
+	if first == second {
+		t.Fatal("constructor returned the same command instance twice")
+	}
+	for _, cmd := range []*cobra.Command{first, second} {
+		if cmd.Name() != "harbor" {
+			t.Fatalf("Name() = %q, want harbor", cmd.Name())
+		}
+		if !cmd.Hidden {
+			t.Fatal("harbor command is visible, want hidden")
+		}
+		stdio, _, err := cmd.Find([]string{"stdio"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if stdio == nil {
+			t.Fatal("stdio command not found")
+		}
+		if !stdio.Hidden {
+			t.Fatal("stdio command is visible, want hidden")
+		}
 	}
 }

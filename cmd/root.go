@@ -119,7 +119,7 @@ func Root() *cobra.Command {
 	cmd.AddCommand(environmentCmd())
 	cmd.AddCommand(NewEvalCmd())
 	cmd.AddCommand(fmtCmd())
-	cmd.AddCommand(harborCmd())
+	cmd.AddCommand(NewHarborCmd())
 	cmd.AddCommand(listCmd())
 	cmd.AddCommand(loginCmd())
 	cmd.AddCommand(logoutCmd())
