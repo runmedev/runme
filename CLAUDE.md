@@ -62,7 +62,7 @@ Key packages:
 
 ## Development Notes
 
-**IMPORTANT: You MUST always run `runme run lint test` after making changes.**
+**IMPORTANT: You MUST always run the full `runme run check test` suite before committing changes.**
 
 - Tests require `TZ=UTC` environment variable
 - Protocol buffers managed with buf CLI; TypeScript definitions published to buf.build registry
