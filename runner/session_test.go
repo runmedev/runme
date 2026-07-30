@@ -132,7 +132,7 @@ func Test_SessionList(t *testing.T) {
 	})
 }
 
-func TestOwlSessionTreatsEmptySensitiveEnvAsUnresolved(t *testing.T) {
+func TestOwlSessionTreatsEmptySensitiveEnvAsMasked(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -156,9 +156,10 @@ func TestOwlSessionTreatsEmptySensitiveEnvAsUnresolved(t *testing.T) {
 	byName := snapshotItemsByName(snapshot)
 	require.Contains(t, byName, "RUNME_TEST_TOKEN")
 
-	assert.Equal(t, "[unset]", byName["RUNME_TEST_TOKEN"].Value)
+	assert.Equal(t, "[masked]", byName["RUNME_TEST_TOKEN"].Value)
 	assert.Empty(t, byName["RUNME_TEST_TOKEN"].OriginalValue)
-	assert.Equal(t, owl.VisibilityUnresolved, byName["RUNME_TEST_TOKEN"].Visibility)
+	assert.Equal(t, owl.VisibilityMasked, byName["RUNME_TEST_TOKEN"].Visibility)
+	assert.Equal(t, "[process]", byName["RUNME_TEST_TOKEN"].Source.Name)
 }
 
 func snapshotItemsByName(items []owl.SnapshotItem) map[string]owl.SnapshotItem {

@@ -181,9 +181,8 @@ type owlEnvStorer struct {
 }
 
 func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*owlEnvStorer, error) {
-	// todo(sebastian): technically system should be session
 	opts := []owl.StoreOption{
-		owl.WithDotenv("[system]", strings.NewReader(dotenvLines(envs))),
+		owl.WithDotenv("[process]", strings.NewReader(dotenvLines(envs))),
 	}
 
 	envSpecFiles := []string{}

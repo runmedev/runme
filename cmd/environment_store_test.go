@@ -88,9 +88,9 @@ func TestSnapshotTypeProposalHelpers(t *testing.T) {
 	assert.True(t, ok)
 
 	suggested, reason, ok = suggestSnapshotPrimitiveType(owlSnapshotEnv("SERVICE_HOST", "core/opaque"))
-	assert.Equal(t, "core/host", suggested)
-	assert.Equal(t, "key name suggests host", reason)
-	assert.True(t, ok)
+	assert.Empty(t, suggested)
+	assert.Equal(t, "no primitive type heuristic matched", reason)
+	assert.False(t, ok)
 
 	suggested, reason, ok = suggestSnapshotPrimitiveType(owlSnapshotEnv("TARGET_PLATFORM", "core/opaque"))
 	assert.Empty(t, suggested)
@@ -98,7 +98,7 @@ func TestSnapshotTypeProposalHelpers(t *testing.T) {
 	assert.False(t, ok)
 
 	assert.Equal(t, "core/opaque", normalizeSnapshotType("https://owl.runme.dev/v1/types/core/opaque"))
-	assert.Equal(t, "Host", dotenvSpecTypeName("core/host"))
+	assert.Equal(t, "Opaque", dotenvSpecTypeName("core/host"))
 }
 
 func TestIncludeSnapshotTypeProposalSkipsNoSuggestionUnlessAll(t *testing.T) {
@@ -116,13 +116,12 @@ func TestRenderDotenvSpecTypeProposals(t *testing.T) {
 		{Key: "GITHUB_TOKEN", SuggestedType: "core/secret", Description: "The GitHub token to use for API requests."},
 		{Key: "RUNME_TEST_TOKEN", SuggestedType: "core/secret", Description: "The Runme test token to use for integration tests."},
 		{Key: "TARGET_PLATFORM", SuggestedType: "", Description: "Target Platform"},
-		{Key: "SERVICE_HOST", SuggestedType: "core/host", Description: "Service Host"},
+		{Key: "SERVICE_HOST", SuggestedType: "", Description: "Service Host"},
 	})
 
 	assert.Equal(t, strings.Join([]string{
 		`GITHUB_TOKEN="The GitHub token to use for API requests."              # Secret`,
 		`RUNME_TEST_TOKEN="The Runme test token to use for integration tests." # Secret`,
-		`SERVICE_HOST="Service Host"                                           # Host`,
 		"",
 	}, "\n"), rendered)
 }

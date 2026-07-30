@@ -177,6 +177,10 @@ func (c *runmeOwlStoreClient) Type(ctx context.Context, req owlcmd.TypeRequest) 
 	return &owlcmd.TypeResult{Proposals: proposals, Rendered: rendered}, nil
 }
 
+func (c *runmeOwlStoreClient) ProjectSpec(ctx context.Context, req owlcmd.ProjectSpecRequest) (*owlcmd.ProjectSpecResult, error) {
+	return owlcmd.NewLocalStoreClient(owlcmd.LocalStoreOptions{}).ProjectSpec(ctx, req)
+}
+
 func includeSnapshotTypeProposal(req owlcmd.TypeRequest, suggested bool) bool {
 	return req.All || suggested
 }
@@ -209,10 +213,6 @@ func suggestSnapshotPrimitiveType(env owlcmd.SnapshotEnv) (string, string, bool)
 		return "core/secret", "key name suggests sensitive value", true
 	case upper == "URL" || strings.HasSuffix(upper, "_URL") || strings.Contains(upper, "URL_"):
 		return "core/url", "key name suggests URL", true
-	case upper == "HOST" || strings.HasSuffix(upper, "_HOST") || strings.Contains(upper, "HOST_"):
-		return "core/host", "key name suggests host", true
-	case upper == "PORT" || strings.HasSuffix(upper, "_PORT") || strings.Contains(upper, "PORT_"):
-		return "core/port", "key name suggests port", true
 	default:
 		return "", "no primitive type heuristic matched", false
 	}
@@ -297,10 +297,6 @@ func dotenvSpecTypeName(typeID string) string {
 		return "Secret"
 	case "core/url":
 		return "Url"
-	case "core/host":
-		return "Host"
-	case "core/port":
-		return "Port"
 	case "core/plain":
 		return "Plain"
 	default:
