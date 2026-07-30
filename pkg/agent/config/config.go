@@ -241,7 +241,7 @@ func (c *Config) IsValid() []string {
 // DeprecatedConfigKeys returns legacy configuration keys that were
 // explicitly provided but are no longer used by the server.
 func (c *Config) DeprecatedConfigKeys() []string {
-	keys := make([]string, 0, 6)
+	keys := make([]string, 0, 5)
 	if c.OpenAI != nil {
 		keys = append(keys, "openai")
 	}
@@ -254,9 +254,6 @@ func (c *Config) DeprecatedConfigKeys() []string {
 	if c.AssistantServer != nil {
 		if c.AssistantServer.AgentService != nil {
 			keys = append(keys, "assistantServer.agentService")
-		}
-		if c.AssistantServer.StaticAssets != "" {
-			keys = append(keys, "assistantServer.staticAssets")
 		}
 		if c.AssistantServer.WebAppURL != "" {
 			keys = append(keys, "assistantServer.webAppURL")
@@ -464,8 +461,8 @@ type AssistantServerConfig struct {
 	// CorsOrigins is a list of allowed origins for CORS requests.
 	CorsOrigins []string `json:"corsOrigins" yaml:"corsOrigins"`
 
-	// Deprecated: retained temporarily so existing configuration files continue
-	// to load. The server no longer serves static web assets.
+	// StaticAssets is an optional directory containing a web application to serve.
+	// The directory must contain an index.html file.
 	StaticAssets string `json:"staticAssets" yaml:"staticAssets"`
 
 	// Deprecated: retained temporarily so existing configuration files continue
