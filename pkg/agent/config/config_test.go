@@ -117,7 +117,7 @@ webApp:
 	}
 
 	gotKeys := strings.Join(cfg.DeprecatedConfigKeys(), ",")
-	wantKeys := "openai,cloudAssistant,webApp,assistantServer.agentService,assistantServer.staticAssets,assistantServer.webAppURL"
+	wantKeys := "openai,cloudAssistant,webApp,assistantServer.agentService,assistantServer.webAppURL"
 	if gotKeys != wantKeys {
 		t.Fatalf("Expected deprecated keys %q, got %q", wantKeys, gotKeys)
 	}

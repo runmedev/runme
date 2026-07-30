@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -52,6 +53,7 @@ type Server struct {
 	parser           *runme.Parser
 	checker          iam.Checker
 	registerHandlers RegisterHandlers
+	assetsFS         fs.FS
 	wsHandler        *stream.WebSocketHandler
 	tapFactory       stream.TapFactory
 }
@@ -78,8 +80,13 @@ func NewServer(opts Options) (*Server, error) {
 	if opts.Server == nil {
 		opts.Server = &config.AssistantServerConfig{}
 	}
-	if !opts.Server.RunnerService && !opts.Server.ParserService {
-		return nil, errors.New("runner and parser services are both disabled")
+
+	assetsFS, err := loadStaticAssets(opts.Server.StaticAssets)
+	if err != nil {
+		log.Error(err, "Static assets are disabled", "dir", opts.Server.StaticAssets)
+	}
+	if !opts.Server.RunnerService && !opts.Server.ParserService && assetsFS == nil {
+		return nil, errors.New("runner, parser, and static assets are all disabled")
 	}
 
 	var runner *runme.Runner
@@ -142,6 +149,7 @@ func NewServer(opts Options) (*Server, error) {
 		parser:           parser,
 		checker:          checker,
 		registerHandlers: opts.RegisterHandlers,
+		assetsFS:         assetsFS,
 		tapFactory:       opts.TapFactory,
 	}
 	return s, nil
@@ -348,6 +356,11 @@ func (s *Server) registerServices() error {
 		if err := s.registerHandlers(mux, s.checker, interceptors); err != nil {
 			return err
 		}
+	}
+
+	if s.assetsFS != nil {
+		log.Info("Serving static assets", "dir", s.serverConfig.StaticAssets)
+		mux.Handle("/", singlePageAppHandler(s.assetsFS, s.serverConfig.CorsOrigins))
 	}
 
 	s.engine = mux

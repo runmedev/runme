@@ -1,9 +1,9 @@
 # Runme Agent
 
 The `pkg/agent` package contains the Go server used by the Runme web
-application. It provides runner and parser services, optional authentication,
-and Jupyter proxying. WebMCP is the supported integration path for browser
-automation. The web application is built and hosted independently.
+application. It provides runner and parser services, optional static web
+application hosting, authentication, and Jupyter proxying. WebMCP is the
+supported integration path for browser automation.
 
 Despite its historical package name, this is not an AI-only server. Runme Web
 depends on it for normal notebook and cell execution.
@@ -22,6 +22,9 @@ The server provides the runtime services required by Runme Web:
   WebSockets.
 - Optional OIDC authentication, authorization, and telemetry are provided by
   the same HTTP server.
+- A web application can optionally be served from the directory configured by
+  `assistantServer.staticAssets`. The directory must contain an `index.html`;
+  client-side routes fall back to that file.
 
 These services remain supported. The legacy AI messages, ChatKit, and
 app-server bridge endpoints have been removed independently of the execution
@@ -42,6 +45,8 @@ assistantServer:
   port: 8080
   runnerService: true
   parserService: true
+  # Optional: serve a web application from this directory.
+  # staticAssets: /absolute/path/to/webapp/dist
   corsOrigins:
     - "http://localhost:5173"
 ```
@@ -52,17 +57,21 @@ Start the server:
 runme agent serve
 ```
 
-Runme Web is served separately. Configure its runner endpoint to use this
-server's WebSocket endpoint, for example `ws://localhost:8080/ws`.
+Web applications can be hosted independently or served by this server. For
+independent hosting, configure the runner endpoint to use this server's
+WebSocket endpoint, for example `ws://localhost:8080/ws`. To serve an
+application from the agent server, set `assistantServer.staticAssets` to its
+build directory. Static serving is enabled only when that directory contains a
+readable `index.html`.
 
 ## Deprecated configuration compatibility
 
-The `openai`, `cloudAssistant`, `webApp`, `assistantServer.agentService`,
-`assistantServer.staticAssets`, and `assistantServer.webAppURL` keys are
-accepted for a transition release so existing configuration files continue to
-load. The server ignores these keys and logs a deprecation notice when they
-are present. Remove them from personal and deployment configuration files
-before a later release removes the compatibility fields.
+The `openai`, `cloudAssistant`, `webApp`, `assistantServer.agentService`, and
+`assistantServer.webAppURL` keys are accepted for a transition release so
+existing configuration files continue to load. The server ignores these keys
+and logs a deprecation notice when they are present. Remove them from personal
+and deployment configuration files before a later release removes the
+compatibility fields.
 
 Published legacy agent protobuf schemas and generated clients remain available
 during the same transition, but the server no longer registers their services.
