@@ -2,6 +2,7 @@ package server
 
 import (
 	"io"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -49,8 +50,8 @@ func TestServerServesStaticAssets(t *testing.T) {
 		{name: "index", method: http.MethodGet, path: "/", wantBody: index, contentType: "text/html"},
 		{name: "explicit index", method: http.MethodGet, path: "/index.html", wantBody: index, contentType: "text/html"},
 		{name: "SPA route", method: http.MethodGet, path: "/notebooks/example", wantBody: index, contentType: "text/html"},
-		{name: "asset", method: http.MethodGet, path: "/assets/app.js", wantBody: "export {};", contentType: "text/javascript"},
-		{name: "head", method: http.MethodHead, path: "/assets/app.js", wantBody: "", contentType: "text/javascript"},
+		{name: "asset", method: http.MethodGet, path: "/assets/app.js", wantBody: "export {};", contentType: mime.TypeByExtension(".js")},
+		{name: "head", method: http.MethodHead, path: "/assets/app.js", wantBody: "", contentType: mime.TypeByExtension(".js")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -45,6 +45,8 @@ assistantServer:
   port: 8080
   runnerService: true
   parserService: true
+  # Optional: serve a web application from this directory.
+  # staticAssets: /absolute/path/to/webapp/dist
   corsOrigins:
     - "http://localhost:5173"
 ```
@@ -59,7 +61,8 @@ Web applications can be hosted independently or served by this server. For
 independent hosting, configure the runner endpoint to use this server's
 WebSocket endpoint, for example `ws://localhost:8080/ws`. To serve an
 application from the agent server, set `assistantServer.staticAssets` to its
-build directory.
+build directory. Static serving is enabled only when that directory contains a
+readable `index.html`.
 
 ## Deprecated configuration compatibility
 
