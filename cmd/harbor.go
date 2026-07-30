@@ -8,7 +8,8 @@ import (
 	"github.com/runmedev/runme/v3/internal/harbor"
 )
 
-func harborCmd() *cobra.Command {
+// NewHarborCmd returns the hidden Harbor command group.
+func NewHarborCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "harbor",
 		Hidden: true,
