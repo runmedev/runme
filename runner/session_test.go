@@ -162,6 +162,30 @@ func TestOwlSessionTreatsEmptySensitiveEnvAsMasked(t *testing.T) {
 	assert.Equal(t, "[process]", byName["RUNME_TEST_TOKEN"].Source.Name)
 }
 
+func TestOwlSessionRevealsSnapshotWithInsecurePolicy(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	proj, err := project.NewDirProject(dir)
+	require.NoError(t, err)
+
+	sess, err := NewSessionWithStore([]string{"TERMINFO=/tmp/terminfo"}, proj, true, zap.NewNop())
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	snapshotc := make(chan []owl.SnapshotItem)
+	require.NoError(t, sess.SubscribeWithPolicy(ctx, snapshotc, owl.SnapshotPolicy{Reveal: true}))
+
+	snapshot := <-snapshotc
+	byName := snapshotItemsByName(snapshot)
+	require.Contains(t, byName, "TERMINFO")
+
+	assert.Equal(t, "/tmp/terminfo", byName["TERMINFO"].Value)
+	assert.Equal(t, owl.VisibilityLiteral, byName["TERMINFO"].Visibility)
+	assert.Equal(t, "[process]", byName["TERMINFO"].Source.Name)
+}
+
 func snapshotItemsByName(items []owl.SnapshotItem) map[string]owl.SnapshotItem {
 	result := make(map[string]owl.SnapshotItem, len(items))
 	for _, item := range items {

@@ -28,7 +28,7 @@ type runmeOwlStoreClient struct {
 	stderr        io.Writer
 }
 
-func (c *runmeOwlStoreClient) Snapshot(ctx context.Context, _ owlcmd.SnapshotRequest) (*owlcmd.SnapshotResult, error) {
+func (c *runmeOwlStoreClient) Snapshot(ctx context.Context, snapshotReq owlcmd.SnapshotRequest) (*owlcmd.SnapshotResult, error) {
 	runnerClient, closeConn, err := c.runnerClient()
 	if err != nil {
 		return nil, err
@@ -42,6 +42,10 @@ func (c *runmeOwlStoreClient) Snapshot(ctx context.Context, _ owlcmd.SnapshotReq
 
 	req := &runnerv1.MonitorEnvStoreRequest{
 		Session: &runnerv1.Session{Id: sessionID},
+		SnapshotPolicy: &runnerv1.MonitorEnvStoreRequest_SnapshotPolicy{
+			Reveal:   snapshotReq.Reveal,
+			Insecure: snapshotReq.Insecure,
+		},
 	}
 	meClient, err := runnerClient.MonitorEnvStore(ctx, req)
 	if err != nil {
