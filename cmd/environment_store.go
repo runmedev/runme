@@ -28,7 +28,7 @@ type runmeOwlStoreClient struct {
 	stderr        io.Writer
 }
 
-func (c *runmeOwlStoreClient) Snapshot(ctx context.Context, _ owlcmd.SnapshotRequest) (*owlcmd.SnapshotResult, error) {
+func (c *runmeOwlStoreClient) Snapshot(ctx context.Context, snapshotReq owlcmd.SnapshotRequest) (*owlcmd.SnapshotResult, error) {
 	runnerClient, closeConn, err := c.runnerClient()
 	if err != nil {
 		return nil, err
@@ -42,6 +42,10 @@ func (c *runmeOwlStoreClient) Snapshot(ctx context.Context, _ owlcmd.SnapshotReq
 
 	req := &runnerv1.MonitorEnvStoreRequest{
 		Session: &runnerv1.Session{Id: sessionID},
+		SnapshotPolicy: &runnerv1.MonitorEnvStoreRequest_SnapshotPolicy{
+			Reveal:   snapshotReq.Reveal,
+			Insecure: snapshotReq.Insecure,
+		},
 	}
 	meClient, err := runnerClient.MonitorEnvStore(ctx, req)
 	if err != nil {
@@ -177,6 +181,10 @@ func (c *runmeOwlStoreClient) Type(ctx context.Context, req owlcmd.TypeRequest) 
 	return &owlcmd.TypeResult{Proposals: proposals, Rendered: rendered}, nil
 }
 
+func (c *runmeOwlStoreClient) ProjectSpec(ctx context.Context, req owlcmd.ProjectSpecRequest) (*owlcmd.ProjectSpecResult, error) {
+	return owlcmd.NewLocalStoreClient(owlcmd.LocalStoreOptions{}).ProjectSpec(ctx, req)
+}
+
 func includeSnapshotTypeProposal(req owlcmd.TypeRequest, suggested bool) bool {
 	return req.All || suggested
 }
@@ -209,10 +217,6 @@ func suggestSnapshotPrimitiveType(env owlcmd.SnapshotEnv) (string, string, bool)
 		return "core/secret", "key name suggests sensitive value", true
 	case upper == "URL" || strings.HasSuffix(upper, "_URL") || strings.Contains(upper, "URL_"):
 		return "core/url", "key name suggests URL", true
-	case upper == "HOST" || strings.HasSuffix(upper, "_HOST") || strings.Contains(upper, "HOST_"):
-		return "core/host", "key name suggests host", true
-	case upper == "PORT" || strings.HasSuffix(upper, "_PORT") || strings.Contains(upper, "PORT_"):
-		return "core/port", "key name suggests port", true
 	default:
 		return "", "no primitive type heuristic matched", false
 	}
@@ -297,10 +301,6 @@ func dotenvSpecTypeName(typeID string) string {
 		return "Secret"
 	case "core/url":
 		return "Url"
-	case "core/host":
-		return "Host"
-	case "core/port":
-		return "Port"
 	case "core/plain":
 		return "Plain"
 	default:
@@ -309,7 +309,8 @@ func dotenvSpecTypeName(typeID string) string {
 }
 
 func normalizeSnapshotType(typeID string) string {
-	return strings.TrimPrefix(typeID, "https://owl.runme.dev/v1/types/")
+	typeID = strings.TrimPrefix(typeID, "https://owl.runme.dev/v1/types/")
+	return strings.TrimPrefix(typeID, "github.com/runmedev/owl/types/")
 }
 
 func quoteDotenvSpecDescription(s string) string {
@@ -352,7 +353,7 @@ func snapshotEnvsFromProto(envs []*runnerv1.MonitorEnvStoreResponseSnapshot_Snap
 			Name:        env.GetName(),
 			Value:       snapshotValueFromProto(env.GetResolvedValue(), visibility),
 			Description: env.GetDescription(),
-			Type:        env.GetSpec(),
+			Type:        normalizeSnapshotType(env.GetSpec()),
 			Source:      env.GetOrigin(),
 			Explicit:    snapshotExplicitFromProto(env),
 			Visibility:  visibility,
@@ -382,8 +383,8 @@ func snapshotExplicitFromProto(env *runnerv1.MonitorEnvStoreResponseSnapshot_Sna
 	if env.GetDescription() != "" || env.GetIsRequired() {
 		return true
 	}
-	spec := env.GetSpec()
-	return spec != "" && spec != "Opaque" && spec != "https://owl.runme.dev/v1/types/core/opaque"
+	spec := normalizeSnapshotType(env.GetSpec())
+	return spec != "" && spec != "Opaque" && spec != "core/opaque"
 }
 
 func snapshotVisibilityFromProto(status runnerv1.MonitorEnvStoreResponseSnapshot_Status) string {

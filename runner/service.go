@@ -890,7 +890,7 @@ func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, sr
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := sess.Subscribe(ctx, snapshotc); err != nil {
+		if err := sess.SubscribeWithPolicy(ctx, snapshotc, snapshotPolicyFromMonitorEnvStoreRequest(req)); err != nil {
 			errc <- err
 		}
 	}()
@@ -899,6 +899,16 @@ func (r *runnerService) MonitorEnvStore(req *runnerv1.MonitorEnvStoreRequest, sr
 	wg.Wait()
 
 	return err
+}
+
+func snapshotPolicyFromMonitorEnvStoreRequest(req *runnerv1.MonitorEnvStoreRequest) owl.SnapshotPolicy {
+	policy := req.GetSnapshotPolicy()
+	if policy == nil {
+		return owl.SnapshotPolicy{}
+	}
+	return owl.SnapshotPolicy{
+		Reveal: policy.GetReveal() && policy.GetInsecure(),
+	}
 }
 
 func convertToMonitorEnvStoreResponse(logger *zap.Logger, msg *runnerv1.MonitorEnvStoreResponse, snapshot []owl.SnapshotItem) error {
