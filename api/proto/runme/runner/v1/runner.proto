@@ -353,6 +353,13 @@ enum MonitorEnvStoreType {
 
 message MonitorEnvStoreRequest {
   Session session = 1;
+
+  SnapshotPolicy snapshot_policy = 2;
+
+  message SnapshotPolicy {
+    bool reveal = 1;
+    bool insecure = 2;
+  }
 }
 
 message MonitorEnvStoreResponseSnapshot {

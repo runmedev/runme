@@ -1755,10 +1755,11 @@ func (x *ResolveProgramResponse) GetVars() []*ResolveProgramResponse_VarResult {
 }
 
 type MonitorEnvStoreRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Session       *Session               `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState                 `protogen:"open.v1"`
+	Session        *Session                               `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
+	SnapshotPolicy *MonitorEnvStoreRequest_SnapshotPolicy `protobuf:"bytes,2,opt,name=snapshot_policy,json=snapshotPolicy,proto3" json:"snapshot_policy,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MonitorEnvStoreRequest) Reset() {
@@ -1794,6 +1795,13 @@ func (*MonitorEnvStoreRequest) Descriptor() ([]byte, []int) {
 func (x *MonitorEnvStoreRequest) GetSession() *Session {
 	if x != nil {
 		return x.Session
+	}
+	return nil
+}
+
+func (x *MonitorEnvStoreRequest) GetSnapshotPolicy() *MonitorEnvStoreRequest_SnapshotPolicy {
+	if x != nil {
+		return x.SnapshotPolicy
 	}
 	return nil
 }
@@ -1992,6 +2000,58 @@ func (x *ResolveProgramResponse_VarResult) GetResolvedValue() string {
 	return ""
 }
 
+type MonitorEnvStoreRequest_SnapshotPolicy struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reveal        bool                   `protobuf:"varint,1,opt,name=reveal,proto3" json:"reveal,omitempty"`
+	Insecure      bool                   `protobuf:"varint,2,opt,name=insecure,proto3" json:"insecure,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MonitorEnvStoreRequest_SnapshotPolicy) Reset() {
+	*x = MonitorEnvStoreRequest_SnapshotPolicy{}
+	mi := &file_runme_runner_v1_runner_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MonitorEnvStoreRequest_SnapshotPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MonitorEnvStoreRequest_SnapshotPolicy) ProtoMessage() {}
+
+func (x *MonitorEnvStoreRequest_SnapshotPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_runme_runner_v1_runner_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MonitorEnvStoreRequest_SnapshotPolicy.ProtoReflect.Descriptor instead.
+func (*MonitorEnvStoreRequest_SnapshotPolicy) Descriptor() ([]byte, []int) {
+	return file_runme_runner_v1_runner_proto_rawDescGZIP(), []int{17, 0}
+}
+
+func (x *MonitorEnvStoreRequest_SnapshotPolicy) GetReveal() bool {
+	if x != nil {
+		return x.Reveal
+	}
+	return false
+}
+
+func (x *MonitorEnvStoreRequest_SnapshotPolicy) GetInsecure() bool {
+	if x != nil {
+		return x.Insecure
+	}
+	return false
+}
+
 type MonitorEnvStoreResponseSnapshot_SnapshotEnv struct {
 	state         protoimpl.MessageState                   `protogen:"open.v1"`
 	Status        MonitorEnvStoreResponseSnapshot_Status   `protobuf:"varint,1,opt,name=status,proto3,enum=runme.runner.v1.MonitorEnvStoreResponseSnapshot_Status" json:"status,omitempty"`
@@ -2011,7 +2071,7 @@ type MonitorEnvStoreResponseSnapshot_SnapshotEnv struct {
 
 func (x *MonitorEnvStoreResponseSnapshot_SnapshotEnv) Reset() {
 	*x = MonitorEnvStoreResponseSnapshot_SnapshotEnv{}
-	mi := &file_runme_runner_v1_runner_proto_msgTypes[23]
+	mi := &file_runme_runner_v1_runner_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2023,7 +2083,7 @@ func (x *MonitorEnvStoreResponseSnapshot_SnapshotEnv) String() string {
 func (*MonitorEnvStoreResponseSnapshot_SnapshotEnv) ProtoMessage() {}
 
 func (x *MonitorEnvStoreResponseSnapshot_SnapshotEnv) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_runner_v1_runner_proto_msgTypes[23]
+	mi := &file_runme_runner_v1_runner_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2126,7 +2186,7 @@ type MonitorEnvStoreResponseSnapshot_Error struct {
 
 func (x *MonitorEnvStoreResponseSnapshot_Error) Reset() {
 	*x = MonitorEnvStoreResponseSnapshot_Error{}
-	mi := &file_runme_runner_v1_runner_proto_msgTypes[24]
+	mi := &file_runme_runner_v1_runner_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2138,7 +2198,7 @@ func (x *MonitorEnvStoreResponseSnapshot_Error) String() string {
 func (*MonitorEnvStoreResponseSnapshot_Error) ProtoMessage() {}
 
 func (x *MonitorEnvStoreResponseSnapshot_Error) ProtoReflect() protoreflect.Message {
-	mi := &file_runme_runner_v1_runner_proto_msgTypes[24]
+	mi := &file_runme_runner_v1_runner_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2300,9 +2360,13 @@ const file_runme_runner_v1_runner_proto_rawDesc = "" +
 	"\x1eSTATUS_UNRESOLVED_WITH_MESSAGE\x10\x01\x12&\n" +
 	"\"STATUS_UNRESOLVED_WITH_PLACEHOLDER\x10\x02\x12\x13\n" +
 	"\x0fSTATUS_RESOLVED\x10\x03\x12!\n" +
-	"\x1dSTATUS_UNRESOLVED_WITH_SECRET\x10\x04\"L\n" +
+	"\x1dSTATUS_UNRESOLVED_WITH_SECRET\x10\x04\"\xf3\x01\n" +
 	"\x16MonitorEnvStoreRequest\x122\n" +
-	"\asession\x18\x01 \x01(\v2\x18.runme.runner.v1.SessionR\asession\"\xca\x05\n" +
+	"\asession\x18\x01 \x01(\v2\x18.runme.runner.v1.SessionR\asession\x12_\n" +
+	"\x0fsnapshot_policy\x18\x02 \x01(\v26.runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicyR\x0esnapshotPolicy\x1aD\n" +
+	"\x0eSnapshotPolicy\x12\x16\n" +
+	"\x06reveal\x18\x01 \x01(\bR\x06reveal\x12\x1a\n" +
+	"\binsecure\x18\x02 \x01(\bR\binsecure\"\xca\x05\n" +
 	"\x1fMonitorEnvStoreResponseSnapshot\x12P\n" +
 	"\x04envs\x18\x01 \x03(\v2<.runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnvR\x04envs\x1a\xc1\x03\n" +
 	"\vSnapshotEnv\x12O\n" +
@@ -2376,7 +2440,7 @@ func file_runme_runner_v1_runner_proto_rawDescGZIP() []byte {
 
 var (
 	file_runme_runner_v1_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
-	file_runme_runner_v1_runner_proto_msgTypes  = make([]protoimpl.MessageInfo, 25)
+	file_runme_runner_v1_runner_proto_msgTypes  = make([]protoimpl.MessageInfo, 26)
 	file_runme_runner_v1_runner_proto_goTypes   = []any{
 		SessionEnvStoreType(0),                              // 0: runme.runner.v1.SessionEnvStoreType
 		ExecuteStop(0),                                      // 1: runme.runner.v1.ExecuteStop
@@ -2411,9 +2475,10 @@ var (
 		nil,                                                 // 30: runme.runner.v1.Session.MetadataEntry
 		nil,                                                 // 31: runme.runner.v1.CreateSessionRequest.MetadataEntry
 		(*ResolveProgramResponse_VarResult)(nil),            // 32: runme.runner.v1.ResolveProgramResponse.VarResult
-		(*MonitorEnvStoreResponseSnapshot_SnapshotEnv)(nil), // 33: runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
-		(*MonitorEnvStoreResponseSnapshot_Error)(nil),       // 34: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
-		(*wrapperspb.UInt32Value)(nil),                      // 35: google.protobuf.UInt32Value
+		(*MonitorEnvStoreRequest_SnapshotPolicy)(nil),       // 33: runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicy
+		(*MonitorEnvStoreResponseSnapshot_SnapshotEnv)(nil), // 34: runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
+		(*MonitorEnvStoreResponseSnapshot_Error)(nil),       // 35: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
+		(*wrapperspb.UInt32Value)(nil),                      // 36: google.protobuf.UInt32Value
 	}
 )
 
@@ -2431,7 +2496,7 @@ var file_runme_runner_v1_runner_proto_depIdxs = []int32{
 	3,  // 10: runme.runner.v1.ExecuteRequest.session_strategy:type_name -> runme.runner.v1.SessionStrategy
 	19, // 11: runme.runner.v1.ExecuteRequest.project:type_name -> runme.runner.v1.Project
 	2,  // 12: runme.runner.v1.ExecuteRequest.command_mode:type_name -> runme.runner.v1.CommandMode
-	35, // 13: runme.runner.v1.ExecuteResponse.exit_code:type_name -> google.protobuf.UInt32Value
+	36, // 13: runme.runner.v1.ExecuteResponse.exit_code:type_name -> google.protobuf.UInt32Value
 	22, // 14: runme.runner.v1.ExecuteResponse.pid:type_name -> runme.runner.v1.ProcessPID
 	24, // 15: runme.runner.v1.ResolveProgramRequest.commands:type_name -> runme.runner.v1.ResolveProgramCommandList
 	6,  // 16: runme.runner.v1.ResolveProgramRequest.mode:type_name -> runme.runner.v1.ResolveProgramRequest.Mode
@@ -2441,31 +2506,32 @@ var file_runme_runner_v1_runner_proto_depIdxs = []int32{
 	24, // 20: runme.runner.v1.ResolveProgramResponse.commands:type_name -> runme.runner.v1.ResolveProgramCommandList
 	32, // 21: runme.runner.v1.ResolveProgramResponse.vars:type_name -> runme.runner.v1.ResolveProgramResponse.VarResult
 	10, // 22: runme.runner.v1.MonitorEnvStoreRequest.session:type_name -> runme.runner.v1.Session
-	33, // 23: runme.runner.v1.MonitorEnvStoreResponseSnapshot.envs:type_name -> runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
-	4,  // 24: runme.runner.v1.MonitorEnvStoreResponse.type:type_name -> runme.runner.v1.MonitorEnvStoreType
-	28, // 25: runme.runner.v1.MonitorEnvStoreResponse.snapshot:type_name -> runme.runner.v1.MonitorEnvStoreResponseSnapshot
-	8,  // 26: runme.runner.v1.ResolveProgramResponse.VarResult.status:type_name -> runme.runner.v1.ResolveProgramResponse.Status
-	9,  // 27: runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv.status:type_name -> runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
-	34, // 28: runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv.errors:type_name -> runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
-	11, // 29: runme.runner.v1.RunnerService.CreateSession:input_type -> runme.runner.v1.CreateSessionRequest
-	13, // 30: runme.runner.v1.RunnerService.GetSession:input_type -> runme.runner.v1.GetSessionRequest
-	15, // 31: runme.runner.v1.RunnerService.ListSessions:input_type -> runme.runner.v1.ListSessionsRequest
-	17, // 32: runme.runner.v1.RunnerService.DeleteSession:input_type -> runme.runner.v1.DeleteSessionRequest
-	27, // 33: runme.runner.v1.RunnerService.MonitorEnvStore:input_type -> runme.runner.v1.MonitorEnvStoreRequest
-	21, // 34: runme.runner.v1.RunnerService.Execute:input_type -> runme.runner.v1.ExecuteRequest
-	25, // 35: runme.runner.v1.RunnerService.ResolveProgram:input_type -> runme.runner.v1.ResolveProgramRequest
-	12, // 36: runme.runner.v1.RunnerService.CreateSession:output_type -> runme.runner.v1.CreateSessionResponse
-	14, // 37: runme.runner.v1.RunnerService.GetSession:output_type -> runme.runner.v1.GetSessionResponse
-	16, // 38: runme.runner.v1.RunnerService.ListSessions:output_type -> runme.runner.v1.ListSessionsResponse
-	18, // 39: runme.runner.v1.RunnerService.DeleteSession:output_type -> runme.runner.v1.DeleteSessionResponse
-	29, // 40: runme.runner.v1.RunnerService.MonitorEnvStore:output_type -> runme.runner.v1.MonitorEnvStoreResponse
-	23, // 41: runme.runner.v1.RunnerService.Execute:output_type -> runme.runner.v1.ExecuteResponse
-	26, // 42: runme.runner.v1.RunnerService.ResolveProgram:output_type -> runme.runner.v1.ResolveProgramResponse
-	36, // [36:43] is the sub-list for method output_type
-	29, // [29:36] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	33, // 23: runme.runner.v1.MonitorEnvStoreRequest.snapshot_policy:type_name -> runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicy
+	34, // 24: runme.runner.v1.MonitorEnvStoreResponseSnapshot.envs:type_name -> runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv
+	4,  // 25: runme.runner.v1.MonitorEnvStoreResponse.type:type_name -> runme.runner.v1.MonitorEnvStoreType
+	28, // 26: runme.runner.v1.MonitorEnvStoreResponse.snapshot:type_name -> runme.runner.v1.MonitorEnvStoreResponseSnapshot
+	8,  // 27: runme.runner.v1.ResolveProgramResponse.VarResult.status:type_name -> runme.runner.v1.ResolveProgramResponse.Status
+	9,  // 28: runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv.status:type_name -> runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
+	35, // 29: runme.runner.v1.MonitorEnvStoreResponseSnapshot.SnapshotEnv.errors:type_name -> runme.runner.v1.MonitorEnvStoreResponseSnapshot.Error
+	11, // 30: runme.runner.v1.RunnerService.CreateSession:input_type -> runme.runner.v1.CreateSessionRequest
+	13, // 31: runme.runner.v1.RunnerService.GetSession:input_type -> runme.runner.v1.GetSessionRequest
+	15, // 32: runme.runner.v1.RunnerService.ListSessions:input_type -> runme.runner.v1.ListSessionsRequest
+	17, // 33: runme.runner.v1.RunnerService.DeleteSession:input_type -> runme.runner.v1.DeleteSessionRequest
+	27, // 34: runme.runner.v1.RunnerService.MonitorEnvStore:input_type -> runme.runner.v1.MonitorEnvStoreRequest
+	21, // 35: runme.runner.v1.RunnerService.Execute:input_type -> runme.runner.v1.ExecuteRequest
+	25, // 36: runme.runner.v1.RunnerService.ResolveProgram:input_type -> runme.runner.v1.ResolveProgramRequest
+	12, // 37: runme.runner.v1.RunnerService.CreateSession:output_type -> runme.runner.v1.CreateSessionResponse
+	14, // 38: runme.runner.v1.RunnerService.GetSession:output_type -> runme.runner.v1.GetSessionResponse
+	16, // 39: runme.runner.v1.RunnerService.ListSessions:output_type -> runme.runner.v1.ListSessionsResponse
+	18, // 40: runme.runner.v1.RunnerService.DeleteSession:output_type -> runme.runner.v1.DeleteSessionResponse
+	29, // 41: runme.runner.v1.RunnerService.MonitorEnvStore:output_type -> runme.runner.v1.MonitorEnvStoreResponse
+	23, // 42: runme.runner.v1.RunnerService.Execute:output_type -> runme.runner.v1.ExecuteResponse
+	26, // 43: runme.runner.v1.RunnerService.ResolveProgram:output_type -> runme.runner.v1.ResolveProgramResponse
+	37, // [37:44] is the sub-list for method output_type
+	30, // [30:37] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_runme_runner_v1_runner_proto_init() }
@@ -2488,7 +2554,7 @@ func file_runme_runner_v1_runner_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runme_runner_v1_runner_proto_rawDesc), len(file_runme_runner_v1_runner_proto_rawDesc)),
 			NumEnums:      10,
-			NumMessages:   25,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

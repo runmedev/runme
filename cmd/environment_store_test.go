@@ -18,6 +18,7 @@ func TestSnapshotEnvsFromProtoMarksExplicitRows(t *testing.T) {
 
 	envs := snapshotEnvsFromProto([]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 		{Name: "API_URL", Spec: "Plain"},
+		{Name: "OPENAI_API_KEY", Spec: "github.com/runmedev/owl/types/core/opaque"},
 		{Name: "DATABASE_URL", Spec: "Opaque", Description: "Database URL"},
 		{Name: "TOKEN", Spec: "Opaque", IsRequired: true},
 		{Name: "PATH", Spec: "Opaque"},
@@ -32,6 +33,7 @@ func TestSnapshotEnvsFromProtoMarksExplicitRows(t *testing.T) {
 	assert.True(t, byName["API_URL"])
 	assert.True(t, byName["DATABASE_URL"])
 	assert.True(t, byName["TOKEN"])
+	assert.False(t, byName["OPENAI_API_KEY"])
 	assert.False(t, byName["PATH"])
 	assert.False(t, byName["HOME"])
 }
@@ -42,7 +44,7 @@ func TestSnapshotEnvsFromProtoMapsVisibilityAndDisplayValue(t *testing.T) {
 	envs := snapshotEnvsFromProto([]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv{
 		{
 			Name:   "RUNME_TEST_TOKEN",
-			Spec:   "https://owl.runme.dev/v1/types/core/secret",
+			Spec:   "github.com/runmedev/owl/types/core/secret",
 			Status: runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED,
 		},
 		{
@@ -70,12 +72,14 @@ func TestSnapshotEnvsFromProtoMapsVisibilityAndDisplayValue(t *testing.T) {
 	}
 
 	assert.Equal(t, "[unset]", byName["RUNME_TEST_TOKEN"].Value)
+	assert.Equal(t, "core/secret", byName["RUNME_TEST_TOKEN"].Type)
 	assert.Equal(t, "unresolved", byName["RUNME_TEST_TOKEN"].Visibility)
 	assert.Equal(t, "[masked]", byName["GITHUB_TOKEN"].Value)
 	assert.Equal(t, "masked", byName["GITHUB_TOKEN"].Visibility)
 	assert.Equal(t, "https://api.example.com", byName["API_URL"].Value)
 	assert.Equal(t, "literal", byName["API_URL"].Visibility)
 	assert.Equal(t, "[hidden]", byName["DATABASE_URL"].Value)
+	assert.Equal(t, "core/opaque", byName["DATABASE_URL"].Type)
 	assert.Equal(t, "hidden", byName["DATABASE_URL"].Visibility)
 }
 
@@ -88,9 +92,9 @@ func TestSnapshotTypeProposalHelpers(t *testing.T) {
 	assert.True(t, ok)
 
 	suggested, reason, ok = suggestSnapshotPrimitiveType(owlSnapshotEnv("SERVICE_HOST", "core/opaque"))
-	assert.Equal(t, "core/host", suggested)
-	assert.Equal(t, "key name suggests host", reason)
-	assert.True(t, ok)
+	assert.Empty(t, suggested)
+	assert.Equal(t, "no primitive type heuristic matched", reason)
+	assert.False(t, ok)
 
 	suggested, reason, ok = suggestSnapshotPrimitiveType(owlSnapshotEnv("TARGET_PLATFORM", "core/opaque"))
 	assert.Empty(t, suggested)
@@ -98,7 +102,9 @@ func TestSnapshotTypeProposalHelpers(t *testing.T) {
 	assert.False(t, ok)
 
 	assert.Equal(t, "core/opaque", normalizeSnapshotType("https://owl.runme.dev/v1/types/core/opaque"))
-	assert.Equal(t, "Host", dotenvSpecTypeName("core/host"))
+	assert.Equal(t, "core/opaque", normalizeSnapshotType("github.com/runmedev/owl/types/core/opaque"))
+	assert.Equal(t, "universe/anthropic", normalizeSnapshotType("github.com/runmedev/owl/types/universe/anthropic"))
+	assert.Equal(t, "Opaque", dotenvSpecTypeName("core/host"))
 }
 
 func TestIncludeSnapshotTypeProposalSkipsNoSuggestionUnlessAll(t *testing.T) {
@@ -116,13 +122,12 @@ func TestRenderDotenvSpecTypeProposals(t *testing.T) {
 		{Key: "GITHUB_TOKEN", SuggestedType: "core/secret", Description: "The GitHub token to use for API requests."},
 		{Key: "RUNME_TEST_TOKEN", SuggestedType: "core/secret", Description: "The Runme test token to use for integration tests."},
 		{Key: "TARGET_PLATFORM", SuggestedType: "", Description: "Target Platform"},
-		{Key: "SERVICE_HOST", SuggestedType: "core/host", Description: "Service Host"},
+		{Key: "SERVICE_HOST", SuggestedType: "", Description: "Service Host"},
 	})
 
 	assert.Equal(t, strings.Join([]string{
 		`GITHUB_TOKEN="The GitHub token to use for API requests."              # Secret`,
 		`RUNME_TEST_TOKEN="The Runme test token to use for integration tests." # Secret`,
-		`SERVICE_HOST="Service Host"                                           # Host`,
 		"",
 	}, "\n"), rendered)
 }

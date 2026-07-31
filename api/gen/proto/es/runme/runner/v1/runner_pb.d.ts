@@ -1416,6 +1416,11 @@ export declare type MonitorEnvStoreRequest = Message<"runme.runner.v1.MonitorEnv
    * @generated from field: runme.runner.v1.Session session = 1;
    */
   session?: Session;
+
+  /**
+   * @generated from field: runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicy snapshot_policy = 2;
+   */
+  snapshotPolicy?: MonitorEnvStoreRequest_SnapshotPolicy;
 };
 
 /**
@@ -1426,6 +1431,11 @@ export declare type MonitorEnvStoreRequestJson = {
    * @generated from field: runme.runner.v1.Session session = 1;
    */
   session?: SessionJson;
+
+  /**
+   * @generated from field: runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicy snapshot_policy = 2;
+   */
+  snapshotPolicy?: MonitorEnvStoreRequest_SnapshotPolicyJson;
 };
 
 /**
@@ -1433,6 +1443,42 @@ export declare type MonitorEnvStoreRequestJson = {
  * Use `create(MonitorEnvStoreRequestSchema)` to create a new message.
  */
 export declare const MonitorEnvStoreRequestSchema: GenMessage<MonitorEnvStoreRequest, {jsonType: MonitorEnvStoreRequestJson}>;
+
+/**
+ * @generated from message runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicy
+ */
+export declare type MonitorEnvStoreRequest_SnapshotPolicy = Message<"runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicy"> & {
+  /**
+   * @generated from field: bool reveal = 1;
+   */
+  reveal: boolean;
+
+  /**
+   * @generated from field: bool insecure = 2;
+   */
+  insecure: boolean;
+};
+
+/**
+ * @generated from message runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicy
+ */
+export declare type MonitorEnvStoreRequest_SnapshotPolicyJson = {
+  /**
+   * @generated from field: bool reveal = 1;
+   */
+  reveal?: boolean;
+
+  /**
+   * @generated from field: bool insecure = 2;
+   */
+  insecure?: boolean;
+};
+
+/**
+ * Describes the message runme.runner.v1.MonitorEnvStoreRequest.SnapshotPolicy.
+ * Use `create(MonitorEnvStoreRequest_SnapshotPolicySchema)` to create a new message.
+ */
+export declare const MonitorEnvStoreRequest_SnapshotPolicySchema: GenMessage<MonitorEnvStoreRequest_SnapshotPolicy, {jsonType: MonitorEnvStoreRequest_SnapshotPolicyJson}>;
 
 /**
  * @generated from message runme.runner.v1.MonitorEnvStoreResponseSnapshot
