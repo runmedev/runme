@@ -305,7 +305,8 @@ func dotenvSpecTypeName(typeID string) string {
 }
 
 func normalizeSnapshotType(typeID string) string {
-	return strings.TrimPrefix(typeID, "https://owl.runme.dev/v1/types/")
+	typeID = strings.TrimPrefix(typeID, "https://owl.runme.dev/v1/types/")
+	return strings.TrimPrefix(typeID, "github.com/runmedev/owl/types/")
 }
 
 func quoteDotenvSpecDescription(s string) string {
@@ -348,7 +349,7 @@ func snapshotEnvsFromProto(envs []*runnerv1.MonitorEnvStoreResponseSnapshot_Snap
 			Name:        env.GetName(),
 			Value:       snapshotValueFromProto(env.GetResolvedValue(), visibility),
 			Description: env.GetDescription(),
-			Type:        env.GetSpec(),
+			Type:        normalizeSnapshotType(env.GetSpec()),
 			Source:      env.GetOrigin(),
 			Explicit:    snapshotExplicitFromProto(env),
 			Visibility:  visibility,
@@ -378,8 +379,8 @@ func snapshotExplicitFromProto(env *runnerv1.MonitorEnvStoreResponseSnapshot_Sna
 	if env.GetDescription() != "" || env.GetIsRequired() {
 		return true
 	}
-	spec := env.GetSpec()
-	return spec != "" && spec != "Opaque" && spec != "https://owl.runme.dev/v1/types/core/opaque"
+	spec := normalizeSnapshotType(env.GetSpec())
+	return spec != "" && spec != "Opaque" && spec != "core/opaque"
 }
 
 func snapshotVisibilityFromProto(status runnerv1.MonitorEnvStoreResponseSnapshot_Status) string {
