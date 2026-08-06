@@ -75,3 +75,64 @@ def test_runme_codex_collects_only_new_sessions(
 
     assert not copied_old.exists()
     assert copied_new.read_text() == '{"type":"new"}\n'
+
+
+def test_runme_codex_collects_session_matching_thread_id(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    codex_home = tmp_path / "codex-home"
+    sessions_dir = codex_home / "sessions"
+    old_session = sessions_dir / "2026" / "08" / "05" / "old.jsonl"
+    session_a = sessions_dir / "2026" / "08" / "05" / "session-a.jsonl"
+    session_b = sessions_dir / "2026" / "08" / "05" / "session-b.jsonl"
+    old_session.parent.mkdir(parents=True)
+    old_session.write_text('{"type":"session_meta","payload":{"id":"old"}}\n')
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+
+    agent = RunmeCodex(logs_dir=tmp_path / "logs")
+    before = agent._snapshot_session_files()
+    agent.logs_dir.mkdir(parents=True)
+    (agent.logs_dir / "codex.txt").write_text(
+        "Reading additional input from stdin...\n"
+        '{"type":"thread.started","thread_id":"session-b"}\n'
+    )
+
+    session_a.write_text('{"type":"session_meta","payload":{"id":"session-a"}}\n')
+    session_b.write_text(
+        '{"type":"session_meta","payload":{"session_id":"session-b"}}\n'
+    )
+
+    assert agent._collect_new_sessions(before)
+
+    copied_a = agent.logs_dir / "sessions" / session_a.relative_to(sessions_dir)
+    copied_b = agent.logs_dir / "sessions" / session_b.relative_to(sessions_dir)
+
+    assert not copied_a.exists()
+    assert copied_b.read_text() == (
+        '{"type":"session_meta","payload":{"session_id":"session-b"}}\n'
+    )
+
+
+def test_runme_codex_fails_closed_when_new_sessions_are_ambiguous(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    codex_home = tmp_path / "codex-home"
+    sessions_dir = codex_home / "sessions" / "2026" / "08" / "05"
+    session_a = sessions_dir / "session-a.jsonl"
+    session_b = sessions_dir / "session-b.jsonl"
+    sessions_dir.mkdir(parents=True)
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+
+    agent = RunmeCodex(logs_dir=tmp_path / "logs")
+    before = agent._snapshot_session_files()
+    stale_session = agent.logs_dir / "sessions" / "stale.jsonl"
+    stale_session.parent.mkdir(parents=True)
+    stale_session.write_text('{"type":"stale"}\n')
+
+    session_a.write_text('{"type":"session_meta","payload":{"id":"session-a"}}\n')
+    session_b.write_text('{"type":"session_meta","payload":{"id":"session-b"}}\n')
+
+    assert not agent._collect_new_sessions(before)
+    assert not (agent.logs_dir / "sessions").exists()

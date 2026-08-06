@@ -271,24 +271,101 @@ class RunmeCodex(Codex):
             return set()
         return {path for path in sessions_dir.rglob("*.jsonl") if path.is_file()}
 
-    def _collect_new_sessions(self, before: set[Path]) -> None:
+    def _codex_thread_id_from_output(self) -> str | None:
+        output_path = self.logs_dir / self._OUTPUT_FILENAME
+        if not output_path.exists():
+            return None
+
+        with open(output_path) as handle:
+            for line in handle:
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                if event.get("type") != "thread.started":
+                    continue
+
+                thread_id = event.get("thread_id")
+                if isinstance(thread_id, str) and thread_id:
+                    return thread_id
+
+        return None
+
+    @staticmethod
+    def _codex_session_ids_from_file(session_file: Path) -> set[str]:
+        with open(session_file) as handle:
+            for line in handle:
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                if event.get("type") != "session_meta":
+                    continue
+
+                payload = event.get("payload")
+                if not isinstance(payload, dict):
+                    return set()
+
+                session_ids: set[str] = set()
+                for key in ("id", "session_id"):
+                    session_id = payload.get(key)
+                    if isinstance(session_id, str) and session_id:
+                        session_ids.add(session_id)
+                return session_ids
+
+        return set()
+
+    def _select_new_session(self, new_sessions: set[Path]) -> Path | None:
+        if not new_sessions:
+            return None
+
+        thread_id = self._codex_thread_id_from_output()
+        if thread_id:
+            matches = [
+                session_file
+                for session_file in new_sessions
+                if thread_id in self._codex_session_ids_from_file(session_file)
+            ]
+            if len(matches) == 1:
+                return matches[0]
+            self.logger.warning(
+                "Could not uniquely match Codex thread %s to new session files: %s",
+                thread_id,
+                sorted(str(path) for path in new_sessions),
+            )
+            return None
+
+        if len(new_sessions) == 1:
+            return next(iter(new_sessions))
+
+        self.logger.warning(
+            "Could not identify Codex session file; multiple new sessions found: %s",
+            sorted(str(path) for path in new_sessions),
+        )
+        return None
+
+    def _collect_new_sessions(self, before: set[Path]) -> bool:
         sessions_dir = self._codex_sessions_dir()
         if not sessions_dir.exists():
-            return
+            return False
 
         after = {path for path in sessions_dir.rglob("*.jsonl") if path.is_file()}
         new_sessions = after - before
-        if not new_sessions:
-            return
 
         target_dir = self.logs_dir / "sessions"
         if target_dir.exists():
             shutil.rmtree(target_dir)
 
-        for session_file in new_sessions:
-            target = target_dir / session_file.relative_to(sessions_dir)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(session_file, target)
+        session_file = self._select_new_session(new_sessions)
+        if session_file is None:
+            return False
+
+        target = target_dir / session_file.relative_to(sessions_dir)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(session_file, target)
+        return True
 
     @with_prompt_template
     async def run(
@@ -325,12 +402,14 @@ class RunmeCodex(Codex):
                 ),
             )
         finally:
+            collected_session = False
             try:
-                self._collect_new_sessions(session_files_before)
+                collected_session = self._collect_new_sessions(session_files_before)
             except Exception:
-                pass
+                self.logger.exception("Failed to collect Codex session file")
 
-            self.populate_context_post_run(context)
+            if collected_session:
+                self.populate_context_post_run(context)
 
 
 class RunmeCursorCli(CursorCli):
