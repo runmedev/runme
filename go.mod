@@ -28,6 +28,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.9.1
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
+	github.com/go-zeromq/zmq4 v0.17.0
 	github.com/gobwas/glob v0.2.3
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang/mock v1.7.0-rc.1
@@ -125,6 +126,7 @@ require (
 	github.com/go-openapi/swag/typeutils v0.28.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.28.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
+	github.com/go-zeromq/goczmq/v4 v4.2.2 // indirect
 	github.com/goccy/go-yaml v1.11.3 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
