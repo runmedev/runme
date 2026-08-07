@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 import types
 from pathlib import Path
@@ -10,6 +12,7 @@ CRITERIA_PATH = (
     Path(__file__).parents[3]
     / "examples/harbor/datasets/runme-rewardkit/text-stats-reward/tests/criteria.py"
 )
+SOLUTION_PATH = CRITERIA_PATH.parents[1] / "solution/solve.sh"
 
 
 @pytest.fixture
@@ -560,3 +563,28 @@ def test_compile_validation_rejects_malformed_trajectory(
     monkeypatch.setenv("RUNME_AGENT_TRAJECTORY", str(trajectory))
 
     assert criteria._compile_validation_score(tmp_path) == 0.0
+
+
+def test_oracle_solution_records_successful_compile_validation(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "sample.txt").write_text(
+        "the quick brown fox jumps over the lazy dog and the quick brown fox "
+        "jumps over the lazy dog again"
+    )
+    trajectory = tmp_path / "trajectory.json"
+    env = os.environ.copy()
+    env.pop("RUNME_AGENT_TRAJECTORY", None)
+    env["RUNME_AGENT_LOG_DIR"] = str(tmp_path)
+
+    subprocess.run(
+        ["sh", str(SOLUTION_PATH)],
+        cwd=tmp_path,
+        env=env,
+        check=True,
+    )
+
+    monkeypatch.setenv("RUNME_AGENT_TRAJECTORY", str(trajectory))
+    assert criteria._compile_validation_score(tmp_path) == 1.0
