@@ -3,11 +3,10 @@ package runner
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
 	"sync"
 
 	"github.com/runmedev/owl/pkg/owl"
+	"github.com/runmedev/owl/pkg/owl/seed"
 	"go.uber.org/zap"
 
 	"github.com/runmedev/runme/v3/internal/lru"
@@ -70,7 +69,7 @@ func NewSessionWithStore(envs []string, proj *project.Project, owlStore bool, lo
 		logger: logger,
 	}
 
-	if proj != nil {
+	if proj != nil && !owlStore {
 		msg, err := s.loadDirEnv(context.Background(), proj)
 		if err != nil {
 			logger.Info("failed to load direnv", zap.Error(err))
@@ -188,55 +187,27 @@ type owlEnvStorer struct {
 }
 
 func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*owlEnvStorer, error) {
-	opts := []owl.StoreOption{
-		owl.WithDotenv("[process]", strings.NewReader(dotenvLines(envs))),
+	direnvPolicy := seed.DirenvDisabled
+	if proj.EnvDirEnvEnabled() {
+		direnvPolicy = seed.DirenvEnabledWarn
 	}
 
-	envSpecFiles := []string{}
-	// envFilesOrder := []string{}
-	if proj != nil {
-		// todo(sebastian): specs loading should be independent of project
-		envSpecFiles = []string{".env.sample", ".env.example", ".env.spec"}
-	}
-
-	for _, specFile := range envSpecFiles {
-		raw, _ := proj.LoadRawFile(specFile)
-		if raw == nil {
-			continue
-		}
-		opts = append(opts, owl.WithEnvSpec(specFile, strings.NewReader(string(raw))))
-	}
-
-	envWithSource, err := proj.LoadEnvWithSource()
+	result, err := seed.NewStore(context.Background(), seed.Options{
+		EnvFiles: proj.EnvFilesReadOrder(),
+		Observed: []seed.ObservedSource{{Source: owl.Source{Name: "[process]", Kind: "process"}, Environ: envs}},
+		WorkDir:  proj.Root(),
+		Direnv:   direnvPolicy,
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	for envSource, envMap := range envWithSource {
-		envs := []string{}
-		for k, v := range envMap {
-			env := fmt.Sprintf("%s=%s", k, v)
-			envs = append(envs, env)
-		}
-		sort.Strings(envs)
-		opts = append(opts, owl.WithDotenv(envSource, strings.NewReader(dotenvLines(envs))))
-	}
-
-	owlYAML, err := proj.LoadRawFile(".runme/owl.yaml")
-	if err != nil {
-		return nil, err
-	} else if owlYAML != nil {
-		logger.Warn("ignoring .runme/owl.yaml because Owl v2 resolver/CRD support is not part of this cutover")
-	}
-
-	owlStore, err := owl.NewStore(opts...)
-	if err != nil {
-		return nil, err
+	for _, diagnostic := range result.Diagnostics {
+		logger.Warn("owl seed diagnostic", zap.String("diagnostic", diagnosticMessage(diagnostic)))
 	}
 
 	return &owlEnvStorer{
 		logger:   logger,
-		owlStore: owlStore,
+		owlStore: result.Store,
 	}, nil
 }
 
@@ -358,13 +329,6 @@ func (es *owlEnvStorer) envs() ([]string, error) {
 		return nil, err
 	}
 	return vals, nil
-}
-
-func dotenvLines(envs []string) string {
-	if len(envs) == 0 {
-		return ""
-	}
-	return strings.Join(envs, "\n") + "\n"
 }
 
 type sessionList = lru.Cache[*Session]
