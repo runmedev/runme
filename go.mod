@@ -59,7 +59,7 @@ require (
 	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20260729122341-6334690a62b6
 	github.com/rogpeppe/go-internal v1.16.0
 	github.com/rs/cors v1.11.1
-	github.com/runmedev/owl v1.0.2-0.20260807195527-13e696e86cd4
+	github.com/runmedev/owl v1.0.2-0.20260810231146-c7bea95726e8
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
