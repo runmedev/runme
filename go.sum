@@ -413,8 +413,8 @@ github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWb
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
 github.com/rs/cors v1.11.1 h1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=
 github.com/rs/cors v1.11.1/go.mod h1:XyqrcTp5zjWr1wsJ8PIRZssZ8b/WMcMf71DJnit4EMU=
-github.com/runmedev/owl v1.0.2-0.20260807195527-13e696e86cd4 h1:7nkLDx/Re9k9MZTZApC6Wv/5DVA0Xp87dnATx+wS7Y0=
-github.com/runmedev/owl v1.0.2-0.20260807195527-13e696e86cd4/go.mod h1:sgo4HQXy6y/IqbS+c7y6XmY6RpHVYN21O6xQI7jbfxQ=
+github.com/runmedev/owl v1.0.2-0.20260810231146-c7bea95726e8 h1:gGCMx1gHOiV8H1bGshVKp8ud/RwX6z/H4fk7sz+Pzi4=
+github.com/runmedev/owl v1.0.2-0.20260810231146-c7bea95726e8/go.mod h1:sgo4HQXy6y/IqbS+c7y6XmY6RpHVYN21O6xQI7jbfxQ=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sagikazarmark/locafero v0.12.0 h1:/NQhBAkUb4+fH1jivKHWusDYFjMOOKU88eegjfxfHb4=
 github.com/sagikazarmark/locafero v0.12.0/go.mod h1:sZh36u/YSZ918v0Io+U9ogLYQJ9tLLBmM4eneO6WwsI=
