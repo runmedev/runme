@@ -2,8 +2,12 @@ package session
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/runmedev/owl/pkg/owl"
+	"github.com/runmedev/owl/pkg/owl/seed"
 
 	rcontext "github.com/runmedev/runme/v3/runner/context"
 )
@@ -16,15 +20,42 @@ type envStoreOwl struct {
 	// subscribers []owlEnvStorerSubscriber
 }
 
-func newOwlStore() (*envStoreOwl, error) {
-	owlStore, err := owl.NewStore()
+type owlSessionStore struct{}
+
+func (owlSessionStore) New(storeSeed SessionStoreSeed) (EnvStore, error) {
+	options := seed.Options{
+		Observed: []seed.ObservedSource{{
+			Source:  owl.Source{Name: "[process]", Kind: "process"},
+			Environ: mergedProcessEnv(storeSeed),
+		}},
+		Direnv: seed.DirenvDisabled,
+	}
+
+	if storeSeed.Project != nil {
+		options.EnvFiles = storeSeed.Project.EnvFilesReadOrder()
+		options.WorkDir = storeSeed.Project.Root()
+		if storeSeed.Project.EnvDirEnvEnabled() {
+			options.Direnv = seed.DirenvEnabledWarn
+		}
+	} else {
+		options.WorkDir = projectlessSeedWorkDir()
+	}
+
+	result, err := seed.NewStore(context.Background(), options)
 	if err != nil {
+		return nil, err
+	}
+	if err := result.Store.Update(context.Background(), storeSeed.RequestEnv, nil); err != nil {
 		return nil, err
 	}
 
 	return &envStoreOwl{
-		owlStore: owlStore,
+		owlStore: result.Store,
 	}, nil
+}
+
+func projectlessSeedWorkDir() string {
+	return filepath.Join(os.TempDir(), "runme-owl-projectless-"+strconv.Itoa(os.Getpid()))
 }
 
 var _ EnvStore = new(envStoreOwl)
