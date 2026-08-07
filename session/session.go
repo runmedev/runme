@@ -18,9 +18,10 @@ type Session struct {
 }
 
 type sessionFactory struct {
-	owl     bool
-	project *project.Project
-	seedEnv []string
+	owl        bool
+	project    *project.Project
+	seedEnv    []string
+	requestEnv []string
 }
 
 type SessionOption func(*sessionFactory) *sessionFactory
@@ -46,7 +47,13 @@ func WithSeedEnv(seedEnv []string) SessionOption {
 	}
 }
 
-// func New(owl bool, proj *project.Project, seedEnv []string) (*Session, error) {
+func WithRequestEnv(requestEnv []string) SessionOption {
+	return func(f *sessionFactory) *sessionFactory {
+		f.requestEnv = requestEnv
+		return f
+	}
+}
+
 func New(opts ...SessionOption) (*Session, error) {
 	f := &sessionFactory{
 		owl: false,
@@ -56,34 +63,28 @@ func New(opts ...SessionOption) (*Session, error) {
 		f = opt(f)
 	}
 
-	if !f.owl {
-		return newSessionWithStore(NewEnvStore(), f.project, f.seedEnv)
+	store := SessionStore(plainSessionStore{})
+	if f.owl {
+		store = owlSessionStore{}
 	}
 
-	envStore, err := newOwlStore()
+	envStore, err := store.New(SessionStoreSeed{
+		SeedEnv:    f.seedEnv,
+		RequestEnv: f.requestEnv,
+		Project:    f.project,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return newSessionWithStore(envStore, f.project, f.seedEnv)
+	return newSessionWithStore(envStore), nil
 }
 
-func newSessionWithStore(envStore EnvStore, proj *project.Project, seedEnv []string) (*Session, error) {
-	sess := &Session{
+func newSessionWithStore(envStore EnvStore) *Session {
+	return &Session{
 		ID:       ulid.GenerateID(),
 		envStore: envStore,
 	}
-
-	// seed session with system ENV vars
-	if err := sess.envStore.Load("[system]", seedEnv...); err != nil {
-		return nil, err
-	}
-
-	if err := sess.loadProject(proj); err != nil {
-		return nil, err
-	}
-
-	return sess, nil
 }
 
 func (s *Session) Identifier() string {
@@ -115,8 +116,7 @@ func (s *Session) GetAllEnv() []string {
 	return items
 }
 
-// loadProject loads from the project, it's not thread-safe.
-func (s *Session) loadProject(proj *project.Project) error {
+func loadProjectEnvStore(envStore EnvStore, proj *project.Project) error {
 	if proj == nil {
 		return nil
 	}
@@ -132,7 +132,7 @@ func (s *Session) loadProject(proj *project.Project) error {
 			env := fmt.Sprintf("%s=%s", k, v)
 			envs = append(envs, env)
 		}
-		if err := s.envStore.Load(envSource, envs...); err != nil {
+		if err := envStore.Load(envSource, envs...); err != nil {
 			return err
 		}
 	}
