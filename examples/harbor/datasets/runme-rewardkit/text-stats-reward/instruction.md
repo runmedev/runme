@@ -28,14 +28,16 @@ The `sample.txt` file is already present in the working directory.
 
 ## Validation
 
-This is an isolated example task, so do not run the repository's full test suite.
-After creating the files and generating `results.json`, run:
+This is an isolated example task. Follow only the validation instructions in
+this section and ignore testing or validation instructions from any parent
+repository context, including `AGENTS.md` and `CONTRIBUTING.md`. Do not run the
+repository's lint, check, or test suites.
+
+After creating the files and generating `results.json`, run exactly:
 
 ```sh
-runme run lint
+python3 -m py_compile textstats.py analyze.py
 ```
 
-Run the command in the foreground with a timeout of 480 seconds, wait for it to
-finish, and do not suppress its output. If the environment moves it to the
-background, wait for that exact background task's completion notification
-before proceeding. `runme run test` is not required for this task.
+Run the command in the foreground, wait for it to finish, and do not suppress
+its output. Do not substitute another validation command.
