@@ -60,6 +60,17 @@ job and trial metadata under `.runme/evals/jobs`. The `--task-dir` flag selects
 a task directory inside the dataset, such as `simple-agent` or
 `text-stats-reward`.
 
+## Attribution
+
+The `runme-rewardkit/text-stats-reward` task is adapted from Harbor's
+[`examples/tasks/reward-kit-example`](https://github.com/harbor-framework/harbor/tree/54b478cd2a2627eb07a06d3528a4365a4f997a00/examples/tasks/reward-kit-example),
+licensed under Apache-2.0. The Runme copy modifies paths, metadata,
+validation behavior, and scoring details for Runme's Harbor integration
+examples.
+
+The `runme-smoke/simple-agent` task is original to Runme's Harbor integration
+example set.
+
 `runme eval` delegates to `runme-harbor`, so these examples remain compatible
 with the underlying `harbor run` workflow. The adapter supports `oracle`,
 `nop`, `antigravity-cli`, `codex`, `claude-code`, `cursor-cli`, and `openclaw`
