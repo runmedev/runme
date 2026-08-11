@@ -216,11 +216,12 @@ class RunmeEnvironment(BaseEnvironment):
         timeout_sec: int | None = None,
         user: str | int | None = None,
     ) -> ExecResult:
+        merged_env = self._merge_env(env)
         request = {
             "exec": {
                 "command": self._rewrite_command(command),
                 "cwd": self._map_protocol_path(cwd or self.task_env_config.workdir or "/app"),
-                "env": _env_map_to_list(env or {}),
+                "env": _env_map_to_list(merged_env or {}),
             }
         }
         try:
