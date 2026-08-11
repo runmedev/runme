@@ -45,7 +45,7 @@ func (owlSessionStore) New(storeSeed SessionStoreSeed) (EnvStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := result.Store.Update(context.Background(), storeSeed.RequestEnv, nil); err != nil {
+	if err := applyOwlUpdate(context.Background(), result.Store, owl.Source{Name: "[request]", Kind: "request"}, storeSeed.RequestEnv, nil); err != nil {
 		return nil, err
 	}
 
@@ -61,16 +61,16 @@ func projectlessSeedWorkDir() string {
 var _ EnvStore = new(envStoreOwl)
 
 func (s *envStoreOwl) Load(source string, envs ...string) error {
-	return s.owlStore.LoadDotenvLines(source, envs...)
+	return applyOwlUpdate(context.Background(), s.owlStore, owl.Source{Name: source, Kind: "dotenv"}, envs, nil)
 }
 
 func (s *envStoreOwl) Merge(ctx context.Context, envs ...string) error {
-	return s.owlStore.Update(owlContext(ctx), envs, nil)
+	return applyOwlUpdate(owlContext(ctx), s.owlStore, owl.Source{}, envs, nil)
 }
 
 func (s *envStoreOwl) Get(k string) (string, bool) {
 	// todo(sebastian): return error?
-	if v, ok, err := s.owlStore.Get(k, owl.GetPolicy{Reveal: true}); err == nil {
+	if v, ok, err := s.owlStore.Get(context.Background(), owl.GetInput{Key: k, Policy: owl.GetPolicy{Reveal: true}}); err == nil {
 		return v.Value, ok
 	}
 
@@ -82,15 +82,36 @@ func (s *envStoreOwl) Set(ctx context.Context, k, v string) error {
 		return ErrEnvTooLarge
 	}
 
-	return s.owlStore.Update(owlContext(ctx), []string{k + "=" + v}, nil)
+	return applyOwlUpdate(owlContext(ctx), s.owlStore, owl.Source{}, []string{k + "=" + v}, nil)
 }
 
 func (s *envStoreOwl) Delete(ctx context.Context, k string) error {
-	return s.owlStore.Update(owlContext(ctx), nil, []string{k})
+	return applyOwlUpdate(owlContext(ctx), s.owlStore, owl.Source{}, nil, []string{k})
 }
 
 func (s *envStoreOwl) Items() ([]string, error) {
-	return s.owlStore.Dotenv(owl.DotenvPolicy{Insecure: true})
+	output, err := s.owlStore.Source(context.Background(), owl.SourceInput{Policy: owl.DotenvPolicy{Insecure: true}})
+	if err != nil {
+		return nil, err
+	}
+	return output.Envs, nil
+}
+
+func applyOwlUpdate(ctx context.Context, store *owl.Store, source owl.Source, envs []string, deleted []string) error {
+	var vars []owl.DotenvVariable
+	for _, env := range envs {
+		key, value := SplitEnv(env)
+		vars = append(vars, owl.DotenvVariable{
+			Key:    key,
+			Value:  value,
+			Source: source,
+		})
+	}
+	return store.ApplyUpdate(ctx, owl.UpdateInput{
+		Source: source,
+		Dotenv: vars,
+		Delete: deleted,
+	})
 }
 
 func owlContext(ctx context.Context) context.Context {
