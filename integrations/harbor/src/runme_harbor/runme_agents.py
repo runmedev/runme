@@ -5,7 +5,7 @@ import shutil
 import tempfile
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from harbor.agents.installed.antigravity_cli import AntigravityCli
 from harbor.agents.installed.base import CliFlag, with_prompt_template
@@ -20,6 +20,14 @@ from harbor.models.trial.paths import EnvironmentPaths
 
 _OPENAI_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_OPENAI_API_KEY"
 _ANTHROPIC_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY"
+
+_ProviderAuthSource = Literal[
+    "explicit",
+    "native",
+    "fallback",
+    "indeterminate",
+    "unconfigured",
+]
 
 
 async def _command_succeeds(
@@ -59,17 +67,21 @@ async def _promote_fallback_auth(
     provider_key: str,
     fallback_key: str,
     native_auth_probe,
-) -> None:
+) -> _ProviderAuthSource:
     if source._has_env(provider_key):
-        return
+        return "explicit"
 
     fallback = source._get_env(fallback_key)
     if not fallback:
-        return
+        return "unconfigured"
 
     native_auth = await native_auth_probe(environment, env)
     if native_auth is False:
         env[provider_key] = fallback
+        return "fallback"
+    if native_auth is True:
+        return "native"
+    return "indeterminate"
 
 
 class RunmeAntigravityCli(AntigravityCli):
@@ -457,8 +469,15 @@ class RunmeCodex(Codex):
         )
 
     async def _agent_env(self, environment: BaseEnvironment) -> dict[str, str]:
+        env, _ = await self._agent_env_and_router_state(environment)
+        return env
+
+    async def _agent_env_and_router_state(
+        self,
+        environment: BaseEnvironment,
+    ) -> tuple[dict[str, str], bool]:
         env: dict[str, str] = {}
-        await _promote_fallback_auth(
+        auth_source = await _promote_fallback_auth(
             self,
             environment,
             env,
@@ -466,7 +485,11 @@ class RunmeCodex(Codex):
             _OPENAI_FALLBACK_ENV,
             self._has_native_auth,
         )
-        return env
+        route_through_configured_base_url = auth_source not in {
+            "native",
+            "indeterminate",
+        }
+        return env, route_through_configured_base_url
 
     def _openai_base_url_arg(self) -> str:
         base_url = self._get_env("OPENAI_BASE_URL")
@@ -487,9 +510,15 @@ class RunmeCodex(Codex):
 
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
-        base_url_arg = self._openai_base_url_arg()
         session_files_before = self._snapshot_session_files()
-        env = await self._agent_env(environment)
+        env, route_through_configured_base_url = (
+            await self._agent_env_and_router_state(environment)
+        )
+        base_url_arg = (
+            self._openai_base_url_arg()
+            if route_through_configured_base_url
+            else ""
+        )
 
         try:
             await self.exec_as_agent(
