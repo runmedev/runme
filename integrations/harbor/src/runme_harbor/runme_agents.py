@@ -18,6 +18,59 @@ from harbor.models.agent.context import AgentContext
 from harbor.models.trajectories.trajectory import Trajectory
 from harbor.models.trial.paths import EnvironmentPaths
 
+_OPENAI_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_OPENAI_API_KEY"
+_ANTHROPIC_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY"
+
+
+async def _command_succeeds(
+    environment: BaseEnvironment,
+    command: str,
+    env: dict[str, str] | None = None,
+) -> bool | None:
+    try:
+        result = await environment.exec(command=command, env=env)
+    except Exception:
+        return None
+    return result.return_code == 0
+
+
+def _toml_string(value: str) -> str:
+    return json.dumps(value)
+
+
+def _config_arg(key: str, value: str) -> str:
+    return shlex.quote(f"{key}={_toml_string(value)}")
+
+
+def _copy_if_present(
+    source,
+    env: dict[str, str],
+    key: str,
+) -> None:
+    value = source._get_env(key)
+    if value:
+        env[key] = value
+
+
+async def _promote_fallback_auth(
+    source,
+    environment: BaseEnvironment,
+    env: dict[str, str],
+    provider_key: str,
+    fallback_key: str,
+    native_auth_probe,
+) -> None:
+    if source._has_env(provider_key):
+        return
+
+    fallback = source._get_env(fallback_key)
+    if not fallback:
+        return
+
+    native_auth = await native_auth_probe(environment, env)
+    if native_auth is False:
+        env[provider_key] = fallback
+
 
 class RunmeAntigravityCli(AntigravityCli):
     """Antigravity CLI-backed Runme agent without container bootstrap.
@@ -61,12 +114,13 @@ class RunmeAntigravityCli(AntigravityCli):
             "GOOGLE_APPLICATION_CREDENTIALS",
             "GOOGLE_CLOUD_PROJECT",
             "GOOGLE_CLOUD_LOCATION",
+            "GOOGLE_GEMINI_BASE_URL",
             "GOOGLE_GENAI_USE_VERTEXAI",
+            "GOOGLE_VERTEX_BASE_URL",
             "GOOGLE_API_KEY",
         ]
         for var in auth_vars:
-            if var in os.environ:
-                env[var] = os.environ[var]
+            _copy_if_present(self, env, var)
 
         skills_command = self._build_register_skills_command()
         if skills_command:
@@ -175,13 +229,24 @@ class RunmeClaudeCode(ClaudeCode):
     def _model_arg(self) -> str:
         if not self.model_name:
             return ""
-        if os.environ.get("ANTHROPIC_BASE_URL"):
+        if self._get_env("ANTHROPIC_BASE_URL"):
             model = self.model_name
         elif self._is_bedrock_mode() and "/" in self.model_name:
             model = self.model_name.split("/", 1)[-1]
         else:
             model = self.model_name.split("/")[-1]
         return f"--model {shlex.quote(model)} "
+
+    async def _has_native_auth(
+        self,
+        environment: BaseEnvironment,
+        env: dict[str, str],
+    ) -> bool | None:
+        return await _command_succeeds(
+            environment,
+            'export PATH="$HOME/.local/bin:$PATH"; claude auth status',
+            env=env,
+        )
 
     def _runtime_env(self) -> dict[str, str]:
         env = {
@@ -200,6 +265,19 @@ class RunmeClaudeCode(ClaudeCode):
         env.update(self._resolved_env_vars)
         return env
 
+    async def _agent_env(self, environment: BaseEnvironment) -> dict[str, str]:
+        env = self._runtime_env()
+        _copy_if_present(self, env, "ANTHROPIC_BASE_URL")
+        await _promote_fallback_auth(
+            self,
+            environment,
+            env,
+            "ANTHROPIC_API_KEY",
+            _ANTHROPIC_FALLBACK_ENV,
+            self._has_native_auth,
+        )
+        return env
+
     @with_prompt_template
     async def run(
         self,
@@ -212,7 +290,7 @@ class RunmeClaudeCode(ClaudeCode):
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
         session_files_before = self._snapshot_session_files()
-        env = self._runtime_env()
+        env = await self._agent_env(environment)
 
         try:
             await self.exec_as_agent(
@@ -367,6 +445,35 @@ class RunmeCodex(Codex):
         shutil.copy2(session_file, target)
         return True
 
+    async def _has_native_auth(
+        self,
+        environment: BaseEnvironment,
+        env: dict[str, str],
+    ) -> bool | None:
+        return await _command_succeeds(
+            environment,
+            "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi; codex login status",
+            env=env,
+        )
+
+    async def _agent_env(self, environment: BaseEnvironment) -> dict[str, str]:
+        env: dict[str, str] = {}
+        await _promote_fallback_auth(
+            self,
+            environment,
+            env,
+            "OPENAI_API_KEY",
+            _OPENAI_FALLBACK_ENV,
+            self._has_native_auth,
+        )
+        return env
+
+    def _openai_base_url_arg(self) -> str:
+        base_url = self._get_env("OPENAI_BASE_URL")
+        if not base_url:
+            return ""
+        return f"-c {_config_arg('openai_base_url', base_url)} "
+
     @with_prompt_template
     async def run(
         self,
@@ -380,7 +487,9 @@ class RunmeCodex(Codex):
 
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
+        base_url_arg = self._openai_base_url_arg()
         session_files_before = self._snapshot_session_files()
+        env = await self._agent_env(environment)
 
         try:
             await self.exec_as_agent(
@@ -391,6 +500,7 @@ class RunmeCodex(Codex):
                     "codex exec "
                     "--dangerously-bypass-approvals-and-sandbox "
                     "--skip-git-repo-check "
+                    f"{base_url_arg}"
                     f"{model_arg}"
                     "--json "
                     "--enable unified_exec "
@@ -400,6 +510,7 @@ class RunmeCodex(Codex):
                     f"2>&1 </dev/null | tee "
                     f"{EnvironmentPaths.agent_dir / self._OUTPUT_FILENAME}"
                 ),
+                env=env,
             )
         finally:
             collected_session = False

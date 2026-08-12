@@ -36,12 +36,15 @@ def test_runme_antigravity_cli_uses_ambient_user_auth(
         "GOOGLE_APPLICATION_CREDENTIALS",
         "GOOGLE_CLOUD_PROJECT",
         "GOOGLE_CLOUD_LOCATION",
+        "GOOGLE_GEMINI_BASE_URL",
         "GOOGLE_GENAI_USE_VERTEXAI",
+        "GOOGLE_VERTEX_BASE_URL",
         "GOOGLE_API_KEY",
     ):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("GEMINI_API_KEY", "ambient-key")
     monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "ambient-project")
+    monkeypatch.setenv("GOOGLE_GEMINI_BASE_URL", "https://router.test/v1")
 
     environment = FakeEnvironment()
     agent = RunmeAntigravityCli(logs_dir=tmp_path, model_name="google/gemini-3-pro-preview")
@@ -71,6 +74,7 @@ def test_runme_antigravity_cli_uses_ambient_user_auth(
     assert calls[0][1] == {
         "GEMINI_API_KEY": "ambient-key",
         "GEMINI_CLI_TRUST_WORKSPACE": "true",
+        "GOOGLE_GEMINI_BASE_URL": "https://router.test/v1",
         "GOOGLE_CLOUD_PROJECT": "ambient-project",
     }
     assert calls[1][1] == calls[0][1]
@@ -100,6 +104,41 @@ def test_runme_antigravity_cli_can_use_local_default_model(tmp_path: Path) -> No
     assert "defaultModel" not in calls[0][0]
     assert "--model " not in calls[1][0]
     assert "--prompt='write result.txt'" in calls[1][0]
+
+
+def test_runme_antigravity_cli_does_not_promote_google_fallback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for var in (
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "RUNME_ROUTER_FALLBACK_GOOGLE_API_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_GOOGLE_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeAntigravityCli(logs_dir=tmp_path, model_name="google/gemini-3-pro-preview")
+    calls: list[tuple[str, dict[str, str] | None]] = []
+
+    async def fake_exec_as_agent(
+        _environment: Any,
+        command: str,
+        env: dict[str, str] | None = None,
+    ) -> None:
+        calls.append((command, env))
+
+    agent.exec_as_agent = fake_exec_as_agent
+    agent.populate_context_post_run = lambda _context: None
+
+    asyncio.run(agent.run("write result.txt", environment, object()))
+
+    for _, env in calls[:2]:
+        assert env.get("GEMINI_CLI_TRUST_WORKSPACE") == "true"
+        assert "GEMINI_API_KEY" not in env
+        assert "GOOGLE_API_KEY" not in env
+        assert "RUNME_ROUTER_FALLBACK_GOOGLE_API_KEY" not in env
 
 
 def test_runme_antigravity_cli_rejects_unqualified_model(tmp_path: Path) -> None:

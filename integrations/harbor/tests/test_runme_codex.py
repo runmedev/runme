@@ -51,6 +51,107 @@ def test_runme_codex_uses_ambient_user_auth(
     assert all("register" not in command for command, _ in calls)
 
 
+def test_runme_codex_routes_through_process_local_base_url(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "OPENAI_BASE_URL",
+        'https://router.test/v1?tenant=runme&note="quoted"',
+    )
+
+    environment = FakeEnvironment()
+    agent = RunmeCodex(logs_dir=tmp_path, model_name="openai/gpt-5")
+    calls: list[tuple[str, dict[str, str] | None]] = []
+
+    async def fake_exec_as_agent(
+        _environment: Any,
+        command: str,
+        env: dict[str, str] | None = None,
+    ) -> None:
+        calls.append((command, env))
+
+    agent.exec_as_agent = fake_exec_as_agent
+    agent.populate_context_post_run = lambda _context: None
+
+    asyncio.run(agent.run("write result.txt", environment, object()))
+
+    command = calls[0][0]
+    assert "codex exec " in command
+    assert "-c 'openai_base_url=" in command
+    assert '\\"quoted\\"' in command
+    assert "OPENAI_BASE_URL" not in command
+
+
+def test_runme_codex_preserves_explicit_openai_key_over_fallback(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "explicit-key")
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_OPENAI_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeCodex(logs_dir=tmp_path)
+
+    async def fail_if_called(_environment: Any, _env: dict[str, str]) -> bool:
+        raise AssertionError("native auth should not be probed when explicit key exists")
+
+    agent._has_native_auth = fail_if_called
+
+    assert asyncio.run(agent._agent_env(environment)) == {}
+
+
+def test_runme_codex_native_login_wins_over_fallback(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_OPENAI_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeCodex(logs_dir=tmp_path)
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return True
+
+    agent._has_native_auth = fake_has_native_auth
+
+    assert asyncio.run(agent._agent_env(environment)) == {}
+
+
+def test_runme_codex_promotes_fallback_when_auth_gap_exists(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_OPENAI_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeCodex(logs_dir=tmp_path)
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return False
+
+    agent._has_native_auth = fake_has_native_auth
+
+    assert asyncio.run(agent._agent_env(environment)) == {"OPENAI_API_KEY": "fallback-key"}
+
+
+def test_runme_codex_fails_closed_when_login_detection_is_indeterminate(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_OPENAI_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeCodex(logs_dir=tmp_path)
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> None:
+        return None
+
+    agent._has_native_auth = fake_has_native_auth
+
+    assert asyncio.run(agent._agent_env(environment)) == {}
+
+
 def test_runme_codex_collects_only_new_sessions(
     tmp_path: Path,
     monkeypatch,
@@ -99,9 +200,7 @@ def test_runme_codex_collects_session_matching_thread_id(
     )
 
     session_a.write_text('{"type":"session_meta","payload":{"id":"session-a"}}\n')
-    session_b.write_text(
-        '{"type":"session_meta","payload":{"session_id":"session-b"}}\n'
-    )
+    session_b.write_text('{"type":"session_meta","payload":{"session_id":"session-b"}}\n')
 
     assert agent._collect_new_sessions(before)
 

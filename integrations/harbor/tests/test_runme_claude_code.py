@@ -73,6 +73,104 @@ def test_runme_claude_code_preserves_model_name_with_custom_base_url(
     assert agent._model_arg() == "--model openrouter/anthropic/haiku "
 
 
+def test_runme_claude_code_reads_base_url_from_resolved_env(tmp_path: Path) -> None:
+    agent = RunmeClaudeCode(
+        logs_dir=tmp_path,
+        model_name="openrouter/anthropic/haiku",
+        extra_env={"ANTHROPIC_BASE_URL": "https://router.test"},
+    )
+
+    assert agent._model_arg() == "--model openrouter/anthropic/haiku "
+
+
+def test_runme_claude_code_preserves_explicit_anthropic_key_over_fallback(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "explicit-key")
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path)
+
+    async def fail_if_called(_environment: Any, _env: dict[str, str]) -> bool:
+        raise AssertionError("native auth should not be probed when explicit key exists")
+
+    agent._has_native_auth = fail_if_called
+
+    assert "ANTHROPIC_API_KEY" not in asyncio.run(agent._agent_env(environment))
+
+
+def test_runme_claude_code_native_login_wins_over_fallback(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path)
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return True
+
+    agent._has_native_auth = fake_has_native_auth
+
+    assert "ANTHROPIC_API_KEY" not in asyncio.run(agent._agent_env(environment))
+
+
+def test_runme_claude_code_promotes_fallback_when_auth_gap_exists(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path)
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return False
+
+    agent._has_native_auth = fake_has_native_auth
+
+    env = asyncio.run(agent._agent_env(environment))
+
+    assert env["ANTHROPIC_API_KEY"] == "fallback-key"
+
+
+def test_runme_claude_code_fails_closed_when_login_detection_is_indeterminate(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY", "fallback-key")
+
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path)
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> None:
+        return None
+
+    agent._has_native_auth = fake_has_native_auth
+
+    assert "ANTHROPIC_API_KEY" not in asyncio.run(agent._agent_env(environment))
+
+
+def test_runme_claude_code_passes_base_url_through_process_env(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://router.test/v1")
+
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path)
+
+    env = asyncio.run(agent._agent_env(environment))
+
+    assert env["ANTHROPIC_BASE_URL"] == "https://router.test/v1"
+
+
 def test_runme_claude_code_collects_only_new_sessions(
     tmp_path: Path,
     monkeypatch,
