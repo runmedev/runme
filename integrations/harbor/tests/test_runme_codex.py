@@ -83,7 +83,7 @@ def test_runme_codex_routes_through_process_local_base_url(
     assert "OPENAI_BASE_URL" not in command
 
 
-def test_runme_codex_preserves_explicit_openai_key_over_fallback(
+def test_runme_codex_uses_explicit_openai_key_when_native_login_is_absent(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -93,10 +93,10 @@ def test_runme_codex_preserves_explicit_openai_key_over_fallback(
     environment = FakeEnvironment()
     agent = RunmeCodex(logs_dir=tmp_path)
 
-    async def fail_if_called(_environment: Any, _env: dict[str, str]) -> bool:
-        raise AssertionError("native auth should not be probed when explicit key exists")
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return False
 
-    agent._has_native_auth = fail_if_called
+    agent._has_native_auth = fake_has_native_auth
 
     assert asyncio.run(agent._agent_env_and_router_state(environment)) == ({}, True)
 
@@ -120,7 +120,7 @@ def test_runme_codex_native_login_bypasses_router_base_url(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "judge-key")
     monkeypatch.setenv("RUNME_ROUTER_FALLBACK_OPENAI_API_KEY", "fallback-key")
     monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:4000/router/v1/openai/v1")
 
@@ -146,6 +146,7 @@ def test_runme_codex_native_login_bypasses_router_base_url(
 
     command, env = calls[0]
     assert "openai_base_url" not in command
+    assert "unset OPENAI_API_KEY OPENAI_BASE_URL\n" in command
     assert "OPENAI_API_KEY" not in (env or {})
 
 
@@ -179,6 +180,7 @@ def test_runme_codex_promoted_fallback_keeps_router_base_url(
 
     command, env = calls[0]
     assert "openai_base_url" in command
+    assert "unset OPENAI_API_KEY OPENAI_BASE_URL\n" not in command
     assert (env or {}).get("OPENAI_API_KEY") == "fallback-key"
 
 

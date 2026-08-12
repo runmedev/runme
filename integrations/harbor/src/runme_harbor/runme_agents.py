@@ -67,21 +67,32 @@ async def _promote_fallback_auth(
     provider_key: str,
     fallback_key: str,
     native_auth_probe,
+    *,
+    native_auth_first: bool = False,
 ) -> _ProviderAuthSource:
+    fallback = source._get_env(fallback_key)
+    if native_auth_first and fallback:
+        native_auth = await native_auth_probe(environment, env)
+        if native_auth is True:
+            return "native"
+        if native_auth is None:
+            return "indeterminate"
+
     if source._has_env(provider_key):
         return "explicit"
 
-    fallback = source._get_env(fallback_key)
     if not fallback:
         return "unconfigured"
 
-    native_auth = await native_auth_probe(environment, env)
-    if native_auth is False:
-        env[provider_key] = fallback
-        return "fallback"
-    if native_auth is True:
-        return "native"
-    return "indeterminate"
+    if not native_auth_first:
+        native_auth = await native_auth_probe(environment, env)
+        if native_auth is True:
+            return "native"
+        if native_auth is None:
+            return "indeterminate"
+
+    env[provider_key] = fallback
+    return "fallback"
 
 
 class RunmeAntigravityCli(AntigravityCli):
@@ -464,7 +475,9 @@ class RunmeCodex(Codex):
     ) -> bool | None:
         return await _command_succeeds(
             environment,
-            "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi; codex login status",
+            "unset OPENAI_API_KEY OPENAI_BASE_URL; "
+            "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi; "
+            "codex login status",
             env=env,
         )
 
@@ -484,6 +497,7 @@ class RunmeCodex(Codex):
             "OPENAI_API_KEY",
             _OPENAI_FALLBACK_ENV,
             self._has_native_auth,
+            native_auth_first=True,
         )
         route_through_configured_base_url = auth_source not in {
             "native",
@@ -511,12 +525,11 @@ class RunmeCodex(Codex):
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
         session_files_before = self._snapshot_session_files()
-        env, route_through_configured_base_url = (
-            await self._agent_env_and_router_state(environment)
-        )
-        base_url_arg = (
-            self._openai_base_url_arg()
-            if route_through_configured_base_url
+        env, route_through_configured_base_url = await self._agent_env_and_router_state(environment)
+        base_url_arg = self._openai_base_url_arg() if route_through_configured_base_url else ""
+        native_auth_arg = (
+            "unset OPENAI_API_KEY OPENAI_BASE_URL\n"
+            if not route_through_configured_base_url
             else ""
         )
 
@@ -525,6 +538,7 @@ class RunmeCodex(Codex):
                 environment,
                 command=(
                     "set -o pipefail\n"
+                    f"{native_auth_arg}"
                     "if [ -s ~/.nvm/nvm.sh ]; then . ~/.nvm/nvm.sh; fi\n"
                     "codex exec "
                     "--dangerously-bypass-approvals-and-sandbox "
