@@ -78,7 +78,11 @@ def test_runme_codex_routes_through_process_local_base_url(
 
     command = calls[0][0]
     assert "codex exec " in command
-    assert "-c 'openai_base_url=" in command
+    assert "model_provider" in command
+    assert "model_providers.runme_router.base_url" in command
+    assert "model_providers.runme_router.env_key" in command
+    assert "model_providers.runme_router.wire_api" in command
+    assert "model_providers.runme_router.supports_websockets=false" in command
     assert '\\"quoted\\"' in command
     assert "OPENAI_BASE_URL" not in command
 
@@ -145,7 +149,7 @@ def test_runme_codex_native_login_bypasses_router_base_url(
     asyncio.run(agent.run("write result.txt", environment, object()))
 
     command, env = calls[0]
-    assert "openai_base_url" not in command
+    assert "model_provider" not in command
     assert "unset OPENAI_API_KEY OPENAI_BASE_URL\n" in command
     assert "OPENAI_API_KEY" not in (env or {})
 
@@ -179,7 +183,9 @@ def test_runme_codex_promoted_fallback_keeps_router_base_url(
     asyncio.run(agent.run("write result.txt", environment, object()))
 
     command, env = calls[0]
-    assert "openai_base_url" in command
+    assert "model_provider" in command
+    assert "model_providers.runme_router.base_url" in command
+    assert "model_providers.runme_router.supports_websockets=false" in command
     assert "unset OPENAI_API_KEY OPENAI_BASE_URL\n" not in command
     assert (env or {}).get("OPENAI_API_KEY") == "fallback-key"
 

@@ -20,6 +20,7 @@ from harbor.models.trial.paths import EnvironmentPaths
 
 _OPENAI_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_OPENAI_API_KEY"
 _ANTHROPIC_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY"
+_CODEX_ROUTER_PROVIDER = "runme_router"
 
 _ProviderAuthSource = Literal[
     "explicit",
@@ -505,11 +506,20 @@ class RunmeCodex(Codex):
         }
         return env, route_through_configured_base_url
 
-    def _openai_base_url_arg(self) -> str:
+    def _router_provider_args(self) -> str:
         base_url = self._get_env("OPENAI_BASE_URL")
         if not base_url:
             return ""
-        return f"-c {_config_arg('openai_base_url', base_url)} "
+        provider = f"model_providers.{_CODEX_ROUTER_PROVIDER}"
+        settings = (
+            ("model_provider", _CODEX_ROUTER_PROVIDER),
+            (f"{provider}.name", "Runme Router"),
+            (f"{provider}.base_url", base_url),
+            (f"{provider}.env_key", "OPENAI_API_KEY"),
+            (f"{provider}.wire_api", "responses"),
+        )
+        args = "".join(f"-c {_config_arg(key, value)} " for key, value in settings)
+        return f"{args}-c {provider}.supports_websockets=false "
 
     @with_prompt_template
     async def run(
@@ -526,7 +536,7 @@ class RunmeCodex(Codex):
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
         session_files_before = self._snapshot_session_files()
         env, route_through_configured_base_url = await self._agent_env_and_router_state(environment)
-        base_url_arg = self._openai_base_url_arg() if route_through_configured_base_url else ""
+        provider_args = self._router_provider_args() if route_through_configured_base_url else ""
         native_auth_arg = (
             "unset OPENAI_API_KEY OPENAI_BASE_URL\n"
             if not route_through_configured_base_url
@@ -543,7 +553,7 @@ class RunmeCodex(Codex):
                     "codex exec "
                     "--dangerously-bypass-approvals-and-sandbox "
                     "--skip-git-repo-check "
-                    f"{base_url_arg}"
+                    f"{provider_args}"
                     f"{model_arg}"
                     "--json "
                     "--enable unified_exec "
