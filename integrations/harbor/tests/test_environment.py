@@ -111,6 +111,52 @@ def test_environment_starts_runme_harbor_stdio(
     }
 
 
+def test_exec_merges_persistent_per_call_and_scoped_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    environment = _make_env(
+        tmp_path,
+        persistent_env={
+            "PERSISTENT_ENV": "yes",
+            "SHARED": "persistent",
+        },
+    )
+
+    asyncio.run(environment.start(force_build=False))
+    token = environment._exec_env_overlays.set(
+        (
+            {
+                "SCOPED_ENV": "yes",
+                "SHARED": "scoped",
+            },
+        )
+    )
+    try:
+        asyncio.run(
+            environment.exec(
+                "env",
+                env={
+                    "PER_EXEC_ENV": "yes",
+                    "SHARED": "per-exec",
+                },
+            )
+        )
+    finally:
+        environment._exec_env_overlays.reset(token)
+
+    request_env = FakeClient.instances[0].requests[-1]["exec"]["env"]
+    assert "PERSISTENT_ENV=yes" in request_env
+    assert "PER_EXEC_ENV=yes" in request_env
+    assert "SCOPED_ENV=yes" in request_env
+    assert "SHARED=scoped" in request_env
+    assert "SHARED=per-exec" not in request_env
+    assert "SHARED=persistent" not in request_env
+
+
 def test_stdio_client_allows_large_protojson_lines(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
