@@ -572,7 +572,7 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
-	opts.AgentKwargs = []string{"reasoning_effort=xhigh", "sandbox_mode=workspace-write"}
+	opts.AgentKwargs = []string{"reasoning_effort=xhigh", "sandbox_mode=workspace-write", "route_oauth_credentials=false"}
 
 	err := NewEvalRunner(opts).Run([]string{path})
 	if err != nil {
@@ -590,9 +590,22 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 		"--n-concurrent", "1",
 		"--agent-kwarg", "reasoning_effort=xhigh",
 		"--agent-kwarg", "sandbox_mode=workspace-write",
+		"--agent-kwarg", "route_oauth_credentials=false",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalRejectsInvalidOAuthRoutingPolicy(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.AgentKwargs = []string{"route_oauth_credentials=yes"}
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err == nil || !strings.Contains(err.Error(), "route_oauth_credentials agent kwarg must be true or false") {
+		t.Fatalf("error = %v", err)
 	}
 }
 

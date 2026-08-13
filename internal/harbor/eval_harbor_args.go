@@ -85,6 +85,15 @@ func (b harborRunArgsBuilder) validate() error {
 	if environmentHarborFlag.Present(b.passthrough) {
 		return fmt.Errorf("use runme eval --env instead of passing Harbor environment flags after --")
 	}
+	for _, kwarg := range b.opts.AgentKwargs {
+		name, value, ok := strings.Cut(kwarg, "=")
+		if strings.TrimSpace(name) != "route_oauth_credentials" {
+			continue
+		}
+		if !ok || (strings.ToLower(strings.TrimSpace(value)) != "true" && strings.ToLower(strings.TrimSpace(value)) != "false") {
+			return fmt.Errorf("route_oauth_credentials agent kwarg must be true or false")
+		}
+	}
 	return nil
 }
 

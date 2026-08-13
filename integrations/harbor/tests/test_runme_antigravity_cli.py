@@ -106,7 +106,7 @@ def test_runme_antigravity_cli_can_use_local_default_model(tmp_path: Path) -> No
     assert "--prompt='write result.txt'" in calls[1][0]
 
 
-def test_runme_antigravity_cli_does_not_promote_google_fallback(
+def test_runme_antigravity_cli_promotes_google_fallback(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -136,9 +136,80 @@ def test_runme_antigravity_cli_does_not_promote_google_fallback(
 
     for _, env in calls[:2]:
         assert env.get("GEMINI_CLI_TRUST_WORKSPACE") == "true"
-        assert "GEMINI_API_KEY" not in env
+        assert env["GEMINI_API_KEY"] == "fallback-key"
         assert "GOOGLE_API_KEY" not in env
         assert "RUNME_ROUTER_FALLBACK_GOOGLE_API_KEY" not in env
+
+
+@pytest.mark.parametrize("route_oauth_credentials", [False, "false"])
+def test_runme_antigravity_cli_native_auth_bypasses_router_by_default(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    route_oauth_credentials: bool | str,
+) -> None:
+    for var in (
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "RUNME_ROUTER_FALLBACK_GOOGLE_API_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("GOOGLE_GEMINI_BASE_URL", "https://router.test/gemini")
+    monkeypatch.setenv("GOOGLE_VERTEX_BASE_URL", "https://router.test/vertex")
+    agent = RunmeAntigravityCli(
+        logs_dir=tmp_path,
+        route_oauth_credentials=route_oauth_credentials,
+    )
+    calls: list[tuple[str, dict[str, str] | None]] = []
+
+    async def fake_exec_as_agent(
+        _environment: Any,
+        command: str,
+        env: dict[str, str] | None = None,
+    ) -> None:
+        calls.append((command, env))
+
+    agent.exec_as_agent = fake_exec_as_agent
+    agent.populate_context_post_run = lambda _context: None
+    asyncio.run(agent.run("write result.txt", FakeEnvironment(), object()))
+
+    for _, env in calls[:2]:
+        assert "GOOGLE_GEMINI_BASE_URL" not in (env or {})
+        assert "GOOGLE_VERTEX_BASE_URL" not in (env or {})
+
+
+def test_runme_antigravity_cli_routes_native_auth_when_enabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("RUNME_ROUTER_FALLBACK_GOOGLE_API_KEY", raising=False)
+    monkeypatch.setenv("GOOGLE_GEMINI_BASE_URL", "https://router.test/gemini")
+    monkeypatch.setenv("GOOGLE_VERTEX_BASE_URL", "https://router.test/vertex")
+    agent = RunmeAntigravityCli(logs_dir=tmp_path, route_oauth_credentials=True)
+    calls: list[tuple[str, dict[str, str] | None]] = []
+
+    async def fake_exec_as_agent(
+        _environment: Any,
+        command: str,
+        env: dict[str, str] | None = None,
+    ) -> None:
+        calls.append((command, env))
+
+    agent.exec_as_agent = fake_exec_as_agent
+    agent.populate_context_post_run = lambda _context: None
+    asyncio.run(agent.run("write result.txt", FakeEnvironment(), object()))
+
+    assert calls[0][1]["GOOGLE_GEMINI_BASE_URL"] == "https://router.test/gemini"
+    assert calls[0][1]["GOOGLE_VERTEX_BASE_URL"] == "https://router.test/vertex"
+
+
+@pytest.mark.parametrize("value", ["yes", "0", 1, None])
+def test_runme_antigravity_cli_rejects_invalid_oauth_routing_policy(
+    tmp_path: Path, value: object
+) -> None:
+    with pytest.raises(ValueError, match="route_oauth_credentials must be true or false"):
+        RunmeAntigravityCli(logs_dir=tmp_path, route_oauth_credentials=value)
 
 
 def test_runme_antigravity_cli_rejects_unqualified_model(tmp_path: Path) -> None:

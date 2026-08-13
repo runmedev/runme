@@ -20,6 +20,7 @@ from harbor.models.trial.paths import EnvironmentPaths
 
 _OPENAI_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_OPENAI_API_KEY"
 _ANTHROPIC_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY"
+_GOOGLE_FALLBACK_ENV = "RUNME_ROUTER_FALLBACK_GOOGLE_API_KEY"
 _CODEX_ROUTER_PROVIDER = "runme_router"
 
 _ProviderAuthSource = Literal[
@@ -61,6 +62,18 @@ def _copy_if_present(
         env[key] = value
 
 
+def _parse_bool_kwarg(name: str, value: bool | str) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized == "true":
+            return True
+        if normalized == "false":
+            return False
+    raise ValueError(f"{name} must be true or false")
+
+
 async def _promote_fallback_auth(
     source,
     environment: BaseEnvironment,
@@ -70,9 +83,13 @@ async def _promote_fallback_auth(
     native_auth_probe,
     *,
     native_auth_first: bool = False,
+    detect_native_auth: bool = False,
 ) -> _ProviderAuthSource:
     fallback = source._get_env(fallback_key)
-    if native_auth_first and fallback:
+    if source._has_env(provider_key) and not (native_auth_first and fallback):
+        return "explicit"
+
+    if fallback or detect_native_auth:
         native_auth = await native_auth_probe(environment, env)
         if native_auth is True:
             env.pop(provider_key, None)
@@ -86,15 +103,6 @@ async def _promote_fallback_auth(
 
     if not fallback:
         return "unconfigured"
-
-    if not native_auth_first:
-        native_auth = await native_auth_probe(environment, env)
-        if native_auth is True:
-            env.pop(provider_key, None)
-            return "native"
-        if native_auth is None:
-            env.pop(provider_key, None)
-            return "indeterminate"
 
     env[provider_key] = fallback
     return "fallback"
@@ -112,6 +120,12 @@ class RunmeAntigravityCli(AntigravityCli):
     @staticmethod
     def name() -> str:
         return "runme-antigravity-cli"
+
+    def __init__(self, *args, route_oauth_credentials: bool | str = False, **kwargs):
+        self.route_oauth_credentials = _parse_bool_kwarg(
+            "route_oauth_credentials", route_oauth_credentials
+        )
+        super().__init__(*args, **kwargs)
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -149,6 +163,14 @@ class RunmeAntigravityCli(AntigravityCli):
         ]
         for var in auth_vars:
             _copy_if_present(self, env, var)
+
+        has_explicit_key = self._has_env("GEMINI_API_KEY") or self._has_env("GOOGLE_API_KEY")
+        fallback = self._get_env(_GOOGLE_FALLBACK_ENV)
+        if not has_explicit_key and fallback:
+            env["GEMINI_API_KEY"] = fallback
+        elif not has_explicit_key and not self.route_oauth_credentials:
+            env.pop("GOOGLE_GEMINI_BASE_URL", None)
+            env.pop("GOOGLE_VERTEX_BASE_URL", None)
 
         skills_command = self._build_register_skills_command()
         if skills_command:
@@ -216,6 +238,12 @@ class RunmeClaudeCode(ClaudeCode):
     def name() -> str:
         return "runme-claude-code"
 
+    def __init__(self, *args, route_oauth_credentials: bool | str = False, **kwargs):
+        self.route_oauth_credentials = _parse_bool_kwarg(
+            "route_oauth_credentials", route_oauth_credentials
+        )
+        super().__init__(*args, **kwargs)
+
     async def install(self, environment: BaseEnvironment) -> None:
         return None
 
@@ -254,10 +282,12 @@ class RunmeClaudeCode(ClaudeCode):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(session_file, target)
 
-    def _model_arg(self) -> str:
+    def _model_arg(self, route_via_router: bool | None = None) -> str:
         if not self.model_name:
             return ""
-        if self._get_env("ANTHROPIC_BASE_URL"):
+        if route_via_router is None:
+            route_via_router = bool(self._get_env("ANTHROPIC_BASE_URL"))
+        if route_via_router:
             model = self.model_name
         elif self._is_bedrock_mode() and "/" in self.model_name:
             model = self.model_name.split("/", 1)[-1]
@@ -272,7 +302,8 @@ class RunmeClaudeCode(ClaudeCode):
     ) -> bool | None:
         return await _command_succeeds(
             environment,
-            'unset ANTHROPIC_API_KEY; export PATH="$HOME/.local/bin:$PATH"; '
+            "unset ANTHROPIC_API_KEY ANTHROPIC_BASE_URL; "
+            'export PATH="$HOME/.local/bin:$PATH"; '
             "claude auth status",
             env=env,
         )
@@ -311,7 +342,10 @@ class RunmeClaudeCode(ClaudeCode):
             _ANTHROPIC_FALLBACK_ENV,
             self._has_native_auth,
             native_auth_first=True,
+            detect_native_auth=bool(self._get_env("ANTHROPIC_BASE_URL")),
         )
+        if auth_source in {"native", "indeterminate"} and not self.route_oauth_credentials:
+            env.pop("ANTHROPIC_BASE_URL", None)
         return env, auth_source
 
     @with_prompt_template
@@ -322,16 +356,14 @@ class RunmeClaudeCode(ClaudeCode):
         context: AgentContext,
     ) -> None:
         escaped_instruction = shlex.quote(instruction)
-        model_arg = self._model_arg()
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
         session_files_before = self._snapshot_session_files()
         env, auth_source = await self._agent_env_and_auth_source(environment)
         native_auth_arg = (
-            "unset ANTHROPIC_API_KEY\n"
-            if auth_source in {"native", "indeterminate"}
-            else ""
+            "unset ANTHROPIC_API_KEY\n" if auth_source in {"native", "indeterminate"} else ""
         )
+        model_arg = self._model_arg(bool(env.get("ANTHROPIC_BASE_URL")))
 
         try:
             await self.exec_as_agent(
@@ -371,6 +403,12 @@ class RunmeCodex(Codex):
     @staticmethod
     def name() -> str:
         return "runme-codex"
+
+    def __init__(self, *args, route_oauth_credentials: bool | str = False, **kwargs):
+        self.route_oauth_credentials = _parse_bool_kwarg(
+            "route_oauth_credentials", route_oauth_credentials
+        )
+        super().__init__(*args, **kwargs)
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -517,6 +555,7 @@ class RunmeCodex(Codex):
             _OPENAI_FALLBACK_ENV,
             self._has_native_auth,
             native_auth_first=True,
+            detect_native_auth=bool(self._get_env("OPENAI_BASE_URL")),
         )
         return env, auth_source
 
@@ -558,7 +597,11 @@ class RunmeCodex(Codex):
         env, auth_source = await self._agent_env_and_router_state(environment)
         native_auth = auth_source in {"native", "indeterminate"}
         provider_args = (
-            self._native_router_args() if native_auth else self._router_provider_args()
+            self._native_router_args()
+            if native_auth and self.route_oauth_credentials
+            else self._router_provider_args()
+            if not native_auth
+            else ""
         )
         native_auth_arg = "unset OPENAI_API_KEY OPENAI_BASE_URL\n" if native_auth else ""
 

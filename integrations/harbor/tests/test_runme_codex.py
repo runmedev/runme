@@ -2,6 +2,8 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from runme_harbor.runme_agents import RunmeCodex
 
 
@@ -59,9 +61,14 @@ def test_runme_codex_routes_through_process_local_base_url(
         "OPENAI_BASE_URL",
         'https://router.test/v1?tenant=runme&note="quoted"',
     )
+    monkeypatch.setenv("OPENAI_API_KEY", "explicit-key")
 
     environment = FakeEnvironment()
-    agent = RunmeCodex(logs_dir=tmp_path, model_name="openai/gpt-5")
+    agent = RunmeCodex(
+        logs_dir=tmp_path,
+        model_name="openai/gpt-5",
+        route_oauth_credentials="true",
+    )
     calls: list[tuple[str, dict[str, str] | None]] = []
 
     async def fake_exec_as_agent(
@@ -132,7 +139,11 @@ def test_runme_codex_native_login_routes_with_builtin_provider(
     monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:4000/router/v1/openai/v1")
 
     environment = FakeEnvironment()
-    agent = RunmeCodex(logs_dir=tmp_path, model_name="openai/gpt-5")
+    agent = RunmeCodex(
+        logs_dir=tmp_path,
+        model_name="openai/gpt-5",
+        route_oauth_credentials=True,
+    )
     calls: list[tuple[str, dict[str, str] | None]] = []
 
     async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
@@ -157,6 +168,42 @@ def test_runme_codex_native_login_routes_with_builtin_provider(
     assert "localhost:4000/router/v1/openai/v1" in command
     assert "unset OPENAI_API_KEY OPENAI_BASE_URL\n" in command
     assert "OPENAI_API_KEY" not in (env or {})
+
+
+def test_runme_codex_native_login_bypasses_router_by_default(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_OPENAI_API_KEY", "fallback-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://router.test/v1")
+    agent = RunmeCodex(logs_dir=tmp_path, model_name="openai/gpt-5")
+    calls: list[tuple[str, dict[str, str] | None]] = []
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return True
+
+    async def fake_exec_as_agent(
+        _environment: Any,
+        command: str,
+        env: dict[str, str] | None = None,
+    ) -> None:
+        calls.append((command, env))
+
+    agent._has_native_auth = fake_has_native_auth
+    agent.exec_as_agent = fake_exec_as_agent
+    agent.populate_context_post_run = lambda _context: None
+
+    asyncio.run(agent.run("write result.txt", FakeEnvironment(), object()))
+
+    command, _ = calls[0]
+    assert "model_provider" not in command
+    assert "openai_base_url" not in command
+
+
+@pytest.mark.parametrize("value", ["yes", "0", 1, None])
+def test_runme_codex_rejects_invalid_oauth_routing_policy(tmp_path: Path, value: object) -> None:
+    with pytest.raises(ValueError, match="route_oauth_credentials must be true or false"):
+        RunmeCodex(logs_dir=tmp_path, route_oauth_credentials=value)
 
 
 def test_runme_codex_promoted_fallback_keeps_router_base_url(

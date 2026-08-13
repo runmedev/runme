@@ -2,6 +2,8 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from runme_harbor.runme_agents import RunmeClaudeCode
 
 
@@ -120,7 +122,7 @@ def test_runme_claude_code_native_login_wins_over_ambient_key_and_fallback(
     env = asyncio.run(agent._agent_env(environment))
 
     assert "ANTHROPIC_API_KEY" not in env
-    assert env["ANTHROPIC_BASE_URL"] == "https://router.test/v1"
+    assert "ANTHROPIC_BASE_URL" not in env
 
 
 def test_runme_claude_code_native_run_unsets_inherited_api_key(
@@ -159,16 +161,14 @@ def test_runme_claude_code_native_probe_unsets_api_key(tmp_path: Path) -> None:
     agent = RunmeClaudeCode(logs_dir=tmp_path)
     calls: list[tuple[str, dict[str, str] | None]] = []
 
-    async def fake_exec(
-        *, command: str, env: dict[str, str] | None = None, **_kwargs: Any
-    ) -> Any:
+    async def fake_exec(*, command: str, env: dict[str, str] | None = None, **_kwargs: Any) -> Any:
         calls.append((command, env))
         return type("Result", (), {"return_code": 0})()
 
     environment.exec = fake_exec
 
     assert asyncio.run(agent._has_native_auth(environment, {"ANTHROPIC_API_KEY": "key"}))
-    assert calls[0][0].startswith("unset ANTHROPIC_API_KEY;")
+    assert calls[0][0].startswith("unset ANTHROPIC_API_KEY ANTHROPIC_BASE_URL;")
 
 
 def test_runme_claude_code_native_login_wins_over_fallback(
@@ -227,7 +227,7 @@ def test_runme_claude_code_fails_closed_when_login_detection_is_indeterminate(
     assert "ANTHROPIC_API_KEY" not in asyncio.run(agent._agent_env(environment))
 
 
-def test_runme_claude_code_passes_base_url_through_process_env(
+def test_runme_claude_code_indeterminate_auth_bypasses_base_url_by_default(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -238,7 +238,34 @@ def test_runme_claude_code_passes_base_url_through_process_env(
 
     env = asyncio.run(agent._agent_env(environment))
 
+    assert "ANTHROPIC_BASE_URL" not in env
+
+
+def test_runme_claude_code_routes_native_auth_when_enabled(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY", "fallback-key")
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://router.test/v1")
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path, route_oauth_credentials="true")
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return True
+
+    agent._has_native_auth = fake_has_native_auth
+    env = asyncio.run(agent._agent_env(environment))
+
+    assert "ANTHROPIC_API_KEY" not in env
     assert env["ANTHROPIC_BASE_URL"] == "https://router.test/v1"
+
+
+@pytest.mark.parametrize("value", ["yes", "0", 1, None])
+def test_runme_claude_code_rejects_invalid_oauth_routing_policy(
+    tmp_path: Path, value: object
+) -> None:
+    with pytest.raises(ValueError, match="route_oauth_credentials must be true or false"):
+        RunmeClaudeCode(logs_dir=tmp_path, route_oauth_credentials=value)
 
 
 def test_runme_claude_code_collects_only_new_sessions(
