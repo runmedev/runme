@@ -14,21 +14,23 @@ import (
 )
 
 type evalOptions struct {
-	agent           string
-	taskDir         string
-	jobsDir         string
-	ask             bool
-	agentKwargs     []string
-	agentEnv        []string
-	model           string
-	env             string
-	runmeBin        string
-	runmeArgs       []string
-	runmeHarbor     string
-	debug           bool
-	jobsDirExplicit bool
-	stdout          io.Writer
-	stderr          io.Writer
+	agent              string
+	taskDir            string
+	jobsDir            string
+	ask                bool
+	agentKwargs        []string
+	agentEnv           []string
+	verifierEnv        []string
+	verifierEnvDefault []string
+	model              string
+	env                string
+	runmeBin           string
+	runmeArgs          []string
+	runmeHarbor        string
+	debug              bool
+	jobsDirExplicit    bool
+	stdout             io.Writer
+	stderr             io.Writer
 }
 
 type evalRunner interface {
@@ -110,6 +112,8 @@ func newEvalRunCmd(use, short, long string) *cobra.Command {
 	flags.BoolVar(&opts.ask, "ask", false, "Do not auto-accept Harbor confirmation prompts")
 	flags.StringArrayVar(&opts.agentKwargs, "agent-kwarg", nil, "Harbor agent kwarg; can be repeated; alias: --ak")
 	flags.StringArrayVar(&opts.agentEnv, "agent-env", nil, "Environment variable to pass to the agent in KEY=VALUE format; can be repeated; alias: --ae")
+	flags.StringArrayVar(&opts.verifierEnv, "verifier-env", nil, "Environment variable to pass to the verifier in KEY=VALUE format; can be repeated")
+	flags.StringArrayVar(&opts.verifierEnvDefault, "verifier-env-default", nil, "Fallback environment variable for the verifier in KEY=VALUE format; can be repeated")
 	flags.StringVar(&opts.model, "model", "", "Harbor agent model")
 	flags.StringVarP(&opts.env, "env", "e", "", `Harbor environment to use. Defaults to "runme"`)
 	flags.StringVar(&opts.runmeBin, "runme-bin", "", "Runme binary used by the Harbor environment")
@@ -122,22 +126,24 @@ func newEvalRunCmd(use, short, long string) *cobra.Command {
 
 func runEval(opts evalOptions, args []string) error {
 	err := newEvalRunner(harbor.EvalOptions{
-		Agent:           opts.agent,
-		TaskDir:         opts.taskDir,
-		JobsDir:         opts.jobsDir,
-		Ask:             opts.ask,
-		AgentKwargs:     opts.agentKwargs,
-		AgentEnv:        opts.agentEnv,
-		Model:           opts.model,
-		Env:             opts.env,
-		RunmeBin:        opts.runmeBin,
-		RunmeArgs:       opts.runmeArgs,
-		RunmeHarborBin:  opts.runmeHarbor,
-		Debug:           opts.debug,
-		JobsDirExplicit: opts.jobsDirExplicit,
-		Stdout:          opts.stdout,
-		Stderr:          opts.stderr,
-		Preflight:       true,
+		Agent:              opts.agent,
+		TaskDir:            opts.taskDir,
+		JobsDir:            opts.jobsDir,
+		Ask:                opts.ask,
+		AgentKwargs:        opts.agentKwargs,
+		AgentEnv:           opts.agentEnv,
+		VerifierEnv:        opts.verifierEnv,
+		VerifierEnvDefault: opts.verifierEnvDefault,
+		Model:              opts.model,
+		Env:                opts.env,
+		RunmeBin:           opts.runmeBin,
+		RunmeArgs:          opts.runmeArgs,
+		RunmeHarborBin:     opts.runmeHarbor,
+		Debug:              opts.debug,
+		JobsDirExplicit:    opts.jobsDirExplicit,
+		Stdout:             opts.stdout,
+		Stderr:             opts.stderr,
+		Preflight:          true,
 	}).Run(args)
 	if err == nil {
 		return nil

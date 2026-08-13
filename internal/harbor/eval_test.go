@@ -572,7 +572,8 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
-	opts.AgentKwargs = []string{"reasoning_effort=xhigh", "sandbox_mode=workspace-write"}
+	opts.Agent = "codex"
+	opts.AgentKwargs = []string{"reasoning_effort=xhigh", "sandbox_mode=workspace-write", "route_oauth_credentials=false"}
 
 	err := NewEvalRunner(opts).Run([]string{path})
 	if err != nil {
@@ -585,14 +586,49 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 		mustAbs(t, path),
 		"--jobs-dir", defaultJobsDir(t),
 		"--env", runmeEnvironmentImportPath,
-		"--agent", "oracle",
+		"--agent", "runme_harbor.runme_agents:RunmeCodex",
 		"-y",
 		"--n-concurrent", "1",
 		"--agent-kwarg", "reasoning_effort=xhigh",
 		"--agent-kwarg", "sandbox_mode=workspace-write",
+		"--agent-kwarg", "route_oauth_credentials=false",
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalIgnoresOAuthRoutingPolicyForUnsupportedRunmeAgents(t *testing.T) {
+	for _, agent := range []string{"oracle", "nop", "cursor-cli", "openclaw"} {
+		t.Run(agent, func(t *testing.T) {
+			path := t.TempDir()
+			var calls []recordedCommand
+			opts := testEvalOptions(t, &calls, io.Discard)
+			opts.Agent = agent
+			opts.AgentKwargs = []string{"route_oauth_credentials=true"}
+
+			if err := NewEvalRunner(opts).Run([]string{path}); err != nil {
+				t.Fatal(err)
+			}
+
+			for _, arg := range calls[1].args {
+				if arg == "route_oauth_credentials=true" {
+					t.Fatalf("args = %#v", calls[1].args)
+				}
+			}
+		})
+	}
+}
+
+func TestRunEvalRejectsInvalidOAuthRoutingPolicy(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.AgentKwargs = []string{"route_oauth_credentials=yes"}
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err == nil || !strings.Contains(err.Error(), "route_oauth_credentials agent kwarg must be true or false") {
+		t.Fatalf("error = %v", err)
 	}
 }
 
@@ -621,6 +657,51 @@ func TestRunEvalDelegatesAgentEnv(t *testing.T) {
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalDelegatesVerifierEnvAndDefaults(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.VerifierEnv = []string{"OPENAI_BASE_URL=https://router.test/v1"}
+	opts.VerifierEnvDefault = []string{"RUNME_TEST_VERIFIER_KEY=managed-key"}
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		"--path", mustAbs(t, path),
+		"--jobs-dir", defaultJobsDir(t),
+		"--env", runmeEnvironmentImportPath,
+		"--agent", "oracle",
+		"-y",
+		"--n-concurrent", "1",
+		"--verifier-env", "OPENAI_BASE_URL=https://router.test/v1",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if got := envValue(calls[1].env, "RUNME_TEST_VERIFIER_KEY"); got != "managed-key" {
+		t.Fatalf("RUNME_TEST_VERIFIER_KEY = %q, want managed-key", got)
+	}
+}
+
+func TestRunEvalVerifierEnvDefaultPreservesHostValue(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "host-key")
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.VerifierEnvDefault = []string{"OPENAI_API_KEY=managed-key"}
+
+	if err := NewEvalRunner(opts).Run([]string{path}); err != nil {
+		t.Fatal(err)
+	}
+	if got := envValue(calls[1].env, "OPENAI_API_KEY"); got != "host-key" {
+		t.Fatalf("OPENAI_API_KEY = %q, want host-key", got)
 	}
 }
 
