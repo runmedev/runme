@@ -572,7 +572,7 @@ class RunmeCodex(Codex):
             (f"{provider}.wire_api", "responses"),
         )
         args = "".join(f"-c {_config_arg(key, value)} " for key, value in settings)
-        return f"{args}-c {provider}.supports_websockets=false "
+        return f"{args}-c {provider}.supports_websockets=true "
 
     def _native_router_args(self) -> str:
         base_url = self._get_env("OPENAI_BASE_URL")
