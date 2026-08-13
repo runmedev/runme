@@ -123,6 +123,23 @@ def test_runme_claude_code_native_login_wins_over_ambient_key_and_fallback(
     assert env["ANTHROPIC_BASE_URL"] == "https://router.test/v1"
 
 
+def test_runme_claude_code_native_probe_unsets_api_key(tmp_path: Path) -> None:
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path)
+    calls: list[tuple[str, dict[str, str] | None]] = []
+
+    async def fake_exec(
+        *, command: str, env: dict[str, str] | None = None, **_kwargs: Any
+    ) -> Any:
+        calls.append((command, env))
+        return type("Result", (), {"return_code": 0})()
+
+    environment.exec = fake_exec
+
+    assert asyncio.run(agent._has_native_auth(environment, {"ANTHROPIC_API_KEY": "key"}))
+    assert calls[0][0].startswith("unset ANTHROPIC_API_KEY;")
+
+
 def test_runme_claude_code_native_login_wins_over_fallback(
     tmp_path: Path,
     monkeypatch,

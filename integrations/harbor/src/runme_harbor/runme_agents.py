@@ -75,6 +75,7 @@ async def _promote_fallback_auth(
     if native_auth_first and fallback:
         native_auth = await native_auth_probe(environment, env)
         if native_auth is True:
+            env.pop(provider_key, None)
             return "native"
         if native_auth is None:
             return "indeterminate"
@@ -88,6 +89,7 @@ async def _promote_fallback_auth(
     if not native_auth_first:
         native_auth = await native_auth_probe(environment, env)
         if native_auth is True:
+            env.pop(provider_key, None)
             return "native"
         if native_auth is None:
             return "indeterminate"
@@ -268,7 +270,8 @@ class RunmeClaudeCode(ClaudeCode):
     ) -> bool | None:
         return await _command_succeeds(
             environment,
-            'export PATH="$HOME/.local/bin:$PATH"; claude auth status',
+            'unset ANTHROPIC_API_KEY; export PATH="$HOME/.local/bin:$PATH"; '
+            "claude auth status",
             env=env,
         )
 
