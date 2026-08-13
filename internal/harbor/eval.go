@@ -17,27 +17,29 @@ const (
 var ErrRunmeHarborMissing = errors.New("runme-harbor missing")
 
 type EvalOptions struct {
-	Agent           string
-	TaskDir         string
-	JobsDir         string
-	Ask             bool
-	AgentKwargs     []string
-	AgentEnv        []string
-	Model           string
-	Env             string
-	RunmeBin        string
-	RunmeArgs       []string
-	RunmeHarborBin  string
-	Debug           bool
-	JobsDirExplicit bool
-	CommandRun      CommandRunFunc
-	LookPath        func(string) (string, error)
-	Executable      func() (string, error)
-	Stdin           io.Reader
-	Stdout          io.Writer
-	Stderr          io.Writer
-	ExtraEnv        []string
-	Preflight       bool
+	Agent              string
+	TaskDir            string
+	JobsDir            string
+	Ask                bool
+	AgentKwargs        []string
+	AgentEnv           []string
+	VerifierEnv        []string
+	VerifierEnvDefault []string
+	Model              string
+	Env                string
+	RunmeBin           string
+	RunmeArgs          []string
+	RunmeHarborBin     string
+	Debug              bool
+	JobsDirExplicit    bool
+	CommandRun         CommandRunFunc
+	LookPath           func(string) (string, error)
+	Executable         func() (string, error)
+	Stdin              io.Reader
+	Stdout             io.Writer
+	Stderr             io.Writer
+	ExtraEnv           []string
+	Preflight          bool
 }
 
 type CommandRunFunc func(name string, args []string, workingDir string, env []string, stdin io.Reader, stdout, stderr io.Writer) error
@@ -111,6 +113,10 @@ func (r *EvalRunner) Run(args []string) error {
 		env = setEnv(env, "RUNME_ARGS", joinShellArgs(opts.RunmeArgs))
 	}
 	env = append(env, opts.ExtraEnv...)
+	env, err = applyEnvDefaults(env, opts.VerifierEnvDefault)
+	if err != nil {
+		return fmt.Errorf("apply verifier environment defaults: %w", err)
+	}
 
 	delegatedArgs, err := harborRunArgsBuilder{
 		datasetPath: paths.delegateDatasetPath,
@@ -152,6 +158,28 @@ func (r *EvalRunner) Run(args []string) error {
 	}
 	r.syncMetadata(runmeHarbor, paths.delegateJobsDir, paths.executionCwd, env)
 	return err
+}
+
+func applyEnvDefaults(env []string, defaults []string) ([]string, error) {
+	for _, assignment := range defaults {
+		key, value, ok := strings.Cut(assignment, "=")
+		key = strings.TrimSpace(key)
+		if !ok || key == "" {
+			return nil, fmt.Errorf("invalid environment assignment %q: expected KEY=VALUE", assignment)
+		}
+		prefix := key + "="
+		configured := false
+		for _, item := range env {
+			if strings.HasPrefix(item, prefix) {
+				configured = true
+				break
+			}
+		}
+		if !configured {
+			env = append(env, prefix+value)
+		}
+	}
+	return env, nil
 }
 
 func (r *EvalRunner) syncMetadata(runmeHarbor, jobsDir, workingDir string, env []string) {

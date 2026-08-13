@@ -624,6 +624,51 @@ func TestRunEvalDelegatesAgentEnv(t *testing.T) {
 	}
 }
 
+func TestRunEvalDelegatesVerifierEnvAndDefaults(t *testing.T) {
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.VerifierEnv = []string{"OPENAI_BASE_URL=https://router.test/v1"}
+	opts.VerifierEnvDefault = []string{"RUNME_TEST_VERIFIER_KEY=managed-key"}
+
+	err := NewEvalRunner(opts).Run([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"run",
+		"--path", mustAbs(t, path),
+		"--jobs-dir", defaultJobsDir(t),
+		"--env", runmeEnvironmentImportPath,
+		"--agent", "oracle",
+		"-y",
+		"--n-concurrent", "1",
+		"--verifier-env", "OPENAI_BASE_URL=https://router.test/v1",
+	}
+	if !reflect.DeepEqual(calls[1].args, want) {
+		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+	if got := envValue(calls[1].env, "RUNME_TEST_VERIFIER_KEY"); got != "managed-key" {
+		t.Fatalf("RUNME_TEST_VERIFIER_KEY = %q, want managed-key", got)
+	}
+}
+
+func TestRunEvalVerifierEnvDefaultPreservesHostValue(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "host-key")
+	path := t.TempDir()
+	var calls []recordedCommand
+	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.VerifierEnvDefault = []string{"OPENAI_API_KEY=managed-key"}
+
+	if err := NewEvalRunner(opts).Run([]string{path}); err != nil {
+		t.Fatal(err)
+	}
+	if got := envValue(calls[1].env, "OPENAI_API_KEY"); got != "host-key" {
+		t.Fatalf("OPENAI_API_KEY = %q, want host-key", got)
+	}
+}
+
 func TestRunEvalPreservesPassthroughModel(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand

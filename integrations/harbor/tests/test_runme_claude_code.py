@@ -93,12 +93,34 @@ def test_runme_claude_code_preserves_explicit_anthropic_key_over_fallback(
     environment = FakeEnvironment()
     agent = RunmeClaudeCode(logs_dir=tmp_path)
 
-    async def fail_if_called(_environment: Any, _env: dict[str, str]) -> bool:
-        raise AssertionError("native auth should not be probed when explicit key exists")
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return False
 
-    agent._has_native_auth = fail_if_called
+    agent._has_native_auth = fake_has_native_auth
 
     assert "ANTHROPIC_API_KEY" not in asyncio.run(agent._agent_env(environment))
+
+
+def test_runme_claude_code_native_login_wins_over_ambient_key_and_fallback(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "judge-key")
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY", "fallback-key")
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://router.test/v1")
+
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path)
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return True
+
+    agent._has_native_auth = fake_has_native_auth
+
+    env = asyncio.run(agent._agent_env(environment))
+
+    assert "ANTHROPIC_API_KEY" not in env
+    assert env["ANTHROPIC_BASE_URL"] == "https://router.test/v1"
 
 
 def test_runme_claude_code_native_login_wins_over_fallback(

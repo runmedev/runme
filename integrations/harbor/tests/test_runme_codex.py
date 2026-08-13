@@ -102,7 +102,10 @@ def test_runme_codex_uses_explicit_openai_key_when_native_login_is_absent(
 
     agent._has_native_auth = fake_has_native_auth
 
-    assert asyncio.run(agent._agent_env_and_router_state(environment)) == ({}, True)
+    assert asyncio.run(agent._agent_env_and_router_state(environment)) == (
+        {},
+        "explicit",
+    )
 
 
 def test_runme_codex_native_login_wins_over_fallback(tmp_path: Path, monkeypatch) -> None:
@@ -117,10 +120,10 @@ def test_runme_codex_native_login_wins_over_fallback(tmp_path: Path, monkeypatch
 
     agent._has_native_auth = fake_has_native_auth
 
-    assert asyncio.run(agent._agent_env_and_router_state(environment)) == ({}, False)
+    assert asyncio.run(agent._agent_env_and_router_state(environment)) == ({}, "native")
 
 
-def test_runme_codex_native_login_bypasses_router_base_url(
+def test_runme_codex_native_login_routes_with_builtin_provider(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -150,6 +153,8 @@ def test_runme_codex_native_login_bypasses_router_base_url(
 
     command, env = calls[0]
     assert "model_provider" not in command
+    assert "openai_base_url" in command
+    assert "localhost:4000/router/v1/openai/v1" in command
     assert "unset OPENAI_API_KEY OPENAI_BASE_URL\n" in command
     assert "OPENAI_API_KEY" not in (env or {})
 
@@ -207,7 +212,7 @@ def test_runme_codex_promotes_fallback_when_auth_gap_exists(
 
     assert asyncio.run(agent._agent_env_and_router_state(environment)) == (
         {"OPENAI_API_KEY": "fallback-key"},
-        True,
+        "fallback",
     )
 
 
@@ -226,7 +231,10 @@ def test_runme_codex_fails_closed_when_login_detection_is_indeterminate(
 
     agent._has_native_auth = fake_has_native_auth
 
-    assert asyncio.run(agent._agent_env_and_router_state(environment)) == ({}, False)
+    assert asyncio.run(agent._agent_env_and_router_state(environment)) == (
+        {},
+        "indeterminate",
+    )
 
 
 def test_runme_codex_collects_only_new_sessions(

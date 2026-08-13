@@ -299,6 +299,7 @@ class RunmeClaudeCode(ClaudeCode):
             "ANTHROPIC_API_KEY",
             _ANTHROPIC_FALLBACK_ENV,
             self._has_native_auth,
+            native_auth_first=True,
         )
         return env
 
@@ -489,7 +490,7 @@ class RunmeCodex(Codex):
     async def _agent_env_and_router_state(
         self,
         environment: BaseEnvironment,
-    ) -> tuple[dict[str, str], bool]:
+    ) -> tuple[dict[str, str], _ProviderAuthSource]:
         env: dict[str, str] = {}
         auth_source = await _promote_fallback_auth(
             self,
@@ -500,11 +501,7 @@ class RunmeCodex(Codex):
             self._has_native_auth,
             native_auth_first=True,
         )
-        route_through_configured_base_url = auth_source not in {
-            "native",
-            "indeterminate",
-        }
-        return env, route_through_configured_base_url
+        return env, auth_source
 
     def _router_provider_args(self) -> str:
         base_url = self._get_env("OPENAI_BASE_URL")
@@ -521,6 +518,12 @@ class RunmeCodex(Codex):
         args = "".join(f"-c {_config_arg(key, value)} " for key, value in settings)
         return f"{args}-c {provider}.supports_websockets=false "
 
+    def _native_router_args(self) -> str:
+        base_url = self._get_env("OPENAI_BASE_URL")
+        if not base_url:
+            return ""
+        return f"-c {_config_arg('openai_base_url', base_url)} "
+
     @with_prompt_template
     async def run(
         self,
@@ -535,13 +538,12 @@ class RunmeCodex(Codex):
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
         session_files_before = self._snapshot_session_files()
-        env, route_through_configured_base_url = await self._agent_env_and_router_state(environment)
-        provider_args = self._router_provider_args() if route_through_configured_base_url else ""
-        native_auth_arg = (
-            "unset OPENAI_API_KEY OPENAI_BASE_URL\n"
-            if not route_through_configured_base_url
-            else ""
+        env, auth_source = await self._agent_env_and_router_state(environment)
+        native_auth = auth_source in {"native", "indeterminate"}
+        provider_args = (
+            self._native_router_args() if native_auth else self._router_provider_args()
         )
+        native_auth_arg = "unset OPENAI_API_KEY OPENAI_BASE_URL\n" if native_auth else ""
 
         try:
             await self.exec_as_agent(

@@ -25,6 +25,7 @@ var (
 	modelHarborFlag       = harborFlag{names: []string{"--model"}}
 	agentKwargHarborFlag  = harborFlag{names: []string{"--agent-kwarg", "--ak"}}
 	agentEnvHarborFlag    = harborFlag{names: []string{"--agent-env", "--ae"}}
+	verifierEnvHarborFlag = harborFlag{names: []string{"--verifier-env", "--ve"}}
 	environmentHarborFlag = harborFlag{
 		names:            []string{"--env", "-e", "--environment-import-path"},
 		allowJoinedShort: true,
@@ -78,6 +79,9 @@ func (b harborRunArgsBuilder) validate() error {
 	if len(b.opts.AgentEnv) > 0 && agentEnvHarborFlag.Present(b.passthrough) {
 		return fmt.Errorf("--agent-env cannot be used together with passthrough --agent-env/--ae; use only runme eval --agent-env")
 	}
+	if len(b.opts.VerifierEnv) > 0 && verifierEnvHarborFlag.Present(b.passthrough) {
+		return fmt.Errorf("--verifier-env cannot be used together with passthrough --verifier-env/--ve; use only runme eval --verifier-env")
+	}
 	if environmentHarborFlag.Present(b.passthrough) {
 		return fmt.Errorf("use runme eval --env instead of passing Harbor environment flags after --")
 	}
@@ -111,6 +115,9 @@ func (b harborRunArgsBuilder) extraArgs() []string {
 	}
 	for _, env := range b.opts.AgentEnv {
 		args = append(args, "--agent-env", env)
+	}
+	for _, env := range b.opts.VerifierEnv {
+		args = append(args, "--verifier-env", env)
 	}
 	if b.opts.Model != "" {
 		args = append(args, "--model", b.opts.Model)
