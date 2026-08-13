@@ -89,7 +89,7 @@ def test_runme_codex_routes_through_process_local_base_url(
     assert "model_providers.runme_router.base_url" in command
     assert "model_providers.runme_router.env_key" in command
     assert "model_providers.runme_router.wire_api" in command
-    assert "model_providers.runme_router.supports_websockets=false" in command
+    assert "model_providers.runme_router.supports_websockets=true" in command
     assert '\\"quoted\\"' in command
     assert "OPENAI_BASE_URL" not in command
 
@@ -237,7 +237,7 @@ def test_runme_codex_promoted_fallback_keeps_router_base_url(
     command, env = calls[0]
     assert "model_provider" in command
     assert "model_providers.runme_router.base_url" in command
-    assert "model_providers.runme_router.supports_websockets=false" in command
+    assert "model_providers.runme_router.supports_websockets=true" in command
     assert "unset OPENAI_API_KEY OPENAI_BASE_URL\n" not in command
     assert (env or {}).get("OPENAI_API_KEY") == "fallback-key"
 
