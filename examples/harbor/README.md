@@ -29,6 +29,15 @@ runme eval examples/harbor/datasets/runme-rewardkit \
   --agent oracle
 ```
 
+Run an LLM-as-a-judge task with the oracle:
+
+```sh {"name":"llm-judge-oracle"}
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+runme eval examples/harbor/datasets/runme-llm-judge \
+  --task-dir poem-judge \
+  --agent oracle
+```
+
 Run the same smoke task with Codex through Runme's Harbor adapter:
 
 ```sh {"name":"smoke-codex"}
@@ -54,11 +63,12 @@ runme eval examples/harbor/datasets/runme-rewardkit \
   --agent codex
 ```
 
-The dataset roots are `examples/harbor/datasets/runme-smoke` and
-`examples/harbor/datasets/runme-rewardkit`. Each `runme eval` creates Harbor
+The dataset roots are `examples/harbor/datasets/runme-smoke`,
+`examples/harbor/datasets/runme-rewardkit`, and
+`examples/harbor/datasets/runme-llm-judge`. Each `runme eval` creates Harbor
 job and trial metadata under `.runme/evals/jobs`. The `--task-dir` flag selects
-a task directory inside the dataset, such as `simple-agent` or
-`text-stats-reward`.
+a task directory inside the dataset, such as `simple-agent`,
+`text-stats-reward`, or `poem-judge`.
 
 ## Attribution
 
@@ -67,6 +77,11 @@ The `runme-rewardkit/text-stats-reward` task is adapted from Harbor's
 licensed under Apache-2.0. The Runme copy modifies paths, metadata,
 validation behavior, and scoring details for Runme's Harbor integration
 examples.
+
+The `runme-llm-judge/poem-judge` task is adapted from Harbor's
+[`examples/tasks/llm-judge-example`](https://github.com/harbor-framework/harbor/tree/main/examples/tasks/llm-judge-example),
+licensed under Apache-2.0. The Runme copy modifies paths, metadata, artifact
+capture, and reward detail output for Runme's Harbor integration examples.
 
 The `runme-smoke/simple-agent` task is original to Runme's Harbor integration
 example set.
