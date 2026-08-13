@@ -78,6 +78,7 @@ async def _promote_fallback_auth(
             env.pop(provider_key, None)
             return "native"
         if native_auth is None:
+            env.pop(provider_key, None)
             return "indeterminate"
 
     if source._has_env(provider_key):
@@ -92,6 +93,7 @@ async def _promote_fallback_auth(
             env.pop(provider_key, None)
             return "native"
         if native_auth is None:
+            env.pop(provider_key, None)
             return "indeterminate"
 
     env[provider_key] = fallback
@@ -293,9 +295,15 @@ class RunmeClaudeCode(ClaudeCode):
         return env
 
     async def _agent_env(self, environment: BaseEnvironment) -> dict[str, str]:
+        env, _ = await self._agent_env_and_auth_source(environment)
+        return env
+
+    async def _agent_env_and_auth_source(
+        self, environment: BaseEnvironment
+    ) -> tuple[dict[str, str], _ProviderAuthSource]:
         env = self._runtime_env()
         _copy_if_present(self, env, "ANTHROPIC_BASE_URL")
-        await _promote_fallback_auth(
+        auth_source = await _promote_fallback_auth(
             self,
             environment,
             env,
@@ -304,7 +312,7 @@ class RunmeClaudeCode(ClaudeCode):
             self._has_native_auth,
             native_auth_first=True,
         )
-        return env
+        return env, auth_source
 
     @with_prompt_template
     async def run(
@@ -318,13 +326,19 @@ class RunmeClaudeCode(ClaudeCode):
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
         session_files_before = self._snapshot_session_files()
-        env = await self._agent_env(environment)
+        env, auth_source = await self._agent_env_and_auth_source(environment)
+        native_auth_arg = (
+            "unset ANTHROPIC_API_KEY\n"
+            if auth_source in {"native", "indeterminate"}
+            else ""
+        )
 
         try:
             await self.exec_as_agent(
                 environment,
                 command=(
                     "set -o pipefail\n"
+                    f"{native_auth_arg}"
                     "claude --verbose --output-format=stream-json "
                     "--permission-mode=bypassPermissions "
                     f"{model_arg}"

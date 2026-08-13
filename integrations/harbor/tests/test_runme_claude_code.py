@@ -123,6 +123,37 @@ def test_runme_claude_code_native_login_wins_over_ambient_key_and_fallback(
     assert env["ANTHROPIC_BASE_URL"] == "https://router.test/v1"
 
 
+def test_runme_claude_code_native_run_unsets_inherited_api_key(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "judge-key")
+    monkeypatch.setenv("RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY", "fallback-key")
+    environment = FakeEnvironment()
+    agent = RunmeClaudeCode(logs_dir=tmp_path)
+    calls: list[tuple[str, dict[str, str] | None]] = []
+
+    async def fake_has_native_auth(_environment: Any, _env: dict[str, str]) -> bool:
+        return True
+
+    async def fake_exec_as_agent(
+        _environment: Any,
+        command: str,
+        env: dict[str, str] | None = None,
+    ) -> None:
+        calls.append((command, env))
+
+    agent._has_native_auth = fake_has_native_auth
+    agent.exec_as_agent = fake_exec_as_agent
+    agent.populate_context_post_run = lambda _context: None
+
+    asyncio.run(agent.run("write result.txt", environment, object()))
+
+    command, env = calls[0]
+    assert "set -o pipefail\nunset ANTHROPIC_API_KEY\nclaude " in command
+    assert "ANTHROPIC_API_KEY" not in (env or {})
+
+
 def test_runme_claude_code_native_probe_unsets_api_key(tmp_path: Path) -> None:
     environment = FakeEnvironment()
     agent = RunmeClaudeCode(logs_dir=tmp_path)
