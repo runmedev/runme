@@ -572,6 +572,7 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 	path := t.TempDir()
 	var calls []recordedCommand
 	opts := testEvalOptions(t, &calls, io.Discard)
+	opts.Agent = "codex"
 	opts.AgentKwargs = []string{"reasoning_effort=xhigh", "sandbox_mode=workspace-write", "route_oauth_credentials=false"}
 
 	err := NewEvalRunner(opts).Run([]string{path})
@@ -585,7 +586,7 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 		mustAbs(t, path),
 		"--jobs-dir", defaultJobsDir(t),
 		"--env", runmeEnvironmentImportPath,
-		"--agent", "oracle",
+		"--agent", "runme_harbor.runme_agents:RunmeCodex",
 		"-y",
 		"--n-concurrent", "1",
 		"--agent-kwarg", "reasoning_effort=xhigh",
@@ -594,6 +595,28 @@ func TestRunEvalDelegatesAgentKwargs(t *testing.T) {
 	}
 	if !reflect.DeepEqual(calls[1].args, want) {
 		t.Fatalf("args = %#v, want %#v", calls[1].args, want)
+	}
+}
+
+func TestRunEvalIgnoresOAuthRoutingPolicyForUnsupportedRunmeAgents(t *testing.T) {
+	for _, agent := range []string{"oracle", "nop", "cursor-cli", "openclaw"} {
+		t.Run(agent, func(t *testing.T) {
+			path := t.TempDir()
+			var calls []recordedCommand
+			opts := testEvalOptions(t, &calls, io.Discard)
+			opts.Agent = agent
+			opts.AgentKwargs = []string{"route_oauth_credentials=true"}
+
+			if err := NewEvalRunner(opts).Run([]string{path}); err != nil {
+				t.Fatal(err)
+			}
+
+			for _, arg := range calls[1].args {
+				if arg == "route_oauth_credentials=true" {
+					t.Fatalf("args = %#v", calls[1].args)
+				}
+			}
+		})
 	}
 }
 

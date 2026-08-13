@@ -14,9 +14,9 @@ const (
 var runmeAgentSpecs = []runmeAgentSpec{
 	{name: "oracle"},
 	{name: "nop"},
-	{name: "antigravity-cli", importPath: "runme_harbor.runme_agents:RunmeAntigravityCli"},
-	{name: "codex", importPath: "runme_harbor.runme_agents:RunmeCodex"},
-	{name: "claude-code", importPath: "runme_harbor.runme_agents:RunmeClaudeCode"},
+	{name: "antigravity-cli", importPath: "runme_harbor.runme_agents:RunmeAntigravityCli", routeOAuthCredentials: true},
+	{name: "codex", importPath: "runme_harbor.runme_agents:RunmeCodex", routeOAuthCredentials: true},
+	{name: "claude-code", importPath: "runme_harbor.runme_agents:RunmeClaudeCode", routeOAuthCredentials: true},
 	{name: "cursor-cli", importPath: "runme_harbor.runme_agents:RunmeCursorCli"},
 	{name: "openclaw", importPath: "runme_harbor.runme_agents:RunmeOpenClaw"},
 }
@@ -120,6 +120,13 @@ func (b harborRunArgsBuilder) environmentArgs() ([]string, error) {
 func (b harborRunArgsBuilder) extraArgs() []string {
 	args := append([]string(nil), b.passthrough...)
 	for _, kwarg := range b.opts.AgentKwargs {
+		name, _, _ := strings.Cut(kwarg, "=")
+		if strings.TrimSpace(name) == "route_oauth_credentials" && usesRunmeEnvironment(b.opts.Env) {
+			spec, ok := runmeAgentByName(b.opts.Agent)
+			if ok && !spec.routeOAuthCredentials {
+				continue
+			}
+		}
 		args = append(args, "--agent-kwarg", kwarg)
 	}
 	for _, env := range b.opts.AgentEnv {
@@ -135,8 +142,9 @@ func (b harborRunArgsBuilder) extraArgs() []string {
 }
 
 type runmeAgentSpec struct {
-	name       string
-	importPath string
+	name                  string
+	importPath            string
+	routeOAuthCredentials bool
 }
 
 func (s runmeAgentSpec) HarborArgs() []string {
