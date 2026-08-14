@@ -275,17 +275,20 @@ func (es *owlEnvStorer) notifySubscribers() {
 	es.mu.RLock()
 
 	for _, sub := range es.subscribers {
-		snapshot, err := es.owlStore.Snapshot(sub.policy)
+		snapshot, err := es.owlStore.Snapshot(context.Background(), owl.SnapshotInput{
+			Policy: sub.policy,
+			Filter: owl.SnapshotFilter{All: true},
+		})
 		if err != nil {
 			es.logger.Error("failed to get snapshot", zap.Error(err))
 			continue
 		}
-		sub.snapshotc <- snapshot
+		sub.snapshotc <- snapshot.Envs
 	}
 }
 
 func (es *owlEnvStorer) updateStore(ctx context.Context, envs []string, newOrUpdated []string, deleted []string) error {
-	if err := es.owlStore.Update(owlContext(ctx), newOrUpdated, deleted); err != nil {
+	if err := applyOwlUpdate(owlContext(ctx), es.owlStore, owl.Source{}, newOrUpdated, deleted); err != nil {
 		return err
 	}
 	es.notifySubscribers()
@@ -293,7 +296,7 @@ func (es *owlEnvStorer) updateStore(ctx context.Context, envs []string, newOrUpd
 }
 
 func (es *owlEnvStorer) addEnvs(ctx context.Context, envs []string) error {
-	if err := es.owlStore.Update(owlContext(ctx), envs, nil); err != nil {
+	if err := applyOwlUpdate(owlContext(ctx), es.owlStore, owl.Source{}, envs, nil); err != nil {
 		return err
 	}
 	es.notifySubscribers()
@@ -301,21 +304,21 @@ func (es *owlEnvStorer) addEnvs(ctx context.Context, envs []string) error {
 }
 
 func (es *owlEnvStorer) getEnv(name string) (string, error) {
-	v, _, err := es.owlStore.Get(name, owl.GetPolicy{Reveal: true})
+	v, _, err := es.owlStore.Get(context.Background(), owl.GetInput{Key: name, Policy: owl.GetPolicy{Reveal: true}})
 	return v.Value, err
 }
 
 func (es *owlEnvStorer) sensitiveEnvKeys() ([]string, error) {
-	vals, err := es.owlStore.SensitiveKeys()
+	vals, err := es.owlStore.SensitiveKeys(context.Background(), owl.SensitiveKeysInput{})
 	if err != nil {
 		return nil, err
 	}
-	return vals, nil
+	return vals.Keys, nil
 }
 
 func (es *owlEnvStorer) setEnv(ctx context.Context, k string, v string) error {
 	// todo(sebastian): add checking env length inside Update
-	err := es.owlStore.Update(owlContext(ctx), []string{fmt.Sprintf("%s=%s", k, v)}, nil)
+	err := applyOwlUpdate(owlContext(ctx), es.owlStore, owl.Source{}, []string{fmt.Sprintf("%s=%s", k, v)}, nil)
 	if err != nil {
 		return err
 	}
@@ -324,11 +327,28 @@ func (es *owlEnvStorer) setEnv(ctx context.Context, k string, v string) error {
 }
 
 func (es *owlEnvStorer) envs() ([]string, error) {
-	vals, err := es.owlStore.Dotenv(owl.DotenvPolicy{Insecure: true})
+	vals, err := es.owlStore.Source(context.Background(), owl.SourceInput{Policy: owl.DotenvPolicy{Insecure: true}})
 	if err != nil {
 		return nil, err
 	}
-	return vals, nil
+	return vals.Envs, nil
+}
+
+func applyOwlUpdate(ctx context.Context, store *owl.Store, source owl.Source, envs []string, deleted []string) error {
+	var vars []owl.DotenvVariable
+	for _, env := range envs {
+		key, value := splitEnv(env)
+		vars = append(vars, owl.DotenvVariable{
+			Key:    key,
+			Value:  value,
+			Source: source,
+		})
+	}
+	return store.ApplyUpdate(ctx, owl.UpdateInput{
+		Source: source,
+		Dotenv: vars,
+		Delete: deleted,
+	})
 }
 
 type sessionList = lru.Cache[*Session]
