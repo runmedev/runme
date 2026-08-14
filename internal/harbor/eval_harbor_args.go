@@ -14,9 +14,9 @@ const (
 var runmeAgentSpecs = []runmeAgentSpec{
 	{name: "oracle"},
 	{name: "nop"},
-	{name: "antigravity-cli", importPath: "runme_harbor.runme_agents:RunmeAntigravityCli"},
-	{name: "codex", importPath: "runme_harbor.runme_agents:RunmeCodex"},
-	{name: "claude-code", importPath: "runme_harbor.runme_agents:RunmeClaudeCode"},
+	{name: "antigravity-cli", importPath: "runme_harbor.runme_agents:RunmeAntigravityCli", routeOAuthCredentials: true},
+	{name: "codex", importPath: "runme_harbor.runme_agents:RunmeCodex", routeOAuthCredentials: true},
+	{name: "claude-code", importPath: "runme_harbor.runme_agents:RunmeClaudeCode", routeOAuthCredentials: true},
 	{name: "cursor-cli", importPath: "runme_harbor.runme_agents:RunmeCursorCli"},
 	{name: "openclaw", importPath: "runme_harbor.runme_agents:RunmeOpenClaw"},
 }
@@ -25,6 +25,7 @@ var (
 	modelHarborFlag       = harborFlag{names: []string{"--model"}}
 	agentKwargHarborFlag  = harborFlag{names: []string{"--agent-kwarg", "--ak"}}
 	agentEnvHarborFlag    = harborFlag{names: []string{"--agent-env", "--ae"}}
+	verifierEnvHarborFlag = harborFlag{names: []string{"--verifier-env", "--ve"}}
 	environmentHarborFlag = harborFlag{
 		names:            []string{"--env", "-e", "--environment-import-path"},
 		allowJoinedShort: true,
@@ -78,8 +79,20 @@ func (b harborRunArgsBuilder) validate() error {
 	if len(b.opts.AgentEnv) > 0 && agentEnvHarborFlag.Present(b.passthrough) {
 		return fmt.Errorf("--agent-env cannot be used together with passthrough --agent-env/--ae; use only runme eval --agent-env")
 	}
+	if len(b.opts.VerifierEnv) > 0 && verifierEnvHarborFlag.Present(b.passthrough) {
+		return fmt.Errorf("--verifier-env cannot be used together with passthrough --verifier-env/--ve; use only runme eval --verifier-env")
+	}
 	if environmentHarborFlag.Present(b.passthrough) {
 		return fmt.Errorf("use runme eval --env instead of passing Harbor environment flags after --")
+	}
+	for _, kwarg := range b.opts.AgentKwargs {
+		name, value, ok := strings.Cut(kwarg, "=")
+		if strings.TrimSpace(name) != "route_oauth_credentials" {
+			continue
+		}
+		if !ok || (strings.ToLower(strings.TrimSpace(value)) != "true" && strings.ToLower(strings.TrimSpace(value)) != "false") {
+			return fmt.Errorf("route_oauth_credentials agent kwarg must be true or false")
+		}
 	}
 	return nil
 }
@@ -107,10 +120,20 @@ func (b harborRunArgsBuilder) environmentArgs() ([]string, error) {
 func (b harborRunArgsBuilder) extraArgs() []string {
 	args := append([]string(nil), b.passthrough...)
 	for _, kwarg := range b.opts.AgentKwargs {
+		name, _, _ := strings.Cut(kwarg, "=")
+		if strings.TrimSpace(name) == "route_oauth_credentials" && usesRunmeEnvironment(b.opts.Env) {
+			spec, ok := runmeAgentByName(b.opts.Agent)
+			if ok && !spec.routeOAuthCredentials {
+				continue
+			}
+		}
 		args = append(args, "--agent-kwarg", kwarg)
 	}
 	for _, env := range b.opts.AgentEnv {
 		args = append(args, "--agent-env", env)
+	}
+	for _, env := range b.opts.VerifierEnv {
+		args = append(args, "--verifier-env", env)
 	}
 	if b.opts.Model != "" {
 		args = append(args, "--model", b.opts.Model)
@@ -119,8 +142,9 @@ func (b harborRunArgsBuilder) extraArgs() []string {
 }
 
 type runmeAgentSpec struct {
-	name       string
-	importPath string
+	name                  string
+	importPath            string
+	routeOAuthCredentials bool
 }
 
 func (s runmeAgentSpec) HarborArgs() []string {

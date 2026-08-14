@@ -1,0 +1,33 @@
+schema_version = "1.1"
+
+[task]
+name = "runmedev/poem-judge"
+description = "Poem-writing task graded by an LLM-as-a-judge verifier."
+authors = []
+keywords = ["runme", "harbor", "containerless", "llm", "judge"]
+
+[metadata]
+difficulty = "easy"
+category = "behavior"
+tags = ["runme", "harbor", "llm-as-a-judge", "verifier-env"]
+
+[verifier]
+timeout_sec = 900.0
+
+[agent]
+timeout_sec = 480.0
+
+[environment]
+build_timeout_sec = 60.0
+cpus = 1
+memory_mb = 1024
+storage_mb = 1024
+gpus = 0
+workdir = "/app/examples/harbor/datasets/runme-llm-judge/poem-judge/workdir"
+
+[environment.env]
+
+[verifier.env]
+OPENAI_API_KEY = "${OPENAI_API_KEY}"
+
+[solution.env]

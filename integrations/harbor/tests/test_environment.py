@@ -111,6 +111,101 @@ def test_environment_starts_runme_harbor_stdio(
     }
 
 
+def test_exec_merges_persistent_per_call_and_scoped_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    environment = _make_env(
+        tmp_path,
+        persistent_env={
+            "PERSISTENT_ENV": "yes",
+            "SHARED": "persistent",
+        },
+    )
+
+    asyncio.run(environment.start(force_build=False))
+    token = environment._exec_env_overlays.set(
+        (
+            {
+                "SCOPED_ENV": "yes",
+                "SHARED": "scoped",
+            },
+        )
+    )
+    try:
+        asyncio.run(
+            environment.exec(
+                "env",
+                env={
+                    "PER_EXEC_ENV": "yes",
+                    "SHARED": "per-exec",
+                },
+            )
+        )
+    finally:
+        environment._exec_env_overlays.reset(token)
+
+    request_env = FakeClient.instances[0].requests[-1]["exec"]["env"]
+    assert "PERSISTENT_ENV=yes" in request_env
+    assert "PER_EXEC_ENV=yes" in request_env
+    assert "SCOPED_ENV=yes" in request_env
+    assert "SHARED=scoped" in request_env
+    assert "SHARED=per-exec" not in request_env
+    assert "SHARED=persistent" not in request_env
+
+
+def test_scoped_agent_env_does_not_leak_to_verifier_phase(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    FakeClient.instances.clear()
+    monkeypatch.setattr(env_module, "_StdioClient", FakeClient)
+
+    environment = _make_env(
+        tmp_path,
+        persistent_env={
+            "ANTHROPIC_API_KEY": "judge-key",
+            "ANTHROPIC_BASE_URL": "https://judge.example/v1",
+        },
+    )
+
+    asyncio.run(environment.start(force_build=False))
+
+    with environment.scoped_exec_env(
+        {
+            "RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY": "agent-fallback",
+            "ANTHROPIC_BASE_URL": "https://agent-router.example/v1",
+        }
+    ):
+        asyncio.run(
+            environment.exec(
+                "agent",
+                env={"ANTHROPIC_API_KEY": "promoted-agent-fallback"},
+            )
+        )
+
+    asyncio.run(environment.exec("verifier", env={"VERIFIER_ENV": "yes"}))
+
+    client = FakeClient.instances[0]
+    agent_env = client.requests[-2]["exec"]["env"]
+    verifier_env = client.requests[-1]["exec"]["env"]
+
+    assert "ANTHROPIC_API_KEY=agent-fallback" not in agent_env
+    assert "ANTHROPIC_API_KEY=promoted-agent-fallback" in agent_env
+    assert "ANTHROPIC_BASE_URL=https://agent-router.example/v1" in agent_env
+    assert "RUNME_ROUTER_FALLBACK_ANTHROPIC_API_KEY=agent-fallback" in agent_env
+
+    assert "ANTHROPIC_API_KEY=judge-key" in verifier_env
+    assert "ANTHROPIC_BASE_URL=https://judge.example/v1" in verifier_env
+    assert "VERIFIER_ENV=yes" in verifier_env
+    assert "ANTHROPIC_API_KEY=promoted-agent-fallback" not in verifier_env
+    assert "ANTHROPIC_BASE_URL=https://agent-router.example/v1" not in verifier_env
+    assert all(not item.startswith("RUNME_ROUTER_FALLBACK_") for item in verifier_env)
+
+
 def test_stdio_client_allows_large_protojson_lines(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
@@ -324,9 +419,7 @@ def test_upload_dir_rewrites_configured_workdir_paths_to_staged_workdir(
 
     tests = tmp_path / "tests"
     tests.mkdir()
-    (tests / "test.sh").write_text(
-        "rewardkit --workspace /app/examples/harbor/task/workdir\n"
-    )
+    (tests / "test.sh").write_text("rewardkit --workspace /app/examples/harbor/task/workdir\n")
 
     environment = _make_env(
         tmp_path,
@@ -452,8 +545,7 @@ def test_upload_dir_rewrites_artifact_paths_in_shell_scripts(
     source = tmp_path / "source"
     source.mkdir()
     (source / "test.sh").write_text(
-        "mkdir -p /logs/artifacts\n"
-        "cp results.json /logs/artifacts/results.json\n"
+        "mkdir -p /logs/artifacts\ncp results.json /logs/artifacts/results.json\n"
     )
 
     environment = _make_env(tmp_path)
@@ -501,9 +593,7 @@ def test_upload_dir_rewrites_python_artifact_paths(
 
     source = tmp_path / "source"
     source.mkdir()
-    (source / "artifact.py").write_text(
-        'Path("/logs/artifacts/results.json").write_text("{}")\n'
-    )
+    (source / "artifact.py").write_text('Path("/logs/artifacts/results.json").write_text("{}")\n')
 
     environment = _make_env(tmp_path)
     asyncio.run(environment.start(force_build=False))

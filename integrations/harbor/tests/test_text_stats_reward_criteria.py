@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 import types
 from pathlib import Path
@@ -10,6 +12,7 @@ CRITERIA_PATH = (
     Path(__file__).parents[3]
     / "examples/harbor/datasets/runme-rewardkit/text-stats-reward/tests/criteria.py"
 )
+SOLUTION_PATH = CRITERIA_PATH.parents[1] / "solution/solve.sh"
 
 
 @pytest.fixture
@@ -47,9 +50,7 @@ def _step(
                 "arguments": arguments,
             }
         ],
-        "observation": {
-            "results": [result]
-        },
+        "observation": {"results": [result]},
     }
 
 
@@ -57,17 +58,17 @@ def _score(criteria, monkeypatch, tmp_path: Path, steps: list[dict[str, object]]
     trajectory = tmp_path / "trajectory.json"
     trajectory.write_text(json.dumps({"schema_version": "ATIF-v1.7", "steps": steps}))
     monkeypatch.setenv("RUNME_AGENT_TRAJECTORY", str(trajectory))
-    return criteria._lint_validation_score(tmp_path)
+    return criteria._compile_validation_score(tmp_path)
 
 
-def _background_lint_step(
+def _background_compile_step(
     step_id: int = 1,
-    task_id: str = "lint-task",
+    task_id: str = "compile-task",
 ) -> dict[str, object]:
     return _step(
         step_id,
         "Bash",
-        {"command": "runme run lint", "timeout": 120000},
+        {"command": "python3 -m py_compile textstats.py analyze.py", "timeout": 120000},
         (
             "Command did not complete within its 120s timeout and was moved "
             f"to the background (ID: {task_id})."
@@ -88,7 +89,7 @@ def _background_lint_step(
 
 def _task_notification_step(
     step_id: int = 2,
-    task_id: str = "lint-task",
+    task_id: str = "compile-task",
     tool_use_id: str = "call-1",
     status: str = "completed",
     exit_code: int | None = 0,
@@ -103,7 +104,7 @@ def _task_notification_step(
             f"<task-id>{task_id}</task-id>\n"
             f"<tool-use-id>{tool_use_id}</tool-use-id>\n"
             f"<status>{status}</status>\n"
-            f'<summary>Background command "runme run lint" '
+            f'<summary>Background command "python3 -m py_compile textstats.py analyze.py" '
             f"{status}{exit_summary}</summary>\n"
             "</task-notification>"
         ),
@@ -113,24 +114,31 @@ def _task_notification_step(
 @pytest.mark.parametrize(
     "terminal_status",
     [
-        "Task lint exited with code 0",
+        "Task compile exited with code 0",
         "Process exited with code 0",
         "Command exited with code 0",
         "Exit code: 0",
     ],
 )
-def test_lint_validation_accepts_tty_and_non_tty_success(
+def test_compile_validation_accepts_tty_and_non_tty_success(
     criteria,
     monkeypatch,
     tmp_path: Path,
     terminal_status: str,
 ) -> None:
-    steps = [_step(1, "arbitrary-shell-tool", {"command": "runme run lint"}, terminal_status)]
+    steps = [
+        _step(
+            1,
+            "arbitrary-shell-tool",
+            {"command": "python3 -m py_compile textstats.py analyze.py"},
+            terminal_status,
+        )
+    ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
 
 
-def test_lint_validation_follows_async_session(
+def test_compile_validation_follows_async_session(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -139,7 +147,7 @@ def test_lint_validation_follows_async_session(
         _step(
             1,
             "exec_command",
-            {"cmd": "runme run lint"},
+            {"cmd": "python3 -m py_compile textstats.py analyze.py"},
             "Process running with session ID 63887",
         ),
         _step(
@@ -153,7 +161,7 @@ def test_lint_validation_follows_async_session(
     assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
 
 
-def test_lint_validation_accepts_terra_cell_completion(
+def test_compile_validation_accepts_terra_cell_completion(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -164,7 +172,7 @@ def test_lint_validation_accepts_terra_cell_completion(
             "exec",
             {
                 "input": (
-                    'const r = await tools.exec_command({"cmd":"runme run lint"}); '
+                    'const r = await tools.exec_command({"cmd":"python3 -m py_compile textstats.py analyze.py"}); '
                     "text(r.output);"
                 )
             },
@@ -181,7 +189,7 @@ def test_lint_validation_accepts_terra_cell_completion(
     assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
 
 
-def test_lint_validation_accepts_luna_structured_status(
+def test_compile_validation_accepts_luna_structured_status(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -192,7 +200,7 @@ def test_lint_validation_accepts_luna_structured_status(
             "exec",
             {
                 "input": (
-                    'const r = await tools.exec_command({cmd:"runme run lint"}); '
+                    'const r = await tools.exec_command({cmd:"python3 -m py_compile textstats.py analyze.py"}); '
                     "text(JSON.stringify(r));"
                 )
             },
@@ -210,17 +218,14 @@ def test_lint_validation_accepts_luna_structured_status(
                     "text(JSON.stringify(r));"
                 )
             },
-            (
-                "Script completed\nWall time 8.0 seconds\nOutput:\n"
-                '\'{"exit_code":0,"output":""}\''
-            ),
+            ('Script completed\nWall time 8.0 seconds\nOutput:\n\'{"exit_code":0,"output":""}\''),
         ),
     ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
 
 
-def test_lint_validation_accepts_sonnet_synchronous_success(
+def test_compile_validation_accepts_sonnet_synchronous_success(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -229,7 +234,7 @@ def test_lint_validation_accepts_sonnet_synchronous_success(
         _step(
             1,
             "Bash",
-            {"command": "runme run lint", "timeout": 300000},
+            {"command": "python3 -m py_compile textstats.py analyze.py", "timeout": 300000},
             "gofumpt\ngoimports\nrevive",
             {
                 "tool_result_metadata": {
@@ -249,33 +254,33 @@ def test_lint_validation_accepts_sonnet_synchronous_success(
 
 
 @pytest.mark.parametrize("status", ["Process exited with code 1", "Exit code: 2"])
-def test_lint_validation_rejects_failure(
+def test_compile_validation_rejects_failure(
     criteria,
     monkeypatch,
     tmp_path: Path,
     status: str,
 ) -> None:
-    steps = [_step(1, "shell", {"cmd": "runme run lint"}, status)]
+    steps = [_step(1, "shell", {"cmd": "python3 -m py_compile textstats.py analyze.py"}, status)]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_rejects_haiku_background_launch(
+def test_compile_validation_rejects_haiku_background_launch(
     criteria,
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    steps = [_background_lint_step()]
+    steps = [_background_compile_step()]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_accepts_correlated_background_completion(
+def test_compile_validation_accepts_correlated_background_completion(
     criteria,
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    steps = [_background_lint_step(), _task_notification_step()]
+    steps = [_background_compile_step(), _task_notification_step()]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
 
@@ -284,10 +289,10 @@ def test_lint_validation_accepts_correlated_background_completion(
     ("task_id", "tool_use_id"),
     [
         ("other-task", "call-1"),
-        ("lint-task", "other-call"),
+        ("compile-task", "other-call"),
     ],
 )
-def test_lint_validation_ignores_uncorrelated_background_completion(
+def test_compile_validation_ignores_uncorrelated_background_completion(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -295,7 +300,7 @@ def test_lint_validation_ignores_uncorrelated_background_completion(
     tool_use_id: str,
 ) -> None:
     steps = [
-        _background_lint_step(),
+        _background_compile_step(),
         _task_notification_step(task_id=task_id, tool_use_id=tool_use_id),
     ]
 
@@ -312,7 +317,7 @@ def test_lint_validation_ignores_uncorrelated_background_completion(
         ("canceled", 0),
     ],
 )
-def test_lint_validation_rejects_unsuccessful_background_completion(
+def test_compile_validation_rejects_unsuccessful_background_completion(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -320,20 +325,20 @@ def test_lint_validation_rejects_unsuccessful_background_completion(
     exit_code: int | None,
 ) -> None:
     steps = [
-        _background_lint_step(),
+        _background_compile_step(),
         _task_notification_step(status=status, exit_code=exit_code),
     ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_clears_correlated_background_failure(
+def test_compile_validation_clears_correlated_background_failure(
     criteria,
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     steps = [
-        _background_lint_step(),
+        _background_compile_step(),
         _task_notification_step(status="failed", exit_code=1),
         _task_notification_step(step_id=3),
     ]
@@ -341,44 +346,49 @@ def test_lint_validation_clears_correlated_background_failure(
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_ignores_agent_background_completion_spoof(
+def test_compile_validation_ignores_agent_background_completion_spoof(
     criteria,
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     steps = [
-        _background_lint_step(),
+        _background_compile_step(),
         _task_notification_step(source="agent"),
     ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_ignores_ordinary_user_completion_claim(
+def test_compile_validation_ignores_ordinary_user_completion_claim(
     criteria,
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     steps = [
-        _background_lint_step(),
+        _background_compile_step(),
         {
             "step_id": 2,
             "source": "user",
-            "message": "The lint task completed with exit code 0.",
+            "message": "The compile task completed with exit code 0.",
         },
     ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_clears_background_attempt_on_new_lint_run(
+def test_compile_validation_clears_background_attempt_on_new_compile_run(
     criteria,
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     steps = [
-        _background_lint_step(),
-        _step(2, "Bash", {"command": "runme run lint"}, "Process exited with code 1"),
+        _background_compile_step(),
+        _step(
+            2,
+            "Bash",
+            {"command": "python3 -m py_compile textstats.py analyze.py"},
+            "Process exited with code 1",
+        ),
         _task_notification_step(step_id=3),
     ]
 
@@ -392,7 +402,7 @@ def test_lint_validation_clears_background_attempt_on_new_lint_run(
         (False, True),
     ],
 )
-def test_lint_validation_rejects_failed_or_interrupted_tool_result(
+def test_compile_validation_rejects_failed_or_interrupted_tool_result(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -403,8 +413,8 @@ def test_lint_validation_rejects_failed_or_interrupted_tool_result(
         _step(
             1,
             "Bash",
-            {"command": "runme run lint"},
-            "lint output",
+            {"command": "python3 -m py_compile textstats.py analyze.py"},
+            "compile output",
             {
                 "tool_result_metadata": {
                     "tool_use_result": {"interrupted": interrupted},
@@ -418,7 +428,7 @@ def test_lint_validation_rejects_failed_or_interrupted_tool_result(
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_rejects_structured_failure_despite_completion(
+def test_compile_validation_rejects_structured_failure_despite_completion(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -427,10 +437,10 @@ def test_lint_validation_rejects_structured_failure_despite_completion(
         _step(
             1,
             "exec",
-            {"input": 'tools.exec_command({cmd:"runme run lint"})'},
+            {"input": 'tools.exec_command({cmd:"python3 -m py_compile textstats.py analyze.py"})'},
             (
                 "Script completed\nWall time 1.0 seconds\nOutput:\n"
-                '\'{"exit_code":1,"output":"lint failed"}\''
+                '\'{"exit_code":1,"output":"compile failed"}\''
             ),
         )
     ]
@@ -438,7 +448,7 @@ def test_lint_validation_rejects_structured_failure_despite_completion(
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_rejects_completion_while_session_is_running(
+def test_compile_validation_rejects_completion_while_session_is_running(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -447,7 +457,7 @@ def test_lint_validation_rejects_completion_while_session_is_running(
         _step(
             1,
             "exec",
-            {"input": 'tools.exec_command({cmd:"runme run lint"})'},
+            {"input": 'tools.exec_command({cmd:"python3 -m py_compile textstats.py analyze.py"})'},
             (
                 "Script completed\nWall time 1.0 seconds\nOutput:\n"
                 '\'{"session_id":38781,"output":"gofumpt"}\''
@@ -458,7 +468,7 @@ def test_lint_validation_rejects_completion_while_session_is_running(
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_rejects_incomplete_session(
+def test_compile_validation_rejects_incomplete_session(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -467,15 +477,15 @@ def test_lint_validation_rejects_incomplete_session(
         _step(
             1,
             "shell",
-            {"cmd": "runme run lint"},
-            "Process running with session ID lint-session",
+            {"cmd": "python3 -m py_compile textstats.py analyze.py"},
+            "Process running with session ID compile-session",
         )
     ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_rejects_unrelated_command_success(
+def test_compile_validation_rejects_unrelated_command_success(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -484,8 +494,8 @@ def test_lint_validation_rejects_unrelated_command_success(
         _step(
             1,
             "shell",
-            {"cmd": "runme run lint"},
-            "Process running with session ID lint-session",
+            {"cmd": "python3 -m py_compile textstats.py analyze.py"},
+            "Process running with session ID compile-session",
         ),
         _step(
             2,
@@ -496,7 +506,7 @@ def test_lint_validation_rejects_unrelated_command_success(
         _step(
             3,
             "poll",
-            {"session_id": "lint-session"},
+            {"session_id": "compile-session"},
             "Process exited with code 0",
         ),
     ]
@@ -504,20 +514,30 @@ def test_lint_validation_rejects_unrelated_command_success(
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_accepts_successful_retry(
+def test_compile_validation_accepts_successful_retry(
     criteria,
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     steps = [
-        _step(1, "shell", {"cmd": "runme run lint"}, "Process exited with code 1"),
-        _step(2, "shell", {"cmd": "runme run lint"}, "Process exited with code 0"),
+        _step(
+            1,
+            "shell",
+            {"cmd": "python3 -m py_compile textstats.py analyze.py"},
+            "Process exited with code 1",
+        ),
+        _step(
+            2,
+            "shell",
+            {"cmd": "python3 -m py_compile textstats.py analyze.py"},
+            "Process exited with code 0",
+        ),
     ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 1.0
 
 
-def test_lint_validation_ignores_agent_claims(
+def test_compile_validation_ignores_agent_claims(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -526,14 +546,14 @@ def test_lint_validation_ignores_agent_claims(
         {
             "step_id": 1,
             "source": "agent",
-            "message": "runme run lint completed. Process exited with code 0",
+            "message": "python3 -m py_compile textstats.py analyze.py completed. Process exited with code 0",
         }
     ]
 
     assert _score(criteria, monkeypatch, tmp_path, steps) == 0.0
 
 
-def test_lint_validation_rejects_malformed_trajectory(
+def test_compile_validation_rejects_malformed_trajectory(
     criteria,
     monkeypatch,
     tmp_path: Path,
@@ -542,4 +562,29 @@ def test_lint_validation_rejects_malformed_trajectory(
     trajectory.write_text("[]")
     monkeypatch.setenv("RUNME_AGENT_TRAJECTORY", str(trajectory))
 
-    assert criteria._lint_validation_score(tmp_path) == 0.0
+    assert criteria._compile_validation_score(tmp_path) == 0.0
+
+
+def test_oracle_solution_records_successful_compile_validation(
+    criteria,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "sample.txt").write_text(
+        "the quick brown fox jumps over the lazy dog and the quick brown fox "
+        "jumps over the lazy dog again"
+    )
+    trajectory = tmp_path / "trajectory.json"
+    env = os.environ.copy()
+    env.pop("RUNME_AGENT_TRAJECTORY", None)
+    env["RUNME_AGENT_LOG_DIR"] = str(tmp_path)
+
+    subprocess.run(
+        ["sh", str(SOLUTION_PATH)],
+        cwd=tmp_path,
+        env=env,
+        check=True,
+    )
+
+    monkeypatch.setenv("RUNME_AGENT_TRAJECTORY", str(trajectory))
+    assert criteria._compile_validation_score(tmp_path) == 1.0

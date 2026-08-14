@@ -10,12 +10,13 @@ from pathlib import Path
 from rewardkit import criterion
 
 _DEFAULT_AGENT_TRAJECTORY = Path("/logs/agent/trajectory.json")
-_LINT_COMMAND_PATTERN = re.compile(
+_COMPILE_COMMAND_PATTERN = re.compile(
     r"(?:^|&&|\|\||;|\n|[\"']?cmd[\"']?\s*:\s*[\"'])"
-    r"\s*runme\s+run\s+lint(?=\s|[\"'`;|&)]|$)"
+    r"\s*python3\s+-m\s+py_compile\s+textstats\.py\s+analyze\.py"
+    r"(?=\s|[\"'`;|&)]|$)"
 )
 _TERMINAL_STATUS_PATTERNS = (
-    re.compile(r"\bTask lint exited with code (-?\d+)\b", re.IGNORECASE),
+    re.compile(r"\bTask compile exited with code (-?\d+)\b", re.IGNORECASE),
     re.compile(r"\b(?:Process|Command) exited with code (-?\d+)\b", re.IGNORECASE),
     re.compile(r"\bExit code:\s*(-?\d+)\b", re.IGNORECASE),
     re.compile(r"""["']exit_code["']\s*:\s*(-?\d+)""", re.IGNORECASE),
@@ -31,9 +32,7 @@ _RUNNING_SESSION_PATTERNS = (
     ),
 )
 _SCRIPT_COMPLETED_PATTERN = re.compile(r"\bScript completed\b", re.IGNORECASE)
-_MOVED_TO_BACKGROUND_PATTERN = re.compile(
-    r"\bmoved to the background\b", re.IGNORECASE
-)
+_MOVED_TO_BACKGROUND_PATTERN = re.compile(r"\bmoved to the background\b", re.IGNORECASE)
 _TASK_NOTIFICATION_PATTERN = re.compile(
     r"<task-notification>(.*?)</task-notification>",
     re.DOTALL,
@@ -197,7 +196,9 @@ def _starts_shell_command(value: object) -> bool:
     return False
 
 
-def _linked_results(step: dict[str, object], call_id: object) -> list[dict[str, object]]:
+def _linked_results(
+    step: dict[str, object], call_id: object
+) -> list[dict[str, object]]:
     observation = step.get("observation")
     if not isinstance(observation, dict):
         return []
@@ -214,11 +215,12 @@ def _linked_results(step: dict[str, object], call_id: object) -> list[dict[str, 
 def _synchronous_success(results: list[dict[str, object]]) -> bool:
     for result in results:
         extra = result.get("extra")
-        if not isinstance(extra, dict) or extra.get("tool_result_is_error") is not False:
-            continue
-        if any(
-            _MOVED_TO_BACKGROUND_PATTERN.search(text) for text in _strings(result)
+        if (
+            not isinstance(extra, dict)
+            or extra.get("tool_result_is_error") is not False
         ):
+            continue
+        if any(_MOVED_TO_BACKGROUND_PATTERN.search(text) for text in _strings(result)):
             continue
 
         metadata = extra.get("tool_result_metadata")
@@ -240,7 +242,10 @@ def _synchronous_success(results: list[dict[str, object]]) -> bool:
 def _background_task_id(results: list[dict[str, object]]) -> str | None:
     for result in results:
         extra = result.get("extra")
-        if not isinstance(extra, dict) or extra.get("tool_result_is_error") is not False:
+        if (
+            not isinstance(extra, dict)
+            or extra.get("tool_result_is_error") is not False
+        ):
             continue
         metadata = extra.get("tool_result_metadata")
         if not isinstance(metadata, dict):
@@ -271,7 +276,7 @@ def _task_notification(message: object) -> dict[str, str] | None:
     return fields
 
 
-def _lint_validation_score(workspace: Path) -> float:
+def _compile_validation_score(workspace: Path) -> float:
     del workspace
 
     try:
@@ -300,9 +305,7 @@ def _lint_validation_score(workspace: Path) -> float:
                 continue
 
             status = notification["status"].strip().lower()
-            exit_match = _TASK_NOTIFICATION_EXIT_PATTERN.search(
-                notification["summary"]
-            )
+            exit_match = _TASK_NOTIFICATION_EXIT_PATTERN.search(notification["summary"])
             if (
                 status == "completed"
                 and exit_match is not None
@@ -327,11 +330,11 @@ def _lint_validation_score(workspace: Path) -> float:
 
             arguments = tool_call.get("arguments")
             results = _linked_results(step, tool_call.get("tool_call_id"))
-            runs_lint = any(
-                _LINT_COMMAND_PATTERN.search(text) for text in _strings(arguments)
+            runs_validation = any(
+                _COMPILE_COMMAND_PATTERN.search(text) for text in _strings(arguments)
             )
 
-            if runs_lint:
+            if runs_validation:
                 active_sessions.clear()
                 pending_background = None
                 status = _terminal_status(results)
@@ -348,8 +351,7 @@ def _lint_validation_score(workspace: Path) -> float:
                 if not running_sessions and _synchronous_success(results):
                     return 1.0
                 if not running_sessions and any(
-                    _SCRIPT_COMPLETED_PATTERN.search(text)
-                    for text in _strings(results)
+                    _SCRIPT_COMPLETED_PATTERN.search(text) for text in _strings(results)
                 ):
                     return 1.0
                 continue
@@ -368,8 +370,7 @@ def _lint_validation_score(workspace: Path) -> float:
                 running_sessions = _running_sessions(results)
                 active_sessions.update(running_sessions)
                 if not running_sessions and any(
-                    _SCRIPT_COMPLETED_PATTERN.search(text)
-                    for text in _strings(results)
+                    _SCRIPT_COMPLETED_PATTERN.search(text) for text in _strings(results)
                 ):
                     return 1.0
 
@@ -377,7 +378,7 @@ def _lint_validation_score(workspace: Path) -> float:
 
 
 def _gated_reward_score(workspace: Path) -> float:
-    if _lint_validation_score(workspace) == 0.0:
+    if _compile_validation_score(workspace) == 0.0:
         return 0.0
     return (_correctness_score(workspace) + _structure_score(workspace)) / 2
 
@@ -409,8 +410,8 @@ def structure(workspace: Path) -> float:
 
 
 @criterion(shared=True)
-def lint_validation(workspace: Path) -> float:
-    return _lint_validation_score(workspace)
+def compile_validation(workspace: Path) -> float:
+    return _compile_validation_score(workspace)
 
 
 @criterion(shared=True)

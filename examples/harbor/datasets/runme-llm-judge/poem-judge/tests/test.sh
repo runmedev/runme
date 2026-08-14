@@ -8,12 +8,14 @@ reward_path="${RUNME_REWARD_PATH:-$verifier_dir/reward.json}"
 artifacts_dir="${RUNME_ARTIFACTS_DIR:-/logs/artifacts}"
 mkdir -p "$verifier_dir"
 
+cd "$workspace"
 uvx --from 'harbor-rewardkit~=0.1.0' rewardkit \
   --workspace "$workspace" \
   --output "$reward_path" \
-  "$tests_dir"
+  "$tests_dir" \
+  > "$verifier_dir/test-stdout.txt"
 
-if [ -f "$workspace/results.json" ]; then
+if [ -f "$workspace/poem.txt" ]; then
   mkdir -p "$artifacts_dir"
-  cp "$workspace/results.json" "$artifacts_dir/results.json"
+  cp "$workspace/poem.txt" "$artifacts_dir/poem.txt"
 fi
