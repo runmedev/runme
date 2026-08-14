@@ -218,6 +218,11 @@ type ListSessionsResponse {
 }
 input MonitorEnvStoreRequestInput {
 	session: SessionInput
+	snapshotPolicy: MonitorEnvStoreRequest_SnapshotPolicyInput
+}
+input MonitorEnvStoreRequest_SnapshotPolicyInput {
+	reveal: Boolean
+	insecure: Boolean
 }
 type MonitorEnvStoreResponse {
 	type: MonitorEnvStoreType
