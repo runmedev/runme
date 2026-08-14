@@ -1,0 +1,10 @@
+[judge]
+judge = "openai/gpt-5.6-terra"
+files = ["poem.txt"]
+
+[[criterion]]
+name = "funny"
+description = "Rate how funny the poem is. Consider whether it has a clear joke, surprise, wordplay, or a playful take on developer workflow."
+type = "numeric"
+min = 0.0
+max = 1.0
