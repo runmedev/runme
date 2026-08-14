@@ -1,13 +1,21 @@
 #!/usr/bin/env sh
 set -eu
 
-workspace=/app/examples/harbor/datasets/runme-llm-judge/poem-judge/workdir
+workspace="${RUNME_TASK_WORKDIR:-$PWD}"
+tests_dir="${RUNME_TESTS_DIR:-/tests}"
 verifier_dir="${RUNME_VERIFIER_DIR:-/logs/verifier}"
+reward_path="${RUNME_REWARD_PATH:-$verifier_dir/reward.json}"
+artifacts_dir="${RUNME_ARTIFACTS_DIR:-/logs/artifacts}"
 mkdir -p "$verifier_dir"
 
-uv run /tests/llm_judge.py "$workspace/poem.txt" > "$verifier_dir/test-stdout.txt"
+cd "$workspace"
+uvx --from 'harbor-rewardkit~=0.1.0' rewardkit \
+  --workspace "$workspace" \
+  --output "$reward_path" \
+  "$tests_dir" \
+  > "$verifier_dir/test-stdout.txt"
 
 if [ -f "$workspace/poem.txt" ]; then
-  mkdir -p /logs/artifacts
-  cp "$workspace/poem.txt" /logs/artifacts/poem.txt
+  mkdir -p "$artifacts_dir"
+  cp "$workspace/poem.txt" "$artifacts_dir/poem.txt"
 fi

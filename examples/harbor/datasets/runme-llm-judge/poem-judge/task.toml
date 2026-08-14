@@ -28,7 +28,6 @@ workdir = "/app/examples/harbor/datasets/runme-llm-judge/poem-judge/workdir"
 [environment.env]
 
 [verifier.env]
-ANTHROPIC_API_KEY = "${ANTHROPIC_API_KEY}"
-MODEL_NAME = "claude-haiku-4-5"
+OPENAI_API_KEY = "${OPENAI_API_KEY}"
 
 [solution.env]

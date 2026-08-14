@@ -32,7 +32,7 @@ runme eval examples/harbor/datasets/runme-rewardkit \
 Run an LLM-as-a-judge task with the oracle:
 
 ```sh {"name":"llm-judge-oracle"}
-ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+OPENAI_API_KEY="${OPENAI_API_KEY}" \
 runme eval examples/harbor/datasets/runme-llm-judge \
   --task-dir poem-judge \
   --agent oracle
@@ -81,7 +81,8 @@ examples.
 The `runme-llm-judge/poem-judge` task is adapted from Harbor's
 [`examples/tasks/llm-judge-example`](https://github.com/harbor-framework/harbor/tree/main/examples/tasks/llm-judge-example),
 licensed under Apache-2.0. The Runme copy modifies paths, metadata, artifact
-capture, and reward detail output for Runme's Harbor integration examples.
+capture, and uses Reward Kit's declarative judge criteria for Runme's Harbor
+integration examples.
 
 The `runme-smoke/simple-agent` task is original to Runme's Harbor integration
 example set.
