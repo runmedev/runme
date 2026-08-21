@@ -15,8 +15,8 @@ from urllib.request import url2pathname
 
 
 PACKAGE_NAME = "runme-harbor"
-MIN_HARBOR_VERSION = (0, 16, 0)
-MAX_HARBOR_VERSION = (0, 21, 0)
+MIN_HARBOR_VERSION = (0, 22, 0)
+MAX_HARBOR_VERSION = (0, 23, 0)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -199,7 +199,7 @@ def _preflight_harbor_package() -> None:
 
     version = _version_tuple(importlib.metadata.version("harbor"))
     if version < MIN_HARBOR_VERSION or version >= MAX_HARBOR_VERSION:
-        raise SystemExit("Runme Harbor requires harbor>=0.16,<0.21.")
+        raise SystemExit("Runme Harbor requires harbor>=0.22,<0.23.")
 
 
 def _version_tuple(value: str) -> tuple[int, int, int]:

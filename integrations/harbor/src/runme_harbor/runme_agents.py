@@ -86,7 +86,7 @@ async def _promote_fallback_auth(
     detect_native_auth: bool = False,
 ) -> _ProviderAuthSource:
     fallback = source._get_env(fallback_key)
-    if source._has_env(provider_key) and not (native_auth_first and fallback):
+    if source._resolve_env(provider_key) is not None and not (native_auth_first and fallback):
         return "explicit"
 
     if fallback or detect_native_auth:
@@ -98,7 +98,7 @@ async def _promote_fallback_auth(
             env.pop(provider_key, None)
             return "indeterminate"
 
-    if source._has_env(provider_key):
+    if source._resolve_env(provider_key) is not None:
         return "explicit"
 
     if not fallback:
@@ -133,6 +133,19 @@ class RunmeAntigravityCli(AntigravityCli):
     async def setup(self, environment: BaseEnvironment) -> None:
         return None
 
+    @staticmethod
+    def _make_collect_trajectory_command_portable(command: str) -> str:
+        """Replace Harbor's GNU find selector for containerless macOS runs."""
+        gnu_newest = "-printf '%T@\\t%p\\n' 2>/dev/null | sort -nr | head -n1 | cut -f2-"
+        portable_newest = (
+            "-exec sh -c 'latest=; for candidate do "
+            'if [ -z "$latest" ] || [ "$candidate" -nt "$latest" ]; then '
+            'latest=$candidate; fi; done; printf "%s\\n" "$latest"\' sh {} +'
+        )
+        if command.count(gnu_newest) != 3:
+            raise RuntimeError("Harbor trajectory collector has an unexpected shape")
+        return command.replace(gnu_newest, portable_newest)
+
     @with_prompt_template
     async def run(
         self,
@@ -164,7 +177,10 @@ class RunmeAntigravityCli(AntigravityCli):
         for var in auth_vars:
             _copy_if_present(self, env, var)
 
-        has_explicit_key = self._has_env("GEMINI_API_KEY") or self._has_env("GOOGLE_API_KEY")
+        has_explicit_key = (
+            self._resolve_env("GEMINI_API_KEY") is not None
+            or self._resolve_env("GOOGLE_API_KEY") is not None
+        )
         fallback = self._get_env(_GOOGLE_FALLBACK_ENV)
         if not has_explicit_key and fallback:
             env["GEMINI_API_KEY"] = fallback
@@ -176,7 +192,7 @@ class RunmeAntigravityCli(AntigravityCli):
         if skills_command:
             await self.exec_as_agent(environment, command=skills_command, env=env)
 
-        settings_command, _ = self._build_settings_command(model)
+        settings_command = self._build_settings_command(model)
         if settings_command:
             await self.exec_as_agent(environment, command=settings_command, env=env)
 
@@ -186,6 +202,15 @@ class RunmeAntigravityCli(AntigravityCli):
         # settings.json written above is read only by the legacy CLI, so pass
         # an explicitly configured model through to the current CLI.
         model_flag = f"--model {shlex.quote(model)} " if model else ""
+        marker_created = False
+        try:
+            await self.exec_as_agent(
+                environment,
+                command=f"touch {self._RUN_MARKER}",
+            )
+            marker_created = True
+        except Exception:
+            self.logger.debug("run marker creation failed; collecting unscoped")
         try:
             await self.exec_as_agent(
                 environment,
@@ -199,17 +224,12 @@ class RunmeAntigravityCli(AntigravityCli):
             )
         finally:
             try:
+                collect_command = self._make_collect_trajectory_command_portable(
+                    super()._build_collect_trajectory_command(scoped=marker_created)
+                )
                 await self.exec_as_agent(
                     environment,
-                    command=(
-                        "src=$(find ~/.agy/antigravity-cli/tmp -type f "
-                        "\\( -name 'session-*.jsonl' -o -name 'session-*.json' \\) "
-                        "-printf '%T@ %p\\n' 2>/dev/null | sort -nr | head -n1 "
-                        "| awk '{print $2}'); "
-                        'if [ -n "$src" ]; then '
-                        'cp "$src" "/logs/agent/antigravity-cli.trajectory.${src##*.}"; '
-                        "fi"
-                    ),
+                    command=collect_command,
                 )
             except Exception:
                 pass
@@ -289,7 +309,7 @@ class RunmeClaudeCode(ClaudeCode):
             route_via_router = bool(self._get_env("ANTHROPIC_BASE_URL"))
         if route_via_router:
             model = self.model_name
-        elif self._is_bedrock_mode() and "/" in self.model_name:
+        elif self.model_connection.provider is None and "/" in self.model_name:
             model = self.model_name.split("/", 1)[-1]
         else:
             model = self.model_name.split("/")[-1]
