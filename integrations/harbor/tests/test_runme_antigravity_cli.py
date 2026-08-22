@@ -27,6 +27,16 @@ def test_runme_antigravity_cli_skips_install_and_setup(tmp_path: Path) -> None:
     assert asyncio.run(agent.setup(environment)) is None
 
 
+def test_runme_antigravity_cli_makes_upstream_collector_portable() -> None:
+    selector = "-printf '%T@\\t%p\\n' 2>/dev/null | sort -nr | head -n1 | cut -f2-"
+    upstream_command = "; ".join(f"src=$(find source-{index} {selector})" for index in range(3))
+
+    command = RunmeAntigravityCli._make_collect_trajectory_command_portable(upstream_command)
+
+    assert "-printf" not in command
+    assert command.count("-exec sh -c") == 3
+
+
 def test_runme_antigravity_cli_uses_ambient_user_auth(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -63,21 +73,23 @@ def test_runme_antigravity_cli_uses_ambient_user_auth(
     asyncio.run(agent.run("write result.txt", environment, object()))
 
     assert environment.uploads == []
-    assert len(calls) == 3
+    assert len(calls) == 4
     assert "settings.json" in calls[0][0]
-    assert 'export PATH="$HOME/.local/bin:$PATH"' in calls[1][0]
-    assert "\nagy --new-project --dangerously-skip-permissions " in calls[1][0]
-    assert "--model gemini-3-pro-preview " in calls[1][0]
-    assert "--prompt='write result.txt'" in calls[1][0]
-    assert "/logs/agent/antigravity-cli.txt" in calls[1][0]
-    assert "find ~/.agy/antigravity-cli/tmp" in calls[2][0]
+    assert calls[1][0] == f"touch {agent._RUN_MARKER}"
+    assert 'export PATH="$HOME/.local/bin:$PATH"' in calls[2][0]
+    assert "\nagy --new-project --dangerously-skip-permissions " in calls[2][0]
+    assert "--model gemini-3-pro-preview " in calls[2][0]
+    assert "--prompt='write result.txt'" in calls[2][0]
+    assert "/logs/agent/antigravity-cli.txt" in calls[2][0]
+    assert 'find "$HOME/.gemini/antigravity-cli/brain"' in calls[3][0]
+    assert 'find "$HOME/.gemini/antigravity-cli/conversations"' in calls[3][0]
     assert calls[0][1] == {
         "GEMINI_API_KEY": "ambient-key",
         "GEMINI_CLI_TRUST_WORKSPACE": "true",
         "GOOGLE_GEMINI_BASE_URL": "https://router.test/v1",
         "GOOGLE_CLOUD_PROJECT": "ambient-project",
     }
-    assert calls[1][1] == calls[0][1]
+    assert calls[2][1] == calls[0][1]
     assert all("curl -fsSL" not in command for command, _ in calls)
     assert all("apt-get" not in command for command, _ in calls)
 
@@ -99,11 +111,11 @@ def test_runme_antigravity_cli_can_use_local_default_model(tmp_path: Path) -> No
 
     asyncio.run(agent.run("write result.txt", environment, object()))
 
-    assert 'export PATH="$HOME/.local/bin:$PATH"' in calls[1][0]
-    assert "\nagy --new-project --dangerously-skip-permissions " in calls[1][0]
+    assert 'export PATH="$HOME/.local/bin:$PATH"' in calls[2][0]
+    assert "\nagy --new-project --dangerously-skip-permissions " in calls[2][0]
     assert "defaultModel" not in calls[0][0]
-    assert "--model " not in calls[1][0]
-    assert "--prompt='write result.txt'" in calls[1][0]
+    assert "--model " not in calls[2][0]
+    assert "--prompt='write result.txt'" in calls[2][0]
 
 
 def test_runme_antigravity_cli_promotes_google_fallback(
@@ -134,7 +146,7 @@ def test_runme_antigravity_cli_promotes_google_fallback(
 
     asyncio.run(agent.run("write result.txt", environment, object()))
 
-    for _, env in calls[:2]:
+    for _, env in (calls[0], calls[2]):
         assert env.get("GEMINI_CLI_TRUST_WORKSPACE") == "true"
         assert env["GEMINI_API_KEY"] == "fallback-key"
         assert "GOOGLE_API_KEY" not in env
@@ -172,7 +184,7 @@ def test_runme_antigravity_cli_native_auth_bypasses_router_by_default(
     agent.populate_context_post_run = lambda _context: None
     asyncio.run(agent.run("write result.txt", FakeEnvironment(), object()))
 
-    for _, env in calls[:2]:
+    for _, env in (calls[0], calls[2]):
         assert "GOOGLE_GEMINI_BASE_URL" not in (env or {})
         assert "GOOGLE_VERTEX_BASE_URL" not in (env or {})
 
