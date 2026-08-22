@@ -1,4 +1,4 @@
-FROM golang:1.26-trixie
+FROM golang:1.27-trixie
 
 LABEL org.opencontainers.image.authors="StatefulHQ <mail@stateful.com>"
 LABEL org.opencontainers.image.source="https://github.com/runmedev/runme"
