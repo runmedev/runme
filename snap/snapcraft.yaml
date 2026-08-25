@@ -1,0 +1,19 @@
+name: runme
+version: 0.0.2
+summary: Runme runs Markdown
+description: |
+  Runme makes Markdown documentation actually runnable. It is a cloud-native shell kernel with a notebook, editor, terminal, and CLI interface.
+base: bare
+build-base: core24
+confinement: classic
+
+apps:
+  runme:
+    command: bin/runme
+
+parts:
+  pebble:
+    plugin: go
+    source: .
+    build-snaps:
+      - go/1.24/stable
