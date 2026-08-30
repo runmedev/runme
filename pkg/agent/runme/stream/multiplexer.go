@@ -138,15 +138,14 @@ func (m *Multiplexer) receiveRequests(streamID string, sc *Connection, initialRe
 	}()
 	log := logs.FromContextWithTrace(ctx)
 
-	if err := m.streams.receive(ctx, streamID, m.runID, sc, initialRequest); err != nil {
-		closeErr, ok := err.(*websocket.CloseError)
-		if !ok {
-			log.Error(err, "Unexpected error while receiving socket requests")
-			return
-		}
-
-		log.Info("Connection closed", "streamID", streamID, "closeCode", closeErr.Code, "closeText", closeErr.Error())
+	err := m.streams.receive(ctx, streamID, m.runID, sc, initialRequest)
+	closeErr, ok := err.(*websocket.CloseError)
+	if !ok {
+		log.Error(err, "Unexpected error while receiving socket requests")
+		return
 	}
+
+	log.Info("Connection closed", "streamID", streamID, "closeCode", closeErr.Code, "closeText", closeErr.Error())
 }
 
 // startInactivityTimeout enforces a timeout for inactivity (not actively executing requests) using an interval.
