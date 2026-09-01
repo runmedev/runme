@@ -921,7 +921,7 @@ var (
 	file_runme_project_v1_project_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 	file_runme_project_v1_project_proto_msgTypes  = make([]protoimpl.MessageInfo, 12)
 	file_runme_project_v1_project_proto_goTypes   = []any{
-		(LoadEventType)(0),                  // 0: runme.project.v1.LoadEventType
+		LoadEventType(0),                    // 0: runme.project.v1.LoadEventType
 		(*DirectoryProjectOptions)(nil),     // 1: runme.project.v1.DirectoryProjectOptions
 		(*FileProjectOptions)(nil),          // 2: runme.project.v1.FileProjectOptions
 		(*LoadRequest)(nil),                 // 3: runme.project.v1.LoadRequest
@@ -934,7 +934,7 @@ var (
 		(*LoadEventFoundTask)(nil),          // 10: runme.project.v1.LoadEventFoundTask
 		(*LoadEventError)(nil),              // 11: runme.project.v1.LoadEventError
 		(*LoadResponse)(nil),                // 12: runme.project.v1.LoadResponse
-		(v1.RunmeIdentity)(0),               // 13: runme.parser.v1.RunmeIdentity
+		v1.RunmeIdentity(0),                 // 13: runme.parser.v1.RunmeIdentity
 	}
 )
 

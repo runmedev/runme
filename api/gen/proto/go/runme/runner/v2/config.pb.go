@@ -388,7 +388,7 @@ var (
 	file_runme_runner_v2_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 	file_runme_runner_v2_config_proto_msgTypes  = make([]protoimpl.MessageInfo, 2)
 	file_runme_runner_v2_config_proto_goTypes   = []any{
-		(CommandMode)(0),                  // 0: runme.runner.v2.CommandMode
+		CommandMode(0),                    // 0: runme.runner.v2.CommandMode
 		(*ProgramConfig)(nil),             // 1: runme.runner.v2.ProgramConfig
 		(*ProgramConfig_CommandList)(nil), // 2: runme.runner.v2.ProgramConfig.CommandList
 	}

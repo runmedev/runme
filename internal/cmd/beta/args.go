@@ -27,8 +27,8 @@ func createProjectFilterFromPatterns(patterns []string) (project.Filter, error) 
 	}, nil
 }
 
-func parseGlobs(patterns []string) ([]glob.Glob, error) {
-	globs := make([]glob.Glob, 0, len(patterns))
+func parseGlobs(patterns []string) ([]*glob.Pattern, error) {
+	globs := make([]*glob.Pattern, 0, len(patterns))
 	for _, item := range patterns {
 		g, err := glob.Compile(item)
 		if err != nil {

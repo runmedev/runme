@@ -163,7 +163,7 @@ var (
 		(*ResolveNotebookRequest)(nil),  // 0: runme.notebook.v1alpha1.ResolveNotebookRequest
 		(*ResolveNotebookResponse)(nil), // 1: runme.notebook.v1alpha1.ResolveNotebookResponse
 		(*v1.Notebook)(nil),             // 2: runme.parser.v1.Notebook
-		(v11.CommandMode)(0),            // 3: runme.runner.v1.CommandMode
+		v11.CommandMode(0),              // 3: runme.runner.v1.CommandMode
 		(*wrapperspb.UInt32Value)(nil),  // 4: google.protobuf.UInt32Value
 	}
 )

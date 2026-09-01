@@ -935,8 +935,8 @@ var (
 	file_agent_v1_eval_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 	file_agent_v1_eval_proto_msgTypes  = make([]protoimpl.MessageInfo, 11)
 	file_agent_v1_eval_proto_goTypes   = []any{
-		(Assertion_Type)(0),                 // 0: agent.v1.Assertion.Type
-		(Assertion_Result)(0),               // 1: agent.v1.Assertion.Result
+		Assertion_Type(0),                   // 0: agent.v1.Assertion.Type
+		Assertion_Result(0),                 // 1: agent.v1.Assertion.Result
 		(*Assertion)(nil),                   // 2: agent.v1.Assertion
 		(*EvalSample)(nil),                  // 3: agent.v1.EvalSample
 		(*EvalDataset)(nil),                 // 4: agent.v1.EvalDataset

@@ -2378,16 +2378,16 @@ var (
 	file_runme_runner_v1_runner_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
 	file_runme_runner_v1_runner_proto_msgTypes  = make([]protoimpl.MessageInfo, 25)
 	file_runme_runner_v1_runner_proto_goTypes   = []any{
-		(SessionEnvStoreType)(0),                            // 0: runme.runner.v1.SessionEnvStoreType
-		(ExecuteStop)(0),                                    // 1: runme.runner.v1.ExecuteStop
-		(CommandMode)(0),                                    // 2: runme.runner.v1.CommandMode
-		(SessionStrategy)(0),                                // 3: runme.runner.v1.SessionStrategy
-		(MonitorEnvStoreType)(0),                            // 4: runme.runner.v1.MonitorEnvStoreType
-		(Project_DirEnv)(0),                                 // 5: runme.runner.v1.Project.DirEnv
-		(ResolveProgramRequest_Mode)(0),                     // 6: runme.runner.v1.ResolveProgramRequest.Mode
-		(ResolveProgramRequest_Retention)(0),                // 7: runme.runner.v1.ResolveProgramRequest.Retention
-		(ResolveProgramResponse_Status)(0),                  // 8: runme.runner.v1.ResolveProgramResponse.Status
-		(MonitorEnvStoreResponseSnapshot_Status)(0),         // 9: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
+		SessionEnvStoreType(0),                              // 0: runme.runner.v1.SessionEnvStoreType
+		ExecuteStop(0),                                      // 1: runme.runner.v1.ExecuteStop
+		CommandMode(0),                                      // 2: runme.runner.v1.CommandMode
+		SessionStrategy(0),                                  // 3: runme.runner.v1.SessionStrategy
+		MonitorEnvStoreType(0),                              // 4: runme.runner.v1.MonitorEnvStoreType
+		Project_DirEnv(0),                                   // 5: runme.runner.v1.Project.DirEnv
+		ResolveProgramRequest_Mode(0),                       // 6: runme.runner.v1.ResolveProgramRequest.Mode
+		ResolveProgramRequest_Retention(0),                  // 7: runme.runner.v1.ResolveProgramRequest.Retention
+		ResolveProgramResponse_Status(0),                    // 8: runme.runner.v1.ResolveProgramResponse.Status
+		MonitorEnvStoreResponseSnapshot_Status(0),           // 9: runme.runner.v1.MonitorEnvStoreResponseSnapshot.Status
 		(*Session)(nil),                                     // 10: runme.runner.v1.Session
 		(*CreateSessionRequest)(nil),                        // 11: runme.runner.v1.CreateSessionRequest
 		(*CreateSessionResponse)(nil),                       // 12: runme.runner.v1.CreateSessionResponse
