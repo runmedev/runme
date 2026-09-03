@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -365,8 +366,26 @@ func (s *Server) handleDownloadDirectory(id string, req *harborv1.DownloadDirect
 	if err != nil {
 		return errorResponse(id, "invalid_argument", err.Error())
 	}
+	s.mu.Lock()
+	runtimeRoot := s.root
+	s.mu.Unlock()
+	relBase, err := filepath.Rel(runtimeRoot, base)
+	if err != nil {
+		return errorResponse(id, "internal", err.Error())
+	}
+	root, err := os.OpenRoot(runtimeRoot)
+	if err != nil {
+		return errorResponse(id, "internal", err.Error())
+	}
+	defer root.Close()
+	baseRoot, err := root.OpenRoot(relBase)
+	if err != nil {
+		return errorResponse(id, "internal", err.Error())
+	}
+	defer baseRoot.Close()
+
 	var files []*harborv1.FileEntry
-	err = filepath.WalkDir(base, func(path string, entry os.DirEntry, walkErr error) error {
+	err = fs.WalkDir(baseRoot.FS(), ".", func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
@@ -377,16 +396,12 @@ func (s *Server) handleDownloadDirectory(id string, req *harborv1.DownloadDirect
 		if err != nil {
 			return err
 		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(base, path)
+		data, err := fs.ReadFile(baseRoot.FS(), path)
 		if err != nil {
 			return err
 		}
 		files = append(files, &harborv1.FileEntry{
-			Path: filepath.ToSlash(rel),
+			Path: path,
 			Data: data,
 			Mode: uint32(info.Mode().Perm()),
 		})

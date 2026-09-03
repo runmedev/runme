@@ -3,6 +3,7 @@ package harbor
 import (
 	"bytes"
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -253,5 +254,37 @@ func TestDirectoryUploadDownload(t *testing.T) {
 	}
 	if len(download.GetDownloadDirectory().GetFiles()) != 2 {
 		t.Fatalf("downloaded file count = %d", len(download.GetDownloadDirectory().GetFiles()))
+	}
+}
+
+func TestDirectoryDownloadRejectsSymlinkEscape(t *testing.T) {
+	server, err := NewServer(Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	outside := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "bundle"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	secret := filepath.Join(outside, "secret.txt")
+	if err := os.WriteFile(secret, []byte("secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(secret, filepath.Join(root, "bundle", "secret.txt")); err != nil {
+		t.Skipf("symlinks are unavailable: %v", err)
+	}
+	server.Handle(context.Background(), &harborv1.Request{
+		Id:      "start",
+		Payload: &harborv1.Request_Start{Start: &harborv1.StartRequest{Root: root}},
+	})
+
+	response := server.Handle(context.Background(), &harborv1.Request{
+		Id:      "download-dir",
+		Payload: &harborv1.Request_DownloadDirectory{DownloadDirectory: &harborv1.DownloadDirectoryRequest{Path: "bundle"}},
+	})
+
+	if response.GetError() == nil {
+		t.Fatal("expected symlink escape to be rejected")
 	}
 }
