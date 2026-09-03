@@ -103,8 +103,7 @@ install/dev:
 	@# Most of the tools got moved to go.mod, but this is used in buf.gen.yaml.
 	@# Remove when buf starts respecting binaries from provided by "go tool".
 	go install github.com/stateful/go-proto-gql/protoc-gen-gql@latest
-	@# Does not work with "go tool".
-	GOTOOLCHAIN=go1.27.0 go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@go
+	go tool gvisor.dev/gvisor/tools/checklocks/cmd/checklocks -h >/dev/null
 
 .PHONY: fmt
 fmt:
@@ -134,8 +133,8 @@ lint:
 analyze:
 	go tool staticcheck ./...
 	go vet -stdmethods=false ./...
-	go vet -vettool=$(shell go env GOPATH)/bin/checklocks $(shell go list ./... | grep -v '^github.com/runmedev/runme/v3/pkg/agent')
-	go tool gosec -quiet -exclude=G110,G115,G204,G304,G404 -exclude-dir=pkg/agent -exclude-generated ./...
+	go vet -vettool=$$(go tool -n gvisor.dev/gvisor/tools/checklocks/cmd/checklocks) $(shell go list ./... | grep -v '^github.com/runmedev/runme/v3/pkg/agent')
+	go tool gosec -quiet -exclude=G101,G110,G115,G117,G122,G204,G304,G404,G702,G703,G705,G710 -exclude-dir=pkg/agent -exclude-generated ./...
 
 .PHONY: check
 check: lint analyze

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +15,30 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 )
+
+func TestManualCallbackHandlerEscapesHTML(t *testing.T) {
+	auth := &Auth{loginSession: &oauthSession{State: `<script>alert("state")</script>`}}
+	req := httptest.NewRequest(http.MethodGet, `/manual?state=`+auth.loginSession.State+`&code=%3Cscript%3Ealert%28%22code%22%29%3C%2Fscript%3E`, nil)
+	recorder := httptest.NewRecorder()
+
+	auth.manualCallbackHandler(recorder, req)
+
+	body := recorder.Body.String()
+	require.NotContains(t, body, "<script>")
+	require.Contains(t, body, "&lt;script&gt;")
+}
+
+func TestOAuthServerAuthorizeHandlerDoesNotReflectInvalidRedirectURI(t *testing.T) {
+	handler := newOAuthServerHandlerMock()
+	req := httptest.NewRequest(http.MethodGet, `/login/oauth/authorize?redirect_uri=%3A%25`, nil)
+	recorder := httptest.NewRecorder()
+
+	handler.authorizeHandler(recorder, req)
+
+	require.Equal(t, http.StatusBadRequest, recorder.Code)
+	require.Equal(t, "invalid redirect_uri\n", recorder.Body.String())
+	require.False(t, strings.Contains(recorder.Body.String(), ":%"))
+}
 
 func Test_isAPITokenValid(t *testing.T) {
 	t.Parallel()

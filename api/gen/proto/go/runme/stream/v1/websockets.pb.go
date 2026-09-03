@@ -668,8 +668,8 @@ var (
 	file_runme_stream_v1_websockets_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 	file_runme_stream_v1_websockets_proto_msgTypes  = make([]protoimpl.MessageInfo, 7)
 	file_runme_stream_v1_websockets_proto_goTypes   = []any{
-		(RunIntent)(0),             // 0: runme.stream.v1.RunIntent
-		(RunState)(0),              // 1: runme.stream.v1.RunState
+		RunIntent(0),               // 0: runme.stream.v1.RunIntent
+		RunState(0),                // 1: runme.stream.v1.RunState
 		(*WebsocketStatus)(nil),    // 2: runme.stream.v1.WebsocketStatus
 		(*Ping)(nil),               // 3: runme.stream.v1.Ping
 		(*Pong)(nil),               // 4: runme.stream.v1.Pong
@@ -677,7 +677,7 @@ var (
 		(*OpenRunResponse)(nil),    // 6: runme.stream.v1.OpenRunResponse
 		(*WebsocketRequest)(nil),   // 7: runme.stream.v1.WebsocketRequest
 		(*WebsocketResponse)(nil),  // 8: runme.stream.v1.WebsocketResponse
-		(code.Code)(0),             // 9: google.rpc.Code
+		code.Code(0),               // 9: google.rpc.Code
 		(*v2.ExecuteRequest)(nil),  // 10: runme.runner.v2.ExecuteRequest
 		(*v2.ExecuteResponse)(nil), // 11: runme.runner.v2.ExecuteResponse
 	}

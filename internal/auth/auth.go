@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"net/url"
@@ -30,6 +31,10 @@ import (
 const (
 	oauthTokenKey = "github"
 )
+
+var manualCallbackTemplate = template.Must(template.New("manual callback").Parse(
+	"<p>State: <strong>{{.State}}</strong></p>\n<p>Code: <strong>{{.Code}}</strong></p>",
+))
 
 //go:generate mockgen --build_flags=--mod=mod -destination=./auth_mock_gen.go -package=auth . Authorizer
 type Authorizer interface {
@@ -484,7 +489,13 @@ func (a *Auth) manualCallbackHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`Missing "code" query string parameter.`))
 	}
 
-	_, _ = w.Write([]byte(fmt.Sprintf("<p>State: <strong>%s</strong></p>\n<p>Code: <strong>%s</strong></p>", a.loginSession.State, code)))
+	_ = manualCallbackTemplate.Execute(w, struct {
+		State string
+		Code  string
+	}{
+		State: a.loginSession.State,
+		Code:  code,
+	})
 }
 
 func (a *Auth) getHTTPClient() *http.Client {

@@ -1491,9 +1491,9 @@ var (
 	file_runme_parser_v1_parser_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 	file_runme_parser_v1_parser_proto_msgTypes  = make([]protoimpl.MessageInfo, 23)
 	file_runme_parser_v1_parser_proto_goTypes   = []any{
-		(CellKind)(0),                         // 0: runme.parser.v1.CellKind
-		(CellRole)(0),                         // 1: runme.parser.v1.CellRole
-		(RunmeIdentity)(0),                    // 2: runme.parser.v1.RunmeIdentity
+		CellKind(0),                           // 0: runme.parser.v1.CellKind
+		CellRole(0),                           // 1: runme.parser.v1.CellRole
+		RunmeIdentity(0),                      // 2: runme.parser.v1.RunmeIdentity
 		(*Notebook)(nil),                      // 3: runme.parser.v1.Notebook
 		(*ExecutionSummaryTiming)(nil),        // 4: runme.parser.v1.ExecutionSummaryTiming
 		(*CellOutputItem)(nil),                // 5: runme.parser.v1.CellOutputItem

@@ -45,9 +45,7 @@ func (s *oauthServerHandlerMock) authorizeHandler(w http.ResponseWriter, r *http
 
 	u, err := url.Parse(redirectURI)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-
-		_, _ = w.Write([]byte(`invalid redirect_uri ` + err.Error()))
+		http.Error(w, "invalid redirect_uri", http.StatusBadRequest)
 		return
 	}
 

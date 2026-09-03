@@ -646,7 +646,7 @@ var (
 	file_agent_tools_v1_notebooks_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 	file_agent_tools_v1_notebooks_proto_msgTypes  = make([]protoimpl.MessageInfo, 9)
 	file_agent_tools_v1_notebooks_proto_goTypes   = []any{
-		(ToolCallOutput_Status)(0),       // 0: agent.tools.v1.ToolCallOutput.Status
+		ToolCallOutput_Status(0),         // 0: agent.tools.v1.ToolCallOutput.Status
 		(*ExecuteCodeRequest)(nil),       // 1: agent.tools.v1.ExecuteCodeRequest
 		(*ExecuteCodeResponse)(nil),      // 2: agent.tools.v1.ExecuteCodeResponse
 		(*TerminateRunRequest)(nil),      // 3: agent.tools.v1.TerminateRunRequest
