@@ -1313,6 +1313,143 @@ func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T
 	assert.Equal(t, "test", logs[0].ContextMap()["origin"])
 }
 
+func Test_convertToMonitorEnvStoreResponse_projectsOwlSnapshotContract(t *testing.T) {
+	updatedAt := time.Date(2026, 7, 24, 19, 45, 0, 0, time.UTC)
+	snapshot := []owl.SnapshotItem{
+		{
+			Name:          "API_URL",
+			Source:        owl.Source{Name: ".env.spec"},
+			OriginalValue: "https://api.example.com",
+			Value:         "https://api.example.com",
+			Type:          owl.TypeCorePlain,
+			Visibility:    owl.VisibilityLiteral,
+			Description:   "API URL",
+			Explicit:      true,
+			UpdatedAt:     updatedAt,
+		},
+		{
+			Name:        "RUNME_TEST_TOKEN",
+			Origin:      owl.Source{Name: ".env.spec"},
+			Value:       "[unset]",
+			Type:        owl.TypeCoreSecret,
+			Visibility:  owl.VisibilityUnresolved,
+			Description: "The Runme test token to use for integration tests.",
+			Explicit:    true,
+			UpdatedAt:   updatedAt,
+		},
+		{
+			Name:          "GITHUB_TOKEN",
+			Source:        owl.Source{Name: "runtime"},
+			Origin:        owl.Source{Name: ".env.spec"},
+			OriginalValue: "ghp_example",
+			Value:         "[masked]",
+			Type:          owl.TypeCoreSecret,
+			Visibility:    owl.VisibilityMasked,
+			Description:   "GitHub token",
+			Explicit:      true,
+			UpdatedAt:     updatedAt,
+		},
+		{
+			Name:          "DATABASE_URL",
+			Source:        owl.Source{Name: ".env"},
+			OriginalValue: "postgres://example",
+			Value:         "[hidden]",
+			Type:          owl.TypeCoreOpaque,
+			Visibility:    owl.VisibilityHidden,
+			Description:   "Database URL",
+			Explicit:      true,
+			UpdatedAt:     updatedAt,
+		},
+		{
+			Name:       "PATH",
+			Value:      "/usr/bin",
+			Type:       owl.TypeCoreOpaque,
+			Visibility: owl.VisibilityHidden,
+			UpdatedAt:  updatedAt,
+		},
+	}
+	msg := &runnerv1.MonitorEnvStoreResponse{}
+
+	require.NoError(t, convertToMonitorEnvStoreResponse(zap.NewNop(), msg, snapshot))
+
+	envs := msg.GetSnapshot().GetEnvs()
+	require.Len(t, envs, len(snapshot))
+	byName := monitorSnapshotEnvsByName(envs)
+
+	tests := []struct {
+		name          string
+		spec          string
+		origin        string
+		originalValue string
+		resolvedValue string
+		status        runnerv1.MonitorEnvStoreResponseSnapshot_Status
+		description   string
+	}{
+		{
+			name:          "API_URL",
+			spec:          string(owl.TypeCorePlain),
+			origin:        ".env.spec",
+			originalValue: "https://api.example.com",
+			resolvedValue: "https://api.example.com",
+			status:        runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL,
+			description:   "API URL",
+		},
+		{
+			name:          "RUNME_TEST_TOKEN",
+			spec:          string(owl.TypeCoreSecret),
+			origin:        "",
+			originalValue: "",
+			resolvedValue: "[unset]",
+			status:        runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED,
+			description:   "The Runme test token to use for integration tests.",
+		},
+		{
+			name:          "GITHUB_TOKEN",
+			spec:          string(owl.TypeCoreSecret),
+			origin:        "runtime",
+			originalValue: "ghp_example",
+			resolvedValue: "[masked]",
+			status:        runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED,
+			description:   "GitHub token",
+		},
+		{
+			name:          "DATABASE_URL",
+			spec:          string(owl.TypeCoreOpaque),
+			origin:        ".env",
+			originalValue: "postgres://example",
+			resolvedValue: "[hidden]",
+			status:        runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN,
+			description:   "Database URL",
+		},
+		{
+			name:          "PATH",
+			spec:          string(owl.TypeCoreOpaque),
+			origin:        "",
+			originalValue: "",
+			resolvedValue: "/usr/bin",
+			status:        runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN,
+			description:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := byName[tt.name]
+			require.NotNil(t, env)
+			assert.Equal(t, tt.name, env.Name)
+			assert.Equal(t, tt.spec, env.Spec)
+			assert.Equal(t, tt.origin, env.Origin)
+			assert.Equal(t, tt.originalValue, env.OriginalValue)
+			assert.Equal(t, tt.resolvedValue, env.ResolvedValue)
+			assert.Equal(t, tt.status, env.Status)
+			assert.Equal(t, tt.description, env.Description)
+			assert.Equal(t, formatTime(updatedAt), env.UpdateTime)
+			assert.Empty(t, env.CreateTime)
+			assert.Empty(t, env.Errors)
+		})
+	}
+}
+
 func Test_convertToMonitorEnvStoreResponse_usesSnapshotSource(t *testing.T) {
 	snapshot := []owl.SnapshotItem{
 		{
@@ -1354,4 +1491,12 @@ func Test_convertToMonitorEnvStoreResponse_doesNotUseSnapshotOriginAsSource(t *t
 	assert.Empty(t, envs[0].Origin)
 	assert.Equal(t, "[unset]", envs[0].ResolvedValue)
 	assert.Equal(t, runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_UNSPECIFIED, envs[0].Status)
+}
+
+func monitorSnapshotEnvsByName(envs []*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv) map[string]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv {
+	result := make(map[string]*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv, len(envs))
+	for _, env := range envs {
+		result[env.Name] = env
+	}
+	return result
 }
