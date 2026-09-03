@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
   "harbor>=0.22,<0.23",
-  "protobuf>=7.35.1",
+  "protobuf>=7.36.1",
 ]
 license-files = ["LICENSE", "NOTICE"]
 
@@ -42,8 +42,8 @@ packages = ["src/runme_harbor"]
 
 [dependency-groups]
 dev = [
-  "pytest>=8.0",
-  "ruff>=0.8",
+  "pytest>=9.1.1",
+  "ruff>=0.15.22,<0.16",
 ]
 
 [tool.ruff]
