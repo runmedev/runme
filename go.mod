@@ -20,7 +20,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/cli/cli/v2 v2.98.0
 	github.com/cli/go-gh v1.2.1
-	github.com/cli/go-gh/v2 v2.13.0
+	github.com/cli/go-gh/v2 v2.16.0
 	github.com/containerd/console v1.0.5
 	github.com/creack/pty v1.1.24
 	github.com/docker/docker v28.5.2+incompatible
