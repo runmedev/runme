@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/runmedev/owl/pkg/owl"
@@ -184,6 +185,120 @@ func TestOwlSessionRevealsSnapshotWithInsecurePolicy(t *testing.T) {
 	assert.Equal(t, "/tmp/terminfo", byName["TERMINFO"].Value)
 	assert.Equal(t, owl.VisibilityLiteral, byName["TERMINFO"].Visibility)
 	assert.Equal(t, "[process]", byName["TERMINFO"].Source.Name)
+}
+
+func TestOwlSessionSeedsDotenvSource(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dir, ".env.example"),
+		[]byte("FILE_ONLY=\"File only\" # Plain\n"),
+		0o600,
+	))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dir, ".env"),
+		[]byte("FILE_ONLY=from-dotenv\n"),
+		0o600,
+	))
+	proj, err := project.NewDirProject(dir)
+	require.NoError(t, err)
+
+	snapshot := owlSessionSnapshot(t, nil, proj, owl.SnapshotPolicy{})
+	env := snapshotItemsByName(snapshot)["FILE_ONLY"]
+
+	assert.Equal(t, "from-dotenv", env.Value)
+	assert.Equal(t, owl.VisibilityLiteral, env.Visibility)
+	assert.Equal(t, "dotenv", env.Source.Kind)
+	assert.Equal(t, ".env", filepath.Base(env.Source.Name))
+}
+
+func TestOwlSessionAttributesDirenvMatchingObservedValue(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("fake direnv shell script is POSIX-only")
+	}
+
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dir, ".env.example"),
+		[]byte("DIRENV_ONLY=\"Direnv only\" # Plain\n"),
+		0o600,
+	))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dir, ".envrc"),
+		[]byte("export DIRENV_ONLY=from-direnv\n"),
+		0o600,
+	))
+
+	binDir := t.TempDir()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(binDir, "direnv"),
+		[]byte("#!/bin/sh\necho '{\"DIRENV_ONLY\":\"from-direnv\"}'\n"),
+		0o700,
+	))
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	proj, err := project.NewDirProject(dir, project.WithEnvDirEnv(true))
+	require.NoError(t, err)
+
+	snapshot := owlSessionSnapshot(t, []string{"DIRENV_ONLY=from-direnv"}, proj, owl.SnapshotPolicy{})
+	env := snapshotItemsByName(snapshot)["DIRENV_ONLY"]
+
+	assert.Equal(t, "from-direnv", env.Value)
+	assert.Equal(t, owl.VisibilityLiteral, env.Visibility)
+	assert.Equal(t, ".envrc", env.Source.Name)
+	assert.Equal(t, "direnv", env.Source.Kind)
+}
+
+func TestOwlSessionKeepsProcessSourceWhenDirenvDiffers(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("fake direnv shell script is POSIX-only")
+	}
+
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dir, ".env.example"),
+		[]byte("DIRENV_ONLY=\"Direnv only\" # Plain\n"),
+		0o600,
+	))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dir, ".envrc"),
+		[]byte("export DIRENV_ONLY=from-direnv\n"),
+		0o600,
+	))
+
+	binDir := t.TempDir()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(binDir, "direnv"),
+		[]byte("#!/bin/sh\necho '{\"DIRENV_ONLY\":\"from-direnv\"}'\n"),
+		0o700,
+	))
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	proj, err := project.NewDirProject(dir, project.WithEnvDirEnv(true))
+	require.NoError(t, err)
+
+	snapshot := owlSessionSnapshot(t, []string{"DIRENV_ONLY=from-process"}, proj, owl.SnapshotPolicy{})
+	env := snapshotItemsByName(snapshot)["DIRENV_ONLY"]
+
+	assert.Equal(t, "from-process", env.Value)
+	assert.Equal(t, owl.VisibilityLiteral, env.Visibility)
+	assert.Equal(t, "[process]", env.Source.Name)
+	assert.Equal(t, "process", env.Source.Kind)
+}
+
+func owlSessionSnapshot(t *testing.T, envs []string, proj *project.Project, policy owl.SnapshotPolicy) []owl.SnapshotItem {
+	t.Helper()
+
+	sess, err := NewSessionWithStore(envs, proj, true, zap.NewNop())
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	snapshotc := make(chan []owl.SnapshotItem)
+	require.NoError(t, sess.SubscribeWithPolicy(ctx, snapshotc, policy))
+
+	return <-snapshotc
 }
 
 func snapshotItemsByName(items []owl.SnapshotItem) map[string]owl.SnapshotItem {
