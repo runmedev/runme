@@ -1313,6 +1313,29 @@ func Test_convertToMonitorEnvStoreResponse_warnsOnMissingUpdateTime(t *testing.T
 	assert.Equal(t, "test", logs[0].ContextMap()["origin"])
 }
 
+func Test_snapshotPolicyFromMonitorEnvStoreRequest(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, owl.SnapshotPolicy{}, snapshotPolicyFromMonitorEnvStoreRequest(&runnerv1.MonitorEnvStoreRequest{}))
+	assert.Equal(t,
+		owl.SnapshotPolicy{},
+		snapshotPolicyFromMonitorEnvStoreRequest(&runnerv1.MonitorEnvStoreRequest{
+			SnapshotPolicy: &runnerv1.MonitorEnvStoreRequest_SnapshotPolicy{
+				Reveal: true,
+			},
+		}),
+	)
+	assert.Equal(t,
+		owl.SnapshotPolicy{Reveal: true},
+		snapshotPolicyFromMonitorEnvStoreRequest(&runnerv1.MonitorEnvStoreRequest{
+			SnapshotPolicy: &runnerv1.MonitorEnvStoreRequest_SnapshotPolicy{
+				Reveal:   true,
+				Insecure: true,
+			},
+		}),
+	)
+}
+
 func Test_convertToMonitorEnvStoreResponse_projectsOwlSnapshotContract(t *testing.T) {
 	updatedAt := time.Date(2026, 7, 24, 19, 45, 0, 0, time.UTC)
 	snapshot := []owl.SnapshotItem{
