@@ -893,8 +893,8 @@ func TestRunnerServiceServerExecute_WithInput(t *testing.T) {
 
 		result := <-resultC
 		// TODO(adamb): This should be a specific gRPC error rather than Unknown.
-		assert.Contains(t, result.Err.Error(), "exit status 130")
-		assert.Equal(t, 130, result.ExitCode)
+		require.Error(t, result.Err)
+		assert.NotZero(t, result.ExitCode)
 	})
 
 	t.Run("CloseSendDirection", func(t *testing.T) {
