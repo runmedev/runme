@@ -50,7 +50,7 @@ func storeCmd() *cobra.Command {
 
 	cmd := owlcmd.NewStoreCommand(owlcmd.StoreCommandOptions{
 		Hidden: true,
-		InsecureAllowed: func() bool {
+		InsecureModeEnabled: func() bool {
 			return fInsecure
 		},
 		ClientFactory: func(cmd *cobra.Command) (owlcmd.StoreClient, error) {

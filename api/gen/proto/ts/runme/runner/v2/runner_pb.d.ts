@@ -597,6 +597,23 @@ export interface MonitorEnvStoreRequest {
      * @generated from protobuf field: runme.runner.v2.Session session = 1
      */
     session?: Session;
+    /**
+     * @generated from protobuf field: runme.runner.v2.MonitorEnvStoreRequest.SnapshotPolicy snapshot_policy = 2
+     */
+    snapshotPolicy?: MonitorEnvStoreRequest_SnapshotPolicy;
+}
+/**
+ * @generated from protobuf message runme.runner.v2.MonitorEnvStoreRequest.SnapshotPolicy
+ */
+export interface MonitorEnvStoreRequest_SnapshotPolicy {
+    /**
+     * @generated from protobuf field: bool reveal = 1
+     */
+    reveal: boolean;
+    /**
+     * @generated from protobuf field: bool insecure = 2
+     */
+    insecure: boolean;
 }
 /**
  * @generated from protobuf message runme.runner.v2.MonitorEnvStoreResponseSnapshot
@@ -1008,6 +1025,16 @@ declare class MonitorEnvStoreRequest$Type extends MessageType<MonitorEnvStoreReq
  * @generated MessageType for protobuf message runme.runner.v2.MonitorEnvStoreRequest
  */
 export declare const MonitorEnvStoreRequest: MonitorEnvStoreRequest$Type;
+declare class MonitorEnvStoreRequest_SnapshotPolicy$Type extends MessageType<MonitorEnvStoreRequest_SnapshotPolicy> {
+    constructor();
+    create(value?: PartialMessage<MonitorEnvStoreRequest_SnapshotPolicy>): MonitorEnvStoreRequest_SnapshotPolicy;
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MonitorEnvStoreRequest_SnapshotPolicy): MonitorEnvStoreRequest_SnapshotPolicy;
+    internalBinaryWrite(message: MonitorEnvStoreRequest_SnapshotPolicy, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter;
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.MonitorEnvStoreRequest.SnapshotPolicy
+ */
+export declare const MonitorEnvStoreRequest_SnapshotPolicy: MonitorEnvStoreRequest_SnapshotPolicy$Type;
 declare class MonitorEnvStoreResponseSnapshot$Type extends MessageType<MonitorEnvStoreResponseSnapshot> {
     constructor();
     create(value?: PartialMessage<MonitorEnvStoreResponseSnapshot>): MonitorEnvStoreResponseSnapshot;
