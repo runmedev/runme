@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -108,10 +110,75 @@ func (c *runmeOwlStoreClient) Check(ctx context.Context, _ owlcmd.CheckRequest) 
 	if err != nil {
 		errStr := err.Error()
 		parts := strings.Split(errStr, "Unknown desc = ")
-		return &owlcmd.CheckResult{Message: fmt.Sprintf("Error: %s", parts[len(parts)-1])}, nil
+		return &owlcmd.CheckResult{
+			OK:          false,
+			Diagnostics: []string{fmt.Sprintf("Error: %s", parts[len(parts)-1])},
+		}, nil
 	}
 
-	return &owlcmd.CheckResult{Message: "Success"}, nil
+	return &owlcmd.CheckResult{OK: true}, nil
+}
+
+func (c *runmeOwlStoreClient) Type(ctx context.Context, req owlcmd.TypeRequest) (*owlcmd.TypeResult, error) {
+	if req.SpecPath == "" {
+		req.SpecPath = ".env.spec"
+	}
+	snapshot, err := c.Snapshot(ctx, owlcmd.SnapshotRequest{All: true})
+	if err != nil {
+		return nil, err
+	}
+
+	proposals := make([]owlcmd.TypeProposal, 0, len(snapshot.Envs))
+	for _, env := range snapshot.Envs {
+		if env.Explicit {
+			continue
+		}
+		suggested, reason, ok := suggestSnapshotPrimitiveType(env)
+		if !includeSnapshotTypeProposal(req, ok) {
+			continue
+		}
+		confidence := "heuristic"
+		if !ok {
+			confidence = "none"
+		}
+		proposals = append(proposals, owlcmd.TypeProposal{
+			Key:           env.Name,
+			CurrentType:   normalizeSnapshotType(env.Type),
+			SuggestedType: suggested,
+			Confidence:    confidence,
+			Reason:        reason,
+			Description:   descriptionForEnvKey(env.Name),
+		})
+	}
+	sort.SliceStable(proposals, func(i, j int) bool {
+		return proposals[i].Key < proposals[j].Key
+	})
+
+	proposalOutput := renderDotenvSpecTypeProposals(proposals)
+	rendered := proposalOutput
+	if req.Output != "" {
+		materialized, err := materializeDotenvSpecTypeProposals(req.SpecPath, proposalOutput)
+		if err != nil {
+			return nil, err
+		}
+		rendered = materialized
+		if req.Output != "-" {
+			if err := os.WriteFile(req.Output, []byte(materialized), 0o600); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if req.Fix {
+		if err := appendDotenvSpecTypeProposals(req.SpecPath, proposalOutput); err != nil {
+			return nil, err
+		}
+	}
+
+	return &owlcmd.TypeResult{Proposals: proposals, Rendered: rendered}, nil
+}
+
+func includeSnapshotTypeProposal(req owlcmd.TypeRequest, suggested bool) bool {
+	return req.All || suggested
 }
 
 func (c *runmeOwlStoreClient) runnerClient() (runnerv1.RunnerServiceClient, func(), error) {
@@ -129,6 +196,135 @@ func (c *runmeOwlStoreClient) runnerClient() (runnerv1.RunnerServiceClient, func
 	}
 
 	return runnerv1.NewRunnerServiceClient(conn), func() { _ = conn.Close() }, nil
+}
+
+func suggestSnapshotPrimitiveType(env owlcmd.SnapshotEnv) (string, string, bool) {
+	upper := strings.ToUpper(env.Name)
+	switch {
+	case strings.Contains(upper, "PASSWORD"),
+		strings.Contains(upper, "SECRET"),
+		strings.Contains(upper, "TOKEN"),
+		strings.Contains(upper, "API_KEY"),
+		strings.Contains(upper, "PRIVATE_KEY"):
+		return "core/secret", "key name suggests sensitive value", true
+	case upper == "URL" || strings.HasSuffix(upper, "_URL") || strings.Contains(upper, "URL_"):
+		return "core/url", "key name suggests URL", true
+	case upper == "HOST" || strings.HasSuffix(upper, "_HOST") || strings.Contains(upper, "HOST_"):
+		return "core/host", "key name suggests host", true
+	case upper == "PORT" || strings.HasSuffix(upper, "_PORT") || strings.Contains(upper, "PORT_"):
+		return "core/port", "key name suggests port", true
+	default:
+		return "", "no primitive type heuristic matched", false
+	}
+}
+
+func renderDotenvSpecTypeProposals(proposals []owlcmd.TypeProposal) string {
+	if len(proposals) == 0 {
+		return ""
+	}
+	type renderedProposal struct {
+		left     string
+		typeName string
+		required bool
+	}
+	rendered := make([]renderedProposal, 0, len(proposals))
+	maxLeftWidth := 0
+	for _, proposal := range proposals {
+		if proposal.SuggestedType == "" {
+			continue
+		}
+		left := proposal.Key + "=" + quoteDotenvSpecDescription(proposal.Description)
+		rendered = append(rendered, renderedProposal{
+			left:     left,
+			typeName: dotenvSpecTypeName(proposal.SuggestedType),
+			required: proposal.Required,
+		})
+		if len(left) > maxLeftWidth {
+			maxLeftWidth = len(left)
+		}
+	}
+	if len(rendered) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, proposal := range rendered {
+		_, _ = b.WriteString(proposal.left)
+		_, _ = b.WriteString(strings.Repeat(" ", maxLeftWidth-len(proposal.left)+1))
+		_, _ = b.WriteString("# ")
+		_, _ = b.WriteString(proposal.typeName)
+		if proposal.required {
+			_ = b.WriteByte('!')
+		}
+		_ = b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func appendDotenvSpecTypeProposals(path string, rendered string) error {
+	if rendered == "" {
+		return nil
+	}
+	materialized, err := materializeDotenvSpecTypeProposals(path, rendered)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(materialized), 0o600)
+}
+
+func materializeDotenvSpecTypeProposals(path string, rendered string) (string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+	var b strings.Builder
+	_, _ = b.Write(raw)
+	if len(raw) > 0 {
+		switch {
+		case strings.HasSuffix(string(raw), "\n\n"):
+		case strings.HasSuffix(string(raw), "\n"):
+			_ = b.WriteByte('\n')
+		default:
+			_, _ = b.WriteString("\n\n")
+		}
+	}
+	_, _ = b.WriteString(rendered)
+	return b.String(), nil
+}
+
+func dotenvSpecTypeName(typeID string) string {
+	switch normalizeSnapshotType(typeID) {
+	case "core/secret":
+		return "Secret"
+	case "core/url":
+		return "Url"
+	case "core/host":
+		return "Host"
+	case "core/port":
+		return "Port"
+	case "core/plain":
+		return "Plain"
+	default:
+		return "Opaque"
+	}
+}
+
+func normalizeSnapshotType(typeID string) string {
+	return strings.TrimPrefix(typeID, "https://owl.runme.dev/v1/types/")
+}
+
+func quoteDotenvSpecDescription(s string) string {
+	return `"` + strings.ReplaceAll(strings.ReplaceAll(s, `\`, `\\`), `"`, `\"`) + `"`
+}
+
+func descriptionForEnvKey(key string) string {
+	words := strings.Split(strings.ToLower(strings.ReplaceAll(key, "_", " ")), " ")
+	for i, word := range words {
+		if word == "" {
+			continue
+		}
+		words[i] = strings.ToUpper(word[:1]) + word[1:]
+	}
+	return strings.Join(words, " ")
 }
 
 func (c *runmeOwlStoreClient) sessionID(ctx context.Context, runnerClient runnerv1.RunnerServiceClient) (string, error) {
@@ -151,29 +347,65 @@ func (c *runmeOwlStoreClient) sessionID(ctx context.Context, runnerClient runner
 func snapshotEnvsFromProto(envs []*runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv) []owlcmd.SnapshotEnv {
 	result := make([]owlcmd.SnapshotEnv, 0, len(envs))
 	for _, env := range envs {
+		visibility := snapshotVisibilityFromProto(env.GetStatus())
 		result = append(result, owlcmd.SnapshotEnv{
-			Name:          env.GetName(),
-			OriginalValue: env.GetOriginalValue(),
-			ResolvedValue: env.GetResolvedValue(),
-			Description:   env.GetDescription(),
-			Spec:          env.GetSpec(),
-			Origin:        env.GetOrigin(),
-			Status:        snapshotStatusFromProto(env.GetStatus()),
-			UpdateTime:    env.GetUpdateTime(),
+			Name:        env.GetName(),
+			Value:       snapshotValueFromProto(env.GetResolvedValue(), visibility),
+			Description: env.GetDescription(),
+			Type:        env.GetSpec(),
+			Source:      env.GetOrigin(),
+			Explicit:    snapshotExplicitFromProto(env),
+			Visibility:  visibility,
+			Diagnostics: snapshotDiagnosticsFromProto(env.GetErrors()),
 		})
 	}
 	return result
 }
 
-func snapshotStatusFromProto(status runnerv1.MonitorEnvStoreResponseSnapshot_Status) string {
+func snapshotValueFromProto(value string, visibility string) string {
+	if value != "" {
+		return value
+	}
+	switch visibility {
+	case "unresolved":
+		return "[unset]"
+	case "masked":
+		return "[masked]"
+	case "hidden":
+		return "[hidden]"
+	default:
+		return value
+	}
+}
+
+func snapshotExplicitFromProto(env *runnerv1.MonitorEnvStoreResponseSnapshot_SnapshotEnv) bool {
+	if env.GetDescription() != "" || env.GetIsRequired() {
+		return true
+	}
+	spec := env.GetSpec()
+	return spec != "" && spec != "Opaque" && spec != "https://owl.runme.dev/v1/types/core/opaque"
+}
+
+func snapshotVisibilityFromProto(status runnerv1.MonitorEnvStoreResponseSnapshot_Status) string {
 	switch status {
 	case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_HIDDEN:
-		return "HIDDEN"
+		return "hidden"
 	case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_MASKED:
-		return "MASKED"
+		return "masked"
 	case runnerv1.MonitorEnvStoreResponseSnapshot_STATUS_LITERAL:
-		return "LITERAL"
+		return "literal"
 	default:
-		return "UNSPECIFIED"
+		return "unresolved"
 	}
+}
+
+func snapshotDiagnosticsFromProto(errors []*runnerv1.MonitorEnvStoreResponseSnapshot_Error) []string {
+	if len(errors) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(errors))
+	for _, err := range errors {
+		result = append(result, err.GetMessage())
+	}
+	return result
 }
