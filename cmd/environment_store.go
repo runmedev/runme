@@ -185,6 +185,14 @@ func (c *runmeOwlStoreClient) ProjectSpec(ctx context.Context, req owlcmd.Projec
 	return owlcmd.NewLocalStoreClient(owlcmd.LocalStoreOptions{}).ProjectSpec(ctx, req)
 }
 
+func (c *runmeOwlStoreClient) Resolve(ctx context.Context, req owlcmd.ResolveRequest) (*owlcmd.ResolveResult, error) {
+	return owlcmd.NewLocalStoreClient(owlcmd.LocalStoreOptions{}).Resolve(ctx, req)
+}
+
+func (c *runmeOwlStoreClient) ApplyPromptAnswers(ctx context.Context, answers []owlcmd.PromptAnswer) (*owlcmd.ResolveResult, error) {
+	return owlcmd.NewLocalStoreClient(owlcmd.LocalStoreOptions{}).ApplyPromptAnswers(ctx, answers)
+}
+
 func includeSnapshotTypeProposal(req owlcmd.TypeRequest, suggested bool) bool {
 	return req.All || suggested
 }
