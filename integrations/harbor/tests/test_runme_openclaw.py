@@ -5,6 +5,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from runme_harbor.runme_agents import RunmeOpenClaw
 
 
@@ -45,6 +47,11 @@ def write_openclaw_config(home: Path, workspace: Path) -> Path:
 
 def test_runme_openclaw_name() -> None:
     assert RunmeOpenClaw.name() == "runme-openclaw"
+
+
+def test_runme_openclaw_rejects_unknown_options(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="Unknown option 'unknown_option'"):
+        RunmeOpenClaw(logs_dir=tmp_path, unknown_option=True)
 
 
 def test_runme_openclaw_uses_ambient_user_config(

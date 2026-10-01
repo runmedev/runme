@@ -5,14 +5,17 @@ import shutil
 import tempfile
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
+
+from pydantic import Field
 
 from harbor.agents.installed.antigravity_cli import AntigravityCli
-from harbor.agents.installed.base import CliFlag, with_prompt_template
+from harbor.agents.installed.base import with_prompt_template
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
 from harbor.agents.installed.cursor_cli import CursorCli
-from harbor.agents.installed.openclaw import OpenClaw
+from harbor.agents.installed.openclaw import OpenClaw, OpenClawOptions
+from harbor.agents.options import Cli
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 from harbor.models.trajectories.trajectory import Trajectory
@@ -726,6 +729,21 @@ class RunmeCursorCli(CursorCli):
         self.populate_context_post_run(context)
 
 
+class RunmeOpenClawOptions(OpenClawOptions):
+    thinking: Annotated[str | None, Cli("--thinking")] = Field(
+        default="high",
+        description="OpenClaw thinking level.",
+    )
+    session_id: Annotated[str | None, Cli("--session-id")] = Field(
+        default=None,
+        description="Resume an OpenClaw session by ID.",
+    )
+    session_key: Annotated[str | None, Cli("--session-key")] = Field(
+        default=None,
+        description="Resume an OpenClaw session by key.",
+    )
+
+
 class RunmeOpenClaw(OpenClaw):
     """OpenClaw-backed Runme agent without container bootstrap.
 
@@ -735,11 +753,8 @@ class RunmeOpenClaw(OpenClaw):
     already be available and configured.
     """
 
-    CLI_FLAGS = [
-        *OpenClaw.CLI_FLAGS,
-        CliFlag("session_id", cli="--session-id", type="str"),
-        CliFlag("session_key", cli="--session-key", type="str"),
-    ]
+    options_model = RunmeOpenClawOptions
+    options: RunmeOpenClawOptions
 
     @staticmethod
     def name() -> str:
@@ -832,7 +847,7 @@ class RunmeOpenClaw(OpenClaw):
         shutil.copy2(source, target)
 
     def _session_key_arg(self) -> str:
-        if self._resolved_flags.get("session_id") or self._resolved_flags.get("session_key"):
+        if self.options.session_id or self.options.session_key:
             return ""
 
         digest = sha256(str(self.logs_dir.resolve()).encode()).hexdigest()[:16]
