@@ -95,6 +95,12 @@ default environment is `runme`; pass `--env runme` to select it explicitly.
 Passing a non-Runme Harbor environment, such as `--env docker`, delegates the
 selected environment and agent to Harbor without the Runme-specific agent
 wrappers.
+
+OpenClaw evals use `openclaw agent --local` so they can stage the trial
+workspace while retaining the user's configured authentication. Stop the
+OpenClaw Gateway before running an OpenClaw eval because both processes use the
+same local state directory and cannot run concurrently.
+
 Runme environments default to one concurrent trial because they share the host
 workspace. Other environments use Harbor's concurrency default. Override either
 behavior with passthrough arguments such as `-- --n-concurrent 4`.
