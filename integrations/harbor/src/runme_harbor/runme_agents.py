@@ -2,8 +2,6 @@ import json
 import os
 import shlex
 import shutil
-import tempfile
-from hashlib import sha256
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
@@ -14,8 +12,8 @@ from harbor.agents.installed.base import with_prompt_template
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
 from harbor.agents.installed.cursor_cli import CursorCli
-from harbor.agents.installed.openclaw import OpenClaw, OpenClawOptions
-from harbor.agents.options import Cli
+from harbor.agents.installed.openclaw import OpenClaw
+from harbor.agents.options import Cli, InstalledAgentOptions
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 from harbor.models.trajectories.trajectory import Trajectory
@@ -729,18 +727,26 @@ class RunmeCursorCli(CursorCli):
         self.populate_context_post_run(context)
 
 
-class RunmeOpenClawOptions(OpenClawOptions):
+class RunmeOpenClawOptions(InstalledAgentOptions):
     thinking: Annotated[str | None, Cli("--thinking")] = Field(
         default="high",
         description="OpenClaw thinking level.",
     )
-    session_id: Annotated[str | None, Cli("--session-id")] = Field(
+    timeout: Annotated[int | None, Cli("--timeout")] = Field(
         default=None,
-        description="Resume an OpenClaw session by ID.",
+        description="OpenClaw CLI timeout seconds.",
     )
-    session_key: Annotated[str | None, Cli("--session-key")] = Field(
+    openclaw_config: dict[str, Any] | None = Field(
         default=None,
-        description="Resume an OpenClaw session by key.",
+        description="Inline OpenClaw config overlay.",
+    )
+    session_to_trajectory: bool = Field(
+        default=True,
+        description="Prefer openclaw.session.jsonl for trajectory generation.",
+    )
+    failover_retries: int | None = Field(
+        default=None,
+        description="Non-negative rate-limit profile rotations.",
     )
 
 
@@ -782,31 +788,6 @@ class RunmeOpenClaw(OpenClaw):
             return None
         return str(map_remote_path(workdir))
 
-    def _create_runtime_config(self, environment: BaseEnvironment) -> Path | None:
-        source = self._openclaw_config_path()
-        if not source.is_file():
-            return None
-
-        workspace_path = self._workspace_path(environment)
-        if not workspace_path:
-            return None
-
-        try:
-            config = json.loads(source.read_text())
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"OpenClaw config is not valid JSON: {source}") from exc
-
-        agents = config.setdefault("agents", {})
-        defaults = agents.setdefault("defaults", {})
-        defaults["workspace"] = workspace_path
-        defaults["skipBootstrap"] = True
-
-        config_dir = Path(tempfile.mkdtemp(prefix="runme-harbor-openclaw-"))
-        target = config_dir / "openclaw.json"
-        target.write_text(json.dumps(config, indent=2) + "\n")
-        target.chmod(0o600)
-        return target
-
     def _runtime_env(self) -> dict[str, str]:
         if not self.model_name:
             return {}
@@ -824,34 +805,28 @@ class RunmeOpenClaw(OpenClaw):
                 env[key] = val
         return env
 
-    def _collect_session_file(self) -> None:
-        envelope = self._parse_stdout()
+    def _parse_stdout(self) -> dict[str, Any] | None:
+        envelope = super()._parse_stdout()
         if not envelope:
-            return
+            return None
 
         meta = envelope.get("meta")
         if not isinstance(meta, dict):
-            return
+            meta = {}
+            envelope["meta"] = meta
         agent_meta = meta.get("agentMeta")
         if not isinstance(agent_meta, dict):
-            return
-        session_file = agent_meta.get("sessionFile")
-        if not isinstance(session_file, str) or not session_file.strip():
-            return
+            agent_meta = {}
+            meta["agentMeta"] = agent_meta
 
-        source = Path(session_file).expanduser()
-        if not source.is_file():
-            return
+        session_id = envelope.get("sessionId")
+        if isinstance(session_id, str):
+            agent_meta.setdefault("sessionId", session_id)
+        usage = envelope.get("usage")
+        if isinstance(usage, dict):
+            agent_meta.setdefault("usage", usage)
 
-        target = self.logs_dir / "openclaw.session.jsonl"
-        shutil.copy2(source, target)
-
-    def _session_key_arg(self) -> str:
-        if self.options.session_id or self.options.session_key:
-            return ""
-
-        digest = sha256(str(self.logs_dir.resolve()).encode()).hexdigest()[:16]
-        return f"--session-key runme-harbor-{digest} "
+        return envelope
 
     @with_prompt_template
     async def run(
@@ -862,10 +837,6 @@ class RunmeOpenClaw(OpenClaw):
     ) -> None:
         escaped_instruction = shlex.quote(instruction)
         env = self._runtime_env()
-        runtime_config_path = self._create_runtime_config(environment)
-        if runtime_config_path:
-            env = dict(env)
-            env["OPENCLAW_CONFIG_PATH"] = str(runtime_config_path)
 
         try:
             instruction_path = self.logs_dir / "instruction.txt"
@@ -875,30 +846,30 @@ class RunmeOpenClaw(OpenClaw):
 
         cli_flags = self.build_cli_flags()
         cli_flags_arg = f"{cli_flags} " if cli_flags else ""
-        session_key_arg = self._session_key_arg()
         model_arg = f"--model {shlex.quote(self.model_name)} " if self.model_name else ""
+        config_path = self._openclaw_config_path()
+        config_arg = (
+            f"--config {shlex.quote(str(config_path))} "
+            if config_path.is_file()
+            else ""
+        )
+        workspace_path = self._workspace_path(environment)
+        cwd_arg = f"--cwd {shlex.quote(workspace_path)} " if workspace_path else ""
 
-        try:
-            await self.exec_as_agent(
-                environment,
-                command=(
-                    "set -o pipefail\n"
-                    "openclaw agent --local --json "
-                    f"{cli_flags_arg}"
-                    f"{session_key_arg}"
-                    f"{model_arg}"
-                    f"--message {escaped_instruction} "
-                    f"2>&1 </dev/null | tee "
-                    f"{EnvironmentPaths.agent_dir / 'openclaw.txt'}"
-                ),
-                env=env,
-            )
-        finally:
-            try:
-                self._collect_session_file()
-            except Exception:
-                pass
-            if runtime_config_path:
-                shutil.rmtree(runtime_config_path.parent, ignore_errors=True)
+        await self.exec_as_agent(
+            environment,
+            command=(
+                "set -o pipefail\n"
+                "openclaw agent exec --json "
+                f"{cli_flags_arg}"
+                f"{config_arg}"
+                f"{cwd_arg}"
+                f"{model_arg}"
+                f"{escaped_instruction} "
+                f"2>&1 </dev/null | tee "
+                f"{EnvironmentPaths.agent_dir / 'openclaw.txt'}"
+            ),
+            env=env,
+        )
 
-            self.populate_context_post_run(context)
+        self.populate_context_post_run(context)
