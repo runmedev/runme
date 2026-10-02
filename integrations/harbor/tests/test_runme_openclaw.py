@@ -5,6 +5,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from runme_harbor.runme_agents import RunmeOpenClaw
 
 
@@ -47,6 +49,23 @@ def test_runme_openclaw_name() -> None:
     assert RunmeOpenClaw.name() == "runme-openclaw"
 
 
+def test_runme_openclaw_rejects_unknown_options(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="Unknown option 'unknown_option'"):
+        RunmeOpenClaw(logs_dir=tmp_path, unknown_option=True)
+
+
+def test_runme_openclaw_defers_thinking_to_openclaw_by_default(tmp_path: Path) -> None:
+    agent = RunmeOpenClaw(logs_dir=tmp_path)
+
+    assert "--thinking" not in agent.build_cli_flags()
+
+
+def test_runme_openclaw_accepts_explicit_thinking_override(tmp_path: Path) -> None:
+    agent = RunmeOpenClaw(logs_dir=tmp_path, thinking="high")
+
+    assert "--thinking high" in agent.build_cli_flags()
+
+
 def test_runme_openclaw_uses_ambient_user_config(
     tmp_path: Path,
     monkeypatch,
@@ -83,7 +102,8 @@ def test_runme_openclaw_uses_ambient_user_config(
 
     assert environment.uploads == []
     assert "\nopenclaw agent --local --json " in calls[0][0]
-    assert "--agent main --thinking high " in calls[0][0]
+    assert "--agent main " in calls[0][0]
+    assert "--thinking " not in calls[0][0]
     assert re.search(r"--session-key runme-harbor-[0-9a-f]{16} ", calls[0][0])
     assert "--model openai/gpt-5 " in calls[0][0]
     assert "--message 'write result.txt'" in calls[0][0]
