@@ -729,7 +729,7 @@ class RunmeCursorCli(CursorCli):
 
 class RunmeOpenClawOptions(InstalledAgentOptions):
     thinking: Annotated[str | None, Cli("--thinking")] = Field(
-        default="high",
+        default=None,
         description="OpenClaw thinking level.",
     )
     timeout: Annotated[int | None, Cli("--timeout")] = Field(

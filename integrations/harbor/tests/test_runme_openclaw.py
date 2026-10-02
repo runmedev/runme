@@ -53,6 +53,18 @@ def test_runme_openclaw_rejects_unknown_options(tmp_path: Path) -> None:
         RunmeOpenClaw(logs_dir=tmp_path, unknown_option=True)
 
 
+def test_runme_openclaw_defers_thinking_to_openclaw_by_default(tmp_path: Path) -> None:
+    agent = RunmeOpenClaw(logs_dir=tmp_path)
+
+    assert "--thinking" not in agent.build_cli_flags()
+
+
+def test_runme_openclaw_accepts_explicit_thinking_override(tmp_path: Path) -> None:
+    agent = RunmeOpenClaw(logs_dir=tmp_path, thinking="high")
+
+    assert agent.build_cli_flags() == "--thinking high"
+
+
 def test_runme_openclaw_uses_ambient_user_config(
     tmp_path: Path,
     monkeypatch,
@@ -83,7 +95,7 @@ def test_runme_openclaw_uses_ambient_user_config(
 
     assert environment.uploads == []
     assert "\nopenclaw agent exec --json " in calls[0][0]
-    assert "--thinking high " in calls[0][0]
+    assert "--thinking " not in calls[0][0]
     assert "--agent " not in calls[0][0]
     assert "--session-" not in calls[0][0]
     assert f"--config {home / '.openclaw' / 'openclaw.json'} " in calls[0][0]
