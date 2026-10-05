@@ -294,10 +294,19 @@ class ResolveProgramResponse(_message.Message):
     def __init__(self, script: _Optional[str] = ..., commands: _Optional[_Union[ResolveProgramCommandList, _Mapping]] = ..., vars: _Optional[_Iterable[_Union[ResolveProgramResponse.VarResult, _Mapping]]] = ...) -> None: ...
 
 class MonitorEnvStoreRequest(_message.Message):
-    __slots__ = ("session",)
+    __slots__ = ("session", "snapshot_policy")
+    class SnapshotPolicy(_message.Message):
+        __slots__ = ("reveal", "insecure")
+        REVEAL_FIELD_NUMBER: _ClassVar[int]
+        INSECURE_FIELD_NUMBER: _ClassVar[int]
+        reveal: bool
+        insecure: bool
+        def __init__(self, reveal: _Optional[bool] = ..., insecure: _Optional[bool] = ...) -> None: ...
     SESSION_FIELD_NUMBER: _ClassVar[int]
+    SNAPSHOT_POLICY_FIELD_NUMBER: _ClassVar[int]
     session: Session
-    def __init__(self, session: _Optional[_Union[Session, _Mapping]] = ...) -> None: ...
+    snapshot_policy: MonitorEnvStoreRequest.SnapshotPolicy
+    def __init__(self, session: _Optional[_Union[Session, _Mapping]] = ..., snapshot_policy: _Optional[_Union[MonitorEnvStoreRequest.SnapshotPolicy, _Mapping]] = ...) -> None: ...
 
 class MonitorEnvStoreResponseSnapshot(_message.Message):
     __slots__ = ("envs",)

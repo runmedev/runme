@@ -25,7 +25,7 @@ type envStorer interface {
 	updateStore(context context.Context, envs []string, newOrUpdated []string, deleted []string) error
 	setEnv(context context.Context, k string, v string) error // Set
 	sensitiveEnvKeys() ([]string, error)
-	subscribe(ctx context.Context, snapshotc chan<- []owl.SnapshotItem) error
+	subscribe(ctx context.Context, snapshotc chan<- []owl.SnapshotItem, policy owl.SnapshotPolicy) error
 	complete()
 }
 
@@ -111,7 +111,11 @@ func (s *Session) Envs() ([]string, error) {
 }
 
 func (s *Session) Subscribe(ctx context.Context, snapshotc chan<- []owl.SnapshotItem) error {
-	return s.envStorer.subscribe(ctx, snapshotc)
+	return s.SubscribeWithPolicy(ctx, snapshotc, owl.SnapshotPolicy{})
+}
+
+func (s *Session) SubscribeWithPolicy(ctx context.Context, snapshotc chan<- []owl.SnapshotItem, policy owl.SnapshotPolicy) error {
+	return s.envStorer.subscribe(ctx, snapshotc, policy)
 }
 
 func (s *Session) Complete() {
@@ -129,7 +133,7 @@ func newRunnerStorer(sessionEnvs ...string) *runnerEnvStorer {
 	}
 }
 
-func (es *runnerEnvStorer) subscribe(_ context.Context, snapshotc chan<- []owl.SnapshotItem) error {
+func (es *runnerEnvStorer) subscribe(_ context.Context, snapshotc chan<- []owl.SnapshotItem, _ owl.SnapshotPolicy) error {
 	defer close(snapshotc)
 	return fmt.Errorf("not available for runner env store")
 }
@@ -170,7 +174,10 @@ func (es *runnerEnvStorer) updateStore(_ context.Context, envs []string, newOrUp
 	return nil
 }
 
-type owlEnvStorerSubscriber chan<- []owl.SnapshotItem
+type owlEnvStorerSubscriber struct {
+	snapshotc chan<- []owl.SnapshotItem
+	policy    owl.SnapshotPolicy
+}
 
 type owlEnvStorer struct {
 	logger   *zap.Logger
@@ -181,9 +188,8 @@ type owlEnvStorer struct {
 }
 
 func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*owlEnvStorer, error) {
-	// todo(sebastian): technically system should be session
 	opts := []owl.StoreOption{
-		owl.WithDotenv("[system]", strings.NewReader(dotenvLines(envs))),
+		owl.WithDotenv("[process]", strings.NewReader(dotenvLines(envs))),
 	}
 
 	envSpecFiles := []string{}
@@ -234,12 +240,15 @@ func newOwlStorer(envs []string, proj *project.Project, logger *zap.Logger) (*ow
 	}, nil
 }
 
-func (es *owlEnvStorer) subscribe(context context.Context, snapshotc chan<- []owl.SnapshotItem) error {
+func (es *owlEnvStorer) subscribe(context context.Context, snapshotc chan<- []owl.SnapshotItem, policy owl.SnapshotPolicy) error {
 	defer es.mu.Unlock()
 	es.mu.Lock()
 	es.logger.Debug("subscribed to owl store")
 
-	es.subscribers = append(es.subscribers, snapshotc)
+	es.subscribers = append(es.subscribers, owlEnvStorerSubscriber{
+		snapshotc: snapshotc,
+		policy:    policy,
+	})
 
 	go func() {
 		<-context.Done()
@@ -262,7 +271,7 @@ func (es *owlEnvStorer) complete() {
 	es.mu.Lock()
 
 	for _, sub := range es.subscribers {
-		err := es.unsubscribeUnsafe(sub)
+		err := es.unsubscribeUnsafe(sub.snapshotc)
 		if err != nil {
 			es.logger.Error("unsubscribe from owl store failed", zap.Error(err))
 		}
@@ -280,9 +289,9 @@ func (es *owlEnvStorer) unsubscribeUnsafe(snapshotc chan<- []owl.SnapshotItem) e
 	es.logger.Debug("unsubscribed from owl store")
 
 	for i, sub := range es.subscribers {
-		if sub == snapshotc {
+		if sub.snapshotc == snapshotc {
 			es.subscribers = append(es.subscribers[:i], es.subscribers[i+1:]...)
-			close(sub)
+			close(sub.snapshotc)
 			return nil
 		}
 	}
@@ -294,14 +303,13 @@ func (es *owlEnvStorer) notifySubscribers() {
 	defer es.mu.RUnlock()
 	es.mu.RLock()
 
-	snapshot, err := es.owlStore.Snapshot(owl.SnapshotPolicy{})
-	if err != nil {
-		es.logger.Error("failed to get snapshot", zap.Error(err))
-		return
-	}
-
 	for _, sub := range es.subscribers {
-		sub <- snapshot
+		snapshot, err := es.owlStore.Snapshot(sub.policy)
+		if err != nil {
+			es.logger.Error("failed to get snapshot", zap.Error(err))
+			continue
+		}
+		sub.snapshotc <- snapshot
 	}
 }
 
