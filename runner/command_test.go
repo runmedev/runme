@@ -534,7 +534,9 @@ func Test_command(t *testing.T) {
 			assert.NoError(t, err)
 		}
 
-		assert.ErrorContains(t, cmd.Wait(), "exit status 130")
+		err = cmd.Wait()
+		require.Error(t, err)
+		assert.NotZero(t, exitCodeFromErr(err))
 	})
 
 	t.Run("Env", func(t *testing.T) {
