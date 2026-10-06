@@ -93,8 +93,8 @@ github.com/charmbracelet/x/exp/golden v0.0.0-20241011142426-46044092ad91 h1:payR
 github.com/charmbracelet/x/exp/golden v0.0.0-20241011142426-46044092ad91/go.mod h1:wDlXFlCrmJ8J+swcL/MnGUuYnqgQdW9rhSD61oNMb6U=
 github.com/charmbracelet/x/term v0.2.2 h1:xVRT/S2ZcKdhhOuSP4t5cLi5o+JxklsoEObBSgfgZRk=
 github.com/charmbracelet/x/term v0.2.2/go.mod h1:kF8CY5RddLWrsgVwpw4kAa6TESp6EB5y3uxGLeCqzAI=
-github.com/cli/cli/v2 v2.101.0 h1:zJ+YxyhomQ9PHDjB5wwv4tCFnjq6vEbfI0pRdOsJ0xo=
-github.com/cli/cli/v2 v2.101.0/go.mod h1:zF7x07hv7Jxei4lF4lA1NCOYlLNTKg4AfeQczeiwdSc=
+github.com/cli/cli/v2 v2.102.0 h1:SmsvpLB02sqhBK90/mOGAtvhwehAvBu2SjO5dBgY9xw=
+github.com/cli/cli/v2 v2.102.0/go.mod h1:ALATJsii0SgNCUPYi4JNuSqvIsVX9fwGs4IBXL4hmhs=
 github.com/cli/go-gh v1.2.1 h1:xFrjejSsgPiwXFP6VYynKWwxLQcNJy3Twbu82ZDlR/o=
 github.com/cli/go-gh v1.2.1/go.mod h1:Jxk8X+TCO4Ui/GarwY9tByWm/8zp4jJktzVZNlTW5VM=
 github.com/cli/go-gh/v2 v2.16.1 h1:t8s29LToBmYjXeDXUnK7Wdm7NkYSyzGZK3t4Doa6GX0=
@@ -301,8 +301,8 @@ github.com/jlewi/monogo v0.0.0-20241216141120-2e83e825aa81 h1:EdbSDclXLzz1P4s9vN
 github.com/jlewi/monogo v0.0.0-20241216141120-2e83e825aa81/go.mod h1:s3nTD+owHZ6b+F13JdSpXLtrAH35pOqdwdcZEZ/gwBc=
 github.com/kevinburke/ssh_config v1.6.0 h1:J1FBfmuVosPHf5GRdltRLhPJtJpTlMdKTBjRgTaQBFY=
 github.com/kevinburke/ssh_config v1.6.0/go.mod h1:q2RIzfka+BXARoNexmF9gkxEX7DmvbW9P4hIVx2Kg4M=
-github.com/klauspost/compress v1.20.0 h1:a3C1ke2ohxFymNlb2HWAHjDeKCI90scRskErZkR0ezA=
-github.com/klauspost/compress v1.20.0/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
+github.com/klauspost/compress v1.20.1 h1:T7kKElXUMXrUJ2E9QhQhxFtcK5rPyLdsGZvdbLMPdiQ=
+github.com/klauspost/compress v1.20.1/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/klauspost/cpuid/v2 v2.4.0 h1:S6Hrbc7+ywsr0r+RLapfGBHfyefhCTwEh3A0tV913Dw=
 github.com/klauspost/cpuid/v2 v2.4.0/go.mod h1:19jmZ9mjzoF//ddRSUsv0zfBTJWh3QJh9FNxZTMrGxU=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
