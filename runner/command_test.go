@@ -540,8 +540,9 @@ func Test_command(t *testing.T) {
 		require.NoError(t, stdinWriter.Close())
 
 		err = cmd.Wait()
-		require.Error(t, err)
-		assert.NotZero(t, exitCodeFromErr(err))
+		var exitErr *exec.ExitError
+		require.ErrorAs(t, err, &exitErr)
+		assert.Equal(t, 130, exitErr.ExitCode())
 	})
 
 	t.Run("Env", func(t *testing.T) {
