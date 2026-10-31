@@ -84,10 +84,64 @@ func TestNewJupyterKernelsHandlerRequiresManager(t *testing.T) {
 	}
 }
 
-func TestServerRegistersOnlyKernelScopedJupyterRoutes(t *testing.T) {
+func TestServerDoesNotRegisterJupyterRoutesByDefault(t *testing.T) {
 	runmeServer, err := NewServer(Options{
 		Server: &config.AssistantServerConfig{
 			ParserService: true,
+		},
+		ConfigDir: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler, err := runmeServer.BuildHandler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if runmeServer.jupyterManager != nil {
+			_ = runmeServer.jupyterManager.Close(context.Background())
+		}
+	})
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	response, err := http.Get(server.URL + jupyterKernelsRoute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("kernel route status = %d, want 404", response.StatusCode)
+	}
+	if runmeServer.jupyterManager != nil {
+		t.Fatal("Jupyter kernel manager initialized while service is disabled")
+	}
+	if runmeServer.runner != nil {
+		t.Fatal("runner initialized while runner service is disabled")
+	}
+	if runmeServer.serverConfig.JupyterService {
+		t.Fatal("Jupyter service unexpectedly enabled by default")
+	}
+	if runmeServer.serverConfig.RunnerService {
+		t.Fatal("runner service unexpectedly enabled by default")
+	}
+
+	legacyResponse, err := http.Get(server.URL + "/v1/jupyter/servers")
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyResponse.Body.Close()
+	if legacyResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("legacy server route status = %d, want 404", legacyResponse.StatusCode)
+	}
+}
+
+func TestServerRegistersOnlyKernelScopedJupyterRoutesWhenEnabled(t *testing.T) {
+	runmeServer, err := NewServer(Options{
+		Server: &config.AssistantServerConfig{
+			RunnerService:  true,
+			JupyterService: true,
 		},
 		ConfigDir: t.TempDir(),
 	})
@@ -122,6 +176,21 @@ func TestServerRegistersOnlyKernelScopedJupyterRoutes(t *testing.T) {
 	legacyResponse.Body.Close()
 	if legacyResponse.StatusCode != http.StatusNotFound {
 		t.Fatalf("legacy server route status = %d, want 404", legacyResponse.StatusCode)
+	}
+}
+
+func TestNewServerRejectsJupyterServiceWithoutRunnerService(t *testing.T) {
+	_, err := NewServer(Options{
+		Server: &config.AssistantServerConfig{
+			ParserService:  true,
+			JupyterService: true,
+		},
+	})
+	if err == nil {
+		t.Fatal("NewServer succeeded with Jupyter service enabled and runner service disabled")
+	}
+	if err.Error() != "jupyter service requires runner service" {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

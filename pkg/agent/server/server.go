@@ -83,6 +83,9 @@ func NewServer(opts Options) (*Server, error) {
 	if opts.Server == nil {
 		opts.Server = &config.AssistantServerConfig{}
 	}
+	if opts.Server.JupyterService && !opts.Server.RunnerService {
+		return nil, errors.New("jupyter service requires runner service")
+	}
 
 	assetsFS, err := loadStaticAssets(opts.Server.StaticAssets)
 	if err != nil {
@@ -330,30 +333,35 @@ func (s *Server) registerServices() error {
 		mux.HandleProtected(runnerSvcPath, runnerSvcHandler, s.checker, api.RunnerUserRole)
 	}
 
-	if s.jupyterManager == nil {
-		s.jupyterManager, err = jupyter.NewKernelManager(jupyter.KernelManagerConfig{
-			RuntimeDir: filepath.Join(s.configDir, "jupyter-kernels"),
-		})
-		if err != nil {
-			return errors.Wrap(err, "failed to initialize direct Jupyter kernel manager")
+	if s.serverConfig.JupyterService {
+		if s.jupyterManager == nil {
+			s.jupyterManager, err = jupyter.NewKernelManager(jupyter.KernelManagerConfig{
+				RuntimeDir: filepath.Join(s.configDir, "jupyter-kernels"),
+			})
+			if err != nil {
+				return errors.Wrap(err, "failed to initialize direct Jupyter kernel manager")
+			}
 		}
+		jupyterKernels, err := newJupyterKernelsHandler(s.jupyterManager)
+		if err != nil {
+			return errors.Wrap(err, "failed to initialize Jupyter kernels handler")
+		}
+		mux.HandleProtected(
+			jupyterKernelsRoute,
+			otelhttp.NewHandler(jupyterKernels, jupyterKernelsRoute),
+			s.checker,
+			api.RunnerUserRole,
+		)
+		mux.HandleProtected(
+			jupyterKernelsRoute+"/",
+			otelhttp.NewHandler(jupyterKernels, jupyterKernelsRoute+"/"),
+			s.checker,
+			api.RunnerUserRole,
+		)
+		log.Info("Setting up Jupyter kernel service", "path", jupyterKernelsRoute)
+	} else {
+		log.Info("Jupyter kernel service is disabled")
 	}
-	jupyterKernels, err := newJupyterKernelsHandler(s.jupyterManager)
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize Jupyter kernels handler")
-	}
-	mux.HandleProtected(
-		jupyterKernelsRoute,
-		otelhttp.NewHandler(jupyterKernels, jupyterKernelsRoute),
-		s.checker,
-		api.RunnerUserRole,
-	)
-	mux.HandleProtected(
-		jupyterKernelsRoute+"/",
-		otelhttp.NewHandler(jupyterKernels, jupyterKernelsRoute+"/"),
-		s.checker,
-		api.RunnerUserRole,
-	)
 
 	// Health check should be public
 	checker := grpchealth.NewStaticChecker()

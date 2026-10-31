@@ -20,7 +20,9 @@ The server provides the runtime services required by Runme Web:
   `assistantServer.parserService` is enabled.
 - The Jupyter kernel API starts client-specified kernels, manages their
   lifecycle, and bridges browser channel WebSockets directly to kernel ZeroMQ
-  sockets. Callers need `RunnerUserRole`; no separate Jupyter Server is used.
+  sockets. It is available only when both
+  `assistantServer.jupyterService` and `assistantServer.runnerService` are
+  enabled. Callers need `RunnerUserRole`; no separate Jupyter Server is used.
 - Optional OIDC authentication, authorization, and telemetry are provided by
   the same HTTP server.
 - A web application can optionally be served from the directory configured by
@@ -45,6 +47,8 @@ logging:
 assistantServer:
   port: 8080
   runnerService: true
+  # Opt in to client-selected Jupyter kernel commands. Requires runnerService.
+  jupyterService: true
   parserService: true
   # Optional: serve a web application from this directory.
   # staticAssets: /absolute/path/to/webapp/dist

@@ -77,6 +77,25 @@ func Test_ConfigAutomaticEnvVars(t *testing.T) {
 	}
 }
 
+func Test_ConfigJupyterServiceRequiresRunnerService(t *testing.T) {
+	cfg := &Config{
+		AssistantServer: &AssistantServerConfig{JupyterService: true},
+	}
+
+	problems := cfg.IsValid()
+	if len(problems) != 1 {
+		t.Fatalf("Expected one validation problem, got %v", problems)
+	}
+	if problems[0] != "assistantServer.jupyterService requires assistantServer.runnerService" {
+		t.Fatalf("Unexpected validation problem: %q", problems[0])
+	}
+
+	cfg.AssistantServer.RunnerService = true
+	if problems := cfg.IsValid(); len(problems) != 0 {
+		t.Fatalf("Expected runner-backed Jupyter service configuration to be valid, got %v", problems)
+	}
+}
+
 func Test_DeprecatedAgentConfigurationIsAccepted(t *testing.T) {
 	v := viper.New()
 	v.SetConfigType("yaml")
