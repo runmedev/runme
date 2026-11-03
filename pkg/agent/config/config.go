@@ -234,6 +234,9 @@ func (ac *AppConfig) GetConfigDir() string {
 // IsValid validates the configuration and returns any errors.
 func (c *Config) IsValid() []string {
 	problems := make([]string, 0, 1)
+	if c.AssistantServer != nil && c.AssistantServer.JupyterService && !c.AssistantServer.RunnerService {
+		problems = append(problems, "assistantServer.jupyterService requires assistantServer.runnerService")
+	}
 
 	return problems
 }
@@ -471,6 +474,9 @@ type AssistantServerConfig struct {
 
 	// RunnerService starts the Runme runner service if true otherwise it doesn't start the runner service.
 	RunnerService bool `json:"runnerService" yaml:"runnerService"`
+
+	// JupyterService starts the direct Jupyter kernel service if true. It is disabled by default and requires RunnerService.
+	JupyterService bool `json:"jupyterService" yaml:"jupyterService"`
 
 	// RunnerReconnect is a flag to enable automatic reconnecting to the runner from the frontend.
 	RunnerReconnect bool `json:"runnerReconnect,omitempty" yaml:"runnerReconnect,omitempty"`
