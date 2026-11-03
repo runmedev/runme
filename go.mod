@@ -29,7 +29,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/fullstorydev/grpcurl v1.9.4
 	github.com/gabriel-vasile/mimetype v1.4.15
-	github.com/go-git/go-billy/v5 v5.9.1
+	github.com/go-git/go-billy/v5 v5.9.2
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
