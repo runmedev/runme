@@ -88,6 +88,7 @@ jobs:
       - name: Setup Dagger (Linux only)
         uses: dagger/dagger-for-github@v7
         with:
+          # TODO: Switch back to "latest" once Dagger v1 is the stable release.
           version: "v1.0.0-beta.25"
           verb: core
           args: "engine local-cache"
