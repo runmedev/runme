@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -24,6 +25,38 @@ import (
 
 func init() {
 	dumpCmd = "env -0"
+}
+
+func TestNewCommandResolvesLegacyDaggerCommand(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		version  string
+		wantArgs []string
+	}{
+		{name: "stable", version: "v0.21.11", wantArgs: []string{"shell"}},
+		{name: "v1 prerelease", version: "v1.0.0-beta.25", wantArgs: []string{"script"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			daggerPath := filepath.Join(dir, "dagger")
+			contents := "#!/bin/sh\necho '" + tt.version + "'\n"
+			require.NoError(t, os.WriteFile(daggerPath, []byte(contents), 0o700))
+			t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+			cmd, err := newCommand(
+				context.Background(),
+				&commandConfig{
+					ProgramName: "dagger shell",
+					Logger:      testCreateLogger(t),
+				},
+			)
+			require.NoError(t, err)
+			t.Cleanup(cmd.cleanup)
+
+			assert.Equal(t, daggerPath, cmd.ProgramPath)
+			assert.Equal(t, tt.wantArgs, cmd.Args)
+		})
+	}
 }
 
 func Test_command(t *testing.T) {

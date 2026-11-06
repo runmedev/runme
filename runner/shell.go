@@ -15,11 +15,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/internal/system"
 	"github.com/runmedev/runme/v3/project"
 )
-
-const DaggerCustomShell = "dagger shell"
 
 type Shell struct {
 	*ExecutableConfig
@@ -144,7 +143,7 @@ func GetShellProgram(baseShell string, task project.Task) (program string, comma
 	}
 
 	switch {
-	case strings.Contains(customShell, DaggerCustomShell):
+	case dagger.IsCommand(customShell):
 		program = customShell
 		commandMode = CommandModeDaggerShell
 	case IsShellLanguage(task.CodeBlock.Language()):

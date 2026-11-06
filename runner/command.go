@@ -19,6 +19,7 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/internal/system"
 	"github.com/runmedev/runme/v3/internal/ulid"
 )
@@ -90,7 +91,7 @@ const (
 	CommandModeInlineShell
 	// Send script as temporary file in cwd
 	CommandModeTempFile
-	// Send script as dagger shell
+	// Send script to dagger script.
 	CommandModeDaggerShell
 )
 
@@ -138,6 +139,18 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 
 	programPath, initialArgs, err := inferFileProgram(pathEnv, programName, cfg.LanguageID)
 	args = append(args, initialArgs...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	var env []string
+	if cfg.Session != nil {
+		env, err = cfg.Session.Envs()
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+	}
+	args, err = dagger.ResolveArgs(context, programPath, args, env)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

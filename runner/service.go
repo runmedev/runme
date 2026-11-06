@@ -370,7 +370,7 @@ func (r *runnerService) Execute(srv runnerv1.RunnerService_ExecuteServer) error 
 
 	opts := &startOpts{}
 	// todo(sebastian): dagger-shell is not UX integration ready yet
-	// special-case Dagger Shell to write the shell's stdout to stderr
+	// Special-case Dagger scripts to write the command's stdout to stderr.
 	// if cfg.CommandMode == CommandModeDaggerShell {
 	// 	opts.TtyAssignment = func(c *command) {
 	// 		c.cmd.Stdin = c.tty
