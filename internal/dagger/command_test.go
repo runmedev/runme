@@ -74,18 +74,28 @@ func TestCommandResolver(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			var gotVersion string
-			resolver := newCommandResolver(func(_ context.Context, fields, _ []string) ([]byte, error) {
-				gotVersion = strings.Join(fields, " ")
+			resolver := newResolver(func(_ context.Context, cmd command, _ []string) ([]byte, error) {
+				gotVersion = cmd.String()
 				return []byte(tt.version), tt.probeErr
 			})
 
-			fields, err := resolver.resolve(context.Background(), strings.Fields(tt.command), nil)
+			fields := strings.Fields(tt.command)
+			if len(fields) == 0 {
+				assert.Empty(t, tt.want)
+				return
+			}
+			invocation, ok := parseInvocation(fields[0], fields[1:])
+			if !ok {
+				assert.Equal(t, tt.want, commandFromFields(fields).String())
+				return
+			}
+			resolved, err := resolver.resolve(context.Background(), invocation, nil)
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
 				return
 			}
 			require.NoError(t, err)
-			assert.Equal(t, tt.want, strings.Join(fields, " "))
+			assert.Equal(t, tt.want, resolved.String())
 			assert.Equal(t, tt.wantVersion, gotVersion)
 		})
 	}
@@ -95,19 +105,21 @@ func TestCommandResolverCachesVersion(t *testing.T) {
 	t.Parallel()
 
 	var calls atomic.Int32
-	resolver := newCommandResolver(func(_ context.Context, _, _ []string) ([]byte, error) {
+	resolver := newResolver(func(_ context.Context, _ command, _ []string) ([]byte, error) {
 		calls.Add(1)
 		return []byte("v1.0.0-beta.25"), nil
 	})
+	invocation, ok := parseInvocation("dagger", []string{"shell"})
+	require.True(t, ok)
 
 	for range 2 {
-		resolved, err := resolver.resolve(context.Background(), []string{"dagger", "shell"}, []string{"PATH=/bin"})
+		resolved, err := resolver.resolve(context.Background(), invocation, []string{"PATH=/bin"})
 		require.NoError(t, err)
-		assert.Equal(t, []string{"dagger", "script"}, resolved)
+		assert.Equal(t, "dagger script", resolved.String())
 	}
 	assert.Equal(t, int32(1), calls.Load())
 
-	_, err := resolver.resolve(context.Background(), []string{"dagger", "shell"}, []string{"PATH=/different"})
+	_, err := resolver.resolve(context.Background(), invocation, []string{"PATH=/different"})
 	require.NoError(t, err)
 	assert.Equal(t, int32(2), calls.Load())
 }
