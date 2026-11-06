@@ -30,7 +30,6 @@ func (s *Session) loadDirEnv(ctx context.Context, proj *project.Project) (string
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	cfg := &ExecutableConfig{
 		Dir:     proj.Root(),
-		Name:    "LoadDirEnv",
 		PreEnv:  preEnv,
 		Session: s,
 		Stderr:  stderr,
@@ -62,7 +61,7 @@ func (s *Session) loadDirEnv(ctx context.Context, proj *project.Project) (string
 			return "direnv not found", nil
 		}
 
-		return "", err
+		return "", errors.Wrap(err, "failed to load direnv")
 	}
 
 	msg := "unavailable"

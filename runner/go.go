@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	commandpkg "github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/internal/system"
 )
 
@@ -55,6 +56,9 @@ func (g *Go) Run(ctx context.Context) error {
 	c.Stderr = g.Stderr
 	c.Stdout = g.Stdout
 	c.Stdin = g.Stdin
+	if g.KnownName != "" {
+		c.Env = commandpkg.AppendKnownNameEnv(os.Environ(), g.KnownName)
+	}
 
 	g.command = c
 

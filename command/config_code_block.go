@@ -40,6 +40,7 @@ func (b *configBuilder) Build() (*ProgramConfig, error) {
 		ProgramName: b.programPath(),
 		LanguageId:  b.block.Language(),
 		Directory:   b.dir(),
+		KnownName:   b.block.Name(),
 	}
 
 	if b.useInteractiveLegacy {

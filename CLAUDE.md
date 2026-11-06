@@ -64,6 +64,8 @@ Key packages:
 
 **IMPORTANT: You MUST always run the full `runme run check test` suite before committing changes.**
 
+- Treat filesystem and executable paths as opaque, cross-platform values. Never split paths on whitespace or hard-code `/`; use `filepath` helpers and pass the executable and argument vector separately whenever possible.
+- When changing path discovery, parsing, or command execution, cover paths containing spaces plus Windows drive-letter/backslash paths. Code that works on Unix-like systems must not assume the same path shape on Windows.
 - Tests require `TZ=UTC` environment variable
 - Protocol buffers managed with buf CLI; TypeScript definitions published to buf.build registry
 - Pre-commit hooks require `python3 -m pip install pre-commit`

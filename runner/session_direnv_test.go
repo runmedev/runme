@@ -4,6 +4,9 @@ package runner
 
 import (
 	"bytes"
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -47,4 +50,23 @@ func Test_EnvDirEnv(t *testing.T) {
 	for _, env := range expectedEnvs {
 		require.Contains(t, actualEnvs, env)
 	}
+}
+
+func TestLoadDirEnvWrapsError(t *testing.T) {
+	temp := t.TempDir()
+	testData := teststub.Setup(t, temp)
+	dir := testData.DirEnvProjectPath()
+
+	binDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(binDir, "direnv"), []byte("#!/bin/sh\necho false\n"), 0o700))
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	proj, err := project.NewDirProject(dir, project.WithEnvDirEnv(true))
+	require.NoError(t, err)
+	sess, err := NewSession(os.Environ(), nil, zap.NewNop())
+	require.NoError(t, err)
+
+	_, err = sess.loadDirEnv(context.Background(), proj)
+	require.ErrorContains(t, err, "failed to load direnv")
+	require.NotContains(t, err.Error(), "LoadDirEnv")
 }
