@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	LegacyCommand = "dagger shell"
-	Command       = "dagger script"
+	LegacyCommand       = "dagger shell"
+	Command             = "dagger script"
+	versionProbeTimeout = 5 * time.Second
 )
 
 var (
@@ -205,7 +206,7 @@ func ResolveArgs(ctx context.Context, program string, args, env []string) ([]str
 }
 
 func probeVersion(ctx context.Context, cmd command, env []string) ([]byte, error) {
-	probeCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	probeCtx, cancel := context.WithTimeout(ctx, versionProbeTimeout)
 	defer cancel()
 
 	executable := exec.CommandContext(probeCtx, cmd.program, cmd.args...)
