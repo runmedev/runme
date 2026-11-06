@@ -15,11 +15,12 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/internal/system"
 	"github.com/runmedev/runme/v3/project"
 )
 
-const DaggerCustomShell = "dagger shell"
+const DaggerCustomShell = dagger.Command
 
 type Shell struct {
 	*ExecutableConfig
@@ -31,7 +32,7 @@ type Shell struct {
 var _ Executable = (*Shell)(nil)
 
 func (s Shell) ProgramPath() string {
-	return resolveShellPath(s.CustomShell)
+	return resolveShellPath(dagger.CanonicalizeCommand(s.CustomShell))
 }
 
 func (s Shell) ShellType() string {
@@ -144,8 +145,8 @@ func GetShellProgram(baseShell string, task project.Task) (program string, comma
 	}
 
 	switch {
-	case strings.Contains(customShell, DaggerCustomShell):
-		program = customShell
+	case dagger.IsCommand(customShell):
+		program = dagger.CanonicalizeCommand(customShell)
 		commandMode = CommandModeDaggerShell
 	case IsShellLanguage(task.CodeBlock.Language()):
 		program = customShell
@@ -155,7 +156,7 @@ func GetShellProgram(baseShell string, task project.Task) (program string, comma
 	}
 
 	if interpreter := task.BlockInterpreter(); interpreter != "" {
-		program = interpreter
+		program = dagger.CanonicalizeCommand(interpreter)
 	}
 
 	return

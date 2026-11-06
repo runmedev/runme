@@ -26,7 +26,7 @@ stdout 'No Dagger Shell here'
 
 -- shell.dag --
 ---
-shell: dagger shell
+shell: dagger script
 ---
 
 ```sh {"name":"SimpleDagger","interactive":"false"}

@@ -933,6 +933,23 @@ func TestEditor_LabelComments(t *testing.T) {
 		actual, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)
 
+		require.Contains(t, string(actual), "shell: dagger shell")
+		require.Contains(t, string(actual), labelCommentPreamble+"date")
+		require.Contains(t, string(actual), labelCommentPreamble+"iso")
+	})
+
+	t.Run("SerializeForDaggerScriptFrontmatter", func(t *testing.T) {
+		withFrontmatter := bytes.Join([][]byte{[]byte("---\nshell: dagger script\n---\n\n"), data}, nil)
+
+		notebook, err := Deserialize(withFrontmatter, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
+
+		assert.Equal(t, "dagger script", notebook.Frontmatter.Shell)
+
+		actual, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+
+		require.Contains(t, string(actual), "shell: dagger script")
 		require.Contains(t, string(actual), labelCommentPreamble+"date")
 		require.Contains(t, string(actual), labelCommentPreamble+"iso")
 	})
@@ -950,6 +967,19 @@ func TestEditor_LabelComments(t *testing.T) {
 
 		assert.Equal(t, "iso", notebook.Cells[4].Metadata["name"])
 		require.NotContains(t, notebook.Cells[4].Value, labelCommentPreamble)
+
+		actual, err := Serialize(notebook, nil, Options{})
+		require.NoError(t, err)
+
+		require.Contains(t, string(actual), labelCommentPreamble+"date")
+		require.NotContains(t, string(actual), labelCommentPreamble+"iso")
+	})
+
+	t.Run("SerializeForMixedCellsDaggerScript", func(t *testing.T) {
+		mixed := []byte("## Retain attribute format\n\n```sh {\"name\":\"date\", \"interpreter\":\"dagger script\"}\n### Exported in runme.dev as date\ndate\n```\n\n```javascript {\"name\":\"iso\"}\n### Exported in runme.dev as iso\nconsole.log(new Date().toISOString())\n```\n")
+
+		notebook, err := Deserialize(mixed, Options{IdentityResolver: identityResolverNone})
+		require.NoError(t, err)
 
 		actual, err := Serialize(notebook, nil, Options{})
 		require.NoError(t, err)

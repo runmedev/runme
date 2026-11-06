@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -24,6 +25,26 @@ import (
 
 func init() {
 	dumpCmd = "env -0"
+}
+
+func TestNewCommandCanonicalizesLegacyDaggerCommand(t *testing.T) {
+	dir := t.TempDir()
+	daggerPath := filepath.Join(dir, "dagger")
+	require.NoError(t, os.WriteFile(daggerPath, []byte("#!/bin/sh\n"), 0o700))
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	cmd, err := newCommand(
+		context.Background(),
+		&commandConfig{
+			ProgramName: "dagger shell",
+			Logger:      testCreateLogger(t),
+		},
+	)
+	require.NoError(t, err)
+	t.Cleanup(cmd.cleanup)
+
+	assert.Equal(t, daggerPath, cmd.ProgramPath)
+	assert.Equal(t, []string{"script"}, cmd.Args)
 }
 
 func Test_command(t *testing.T) {

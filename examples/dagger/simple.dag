@@ -1,5 +1,5 @@
 ---
-shell: dagger shell
+shell: dagger script
 ---
 
 ```sh {"name":"SimpleDagger","terminalRows":"18"}

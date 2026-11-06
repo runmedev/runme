@@ -80,14 +80,14 @@ func TestResolveDaggerShell(t *testing.T) {
 			},
 		},
 		Metadata: map[string]string{
-			"runme.dev/frontmatter": "---\nrunme:\n  id: 01JJDCG2SQSGV0DP55XCR55AYM\n  version: v3\nshell: dagger shell\nterminalRows: 20\n---",
+			"runme.dev/frontmatter": "---\nrunme:\n  id: 01JJDCG2SQSGV0DP55XCR55AYM\n  version: v3\nshell: dagger script\nterminalRows: 20\n---",
 		},
 	}
 
 	resolver, err := NewResolver(WithNotebook(daggerShellNotebook))
 	require.NoError(t, err)
 
-	definition := `#!/usr/bin/env dagger shell
+	definition := `#!/usr/bin/env dagger script
 KERNEL_BINARY()
 {
   github.com/purpleclay/daggerverse/golang $(git https://github.com/runmedev/runme | head | tree) \
@@ -192,7 +192,7 @@ func TestResolveDaggerShell_CellDaggerShell(t *testing.T) {
 	// Test that the resolver can resolve dagger shell, skipping vanilla shell cells
 	script, err = resolver.ResolveDaggerShell(ctx, uint32(4))
 	require.NoError(t, err)
-	assert.Equal(t, "#!/usr/bin/env dagger shell\nPresetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
+	assert.Equal(t, "#!/usr/bin/env dagger script\nPresetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
 }
 
 func TestResolveDaggerShell_FrontmatterWithVanillaCells(t *testing.T) {
@@ -266,7 +266,7 @@ func TestResolveDaggerShell_FrontmatterWithVanillaCells(t *testing.T) {
 	// Test that the resolver can resolve dagger shell, skipping vanilla shell cells
 	script, err = resolver.ResolveDaggerShell(ctx, uint32(4))
 	require.NoError(t, err)
-	assert.Equal(t, "#!/usr/bin/env dagger shell\nPresetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
+	assert.Equal(t, "#!/usr/bin/env dagger script\nPresetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
 }
 
 func TestResolveDaggerShell_Source(t *testing.T) {
@@ -278,7 +278,7 @@ func TestResolveDaggerShell_Source(t *testing.T) {
 	script, err := resolver.ResolveDaggerShell(context.Background(), uint32(0))
 	require.NoError(t, err)
 
-	assert.Equal(t, "#!/usr/bin/env dagger shell\nSimpleDagger()\n{\n  git github.com/runmedev/runme \\\n    | head \\\n    | tree \\\n    | file examples/README.md\n}\nSimpleDagger\n", script)
+	assert.Equal(t, "#!/usr/bin/env dagger script\nSimpleDagger()\n{\n  git github.com/runmedev/runme \\\n    | head \\\n    | tree \\\n    | file examples/README.md\n}\nSimpleDagger\n", script)
 }
 
 func TestResolveDaggerShell_EmptyRunmeMetadata(t *testing.T) {
@@ -342,7 +342,7 @@ func TestResolveDaggerShell_InvalidShellFunctionName(t *testing.T) {
 
 	_, err = resolver.ResolveDaggerShell(ctx, uint32(0))
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "dagger shell integration requires cell name to be a valid shell function name, got dagger-core")
+	require.Contains(t, err.Error(), "dagger script integration requires cell name to be a valid shell function name, got dagger-core")
 
 	// fake notebook with valid name for dagger shell
 	validNameNotebook := &parserv1.Notebook{

@@ -11,6 +11,7 @@ import (
 	"github.com/runmedev/runme/v3/document"
 	"github.com/runmedev/runme/v3/document/constants"
 	"github.com/runmedev/runme/v3/document/identity"
+	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 const (
@@ -174,7 +175,7 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata, opts 
 	}
 
 	labelComment := false
-	if frontmatter != nil && frontmatter.Shell == "dagger shell" {
+	if frontmatter != nil && dagger.IsCommand(frontmatter.Shell) {
 		labelComment = true
 	}
 

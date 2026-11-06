@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/project"
 	"github.com/runmedev/runme/v3/session"
 )
@@ -91,7 +92,7 @@ func (c *base) ProgramConfig() *ProgramConfig {
 
 func (c *base) ProgramPath() (string, []string, error) {
 	if c.cfg.ProgramName != "" {
-		return c.findProgramInPath(c.cfg.ProgramName, c.cfg.Arguments)
+		return c.findProgramInPath(dagger.CanonicalizeCommand(c.cfg.ProgramName), c.cfg.Arguments)
 	}
 
 	// If language ID is empty, interpreter lookup is futile.

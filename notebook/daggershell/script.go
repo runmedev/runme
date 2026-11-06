@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
+
+	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 type Script struct {
@@ -72,6 +74,7 @@ func (s *Script) RenderWithTarget(w io.Writer, shebang, target string) error {
 
 // render renders the script, optionally calling a function and adding a shebang.
 func (s *Script) render(w io.Writer, shebang, target string) error {
+	shebang = dagger.CanonicalizeCommand(shebang)
 	if parts := strings.Split(shebang, " "); len(parts) >= 2 {
 		shebang = "/usr/bin/env " + shebang
 	}

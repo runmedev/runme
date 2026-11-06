@@ -15,6 +15,7 @@ import (
 	parserv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/parser/v1"
 	"github.com/runmedev/runme/v3/document"
 	"github.com/runmedev/runme/v3/document/editor/editorservice"
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/notebook/daggershell"
 )
 
@@ -118,7 +119,7 @@ func GetCellInterpreter(notebook *parserv1.Notebook, cell *parserv1.Cell) string
 func (r *NotebookResolver) IsDaggerShellCell(notebook *parserv1.Notebook, cell *parserv1.Cell) bool {
 	// Use helper to get interpreter
 	interpreter := GetCellInterpreter(notebook, cell)
-	return strings.Contains(interpreter, "dagger shell")
+	return dagger.IsCommand(interpreter)
 }
 
 func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (string, error) {
@@ -149,7 +150,7 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 	targetCell = cell
 	targetName = known
 
-	// Return cell value directly if target cell is not dagger shell
+	// Return cell value directly if target cell is not a Dagger script.
 	if !r.IsDaggerShellCell(notebook, targetCell) {
 		return targetCell.GetValue(), nil
 	}
@@ -182,7 +183,7 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 		}
 
 		if !isValidShellFunctionName(known) {
-			return "", fmt.Errorf("dagger shell integration requires cell name to be a valid shell function name, got %s", known)
+			return "", fmt.Errorf("dagger script integration requires cell name to be a valid shell function name, got %s", known)
 		}
 
 		snippet := cell.GetValue()
@@ -192,7 +193,7 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 	}
 
 	var rendered bytes.Buffer
-	shebang := GetCellInterpreter(notebook, targetCell)
+	shebang := dagger.CanonicalizeCommand(GetCellInterpreter(notebook, targetCell))
 	if err := script.RenderWithTarget(&rendered, shebang, targetName); err != nil {
 		return "", err
 	}
