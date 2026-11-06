@@ -42,7 +42,7 @@ func (s ShellRaw) Run(ctx context.Context) error {
 			CommandMode: CommandModeInlineShell,
 			Commands:    nil,
 			Script:      strings.Join(s.Cmds, "\n"),
-			KnownName:   s.Name,
+			KnownName:   s.KnownName,
 			Logger:      s.Logger,
 		},
 	)

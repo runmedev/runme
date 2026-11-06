@@ -46,7 +46,7 @@ func (s *TempFile) Run(ctx context.Context) error {
 			Stderr:      s.Stderr,
 			CommandMode: CommandModeTempFile,
 			Script:      s.Script,
-			KnownName:   s.Name,
+			KnownName:   s.KnownName,
 			Logger:      s.Logger,
 		},
 	)
@@ -84,8 +84,8 @@ func (s TempFile) run(ctx context.Context, cmd *command) error {
 
 			if exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
 				msg := "failed to run command"
-				if len(s.Name) > 0 {
-					msg += " " + strconv.Quote(s.Name)
+				if len(s.KnownName) > 0 {
+					msg += " " + strconv.Quote(s.KnownName)
 				}
 				return errors.Wrap(rerr, msg)
 			}

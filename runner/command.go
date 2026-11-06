@@ -362,7 +362,9 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 		return err
 	}
 	c.cmd.Env = append(c.cmd.Env, env...)
-	c.cmd.Env = commandpkg.AppendKnownNameEnv(c.cmd.Env, c.knownName)
+	if c.knownName != "" {
+		c.cmd.Env = commandpkg.AppendKnownNameEnv(c.cmd.Environ(), c.knownName)
+	}
 
 	if c.tty != nil {
 		opts.TtyAssignment(c)

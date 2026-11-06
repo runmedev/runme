@@ -64,7 +64,7 @@ func (s *Shell) Run(ctx context.Context) error {
 			CommandMode: CommandModeInlineShell,
 			Commands:    s.Cmds,
 			Script:      "",
-			KnownName:   s.Name,
+			KnownName:   s.KnownName,
 			Logger:      s.Logger,
 		},
 	)
@@ -101,8 +101,8 @@ func (s Shell) run(ctx context.Context, cmd *command) error {
 
 			if exiterr.ProcessState.Sys().(syscall.WaitStatus).Signal() != os.Kill {
 				msg := "failed to run command"
-				if len(s.Name) > 0 {
-					msg += " " + strconv.Quote(s.Name)
+				if len(s.KnownName) > 0 {
+					msg += " " + strconv.Quote(s.KnownName)
 				}
 				return errors.Wrap(rerr, msg)
 			}

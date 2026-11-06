@@ -96,7 +96,6 @@ func codeServerCmd() *cobra.Command {
 				}
 
 				cfg := &runner.ExecutableConfig{
-					Name:   "",
 					Dir:    cwd,
 					Tty:    true,
 					Stdout: cmd.OutOrStdout(),

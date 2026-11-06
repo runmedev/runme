@@ -16,16 +16,16 @@ type Executable interface {
 }
 
 type ExecutableConfig struct {
-	Name    string
-	Dir     string
-	Tty     bool
-	Stdin   io.Reader
-	Stdout  io.Writer
-	Stderr  io.Writer
-	PreEnv  []string
-	PostEnv []string
-	Session *Session
-	Logger  *zap.Logger
+	KnownName string
+	Dir       string
+	Tty       bool
+	Stdin     io.Reader
+	Stdout    io.Writer
+	Stderr    io.Writer
+	PreEnv    []string
+	PostEnv   []string
+	Session   *Session
+	Logger    *zap.Logger
 }
 
 func IsSupported(lang string) bool {

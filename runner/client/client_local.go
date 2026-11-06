@@ -100,13 +100,13 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 	}
 
 	cfg := &runner.ExecutableConfig{
-		Name:    block.Name(),
-		Dir:     r.dir,
-		Tty:     block.InteractiveLegacy(),
-		Stdout:  r.stdout,
-		Stderr:  r.stderr,
-		Session: r.session,
-		Logger:  r.logger,
+		KnownName: block.Name(),
+		Dir:       r.dir,
+		Tty:       block.InteractiveLegacy(),
+		Stdout:    r.stdout,
+		Stderr:    r.stderr,
+		Session:   r.session,
+		Logger:    r.logger,
 	}
 
 	cfg.PreEnv, err = r.project.LoadEnv()

@@ -56,8 +56,8 @@ func (g *Go) Run(ctx context.Context) error {
 	c.Stderr = g.Stderr
 	c.Stdout = g.Stdout
 	c.Stdin = g.Stdin
-	if g.Name != "" {
-		c.Env = commandpkg.AppendKnownNameEnv(os.Environ(), g.Name)
+	if g.KnownName != "" {
+		c.Env = commandpkg.AppendKnownNameEnv(os.Environ(), g.KnownName)
 	}
 
 	g.command = c

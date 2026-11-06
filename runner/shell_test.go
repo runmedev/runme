@@ -24,26 +24,42 @@ func TestParseFileProgramExistingPathWithSpaces(t *testing.T) {
 }
 
 func TestShellKnownNameEnv(t *testing.T) {
-	t.Parallel()
+	t.Setenv("RUNME_PARENT_ENV", "inherited")
 
-	sess, err := NewSession(os.Environ(), nil, zaptest.NewLogger(t))
+	sess, err := NewSession([]string{}, nil, zaptest.NewLogger(t))
 	require.NoError(t, err)
 
 	stdout := new(bytes.Buffer)
 	shell := &Shell{
 		ExecutableConfig: &ExecutableConfig{
-			Name:    "my-cell",
-			Stdout:  stdout,
-			Stderr:  new(bytes.Buffer),
-			Session: sess,
-			Logger:  zaptest.NewLogger(t),
+			KnownName: "my-cell",
+			Stdout:    stdout,
+			Stderr:    new(bytes.Buffer),
+			Session:   sess,
+			Logger:    zaptest.NewLogger(t),
 		},
-		Cmds:        []string{"echo -n $RUNME_NAME"},
+		Cmds:        []string{`printf '%s|%s' "$RUNME_NAME" "$RUNME_PARENT_ENV"`},
 		CustomShell: "bash",
 	}
 
 	require.NoError(t, shell.Run(context.Background()))
-	assert.Equal(t, "my-cell", stdout.String())
+	assert.Equal(t, "my-cell|inherited", stdout.String())
+}
+
+func TestShellKnownNameError(t *testing.T) {
+	shell := &Shell{
+		ExecutableConfig: &ExecutableConfig{
+			KnownName: "my-cell",
+			Stdout:    new(bytes.Buffer),
+			Stderr:    new(bytes.Buffer),
+			Logger:    zaptest.NewLogger(t),
+		},
+		Cmds:        []string{"exit 1"},
+		CustomShell: "bash",
+	}
+
+	err := shell.Run(context.Background())
+	require.ErrorContains(t, err, `failed to run command "my-cell"`)
 }
 
 func TestTempFileKnownNameEnv(t *testing.T) {
@@ -55,11 +71,11 @@ func TestTempFileKnownNameEnv(t *testing.T) {
 	stdout := new(bytes.Buffer)
 	tempFile := &TempFile{
 		ExecutableConfig: &ExecutableConfig{
-			Name:    "my-cell",
-			Stdout:  stdout,
-			Stderr:  new(bytes.Buffer),
-			Session: sess,
-			Logger:  zaptest.NewLogger(t),
+			KnownName: "my-cell",
+			Stdout:    stdout,
+			Stderr:    new(bytes.Buffer),
+			Session:   sess,
+			Logger:    zaptest.NewLogger(t),
 		},
 		Script:      "echo -n $RUNME_NAME",
 		ProgramName: "bash",
@@ -76,9 +92,9 @@ func TestGoKnownNameEnv(t *testing.T) {
 	stdout := new(bytes.Buffer)
 	goProgram := &Go{
 		ExecutableConfig: &ExecutableConfig{
-			Name:   "my-cell",
-			Stdout: stdout,
-			Stderr: new(bytes.Buffer),
+			KnownName: "my-cell",
+			Stdout:    stdout,
+			Stderr:    new(bytes.Buffer),
 		},
 		Source: `package main
 
