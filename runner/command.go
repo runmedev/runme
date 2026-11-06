@@ -19,6 +19,7 @@ import (
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
+	commandpkg "github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/internal/system"
 	"github.com/runmedev/runme/v3/internal/ulid"
@@ -28,10 +29,6 @@ const (
 	envStartFileName = ".env_start"
 	envEndFileName   = ".env_end"
 )
-
-// EnvNameKnownName is the name of the environment variable that holds
-// the name of the code block being executed.
-const EnvNameKnownName = "RUNME_NAME"
 
 var dumpCmd = getDumpCmd()
 
@@ -44,8 +41,7 @@ type command struct {
 	Stdout      io.Writer
 	Stderr      io.Writer
 
-	// extraEnv holds variables set for the process only; they are not stored in the session.
-	extraEnv []string
+	knownName string
 
 	cmd *exec.Cmd
 	// +checkatomic
@@ -284,12 +280,9 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 		Stdout:         cfg.Stdout,
 		Stderr:         cfg.Stderr,
 		logger:         cfg.Logger,
+		knownName:      cfg.KnownName,
 		tempScriptFile: tempScriptFile,
 		tmpEnvDir:      tmpEnvDir,
-	}
-
-	if cfg.KnownName != "" {
-		cmd.extraEnv = append(cmd.extraEnv, EnvNameKnownName+"="+cfg.KnownName)
 	}
 
 	if cfg.Tty {
@@ -369,7 +362,7 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 		return err
 	}
 	c.cmd.Env = append(c.cmd.Env, env...)
-	c.cmd.Env = append(c.cmd.Env, c.extraEnv...)
+	c.cmd.Env = commandpkg.AppendKnownNameEnv(c.cmd.Env, c.knownName)
 
 	if c.tty != nil {
 		opts.TtyAssignment(c)
@@ -716,6 +709,13 @@ func (e ErrInvalidProgram) Unwrap() error {
 
 // TODO: do this with shlex?
 func parseFileProgram(programPath string) (program string, args []string) {
+	// Resolved executable paths may contain spaces (for example, Git Bash under
+	// C:\Program Files on Windows). Preserve an existing path before interpreting
+	// whitespace as the separator between a program and its arguments.
+	if info, err := os.Stat(programPath); err == nil && !info.IsDir() {
+		return programPath, nil
+	}
+
 	parts := strings.SplitN(programPath, " ", 2)
 
 	if len(parts) > 0 {

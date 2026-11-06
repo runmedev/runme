@@ -75,13 +75,10 @@ func (c *base) Wait(context.Context) error {
 	return errors.New("not implemented")
 }
 
-// EnvNameKnownName is the name of the environment variable that holds
-// the name of the code block being executed.
-const EnvNameKnownName = "RUNME_NAME"
-
 func (c *base) Env() []string {
 	env := c.session.GetAllEnv()
 	env = append(env, c.cfg.Env...)
+	env = AppendKnownNameEnv(env, c.cfg.GetKnownName())
 
 	if err := c.limitEnviron(env); err != nil {
 		c.logger.Error("environment size exceeds the limit", zap.Error(err))

@@ -7,16 +7,6 @@ import (
 	"go.uber.org/multierr"
 )
 
-const StoreStdoutEnvName = "__"
-
-func CreateEnv(key, value string) string {
-	return createEnv(key, value)
-}
-
-func createEnv(key, value string) string {
-	return key + "=" + value
-}
-
 // ScriptEnvSetter returns a shell script that installs itself and
 // collects environment variables to provided pre- and post-paths.
 type ScriptEnvSetter struct {

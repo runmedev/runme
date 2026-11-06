@@ -46,6 +46,7 @@ func (s *DaggerShell) Run(ctx context.Context) error {
 			Stderr:      s.Stderr,
 			CommandMode: CommandModeDaggerShell,
 			Script:      s.Script,
+			KnownName:   s.Name,
 			Logger:      s.Logger,
 		},
 	)

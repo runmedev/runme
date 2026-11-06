@@ -199,6 +199,12 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 			expectedStdout: "hello",
 		},
 		{
+			name:           "KnownNameEnv",
+			source:         "```bash { name=known-name }\necho -n $RUNME_NAME\n```",
+			env:            []string{"RUNME_NAME=ambient"},
+			expectedStdout: "known-name",
+		},
+		{
 			name:           "Interpreter",
 			source:         "```sh { \"interpreter\": \"bash\" }\necho -n test\n```",
 			expectedStdout: "test",
@@ -232,6 +238,7 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 
 			cfg, err := NewProgramConfigFromCodeBlock(blocks[0])
 			require.NoError(t, err)
+			assert.Equal(t, blocks[0].Name(), cfg.GetKnownName())
 
 			cfg.Env = tc.env
 
@@ -244,6 +251,32 @@ func TestCommand_FromCodeBlocks(t *testing.T) {
 			)
 		})
 	}
+}
+
+func TestCommand_KnownNameDoesNotPersist(t *testing.T) {
+	t.Parallel()
+
+	sess, err := session.New()
+	require.NoError(t, err)
+
+	named := &ProgramConfig{
+		ProgramName: "bash",
+		Source: &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{Items: []string{"echo -n $RUNME_NAME"}},
+		},
+		Mode:      runnerv2.CommandMode_COMMAND_MODE_INLINE,
+		KnownName: "my-cell",
+	}
+	testExecuteCommandWithSession(t, named, sess, nil, "my-cell", "")
+
+	unnamed := &ProgramConfig{
+		ProgramName: "bash",
+		Source: &runnerv2.ProgramConfig_Commands{
+			Commands: &runnerv2.ProgramConfig_CommandList{Items: []string{"echo -n [$RUNME_NAME]"}},
+		},
+		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
+	}
+	testExecuteCommandWithSession(t, unnamed, sess, nil, "[]", "")
 }
 
 func TestCommand_Getters(t *testing.T) {

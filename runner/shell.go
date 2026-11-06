@@ -64,6 +64,7 @@ func (s *Shell) Run(ctx context.Context) error {
 			CommandMode: CommandModeInlineShell,
 			Commands:    s.Cmds,
 			Script:      "",
+			KnownName:   s.Name,
 			Logger:      s.Logger,
 		},
 	)
