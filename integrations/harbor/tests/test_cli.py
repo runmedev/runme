@@ -177,9 +177,12 @@ def test_run_command_is_not_exposed(capsys: pytest.CaptureFixture[str]) -> None:
         ("0.21.99", False),
         ("0.22.0", False),
         ("0.22.99", False),
-        ("0.23.0", True),
-        ("0.23.99", True),
+        ("0.23.0", False),
+        ("0.23.99", False),
         ("0.24.0", False),
+        ("0.25.0", True),
+        ("0.25.99", True),
+        ("0.26.0", False),
     ],
 )
 def test_preflight_harbor_version_range(
@@ -193,7 +196,7 @@ def test_preflight_harbor_version_range(
     if supported:
         cli._preflight_harbor_package()
     else:
-        with pytest.raises(SystemExit, match="harbor>=0.23,<0.24"):
+        with pytest.raises(SystemExit, match="harbor>=0.25,<0.26"):
             cli._preflight_harbor_package()
 
 

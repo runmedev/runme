@@ -18,7 +18,7 @@ classifiers = [
   "Topic :: System :: Shells",
 ]
 dependencies = [
-  "harbor>=0.23,<0.24",
+  "harbor>=0.25,<0.26",
   "protobuf>=7.36.2",
 ]
 license-files = ["LICENSE", "NOTICE"]
@@ -42,8 +42,8 @@ packages = ["src/runme_harbor"]
 
 [dependency-groups]
 dev = [
-  "pytest>=9.1.1",
-  "ruff>=0.16.10,<0.17",
+  "pytest>=9.2.0",
+  "ruff>=0.17.4,<0.18",
 ]
 
 [tool.ruff]
