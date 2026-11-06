@@ -3,6 +3,7 @@ package daggershell
 import (
 	"errors"
 	"io"
+	"path/filepath"
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
@@ -72,9 +73,7 @@ func (s *Script) RenderWithTarget(w io.Writer, shebang, target string) error {
 
 // render renders the script, optionally calling a function and adding a shebang.
 func (s *Script) render(w io.Writer, shebang, target string) error {
-	if parts := strings.Split(shebang, " "); len(parts) >= 2 {
-		shebang = "/usr/bin/env " + shebang
-	}
+	shebang = normalizeShebang(shebang)
 
 	var file *syntax.File
 
@@ -154,4 +153,21 @@ func (s *Script) render(w io.Writer, shebang, target string) error {
 	})
 
 	return s.printer.Print(w, file)
+}
+
+func normalizeShebang(shebang string) string {
+	parts := strings.Fields(shebang)
+	if len(parts) < 2 {
+		return shebang
+	}
+
+	if filepath.Base(parts[0]) == "env" {
+		parts[0] = "/usr/bin/env"
+		if len(parts) < 2 || parts[1] != "-S" {
+			parts = append(parts[:1], append([]string{"-S"}, parts[1:]...)...)
+		}
+		return strings.Join(parts, " ")
+	}
+
+	return "/usr/bin/env -S " + strings.Join(parts, " ")
 }

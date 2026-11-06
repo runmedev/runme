@@ -52,7 +52,7 @@ func (r *notebookService) ResolveNotebook(ctx context.Context, req *notebookv1al
 
 	script, err := resolver.ResolveDaggerShell(ctx, cellIndex.GetValue())
 	if err != nil {
-		r.logger.Error("failed to resolve dagger shell", zap.Error(err))
+		r.logger.Error("failed to resolve dagger script", zap.Error(err))
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &notebookv1alpha1.ResolveNotebookResponse{Script: script}, nil

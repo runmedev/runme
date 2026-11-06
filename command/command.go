@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/project"
 	"github.com/runmedev/runme/v3/session"
 )
@@ -104,6 +105,18 @@ func (c *base) ProgramPath() (string, []string, error) {
 	}
 
 	return c.findDefaultProgram(c.cfg.LanguageId, c.cfg.Arguments)
+}
+
+func (c *base) resolvedProgramPath(ctx context.Context) (string, []string, error) {
+	program, args, err := c.ProgramPath()
+	if err != nil {
+		return "", nil, err
+	}
+	args, err = dagger.ResolveArgs(ctx, program, args, c.Env())
+	if err != nil {
+		return "", nil, err
+	}
+	return program, args, nil
 }
 
 func (c *base) limitEnviron(environ []string) error {

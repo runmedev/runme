@@ -34,7 +34,7 @@ func (c *dockerCommand) Start(ctx context.Context) (err error) {
 		cfg.Directory = "/tmp"
 	}
 
-	program, args, err := c.ProgramPath()
+	program, args, err := c.resolvedProgramPath(ctx)
 	if err != nil {
 		return err
 	}

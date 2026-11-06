@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 // ProgramConfig contains a serializable configuration for a command.
@@ -25,12 +26,17 @@ func redactConfig(cfg *ProgramConfig) *ProgramConfig {
 }
 
 func isShell(cfg *ProgramConfig) bool {
-	return isShellProgram(filepath.Base(cfg.ProgramName)) || IsShellLanguage(cfg.LanguageId)
+	return isShellProgram(cfg.ProgramName) || IsShellLanguage(cfg.LanguageId)
 }
 
 func isShellProgram(programName string) bool {
+	if dagger.IsCommand(programName) {
+		return true
+	}
+	programName = filepath.Base(programName)
+
 	switch strings.ToLower(programName) {
-	case "sh", "bash", "zsh", "ksh", "shell", "dagger shell":
+	case "sh", "bash", "zsh", "ksh", "shell":
 		return true
 	case "cmd", "powershell", "pwsh", "fish":
 		return true

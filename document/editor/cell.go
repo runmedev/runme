@@ -15,6 +15,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 
 	"github.com/runmedev/runme/v3/document"
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/internal/ulid"
 )
 
@@ -373,11 +374,8 @@ func cellCommentLabel(cell *Cell, labelComment bool) string {
 	}
 
 	cellInterpreter := cell.Metadata["interpreter"]
-	if strings.Contains(strings.TrimSpace(cellInterpreter), "dagger shell") {
-		labelComment = true
-	}
-	if labelComment && cellInterpreter != "" && !strings.Contains(strings.TrimSpace(cellInterpreter), "dagger shell") {
-		labelComment = false
+	if interpreter := strings.TrimSpace(cellInterpreter); interpreter != "" {
+		labelComment = strings.Contains(interpreter, dagger.LegacyCommand) || interpreter == dagger.Command
 	}
 
 	if !labelComment {

@@ -67,7 +67,7 @@ func (c *virtualCommand) Start(ctx context.Context) (err error) {
 		}
 	}
 
-	program, args, err := c.ProgramPath()
+	program, args, err := c.resolvedProgramPath(ctx)
 	if err != nil {
 		return err
 	}

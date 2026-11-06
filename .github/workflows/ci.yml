@@ -74,8 +74,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-    name: Build and test with Go on ${{ matrix.os }}
+        include:
+          - os: ubuntu-latest
+            dagger-version: latest
+            dagger-channel: stable
+          - os: ubuntu-latest
+            dagger-version: v1.0.0-beta.25
+            dagger-channel: v1-beta
+          - os: windows-latest
+            dagger-version: ""
+            dagger-channel: none
+    name: Build and test with Go on ${{ matrix.os }} (Dagger ${{ matrix.dagger-channel }})
     steps:
       - uses: actions/checkout@v7
         with:
@@ -88,10 +97,11 @@ jobs:
       - name: Setup Dagger (Linux only)
         uses: dagger/dagger-for-github@v7
         with:
-          version: "latest"
+          # TODO: Remove the prerelease lane once Dagger v1 is the stable release.
+          version: ${{ matrix.dagger-version }}
           verb: core
           args: "engine local-cache"
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.dagger-version != '' }}
       - name: Setup Rust (Linux only)
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -146,7 +156,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
       - name: Upload coverage
         uses: actions/upload-artifact@v7
-        if: ${{github.actor != 'dependabot[bot]' && matrix.os == 'ubuntu-latest'}}
+        if: ${{github.actor != 'dependabot[bot]' && matrix.dagger-channel == 'stable'}}
         with:
           name: coverage
           path: cover.out
