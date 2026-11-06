@@ -193,7 +193,7 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 	}
 
 	var rendered bytes.Buffer
-	shebang := dagger.CanonicalizeCommand(GetCellInterpreter(notebook, targetCell))
+	shebang := GetCellInterpreter(notebook, targetCell)
 	if err := script.RenderWithTarget(&rendered, shebang, targetName); err != nil {
 		return "", err
 	}

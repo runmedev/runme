@@ -20,7 +20,7 @@ func TestDaggerShell_FuncDecl(t *testing.T) {
 		err = script.Render(&rendered, "dagger shell")
 		require.NoError(t, err)
 
-		const expected = `#!/usr/bin/env dagger script
+		const expected = `#!/usr/bin/env -S dagger shell
 DAGGER_FUNCTION()
 {
   echo "Dagger Function Placeholder"
@@ -61,7 +61,7 @@ func TestDaggerShell_Script(t *testing.T) {
 		{"KERNEL_BINARY", `echo "This is KERNEL_BINARY"`},
 	}
 
-	expected := `#!/usr/bin/env dagger script
+	expected := `#!/usr/bin/env -S dagger shell
 DAGGER_01JJDCG2SQSGV0DP55X86EJFSZ()
 {
   echo "Use known ID"

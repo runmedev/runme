@@ -92,7 +92,7 @@ func (c *base) ProgramConfig() *ProgramConfig {
 
 func (c *base) ProgramPath() (string, []string, error) {
 	if c.cfg.ProgramName != "" {
-		return c.findProgramInPath(dagger.CanonicalizeCommand(c.cfg.ProgramName), c.cfg.Arguments)
+		return c.findProgramInPath(c.cfg.ProgramName, c.cfg.Arguments)
 	}
 
 	// If language ID is empty, interpreter lookup is futile.
@@ -105,6 +105,18 @@ func (c *base) ProgramPath() (string, []string, error) {
 	}
 
 	return c.findDefaultProgram(c.cfg.LanguageId, c.cfg.Arguments)
+}
+
+func (c *base) resolvedProgramPath(ctx context.Context) (string, []string, error) {
+	program, args, err := c.ProgramPath()
+	if err != nil {
+		return "", nil, err
+	}
+	args, err = dagger.ResolveArgs(ctx, program, args, c.Env())
+	if err != nil {
+		return "", nil, err
+	}
+	return program, args, nil
 }
 
 func (c *base) limitEnviron(environ []string) error {

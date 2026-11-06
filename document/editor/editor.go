@@ -175,7 +175,7 @@ func Serialize(notebook *Notebook, outputMetadata *document.RunmeMetadata, opts 
 	}
 
 	labelComment := false
-	if frontmatter != nil && dagger.IsCommand(frontmatter.Shell) {
+	if frontmatter != nil && (frontmatter.Shell == dagger.LegacyCommand || frontmatter.Shell == dagger.Command) {
 		labelComment = true
 	}
 

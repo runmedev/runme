@@ -26,13 +26,14 @@ func redactConfig(cfg *ProgramConfig) *ProgramConfig {
 }
 
 func isShell(cfg *ProgramConfig) bool {
-	return isShellProgram(filepath.Base(cfg.ProgramName)) || IsShellLanguage(cfg.LanguageId)
+	return isShellProgram(cfg.ProgramName) || IsShellLanguage(cfg.LanguageId)
 }
 
 func isShellProgram(programName string) bool {
 	if dagger.IsCommand(programName) {
 		return true
 	}
+	programName = filepath.Base(programName)
 
 	switch strings.ToLower(programName) {
 	case "sh", "bash", "zsh", "ksh", "shell":

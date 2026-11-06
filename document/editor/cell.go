@@ -374,11 +374,8 @@ func cellCommentLabel(cell *Cell, labelComment bool) string {
 	}
 
 	cellInterpreter := cell.Metadata["interpreter"]
-	if dagger.IsCommand(strings.TrimSpace(cellInterpreter)) {
-		labelComment = true
-	}
-	if labelComment && cellInterpreter != "" && !dagger.IsCommand(strings.TrimSpace(cellInterpreter)) {
-		labelComment = false
+	if interpreter := strings.TrimSpace(cellInterpreter); interpreter != "" {
+		labelComment = strings.Contains(interpreter, dagger.LegacyCommand) || interpreter == dagger.Command
 	}
 
 	if !labelComment {

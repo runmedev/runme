@@ -43,7 +43,7 @@ func (c *nativeCommand) Start(ctx context.Context) (err error) {
 		stdin = os.NewFile(uintptr(newStdinFd), "")
 	}
 
-	program, args, err := c.ProgramPath()
+	program, args, err := c.resolvedProgramPath(ctx)
 	if err != nil {
 		return err
 	}

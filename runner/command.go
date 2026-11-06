@@ -123,11 +123,23 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 		}
 	}
 
-	programName, initialArgs := parseFileProgram(dagger.CanonicalizeCommand(cfg.ProgramName))
+	programName, initialArgs := parseFileProgram(cfg.ProgramName)
 	args := initialArgs
 
 	programPath, initialArgs, err := inferFileProgram(pathEnv, programName, cfg.LanguageID)
 	args = append(args, initialArgs...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	var env []string
+	if cfg.Session != nil {
+		env, err = cfg.Session.Envs()
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+	}
+	args, err = dagger.ResolveArgs(context, programPath, args, env)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

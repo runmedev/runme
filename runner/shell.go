@@ -20,8 +20,6 @@ import (
 	"github.com/runmedev/runme/v3/project"
 )
 
-const DaggerCustomShell = dagger.Command
-
 type Shell struct {
 	*ExecutableConfig
 	command     *command
@@ -32,7 +30,7 @@ type Shell struct {
 var _ Executable = (*Shell)(nil)
 
 func (s Shell) ProgramPath() string {
-	return resolveShellPath(dagger.CanonicalizeCommand(s.CustomShell))
+	return resolveShellPath(s.CustomShell)
 }
 
 func (s Shell) ShellType() string {
@@ -146,7 +144,7 @@ func GetShellProgram(baseShell string, task project.Task) (program string, comma
 
 	switch {
 	case dagger.IsCommand(customShell):
-		program = dagger.CanonicalizeCommand(customShell)
+		program = customShell
 		commandMode = CommandModeDaggerShell
 	case IsShellLanguage(task.CodeBlock.Language()):
 		program = customShell
@@ -156,7 +154,7 @@ func GetShellProgram(baseShell string, task project.Task) (program string, comma
 	}
 
 	if interpreter := task.BlockInterpreter(); interpreter != "" {
-		program = dagger.CanonicalizeCommand(interpreter)
+		program = interpreter
 	}
 
 	return

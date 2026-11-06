@@ -1,6 +1,6 @@
 ---
 cwd: ..
-shell: dagger script
+shell: dagger shell
 terminalRows: 20
 ---
 

@@ -17,7 +17,7 @@ func TestIsShellProgram_DaggerCommands(t *testing.T) {
 	assert.False(t, isShellProgram("not dagger shell"))
 }
 
-func TestProgramPathCanonicalizesLegacyDaggerCommand(t *testing.T) {
+func TestProgramPathPreservesLegacyDaggerCommand(t *testing.T) {
 	sess, err := session.New()
 	require.NoError(t, err)
 
@@ -30,5 +30,5 @@ func TestProgramPathCanonicalizesLegacyDaggerCommand(t *testing.T) {
 	program, args, err := cmd.ProgramPath()
 	require.NoError(t, err)
 	assert.Equal(t, "dagger", program)
-	assert.Equal(t, []string{"script"}, args)
+	assert.Equal(t, []string{"shell"}, args)
 }
