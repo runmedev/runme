@@ -84,7 +84,7 @@ jobs:
           - os: windows-latest
             dagger-version: ""
             dagger-channel: none
-    name: Build and test with Go on ${{ matrix.os }} (${{ matrix.dagger-channel }})
+    name: Build and test with Go on ${{ matrix.os }} (Dagger ${{ matrix.dagger-channel }})
     steps:
       - uses: actions/checkout@v7
         with:
