@@ -504,8 +504,11 @@ func TestRunnerServiceServerExecute_KnownNameEnv(t *testing.T) {
 		return string(result.Stdout)
 	}
 
+	inheritedKnownName := os.Getenv(command.EnvNameKnownName)
 	assert.Equal(t, "name=[my-cell]\n", run(t, "my-cell"))
-	assert.Equal(t, "name=[]\n", run(t, ""))
+	// An unnamed execution preserves the inherited value. The test itself may
+	// run inside a named Runme workflow, such as ci-coverage.
+	assert.Equal(t, fmt.Sprintf("name=[%s]\n", inheritedKnownName), run(t, ""))
 }
 
 func TestRunnerServiceServerExecute_Configs(t *testing.T) {
