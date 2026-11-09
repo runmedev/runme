@@ -80,11 +80,8 @@ func parseInvocation(program string, args []string) (invocation, bool) {
 	for index := daggerIndex + 1; index < len(fields); index++ {
 		switch fields[index] {
 		case "shell":
-			// Dagger v1 reuses `shell` for an interactive terminal. Only the
-			// exact legacy spelling denotes the old script interpreter.
-			if index != len(fields)-1 {
-				return invocation{}, false
-			}
+			// In interpreter configuration, `shell` denotes the legacy script
+			// interpreter. Leave argument validation to Dagger.
 			return invocation{cmd, legacyInterpreter, daggerIndex, index}, true
 		case "script":
 			return invocation{cmd, scriptInterpreter, daggerIndex, index}, true
@@ -97,9 +94,11 @@ func parseInvocation(program string, args []string) (invocation, bool) {
 func (i invocation) versionCommand() command {
 	fields := i.command.fields()
 	versionFields := append([]string(nil), fields[:i.daggerIndex+1]...)
-	for index := i.daggerIndex + 1; index < i.subcommandIndex; index++ {
+	for index := i.daggerIndex + 1; index < len(fields); index++ {
 		switch {
-		case fields[index] == "--x-release" && index+1 < i.subcommandIndex:
+		case fields[index] == "--":
+			return commandFromFields(append(versionFields, "version"))
+		case fields[index] == "--x-release" && index+1 < len(fields):
 			versionFields = append(versionFields, fields[index], fields[index+1])
 			index++
 		case strings.HasPrefix(fields[index], "--x-release="):
