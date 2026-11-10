@@ -8,6 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+
+	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 type fileCommand struct {
@@ -20,6 +22,10 @@ type fileCommand struct {
 }
 
 func (c *fileCommand) Start(ctx context.Context) error {
+	program, args, err := c.PrepareProgram(ctx)
+	if err != nil {
+		return err
+	}
 	if err := c.createTempDir(); err != nil {
 		return err
 	}
@@ -41,14 +47,14 @@ func (c *fileCommand) Start(ctx context.Context) error {
 		bw.WriteString(script)
 	}
 
-	if err := c.writeScript(buf.String()); err != nil {
+	if err := c.writeScript(dagger.SyncShebang(buf.String(), program, args)); err != nil {
 		return err
 	}
 
 	cfg.Directory = c.tempDir
 	// TODO(adamb): it's not always true that the script-based program
 	// takes the filename as a last argument.
-	cfg.Arguments = append(cfg.Arguments, filepath.Base(c.scriptFile.Name()))
+	c.SetPayloadArgs(filepath.Base(c.scriptFile.Name()))
 
 	return c.internalCommand.Start(ctx)
 }

@@ -182,9 +182,13 @@ func (r *resolver) version(ctx context.Context, cmd command, env []string) (*sem
 
 // IsCommand reports whether command is a Dagger script interpreter.
 func IsCommand(value string) bool {
-	fields := strings.Fields(value)
-	if len(fields) == 0 {
+	tokens, valid := headerTokens(value)
+	if !valid || len(tokens) == 0 {
 		return false
+	}
+	fields := make([]string, len(tokens))
+	for i, token := range tokens {
+		fields[i] = token.value
 	}
 	_, ok := parseInvocation(fields[0], fields[1:])
 	return ok

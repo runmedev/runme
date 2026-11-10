@@ -146,6 +146,7 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 			return nil, errors.WithStack(err)
 		}
 	}
+	args = append(args, cfg.Args...)
 	args, err = dagger.ResolveArgs(context, programPath, args, env)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -229,6 +230,8 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 			}
 		}
 
+		script = dagger.SyncShebang(script, programPath, args)
+
 		switch cfg.CommandMode {
 		case CommandModeInlineShell, CommandModeDaggerShell:
 			extraArgs = append(extraArgs, "-c", script)
@@ -267,8 +270,6 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 			return nil, err
 		}
 	}
-
-	args = append(args, cfg.Args...)
 
 	cmd := &command{
 		context:        context,

@@ -5,10 +5,12 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/session"
 )
 
@@ -30,20 +32,21 @@ func (c *inlineShellCommand) getPty() *os.File {
 }
 
 func (c *inlineShellCommand) Start(ctx context.Context) error {
-	script, err := c.build()
+	cfg := c.ProgramConfig()
+	if c.envCollector != nil {
+		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
+	}
+	if _, _, err := c.PrepareProgram(ctx); err != nil {
+		return err
+	}
+	script, err := c.build(ctx)
 	if err != nil {
 		return err
 	}
 	c.logger.Debug("inline shell script", zap.String("script", script))
 
-	cfg := c.ProgramConfig()
-
 	if script != "" {
-		cfg.Arguments = append(cfg.Arguments, "-c", script)
-	}
-
-	if c.envCollector != nil {
-		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
+		c.SetPayloadArgs("-c", script)
 	}
 
 	return c.internalCommand.Start(ctx)
@@ -75,11 +78,11 @@ func (c *inlineShellCommand) Wait(ctx context.Context) error {
 	return err
 }
 
-func (c *inlineShellCommand) build() (string, error) {
+func (c *inlineShellCommand) build(ctx context.Context) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	bw := bulkWriter{Writer: buf}
 
-	options, err := c.shellOptions()
+	options, err := c.shellOptions(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -99,15 +102,20 @@ func (c *inlineShellCommand) build() (string, error) {
 
 	cfg := c.ProgramConfig()
 
-	// Write the script from the commands or the script.
+	program, args, err := c.PrepareProgram(ctx)
+	if err != nil {
+		return "", err
+	}
+	var source strings.Builder
 	if commands := cfg.GetCommands(); commands != nil {
 		for _, cmd := range commands.Items {
-			bw.WriteString(cmd)
-			bw.WriteByte('\n')
+			_, _ = source.WriteString(cmd)
+			_ = source.WriteByte('\n')
 		}
-	} else if script := cfg.GetScript(); script != "" {
-		bw.WriteString(script)
+	} else {
+		_, _ = source.WriteString(cfg.GetScript())
 	}
+	bw.WriteString(dagger.SyncShebang(source.String(), program, args))
 
 	return buf.String(), nil
 }
@@ -130,8 +138,8 @@ func (c *inlineShellCommand) collectEnv(ctx context.Context) error {
 	return c.session.DeleteEnv(ctx, deleted...)
 }
 
-func (c *inlineShellCommand) shellOptions() (string, error) {
-	program, _, err := c.ProgramPath()
+func (c *inlineShellCommand) shellOptions(ctx context.Context) (string, error) {
+	program, _, err := c.PrepareProgram(ctx)
 	if err != nil {
 		return "", err
 	}

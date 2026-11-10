@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -28,6 +29,8 @@ type internalCommandGetters interface {
 	Env() []string
 	ProgramConfig() *ProgramConfig
 	ProgramPath() (string, []string, error)
+	PrepareProgram(context.Context) (string, []string, error)
+	SetPayloadArgs(...string)
 	Stdin() io.Reader
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -38,15 +41,25 @@ type internalCommand interface {
 	internalCommandGetters
 }
 
+type preparedProgram struct {
+	program string
+	args    []string
+	err     error
+}
+
 type base struct {
-	cfg     *ProgramConfig
-	logger  *zap.Logger
-	project *project.Project
-	runtime Runtime
-	session *session.Session
-	stdin   io.Reader
-	stdout  io.Writer
-	stderr  io.Writer
+	prepareOnce sync.Once
+	prepared    preparedProgram
+	payloadArgs []string
+	resolveArgs func(context.Context, string, []string, []string) ([]string, error)
+	cfg         *ProgramConfig
+	logger      *zap.Logger
+	project     *project.Project
+	runtime     Runtime
+	session     *session.Session
+	stdin       io.Reader
+	stdout      io.Writer
+	stderr      io.Writer
 }
 
 var _ internalCommand = (*base)(nil)
@@ -108,16 +121,31 @@ func (c *base) ProgramPath() (string, []string, error) {
 	return c.findDefaultProgram(c.cfg.LanguageId, c.cfg.Arguments)
 }
 
+// PrepareProgram retains discovery and resolution, including failures, for this execution.
+func (c *base) PrepareProgram(ctx context.Context) (string, []string, error) {
+	c.prepareOnce.Do(func() {
+		p := &c.prepared
+		p.program, p.args, p.err = c.ProgramPath()
+		if p.err != nil {
+			return
+		}
+		resolve := c.resolveArgs
+		if resolve == nil {
+			resolve = dagger.ResolveArgs
+		}
+		p.args, p.err = resolve(ctx, p.program, p.args, c.Env())
+		p.args = append([]string(nil), p.args...)
+	})
+	return c.prepared.program, append([]string(nil), c.prepared.args...), c.prepared.err
+}
+
+func (c *base) SetPayloadArgs(args ...string) {
+	c.payloadArgs = append([]string(nil), args...)
+}
+
 func (c *base) resolvedProgramPath(ctx context.Context) (string, []string, error) {
-	program, args, err := c.ProgramPath()
-	if err != nil {
-		return "", nil, err
-	}
-	args, err = dagger.ResolveArgs(ctx, program, args, c.Env())
-	if err != nil {
-		return "", nil, err
-	}
-	return program, args, nil
+	program, args, err := c.PrepareProgram(ctx)
+	return program, append(args, c.payloadArgs...), err
 }
 
 func (c *base) limitEnviron(environ []string) error {
