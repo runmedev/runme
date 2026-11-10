@@ -192,6 +192,22 @@ func FilterTasksByExactTaskName(tasks []Task, name string) (result []Task, err e
 	})
 }
 
+// NormalizeDecoratedTaskName recognizes the trailing asterisk that list output
+// adds to tasks included by run --all. The marker is accepted only when the
+// undecorated value exactly names such a task; otherwise the selector is left
+// untouched for the caller's normal matching semantics.
+func NormalizeDecoratedTaskName(tasks []Task, selector string) (string, bool) {
+	for _, task := range tasks {
+		if task.CodeBlock == nil || task.CodeBlock.ExcludeFromRunAll() {
+			continue
+		}
+		if task.CodeBlock.Name()+"*" == selector {
+			return task.CodeBlock.Name(), true
+		}
+	}
+	return selector, false
+}
+
 func CompileRegex(query string) (Matcher, error) {
 	return compileRegex(query)
 }

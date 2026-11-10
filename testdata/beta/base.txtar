@@ -3,7 +3,11 @@ stdout '^hello[\s]+$'
 ! stderr .
 
 exec runme beta run 'hello*'
-stdout '^hello[\s]+hello-world[\s]+$'
+stdout '^hello[\s]+$'
+! stderr .
+
+exec runme beta run 'hello-*'
+stdout '^hello-world[\s]+$'
 ! stderr .
 
 exec runme beta run echo-env

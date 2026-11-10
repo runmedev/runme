@@ -7,12 +7,17 @@ import (
 	"github.com/runmedev/runme/v3/project"
 )
 
-func createProjectFilterFromPatterns(patterns []string) (project.Filter, error) {
+func createProjectFilterFromPatterns(tasks []project.Task, patterns []string) (project.Filter, error) {
 	if len(patterns) == 0 {
 		return func(t project.Task) (bool, error) { return true, nil }, nil
 	}
 
-	globs, err := parseGlobs(patterns)
+	normalized := make([]string, len(patterns))
+	for index, pattern := range patterns {
+		normalized[index], _ = project.NormalizeDecoratedTaskName(tasks, pattern)
+	}
+
+	globs, err := parseGlobs(normalized)
 	if err != nil {
 		return nil, err
 	}

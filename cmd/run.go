@@ -468,17 +468,22 @@ func filterTasksByFileAndTaskName(tasks []project.Task, queryFile, queryName str
 		return nil, err
 	}
 
-	var results []project.Task
-
-	foundFile := false
-
+	var fileTasks []project.Task
 	for _, task := range tasks {
 		if !fileMatcher.MatchString(task.DocumentPath) {
 			continue
 		}
+		fileTasks = append(fileTasks, task)
+	}
 
-		foundFile = true
+	if len(fileTasks) == 0 {
+		return nil, &errTaskWithFilenameNotFound{queryFile: queryFile}
+	}
 
+	queryName, _ = project.NormalizeDecoratedTaskName(fileTasks, queryName)
+
+	var results []project.Task
+	for _, task := range fileTasks {
 		// This is expected that the task name query is
 		// matched exactly.
 		if queryName != task.CodeBlock.Name() {
@@ -489,9 +494,6 @@ func filterTasksByFileAndTaskName(tasks []project.Task, queryFile, queryName str
 	}
 
 	if len(results) == 0 {
-		if !foundFile {
-			return nil, &errTaskWithFilenameNotFound{queryFile: queryFile}
-		}
 		return nil, &errTaskWithNameNotFound{queryName: queryName}
 	}
 

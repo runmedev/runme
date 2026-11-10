@@ -9,10 +9,28 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/runmedev/runme/v3/project"
 	"github.com/runmedev/runme/v3/runner/client"
 )
+
+func TestFilterTasksByDecoratedName(t *testing.T) {
+	tasks := terminalTitleTasks(t, "```sh {\"name\":\"ci-coverage\"}\necho coverage\n```\n\n```sh {\"name\":\"excluded\",\"excludeFromRunAll\":\"true\"}\necho excluded\n```\n")
+	for index := range tasks {
+		tasks[index].DocumentPath = "README.md"
+	}
+
+	matched, err := filterTasksByFileAndTaskName(tasks, "README.md", "ci-coverage*")
+	require.NoError(t, err)
+	require.Len(t, matched, 1)
+	assert.Equal(t, "ci-coverage", matched[0].CodeBlock.Name())
+
+	_, err = filterTasksByFileAndTaskName(tasks, "README.md", "excluded*")
+	var notFound *errTaskWithNameNotFound
+	require.ErrorAs(t, err, &notFound)
+	assert.Equal(t, "excluded*", notFound.queryName)
+}
 
 func TestPromptEnvVars(t *testing.T) {
 	var (

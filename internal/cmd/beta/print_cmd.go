@@ -39,7 +39,7 @@ Print content of commands from the "setup" and "teardown" tags:
 					}
 					logger.Info("found tasks", zap.Int("count", len(tasks)))
 
-					argsFilter, err := createProjectFilterFromPatterns(args)
+					argsFilter, err := createProjectFilterFromPatterns(tasks, args)
 					if err != nil {
 						return err
 					}
