@@ -53,11 +53,11 @@ func TestSourcePreparation(t *testing.T) {
 			t.Run(kind+map[bool]string{false: "Script", true: "Commands"}[commands], func(t *testing.T) {
 				sess, err := session.New()
 				require.NoError(t, err)
-				source := "#!/usr/bin/env -S dagger shell\necho shell"
+				source := "echo shell"
 				cfg := &ProgramConfig{ProgramName: "dagger shell", Arguments: []string{"--debug"}, Env: []string{"CONFIG_ENV=present"}}
 				cfg.Source = &runnerv2.ProgramConfig_Script{Script: source}
 				if commands {
-					cfg.Source = &runnerv2.ProgramConfig_Commands{Commands: &runnerv2.ProgramConfig_CommandList{Items: []string{"#!/usr/bin/env -S dagger shell", "echo shell"}}}
+					cfg.Source = &runnerv2.ProgramConfig_Commands{Commands: &runnerv2.ProgramConfig_CommandList{Items: []string{"echo shell"}}}
 				}
 				calls := 0
 				b := &base{cfg: cfg, session: sess, runtime: dockerRuntime{}, logger: zap.NewNop()}
@@ -92,8 +92,8 @@ func TestSourcePreparation(t *testing.T) {
 					require.NoError(t, err)
 					payload = string(data)
 				}
-				require.Contains(t, payload, "#!/usr/bin/env -S dagger script\necho shell")
-				require.NotContains(t, payload, "dagger shell")
+				require.Contains(t, payload, "echo shell")
+				require.NotContains(t, payload, "#!")
 				if kind == "shell" {
 					require.Len(t, launch.args, 4)
 				} else {

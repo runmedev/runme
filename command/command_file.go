@@ -8,8 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-
-	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 type fileCommand struct {
@@ -47,7 +45,7 @@ func (c *fileCommand) Start(ctx context.Context) error {
 		bw.WriteString(script)
 	}
 
-	if err := c.writeScript(dagger.RewriteShebang(buf.String(), invocation)); err != nil {
+	if err := c.writeScript(buf.String()); err != nil {
 		return err
 	}
 

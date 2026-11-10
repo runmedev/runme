@@ -14,6 +14,7 @@ import (
 
 	runnerv1 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v1"
 	"github.com/runmedev/runme/v3/document"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/notebook"
 	"github.com/runmedev/runme/v3/project"
 	"github.com/runmedev/runme/v3/runner"
@@ -304,14 +305,20 @@ func ResolveDirectory(parentDir string, task project.Task) string {
 	return parentDir
 }
 
-// GetTaskProgram extracts program details from a task, with special handling for Dagger shell commands.
-// Returns program name, command lines, command mode, and any error encountered.
-func GetTaskProgram(baseShell string, task project.Task) (program string, lines []string, commandMode runner.CommandMode, err error) {
-	block := task.CodeBlock
-	lines = block.Lines()
+// TaskProgram keeps execution intent separate from the rendered source body.
+type TaskProgram struct {
+	Intent      execution.Intent
+	Lines       []string
+	CommandMode runner.CommandMode
+}
 
-	program, commandMode = runner.GetShellProgram(baseShell, task)
-	if commandMode != runner.CommandModeDaggerShell {
+// GetTaskProgram extracts program details from a task, with special handling for Dagger shell commands.
+func GetTaskProgram(baseShell string, task project.Task) (result TaskProgram, err error) {
+	block := task.CodeBlock
+	result.Lines = block.Lines()
+
+	result.Intent, result.CommandMode = runner.GetShellProgram(baseShell, task)
+	if result.CommandMode != runner.CommandModeDaggerShell {
 		return
 	}
 
@@ -326,11 +333,11 @@ func GetTaskProgram(baseShell string, task project.Task) (program string, lines 
 		return
 	}
 
-	script, err := resolver.ResolveDaggerShell(context.Background(), cellIndex)
+	script, err := resolver.RenderDaggerScript(context.Background(), cellIndex)
 	if err != nil {
 		return
 	}
-	lines = strings.Split(script, "\n")
+	result.Lines = strings.Split(script, "\n")
 
 	return
 }

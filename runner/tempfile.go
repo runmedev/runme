@@ -18,6 +18,7 @@ type TempFile struct {
 	command     *command
 	Script      string
 	ProgramName string
+	Arguments   []string
 	LanguageID  string
 }
 
@@ -37,6 +38,7 @@ func (s *TempFile) Run(ctx context.Context) error {
 		ctx,
 		&commandConfig{
 			ProgramName: s.ProgramName,
+			Args:        s.Arguments,
 			LanguageID:  s.LanguageID,
 			Directory:   s.Dir,
 			Session:     s.Session,

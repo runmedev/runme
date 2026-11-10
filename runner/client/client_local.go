@@ -94,7 +94,7 @@ func (r *LocalRunner) setupSession(_ context.Context) error {
 func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error) {
 	block := task.CodeBlock
 
-	programName, lines, _, err := GetTaskProgram(r.customShell, task)
+	program, err := GetTaskProgram(r.customShell, task)
 	if err != nil {
 		return nil, err
 	}
@@ -129,14 +129,14 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 		}
 		return &runner.Shell{
 			ExecutableConfig: cfg,
-			Cmds:             lines,
+			Cmds:             program.Lines,
 			CustomShell:      customShell,
 		}, nil
 	case "sh-raw":
 		return &runner.ShellRaw{
 			Shell: &runner.Shell{
 				ExecutableConfig: cfg,
-				Cmds:             lines,
+				Cmds:             program.Lines,
 			},
 		}, nil
 	case "go":
@@ -147,8 +147,9 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 	default:
 		return &runner.TempFile{
 			ExecutableConfig: cfg,
-			Script:           strings.Join(lines, "\n"),
-			ProgramName:      programName,
+			Script:           strings.Join(program.Lines, "\n"),
+			ProgramName:      program.Intent.ProgramName(),
+			Arguments:        program.Intent.Arguments(),
 			LanguageID:       block.Language(),
 		}, nil
 	}

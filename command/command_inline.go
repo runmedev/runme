@@ -6,8 +6,6 @@ import (
 	"os"
 
 	"go.uber.org/zap"
-
-	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 type inlineCommand struct {
@@ -45,7 +43,7 @@ func (c *inlineCommand) Start(ctx context.Context) error {
 
 	// TODO(adamb): "-c" is not supported for all inline programs.
 	if val := buf.String(); val != "" {
-		invocation = invocation.WithArguments(dagger.RewriteShebang(val, invocation))
+		invocation = invocation.WithArguments(val)
 	}
 
 	return c.internalCommand.startProgram(ctx, invocation)

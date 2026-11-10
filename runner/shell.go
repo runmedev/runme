@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/internal/system"
 	"github.com/runmedev/runme/v3/project"
 )
@@ -137,12 +138,14 @@ func IsShellLanguage(languageID string) bool {
 	}
 }
 
-func GetShellProgram(baseShell string, task project.Task) (program string, commandMode CommandMode) {
+func GetShellProgram(baseShell string, task project.Task) (intent execution.Intent, commandMode CommandMode) {
 	customShell, err := task.CustomShell(baseShell)
 	if err != nil {
-		return baseShell, CommandModeTempFile
+		program, arguments := parseFileProgram(baseShell)
+		return execution.NewIntent(program, arguments), CommandModeTempFile
 	}
 
+	program := ""
 	switch {
 	case dagger.IsCommand(customShell):
 		program = customShell
@@ -158,7 +161,8 @@ func GetShellProgram(baseShell string, task project.Task) (program string, comma
 		program = interpreter
 	}
 
-	return
+	program, arguments := parseFileProgram(program)
+	return execution.NewIntent(program, arguments), commandMode
 }
 
 func resolveShellPath(customShell string) string {

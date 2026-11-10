@@ -5,12 +5,10 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/session"
 )
@@ -100,16 +98,14 @@ func (c *inlineShellCommand) build(invocation execution.Invocation) (string, err
 
 	cfg := c.ProgramConfig()
 
-	var source strings.Builder
 	if commands := cfg.GetCommands(); commands != nil {
 		for _, cmd := range commands.Items {
-			_, _ = source.WriteString(cmd)
-			_ = source.WriteByte('\n')
+			bw.WriteString(cmd)
+			bw.WriteByte('\n')
 		}
-	} else {
-		_, _ = source.WriteString(cfg.GetScript())
+	} else if script := cfg.GetScript(); script != "" {
+		bw.WriteString(script)
 	}
-	bw.WriteString(dagger.RewriteShebang(source.String(), invocation))
 
 	return buf.String(), nil
 }

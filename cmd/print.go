@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/runmedev/runme/v3/runner"
 	"github.com/runmedev/runme/v3/runner/client"
 )
 
@@ -36,11 +37,11 @@ func printCmd() *cobra.Command {
 			}
 
 			baseShell := "" // not necessary for printing only
-			_, lines, _, err := client.GetTaskProgram(baseShell, task)
+			program, err := client.GetTaskProgram(baseShell, task)
 			if err != nil {
 				return err
 			}
-			value := []byte(strings.Join(lines, "\n"))
+			value := renderTaskProgram(program)
 
 			if fRaw {
 				value = task.CodeBlock.Value()
@@ -63,6 +64,14 @@ func printCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&fNoNewLine, "skip-newline", "n", false, "Do not print newline after the command")
 
 	return &cmd
+}
+
+func renderTaskProgram(program client.TaskProgram) []byte {
+	value := []byte(strings.Join(program.Lines, "\n"))
+	if program.CommandMode == runner.CommandModeDaggerShell {
+		value = []byte(program.Intent.Shebang() + "\n" + string(value))
+	}
+	return value
 }
 
 type bulkWriter struct {

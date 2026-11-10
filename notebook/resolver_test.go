@@ -39,7 +39,7 @@ func TestResolve_GetCellIndexByBlock(t *testing.T) {
 	assert.Equal(t, expectedIndex, index)
 }
 
-func TestResolveDaggerShell(t *testing.T) {
+func TestRenderDaggerScript(t *testing.T) {
 	ctx := context.Background()
 
 	// fake notebook with dagger shell cells
@@ -87,8 +87,7 @@ func TestResolveDaggerShell(t *testing.T) {
 	resolver, err := NewResolver(WithNotebook(daggerShellNotebook))
 	require.NoError(t, err)
 
-	definition := `#!/usr/bin/env -S dagger script
-KERNEL_BINARY()
+	definition := `KERNEL_BINARY()
 {
   github.com/purpleclay/daggerverse/golang $(git https://github.com/runmedev/runme | head | tree) \
     | build \
@@ -112,13 +111,13 @@ EXTENSION()
 	}
 
 	for cellIndex, expectedScript := range expectedScripts {
-		script, err := resolver.ResolveDaggerShell(ctx, uint32(cellIndex))
+		script, err := resolver.RenderDaggerScript(ctx, uint32(cellIndex))
 		require.NoError(t, err)
 		assert.Equal(t, expectedScript, script)
 	}
 }
 
-func TestResolveDaggerShell_CellDaggerShell(t *testing.T) {
+func TestRenderDaggerScript_CellDaggerShell(t *testing.T) {
 	ctx := context.Background()
 
 	// fake notebook with mixed cells
@@ -185,17 +184,17 @@ func TestResolveDaggerShell_CellDaggerShell(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test that the resolver can resolve vanilla shell
-	script, err := resolver.ResolveDaggerShell(ctx, uint32(2))
+	script, err := resolver.RenderDaggerScript(ctx, uint32(2))
 	require.NoError(t, err)
 	assert.Equal(t, "dagger core \\\n  git --url github.com/runmedev/vscode-runme \\\n    tag --name main \\\n    tree \\\n        file --path dagger/scripts/presetup.sh", script)
 
 	// Test that the resolver can resolve dagger shell, skipping vanilla shell cells
-	script, err = resolver.ResolveDaggerShell(ctx, uint32(4))
+	script, err = resolver.RenderDaggerScript(ctx, uint32(4))
 	require.NoError(t, err)
-	assert.Equal(t, "#!/usr/bin/env -S dagger shell\nPresetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
+	assert.Equal(t, "Presetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
 }
 
-func TestResolveDaggerShell_FrontmatterWithVanillaCells(t *testing.T) {
+func TestRenderDaggerScript_FrontmatterWithVanillaCells(t *testing.T) {
 	ctx := context.Background()
 
 	// fake notebook with mixed cells
@@ -259,29 +258,29 @@ func TestResolveDaggerShell_FrontmatterWithVanillaCells(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test that the resolver can resolve vanilla shell
-	script, err := resolver.ResolveDaggerShell(ctx, uint32(2))
+	script, err := resolver.RenderDaggerScript(ctx, uint32(2))
 	require.NoError(t, err)
 	assert.Equal(t, "dagger core \\\n  git --url github.com/runmedev/vscode-runme \\\n    tag --name main \\\n    tree \\\n        file --path dagger/scripts/presetup.sh", script)
 
 	// Test that the resolver can resolve dagger shell, skipping vanilla shell cells
-	script, err = resolver.ResolveDaggerShell(ctx, uint32(4))
+	script, err = resolver.RenderDaggerScript(ctx, uint32(4))
 	require.NoError(t, err)
-	assert.Equal(t, "#!/usr/bin/env -S dagger shell\nPresetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
+	assert.Equal(t, "Presetup()\n{\n  git github.com/runmedev/vscode-runme \\\n    | tag main \\\n    | tree \\\n    | file dagger/scripts/presetup.sh\n}\nDAGGER_01JPR4JA37X07H529VADC0XFRF()\n{\n  .echo $(Presetup)\n}\nPresetup\n", script)
 }
 
-func TestResolveDaggerShell_Source(t *testing.T) {
+func TestRenderDaggerScript_Source(t *testing.T) {
 	simpleSource := "---\nshell: dagger shell\n---\n\n```sh {\"name\":\"SimpleDagger\",\"terminalRows\":\"18\"}\n### Exported in runme.dev as SimpleDagger\ngit github.com/runmedev/runme |\n    head |\n    tree |\n    file examples/README.md\n```\n"
 
 	resolver, err := NewResolver(WithSource([]byte(simpleSource)))
 	require.NoError(t, err)
 
-	script, err := resolver.ResolveDaggerShell(context.Background(), uint32(0))
+	script, err := resolver.RenderDaggerScript(context.Background(), uint32(0))
 	require.NoError(t, err)
 
-	assert.Equal(t, "#!/usr/bin/env -S dagger shell\nSimpleDagger()\n{\n  git github.com/runmedev/runme \\\n    | head \\\n    | tree \\\n    | file examples/README.md\n}\nSimpleDagger\n", script)
+	assert.Equal(t, "SimpleDagger()\n{\n  git github.com/runmedev/runme \\\n    | head \\\n    | tree \\\n    | file examples/README.md\n}\nSimpleDagger\n", script)
 }
 
-func TestResolveDaggerShell_EmptyRunmeMetadata(t *testing.T) {
+func TestRenderDaggerScript_EmptyRunmeMetadata(t *testing.T) {
 	ctx := context.Background()
 
 	// fake notebook with dagger shell cells
@@ -310,12 +309,12 @@ func TestResolveDaggerShell_EmptyRunmeMetadata(t *testing.T) {
 }
 DAGGER_`
 
-	script, err := resolver.ResolveDaggerShell(ctx, uint32(0))
+	script, err := resolver.RenderDaggerScript(ctx, uint32(0))
 	require.NoError(t, err)
 	require.Contains(t, script, stub)
 }
 
-func TestResolveDaggerShell_InvalidShellFunctionName(t *testing.T) {
+func TestRenderDaggerScript_InvalidShellFunctionName(t *testing.T) {
 	ctx := context.Background()
 
 	// fake notebook with invalid name for dagger shell
@@ -340,7 +339,7 @@ func TestResolveDaggerShell_InvalidShellFunctionName(t *testing.T) {
 	resolver, err := NewResolver(WithNotebook(invalidNameNotebook))
 	require.NoError(t, err)
 
-	_, err = resolver.ResolveDaggerShell(ctx, uint32(0))
+	_, err = resolver.RenderDaggerScript(ctx, uint32(0))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "dagger script integration requires cell name to be a valid shell function name, got dagger-core")
 
@@ -366,7 +365,7 @@ func TestResolveDaggerShell_InvalidShellFunctionName(t *testing.T) {
 	resolver, err = NewResolver(WithNotebook(validNameNotebook))
 	require.NoError(t, err)
 
-	script, err := resolver.ResolveDaggerShell(ctx, uint32(0))
+	script, err := resolver.RenderDaggerScript(ctx, uint32(0))
 	require.NoError(t, err)
 	require.Contains(t, script, "ValidName()\n{\n  git github.com/runmedev/runme \\\n    | head \\\n    | tree \\\n    | file examples/README.md\n}\nValidName\n")
 }

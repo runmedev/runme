@@ -167,7 +167,7 @@ func (r *resolver) version(ctx context.Context, cmd execution.Invocation, env []
 
 // IsCommand reports whether command is a Dagger script interpreter.
 func IsCommand(value string) bool {
-	tokens, valid := headerTokens(value)
+	tokens, valid := commandTokens(value)
 	if !valid || len(tokens) == 0 {
 		return false
 	}
@@ -257,4 +257,47 @@ func envValue(env []string, name string) string {
 		}
 	}
 	return ""
+}
+
+type commandToken struct {
+	value string
+}
+
+// commandTokens recognizes quoted interpreter fields without performing shell
+// expansion. Backslashes in executable paths remain literal.
+func commandTokens(command string) ([]commandToken, bool) {
+	var tokens []commandToken
+	for i := 0; i < len(command); {
+		if command[i] == ' ' || command[i] == '\t' {
+			i++
+			continue
+		}
+		var value strings.Builder
+		var quote byte
+		for i < len(command) {
+			c := command[i]
+			if quote == 0 && (c == ' ' || c == '\t') {
+				break
+			}
+			if c == '\'' || c == '"' {
+				if quote == 0 {
+					quote = c
+					i++
+					continue
+				}
+				if quote == c {
+					quote = 0
+					i++
+					continue
+				}
+			}
+			_ = value.WriteByte(c)
+			i++
+		}
+		if quote != 0 {
+			return nil, false
+		}
+		tokens = append(tokens, commandToken{value: value.String()})
+	}
+	return tokens, true
 }

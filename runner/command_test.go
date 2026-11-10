@@ -60,7 +60,7 @@ func TestNewCommandResolvesLegacyDaggerCommand(t *testing.T) {
 	}
 }
 
-func TestDaggerPayloadShebang(t *testing.T) {
+func TestDaggerPayloadIsNotRewritten(t *testing.T) {
 	for _, version := range []string{"v0.21.11", "v1.0.0-beta.25", "failure"} {
 		for _, mode := range []CommandMode{CommandModeInlineShell, CommandModeDaggerShell, CommandModeTempFile} {
 			t.Run(fmt.Sprintf("%s/%d", version, mode), func(t *testing.T) {
@@ -94,7 +94,7 @@ func TestDaggerPayloadShebang(t *testing.T) {
 					require.Equal(t, "-c", cmd.Args[3])
 					require.Len(t, cmd.Args, 5)
 				}
-				require.Equal(t, "#!/usr/bin/env -S dagger "+spelling+"\necho shell", payload)
+				require.Equal(t, "#!/usr/bin/env -S dagger shell\necho shell", payload)
 			})
 		}
 	}

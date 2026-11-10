@@ -21,3 +21,21 @@ func TestProgramValuesOwnArguments(t *testing.T) {
 	assert.Equal(t, []string{"--debug"}, invocation.Arguments())
 	assert.Equal(t, []string{"--debug", "script.dsh"}, resolved.Arguments())
 }
+
+func TestIntentShebang(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		intent Intent
+		want   string
+	}{
+		{name: "empty", intent: NewIntent("", nil), want: ""},
+		{name: "single field", intent: NewIntent("/bin/bash", nil), want: "#!/bin/bash"},
+		{name: "multiple fields", intent: NewIntent("dagger", []string{"--debug", "shell"}), want: "#!/usr/bin/env -S dagger --debug shell"},
+		{name: "env", intent: NewIntent("env", []string{"dagger", "shell"}), want: "#!/usr/bin/env -S dagger shell"},
+		{name: "normalized env", intent: NewIntent("/usr/bin/env", []string{"-S", "dagger", "shell"}), want: "#!/usr/bin/env -S dagger shell"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.intent.Shebang())
+		})
+	}
+}

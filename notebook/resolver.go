@@ -122,7 +122,7 @@ func (r *NotebookResolver) IsDaggerShellCell(notebook *parserv1.Notebook, cell *
 	return dagger.IsCommand(interpreter)
 }
 
-func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (string, error) {
+func (r *NotebookResolver) RenderDaggerScript(context context.Context, cellIndex uint32) (string, error) {
 	notebook, err := r.parseNotebook(context)
 	if err != nil {
 		return "", err
@@ -193,8 +193,7 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 	}
 
 	var rendered bytes.Buffer
-	shebang := GetCellInterpreter(notebook, targetCell)
-	if err := script.RenderWithTarget(&rendered, shebang, targetName); err != nil {
+	if err := script.RenderWithTarget(&rendered, targetName); err != nil {
 		return "", err
 	}
 

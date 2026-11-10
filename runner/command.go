@@ -233,8 +233,6 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 			}
 		}
 
-		script = dagger.RewriteShebang(script, invocation)
-
 		switch cfg.CommandMode {
 		case CommandModeInlineShell, CommandModeDaggerShell:
 			extraArgs = append(extraArgs, "-c", script)

@@ -1,6 +1,9 @@
 package execution
 
-import "strings"
+import (
+	"path/filepath"
+	"strings"
+)
 
 // Intent describes the program requested by a caller before executable lookup
 // and runtime-specific resolution.
@@ -22,6 +25,25 @@ func (i Intent) ProgramName() string {
 // Arguments returns a copy of the requested arguments.
 func (i Intent) Arguments() []string {
 	return clone(i.arguments)
+}
+
+// Shebang formats the requested program and arguments without resolving or
+// executing them. Multi-field commands use env -S so the kernel passes all
+// requested fields to the interpreter.
+func (i Intent) Shebang() string {
+	fields := append([]string{i.programName}, i.arguments...)
+	if i.programName == "" {
+		return ""
+	}
+	if filepath.Base(fields[0]) == "env" {
+		fields[0] = "/usr/bin/env"
+		if len(fields) < 2 || fields[1] != "-S" {
+			fields = append(fields[:1], append([]string{"-S"}, fields[1:]...)...)
+		}
+	} else if len(fields) > 1 {
+		fields = append([]string{"/usr/bin/env", "-S"}, fields...)
+	}
+	return "#!" + strings.Join(fields, " ")
 }
 
 // Invocation describes a resolved executable and its arguments.
