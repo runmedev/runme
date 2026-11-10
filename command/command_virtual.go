@@ -55,6 +55,14 @@ func (c *virtualCommand) Stdin() io.Reader {
 }
 
 func (c *virtualCommand) Start(ctx context.Context) (err error) {
+	plan, err := c.prepareProgram(ctx)
+	if err != nil {
+		return err
+	}
+	return c.startProgram(ctx, plan)
+}
+
+func (c *virtualCommand) startProgram(ctx context.Context, plan executionPlan) (err error) {
 	c.pty, c.tty, err = pty.Open()
 	if err != nil {
 		return errors.WithStack(err)
@@ -67,16 +75,12 @@ func (c *virtualCommand) Start(ctx context.Context) (err error) {
 		}
 	}
 
-	program, args, err := c.resolvedProgramPath(ctx)
-	if err != nil {
-		return err
-	}
-	c.logger.Info("detected program path and arguments", zap.String("program", program), zap.Strings("args", args))
+	c.logger.Info("detected program path and arguments", zap.String("program", plan.program), zap.Strings("args", plan.args))
 
 	c.cmd = exec.CommandContext(
 		ctx,
-		program,
-		args...,
+		plan.program,
+		plan.args...,
 	)
 	c.cmd.Dir = c.ProgramConfig().Directory
 	c.cmd.Env = c.Env()

@@ -30,6 +30,14 @@ func (c *nativeCommand) Pid() int {
 }
 
 func (c *nativeCommand) Start(ctx context.Context) (err error) {
+	plan, err := c.prepareProgram(ctx)
+	if err != nil {
+		return err
+	}
+	return c.startProgram(ctx, plan)
+}
+
+func (c *nativeCommand) startProgram(ctx context.Context, plan executionPlan) (err error) {
 	stdin := c.Stdin()
 
 	// TODO(adamb): include explanation why it is needed.
@@ -43,16 +51,12 @@ func (c *nativeCommand) Start(ctx context.Context) (err error) {
 		stdin = os.NewFile(uintptr(newStdinFd), "")
 	}
 
-	program, args, err := c.resolvedProgramPath(ctx)
-	if err != nil {
-		return err
-	}
-	c.logger.Info("detected program path and arguments", zap.String("program", program), zap.Strings("args", args))
+	c.logger.Info("detected program path and arguments", zap.String("program", plan.program), zap.Strings("args", plan.args))
 
 	c.cmd = exec.CommandContext(
 		ctx,
-		program,
-		args...,
+		plan.program,
+		plan.args...,
 	)
 	c.cmd.Dir = c.ProgramConfig().Directory
 	c.cmd.Env = c.Env()

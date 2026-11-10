@@ -29,20 +29,23 @@ func (c *dockerCommand) Pid() int {
 }
 
 func (c *dockerCommand) Start(ctx context.Context) (err error) {
+	plan, err := c.prepareProgram(ctx)
+	if err != nil {
+		return err
+	}
+	return c.startProgram(ctx, plan)
+}
+
+func (c *dockerCommand) startProgram(ctx context.Context, plan executionPlan) (err error) {
 	cfg := c.ProgramConfig()
 	if cfg.Directory == "" {
 		cfg.Directory = "/tmp"
 	}
 
-	program, args, err := c.resolvedProgramPath(ctx)
-	if err != nil {
-		return err
-	}
-
 	cmd := c.docker.CommandContext(
 		ctx,
-		program,
-		args...,
+		plan.program,
+		plan.args...,
 	)
 	cmd.Dir = cfg.Directory
 	cmd.Env = c.Env()

@@ -36,20 +36,21 @@ func (c *inlineShellCommand) Start(ctx context.Context) error {
 	if c.envCollector != nil {
 		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
 	}
-	if _, _, err := c.PrepareProgram(ctx); err != nil {
+	plan, err := c.prepareProgram(ctx)
+	if err != nil {
 		return err
 	}
-	script, err := c.build(ctx)
+	script, err := c.build(plan)
 	if err != nil {
 		return err
 	}
 	c.logger.Debug("inline shell script", zap.String("script", script))
 
 	if script != "" {
-		c.SetPayloadArgs("-c", script)
+		plan = plan.withPayloadArgs("-c", script)
 	}
 
-	return c.internalCommand.Start(ctx)
+	return c.internalCommand.startProgram(ctx, plan)
 }
 
 func (c *inlineShellCommand) Wait(ctx context.Context) error {
@@ -78,14 +79,11 @@ func (c *inlineShellCommand) Wait(ctx context.Context) error {
 	return err
 }
 
-func (c *inlineShellCommand) build(ctx context.Context) (string, error) {
+func (c *inlineShellCommand) build(plan executionPlan) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	bw := bulkWriter{Writer: buf}
 
-	options, err := c.shellOptions(ctx)
-	if err != nil {
-		return "", err
-	}
+	options := c.shellOptions(plan)
 	if options != "" {
 		bw.WriteString(options)
 		bw.WriteString("\n\n")
@@ -94,18 +92,13 @@ func (c *inlineShellCommand) build(ctx context.Context) (string, error) {
 	// If the session is provided, we need to collect the environment before and after the script execution.
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
 	if c.envCollector != nil {
-		err = c.envCollector.SetOnShell(buf)
-		if err != nil {
+		if err := c.envCollector.SetOnShell(buf); err != nil {
 			return "", err
 		}
 	}
 
 	cfg := c.ProgramConfig()
 
-	program, args, err := c.PrepareProgram(ctx)
-	if err != nil {
-		return "", err
-	}
 	var source strings.Builder
 	if commands := cfg.GetCommands(); commands != nil {
 		for _, cmd := range commands.Items {
@@ -115,7 +108,7 @@ func (c *inlineShellCommand) build(ctx context.Context) (string, error) {
 	} else {
 		_, _ = source.WriteString(cfg.GetScript())
 	}
-	bw.WriteString(dagger.SyncShebang(source.String(), program, args))
+	bw.WriteString(dagger.SyncShebang(source.String(), plan.program, plan.args))
 
 	return buf.String(), nil
 }
@@ -138,13 +131,8 @@ func (c *inlineShellCommand) collectEnv(ctx context.Context) error {
 	return c.session.DeleteEnv(ctx, deleted...)
 }
 
-func (c *inlineShellCommand) shellOptions(ctx context.Context) (string, error) {
-	program, _, err := c.PrepareProgram(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	shell := filepath.Base(program)
+func (c *inlineShellCommand) shellOptions(plan executionPlan) string {
+	shell := filepath.Base(plan.program)
 
 	// TODO(mxs): powershell and DOS are missing
 	switch shell {
@@ -153,10 +141,10 @@ func (c *inlineShellCommand) shellOptions(ctx context.Context) (string, error) {
 		if c.debug {
 			result += " -x"
 		}
-		return result, nil
+		return result
 	case "sh":
-		return "set -e", nil
+		return "set -e"
 	default:
-		return "", nil
+		return ""
 	}
 }

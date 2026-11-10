@@ -23,10 +23,18 @@ type preparationLauncher struct {
 }
 
 func (c *preparationLauncher) Start(ctx context.Context) error {
+	plan, err := c.prepareProgram(ctx)
+	if err != nil {
+		return err
+	}
+	return c.startProgram(ctx, plan)
+}
+
+func (c *preparationLauncher) startProgram(_ context.Context, plan executionPlan) error {
 	c.launches++
-	var err error
-	c.program, c.args, err = c.resolvedProgramPath(ctx)
-	return err
+	c.program = plan.program
+	c.args = append([]string(nil), plan.args...)
+	return nil
 }
 
 type preparationCollector struct{}
@@ -90,21 +98,14 @@ func TestSourcePreparation(t *testing.T) {
 				} else {
 					require.Len(t, launch.args, 3)
 				}
-				// Both native and Docker embed this same base and retain the prepared result.
-				native := &nativeCommand{base: b}
-				docker := &dockerCommand{base: b}
-				for _, prepare := range []func(context.Context) (string, []string, error){native.resolvedProgramPath, docker.resolvedProgramPath} {
-					_, args, err := prepare(context.Background())
-					require.NoError(t, err)
-					require.Equal(t, launch.args, args)
-				}
+				require.Equal(t, 1, launch.launches)
 				require.Equal(t, 1, calls)
 			})
 		}
 	}
 }
 
-func TestPreparationRetainsFailure(t *testing.T) {
+func TestPreparationFailureDoesNotLaunch(t *testing.T) {
 	sess, err := session.New()
 	require.NoError(t, err)
 	expected := errors.New("resolution failed")
@@ -114,8 +115,6 @@ func TestPreparationRetainsFailure(t *testing.T) {
 	launch := &preparationLauncher{base: b}
 	cmd := &inlineCommand{internalCommand: launch}
 	require.ErrorIs(t, cmd.Start(context.Background()), expected)
-	_, _, err = b.PrepareProgram(context.Background())
-	require.ErrorIs(t, err, expected)
 	require.Equal(t, 1, calls)
 	require.Zero(t, launch.launches)
 }

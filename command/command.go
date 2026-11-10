@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -29,8 +28,7 @@ type internalCommandGetters interface {
 	Env() []string
 	ProgramConfig() *ProgramConfig
 	ProgramPath() (string, []string, error)
-	PrepareProgram(context.Context) (string, []string, error)
-	SetPayloadArgs(...string)
+	prepareProgram(context.Context) (executionPlan, error)
 	Stdin() io.Reader
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -39,18 +37,20 @@ type internalCommandGetters interface {
 type internalCommand interface {
 	Command
 	internalCommandGetters
+	startProgram(context.Context, executionPlan) error
 }
 
-type preparedProgram struct {
+type executionPlan struct {
 	program string
 	args    []string
-	err     error
+}
+
+func (p executionPlan) withPayloadArgs(args ...string) executionPlan {
+	p.args = append(append([]string(nil), p.args...), args...)
+	return p
 }
 
 type base struct {
-	prepareOnce sync.Once
-	prepared    preparedProgram
-	payloadArgs []string
 	resolveArgs func(context.Context, string, []string, []string) ([]string, error)
 	cfg         *ProgramConfig
 	logger      *zap.Logger
@@ -77,6 +77,10 @@ func (c *base) Running() bool {
 }
 
 func (c *base) Start(context.Context) error {
+	return errors.New("not implemented")
+}
+
+func (c *base) startProgram(context.Context, executionPlan) error {
 	return errors.New("not implemented")
 }
 
@@ -121,31 +125,23 @@ func (c *base) ProgramPath() (string, []string, error) {
 	return c.findDefaultProgram(c.cfg.LanguageId, c.cfg.Arguments)
 }
 
-// PrepareProgram retains discovery and resolution, including failures, for this execution.
-func (c *base) PrepareProgram(ctx context.Context) (string, []string, error) {
-	c.prepareOnce.Do(func() {
-		p := &c.prepared
-		p.program, p.args, p.err = c.ProgramPath()
-		if p.err != nil {
-			return
-		}
-		resolve := c.resolveArgs
-		if resolve == nil {
-			resolve = dagger.ResolveArgs
-		}
-		p.args, p.err = resolve(ctx, p.program, p.args, c.Env())
-		p.args = append([]string(nil), p.args...)
-	})
-	return c.prepared.program, append([]string(nil), c.prepared.args...), c.prepared.err
-}
-
-func (c *base) SetPayloadArgs(args ...string) {
-	c.payloadArgs = append([]string(nil), args...)
-}
-
-func (c *base) resolvedProgramPath(ctx context.Context) (string, []string, error) {
-	program, args, err := c.PrepareProgram(ctx)
-	return program, append(args, c.payloadArgs...), err
+// prepareProgram resolves the executable and its configured arguments into an
+// immutable plan. Source-specific payload arguments are added by the outer
+// command before the plan is passed to the runtime-specific launcher.
+func (c *base) prepareProgram(ctx context.Context) (executionPlan, error) {
+	program, args, err := c.ProgramPath()
+	if err != nil {
+		return executionPlan{}, err
+	}
+	resolve := c.resolveArgs
+	if resolve == nil {
+		resolve = dagger.ResolveArgs
+	}
+	args, err = resolve(ctx, program, args, c.Env())
+	if err != nil {
+		return executionPlan{}, err
+	}
+	return executionPlan{program: program, args: append([]string(nil), args...)}, nil
 }
 
 func (c *base) limitEnviron(environ []string) error {

@@ -25,7 +25,7 @@ func (c *inlineCommand) getPty() *os.File {
 }
 
 func (c *inlineCommand) Start(ctx context.Context) error {
-	program, args, err := c.PrepareProgram(ctx)
+	plan, err := c.prepareProgram(ctx)
 	if err != nil {
 		return err
 	}
@@ -45,8 +45,8 @@ func (c *inlineCommand) Start(ctx context.Context) error {
 
 	// TODO(adamb): "-c" is not supported for all inline programs.
 	if val := buf.String(); val != "" {
-		c.SetPayloadArgs(dagger.SyncShebang(val, program, args))
+		plan = plan.withPayloadArgs(dagger.SyncShebang(val, plan.program, plan.args))
 	}
 
-	return c.internalCommand.Start(ctx)
+	return c.internalCommand.startProgram(ctx, plan)
 }
