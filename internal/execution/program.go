@@ -27,12 +27,9 @@ func (i Intent) Arguments() []string {
 	return clone(i.arguments)
 }
 
-// Shebang formats the requested program and arguments without resolving or
-// executing them. Multi-field commands use env -S so the kernel passes all
-// requested fields to the interpreter.
-func (i Intent) Shebang() string {
-	fields := append([]string{i.programName}, i.arguments...)
-	if i.programName == "" {
+func formatShebang(program string, arguments []string) string {
+	fields := append([]string{program}, arguments...)
+	if program == "" {
 		return ""
 	}
 	if filepath.Base(fields[0]) == "env" {
@@ -65,6 +62,13 @@ func (i Invocation) Executable() string {
 // Arguments returns a copy of the resolved arguments.
 func (i Invocation) Arguments() []string {
 	return clone(i.arguments)
+}
+
+// Shebang formats the resolved executable and arguments without running them.
+// Multi-field commands use env -S so the kernel passes all resolved fields to
+// the interpreter.
+func (i Invocation) Shebang() string {
+	return formatShebang(i.executable, i.arguments)
 }
 
 // Fields returns the executable followed by a copy of its arguments.

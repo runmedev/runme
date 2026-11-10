@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"context"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/runner"
 	"github.com/runmedev/runme/v3/runner/client"
 )
@@ -36,15 +40,20 @@ func printCmd() *cobra.Command {
 				return err
 			}
 
-			baseShell := "" // not necessary for printing only
-			program, err := client.GetTaskProgram(baseShell, task)
-			if err != nil {
-				return err
-			}
-			value := renderTaskProgram(program)
-
+			var value []byte
 			if fRaw {
 				value = task.CodeBlock.Value()
+			} else {
+				baseShell := "" // not necessary for printing only
+				program, err := client.GetTaskProgram(baseShell, task)
+				if err != nil {
+					return err
+				}
+				invocation, err := resolvePrintInvocation(cmd.Context(), program, os.Environ())
+				if err != nil {
+					return err
+				}
+				value = renderTaskProgram(program, invocation)
 			}
 
 			if !fNoNewLine {
@@ -66,10 +75,18 @@ func printCmd() *cobra.Command {
 	return &cmd
 }
 
-func renderTaskProgram(program client.TaskProgram) []byte {
+func resolvePrintInvocation(ctx context.Context, program client.TaskProgram, env []string) (execution.Invocation, error) {
+	invocation := execution.NewInvocation(program.Intent.ProgramName(), program.Intent.Arguments())
+	if program.CommandMode != runner.CommandModeDaggerShell {
+		return invocation, nil
+	}
+	return dagger.ResolveInvocation(ctx, invocation, env)
+}
+
+func renderTaskProgram(program client.TaskProgram, invocation execution.Invocation) []byte {
 	value := []byte(strings.Join(program.Lines, "\n"))
 	if program.CommandMode == runner.CommandModeDaggerShell {
-		value = []byte(program.Intent.Shebang() + "\n" + string(value))
+		value = []byte(invocation.Shebang() + "\n" + string(value))
 	}
 	return value
 }

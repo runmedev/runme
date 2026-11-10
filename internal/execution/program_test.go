@@ -22,20 +22,20 @@ func TestProgramValuesOwnArguments(t *testing.T) {
 	assert.Equal(t, []string{"--debug", "script.dsh"}, resolved.Arguments())
 }
 
-func TestIntentShebang(t *testing.T) {
+func TestInvocationShebang(t *testing.T) {
 	for _, tt := range []struct {
-		name   string
-		intent Intent
-		want   string
+		name       string
+		invocation Invocation
+		want       string
 	}{
-		{name: "empty", intent: NewIntent("", nil), want: ""},
-		{name: "single field", intent: NewIntent("/bin/bash", nil), want: "#!/bin/bash"},
-		{name: "multiple fields", intent: NewIntent("dagger", []string{"--debug", "shell"}), want: "#!/usr/bin/env -S dagger --debug shell"},
-		{name: "env", intent: NewIntent("env", []string{"dagger", "shell"}), want: "#!/usr/bin/env -S dagger shell"},
-		{name: "normalized env", intent: NewIntent("/usr/bin/env", []string{"-S", "dagger", "shell"}), want: "#!/usr/bin/env -S dagger shell"},
+		{name: "empty", invocation: NewInvocation("", nil), want: ""},
+		{name: "single field", invocation: NewInvocation("/bin/bash", nil), want: "#!/bin/bash"},
+		{name: "multiple fields", invocation: NewInvocation("dagger", []string{"--debug", "script"}), want: "#!/usr/bin/env -S dagger --debug script"},
+		{name: "env", invocation: NewInvocation("env", []string{"dagger", "script"}), want: "#!/usr/bin/env -S dagger script"},
+		{name: "normalized env", invocation: NewInvocation("/usr/bin/env", []string{"-S", "dagger", "script"}), want: "#!/usr/bin/env -S dagger script"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.intent.Shebang())
+			assert.Equal(t, tt.want, tt.invocation.Shebang())
 		})
 	}
 }
