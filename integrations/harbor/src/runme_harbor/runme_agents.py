@@ -7,12 +7,12 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 
-from harbor.agents.installed.antigravity_cli import AntigravityCli
+from harbor.agents.installed.antigravity_cli import AntigravityCli, AntigravityCliOptions
 from harbor.agents.installed.base import with_prompt_template
-from harbor.agents.installed.claude_code import ClaudeCode
-from harbor.agents.installed.codex import Codex
+from harbor.agents.installed.claude_code import ClaudeCode, ClaudeCodeOptions
+from harbor.agents.installed.codex import Codex, CodexOptions
 from harbor.agents.installed.cursor_cli import CursorCli
 from harbor.agents.installed.openclaw import OpenClaw, OpenClawOptions
 from harbor.agents.options import Cli
@@ -77,6 +77,12 @@ def _parse_bool_kwarg(name: str, value: bool | str) -> bool:
     raise ValueError(f"{name} must be true or false")
 
 
+_RouteOAuthCredentials = Annotated[
+    bool,
+    BeforeValidator(lambda value: _parse_bool_kwarg("route_oauth_credentials", value)),
+]
+
+
 async def _promote_fallback_auth(
     source,
     environment: BaseEnvironment,
@@ -111,6 +117,13 @@ async def _promote_fallback_auth(
     return "fallback"
 
 
+class RunmeAntigravityCliOptions(AntigravityCliOptions):
+    route_oauth_credentials: _RouteOAuthCredentials = Field(
+        default=False,
+        description="Route native OAuth credentials through the Runme router.",
+    )
+
+
 class RunmeAntigravityCli(AntigravityCli):
     """Antigravity CLI-backed Runme agent without container bootstrap.
 
@@ -120,6 +133,9 @@ class RunmeAntigravityCli(AntigravityCli):
     configured.
     """
 
+    options_model = RunmeAntigravityCliOptions
+    options: RunmeAntigravityCliOptions
+
     @staticmethod
     def name() -> str:
         return "runme-antigravity-cli"
@@ -128,7 +144,7 @@ class RunmeAntigravityCli(AntigravityCli):
         self.route_oauth_credentials = _parse_bool_kwarg(
             "route_oauth_credentials", route_oauth_credentials
         )
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, route_oauth_credentials=self.route_oauth_credentials, **kwargs)
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -248,6 +264,13 @@ class RunmeAntigravityCli(AntigravityCli):
         )
 
 
+class RunmeClaudeCodeOptions(ClaudeCodeOptions):
+    route_oauth_credentials: _RouteOAuthCredentials = Field(
+        default=False,
+        description="Route native OAuth credentials through the Runme router.",
+    )
+
+
 class RunmeClaudeCode(ClaudeCode):
     """Claude Code-backed Runme agent without container bootstrap.
 
@@ -257,6 +280,9 @@ class RunmeClaudeCode(ClaudeCode):
     expects `claude` to already be available and configured.
     """
 
+    options_model = RunmeClaudeCodeOptions
+    options: RunmeClaudeCodeOptions
+
     @staticmethod
     def name() -> str:
         return "runme-claude-code"
@@ -265,7 +291,7 @@ class RunmeClaudeCode(ClaudeCode):
         self.route_oauth_credentials = _parse_bool_kwarg(
             "route_oauth_credentials", route_oauth_credentials
         )
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, route_oauth_credentials=self.route_oauth_credentials, **kwargs)
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
@@ -413,6 +439,13 @@ class RunmeClaudeCode(ClaudeCode):
             self.populate_context_post_run(context)
 
 
+class RunmeCodexOptions(CodexOptions):
+    route_oauth_credentials: _RouteOAuthCredentials = Field(
+        default=False,
+        description="Route native OAuth credentials through the Runme router.",
+    )
+
+
 class RunmeCodex(Codex):
     """Codex-backed Runme agent without container bootstrap.
 
@@ -423,6 +456,9 @@ class RunmeCodex(Codex):
     environment changes.
     """
 
+    options_model = RunmeCodexOptions
+    options: RunmeCodexOptions
+
     @staticmethod
     def name() -> str:
         return "runme-codex"
@@ -431,7 +467,7 @@ class RunmeCodex(Codex):
         self.route_oauth_credentials = _parse_bool_kwarg(
             "route_oauth_credentials", route_oauth_credentials
         )
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, route_oauth_credentials=self.route_oauth_credentials, **kwargs)
 
     async def install(self, environment: BaseEnvironment) -> None:
         return None
