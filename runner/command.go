@@ -21,6 +21,7 @@ import (
 
 	commandpkg "github.com/runmedev/runme/v3/command"
 	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/internal/system"
 	"github.com/runmedev/runme/v3/internal/ulid"
 )
@@ -130,7 +131,8 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 		}
 	}
 
-	programName, initialArgs := parseFileProgram(cfg.ProgramName)
+	intent := execution.NewIntent(cfg.ProgramName, cfg.Args)
+	programName, initialArgs := parseFileProgram(intent.ProgramName())
 	args := initialArgs
 
 	programPath, initialArgs, err := inferFileProgram(pathEnv, programName, cfg.LanguageID)
@@ -146,11 +148,12 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 			return nil, errors.WithStack(err)
 		}
 	}
-	args = append(args, cfg.Args...)
-	args, err = dagger.ResolveArgs(context, programPath, args, env)
+	args = append(args, intent.Arguments()...)
+	invocation, err := dagger.ResolveInvocation(context, execution.NewInvocation(programPath, args), env)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	programPath = invocation.Executable()
 
 	directory := cfg.Directory
 	if directory == "" {
@@ -230,7 +233,7 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 			}
 		}
 
-		script = dagger.SyncShebang(script, programPath, args)
+		script = dagger.RewriteShebang(script, invocation)
 
 		switch cfg.CommandMode {
 		case CommandModeInlineShell, CommandModeDaggerShell:
@@ -261,6 +264,7 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 			extraArgs = append(extraArgs, tempScriptFile)
 		}
 	}
+	invocation = invocation.WithArguments(extraArgs...)
 
 	session := cfg.Session
 	if session == nil {
@@ -273,8 +277,8 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 
 	cmd := &command{
 		context:        context,
-		ProgramPath:    programPath,
-		Args:           append(args, extraArgs...),
+		ProgramPath:    invocation.Executable(),
+		Args:           invocation.Arguments(),
 		Directory:      directory,
 		Session:        session,
 		Stdin:          cfg.Stdin,

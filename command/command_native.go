@@ -7,6 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+
+	"github.com/runmedev/runme/v3/internal/execution"
 )
 
 type nativeCommand struct {
@@ -30,14 +32,14 @@ func (c *nativeCommand) Pid() int {
 }
 
 func (c *nativeCommand) Start(ctx context.Context) (err error) {
-	plan, err := c.prepareProgram(ctx)
+	invocation, err := c.prepareProgram(ctx)
 	if err != nil {
 		return err
 	}
-	return c.startProgram(ctx, plan)
+	return c.startProgram(ctx, invocation)
 }
 
-func (c *nativeCommand) startProgram(ctx context.Context, plan executionPlan) (err error) {
+func (c *nativeCommand) startProgram(ctx context.Context, invocation execution.Invocation) (err error) {
 	stdin := c.Stdin()
 
 	// TODO(adamb): include explanation why it is needed.
@@ -51,12 +53,13 @@ func (c *nativeCommand) startProgram(ctx context.Context, plan executionPlan) (e
 		stdin = os.NewFile(uintptr(newStdinFd), "")
 	}
 
-	c.logger.Info("detected program path and arguments", zap.String("program", plan.program), zap.Strings("args", plan.args))
+	args := invocation.Arguments()
+	c.logger.Info("detected program path and arguments", zap.String("program", invocation.Executable()), zap.Strings("args", args))
 
 	c.cmd = exec.CommandContext(
 		ctx,
-		plan.program,
-		plan.args...,
+		invocation.Executable(),
+		args...,
 	)
 	c.cmd.Dir = c.ProgramConfig().Directory
 	c.cmd.Env = c.Env()

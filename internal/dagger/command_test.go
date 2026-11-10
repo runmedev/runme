@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/runmedev/runme/v3/internal/execution"
 )
 
 func TestIsCommand(t *testing.T) {
@@ -78,10 +80,10 @@ func TestInvocationFlagPermutations(t *testing.T) {
 				assert.True(t, IsCommand("dagger "+strings.Join(args, " ")))
 				invocation, ok := parseInvocation("dagger", args)
 				require.True(t, ok)
-				assert.Equal(t, args, invocation.command.args)
+				assert.Equal(t, args, invocation.command.Arguments())
 				wantArgs := append(append([]string(nil), flags.before...), "script")
 				wantArgs = append(wantArgs, flags.after...)
-				assert.Equal(t, wantArgs, invocation.asScript().args)
+				assert.Equal(t, wantArgs, invocation.asScript().Arguments())
 			})
 		}
 	}
@@ -130,7 +132,7 @@ func TestCommandResolver(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			var gotVersion string
-			resolver := newResolver(func(_ context.Context, cmd command, _ []string) ([]byte, error) {
+			resolver := newResolver(func(_ context.Context, cmd execution.Invocation, _ []string) ([]byte, error) {
 				gotVersion = cmd.String()
 				return []byte(tt.version), tt.probeErr
 			})
@@ -142,7 +144,7 @@ func TestCommandResolver(t *testing.T) {
 			}
 			invocation, ok := parseInvocation(fields[0], fields[1:])
 			if !ok {
-				assert.Equal(t, tt.want, commandFromFields(fields).String())
+				assert.Equal(t, tt.want, invocationFromFields(fields).String())
 				return
 			}
 			resolved, err := resolver.resolve(context.Background(), invocation, nil)
@@ -166,8 +168,8 @@ func TestInvocationArgumentsWithPaths(t *testing.T) {
 			invocation, ok := parseInvocation(program, args)
 			require.True(t, ok)
 			resolved := invocation.asScript()
-			assert.Equal(t, program, resolved.program)
-			assert.Equal(t, []string{"script", "--progress=plain", "--workspace", `C:\Workspaces\my project`}, resolved.args)
+			assert.Equal(t, program, resolved.Executable())
+			assert.Equal(t, []string{"script", "--progress=plain", "--workspace", `C:\Workspaces\my project`}, resolved.Arguments())
 			assert.Equal(t, "shell", args[0])
 		})
 	}
@@ -177,7 +179,7 @@ func TestCommandResolverCachesVersion(t *testing.T) {
 	t.Parallel()
 
 	var calls atomic.Int32
-	resolver := newResolver(func(_ context.Context, _ command, _ []string) ([]byte, error) {
+	resolver := newResolver(func(_ context.Context, _ execution.Invocation, _ []string) ([]byte, error) {
 		calls.Add(1)
 		return []byte("v1.0.0-beta.25"), nil
 	})

@@ -12,6 +12,8 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
+
+	"github.com/runmedev/runme/v3/internal/execution"
 )
 
 type virtualCommand struct {
@@ -55,14 +57,14 @@ func (c *virtualCommand) Stdin() io.Reader {
 }
 
 func (c *virtualCommand) Start(ctx context.Context) (err error) {
-	plan, err := c.prepareProgram(ctx)
+	invocation, err := c.prepareProgram(ctx)
 	if err != nil {
 		return err
 	}
-	return c.startProgram(ctx, plan)
+	return c.startProgram(ctx, invocation)
 }
 
-func (c *virtualCommand) startProgram(ctx context.Context, plan executionPlan) (err error) {
+func (c *virtualCommand) startProgram(ctx context.Context, invocation execution.Invocation) (err error) {
 	c.pty, c.tty, err = pty.Open()
 	if err != nil {
 		return errors.WithStack(err)
@@ -75,12 +77,13 @@ func (c *virtualCommand) startProgram(ctx context.Context, plan executionPlan) (
 		}
 	}
 
-	c.logger.Info("detected program path and arguments", zap.String("program", plan.program), zap.Strings("args", plan.args))
+	args := invocation.Arguments()
+	c.logger.Info("detected program path and arguments", zap.String("program", invocation.Executable()), zap.Strings("args", args))
 
 	c.cmd = exec.CommandContext(
 		ctx,
-		plan.program,
-		plan.args...,
+		invocation.Executable(),
+		args...,
 	)
 	c.cmd.Dir = c.ProgramConfig().Directory
 	c.cmd.Env = c.Env()

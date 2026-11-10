@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/session"
 )
 
@@ -36,21 +37,21 @@ func (c *inlineShellCommand) Start(ctx context.Context) error {
 	if c.envCollector != nil {
 		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
 	}
-	plan, err := c.prepareProgram(ctx)
+	invocation, err := c.prepareProgram(ctx)
 	if err != nil {
 		return err
 	}
-	script, err := c.build(plan)
+	script, err := c.build(invocation)
 	if err != nil {
 		return err
 	}
 	c.logger.Debug("inline shell script", zap.String("script", script))
 
 	if script != "" {
-		plan = plan.withPayloadArgs("-c", script)
+		invocation = invocation.WithArguments("-c", script)
 	}
 
-	return c.internalCommand.startProgram(ctx, plan)
+	return c.internalCommand.startProgram(ctx, invocation)
 }
 
 func (c *inlineShellCommand) Wait(ctx context.Context) error {
@@ -79,11 +80,11 @@ func (c *inlineShellCommand) Wait(ctx context.Context) error {
 	return err
 }
 
-func (c *inlineShellCommand) build(plan executionPlan) (string, error) {
+func (c *inlineShellCommand) build(invocation execution.Invocation) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	bw := bulkWriter{Writer: buf}
 
-	options := c.shellOptions(plan)
+	options := c.shellOptions(invocation)
 	if options != "" {
 		bw.WriteString(options)
 		bw.WriteString("\n\n")
@@ -108,7 +109,7 @@ func (c *inlineShellCommand) build(plan executionPlan) (string, error) {
 	} else {
 		_, _ = source.WriteString(cfg.GetScript())
 	}
-	bw.WriteString(dagger.SyncShebang(source.String(), plan.program, plan.args))
+	bw.WriteString(dagger.RewriteShebang(source.String(), invocation))
 
 	return buf.String(), nil
 }
@@ -131,8 +132,8 @@ func (c *inlineShellCommand) collectEnv(ctx context.Context) error {
 	return c.session.DeleteEnv(ctx, deleted...)
 }
 
-func (c *inlineShellCommand) shellOptions(plan executionPlan) string {
-	shell := filepath.Base(plan.program)
+func (c *inlineShellCommand) shellOptions(invocation execution.Invocation) string {
+	shell := filepath.Base(invocation.Executable())
 
 	// TODO(mxs): powershell and DOS are missing
 	switch shell {

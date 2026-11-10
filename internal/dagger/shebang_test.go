@@ -4,9 +4,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/runmedev/runme/v3/internal/execution"
 )
 
-func TestSyncShebang(t *testing.T) {
+func TestRewriteShebang(t *testing.T) {
 	for _, header := range []string{
 		"dagger shell", "dagger --debug shell --quiet",
 		"/usr/bin/env -S dagger shell",
@@ -24,8 +26,8 @@ func TestSyncShebang(t *testing.T) {
 			if newline != "" {
 				want += "echo shell script\r\n"
 			}
-			assert.Equal(t, want, SyncShebang(script, "/usr/bin/env", []string{"-S", "dagger", "--debug", "script"}))
-			assert.Equal(t, script, SyncShebang(want, "dagger", []string{"shell", "--quiet"}))
+			assert.Equal(t, want, RewriteShebang(script, execution.NewInvocation("/usr/bin/env", []string{"-S", "dagger", "--debug", "script"})))
+			assert.Equal(t, script, RewriteShebang(want, execution.NewInvocation("dagger", []string{"shell", "--quiet"})))
 		}
 	}
 	for _, script := range []string{
@@ -33,10 +35,10 @@ func TestSyncShebang(t *testing.T) {
 		"#!/usr/bin/env python\n# dagger shell\n",
 		"#!dagger shell\n", "#!'unterminated dagger shell\n",
 	} {
-		assert.Equal(t, script, SyncShebang(script, "bash", []string{"-c"}))
+		assert.Equal(t, script, RewriteShebang(script, execution.NewInvocation("bash", []string{"-c"})))
 	}
 	for _, script := range []string{"echo shell\n", "#!/bin/bash\necho shell\n", "#!'unterminated dagger shell\n"} {
-		assert.Equal(t, script, SyncShebang(script, "dagger", []string{"script"}))
+		assert.Equal(t, script, RewriteShebang(script, execution.NewInvocation("dagger", []string{"script"})))
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/project"
 	"github.com/runmedev/runme/v3/session"
 )
@@ -27,8 +28,8 @@ type Command interface {
 type internalCommandGetters interface {
 	Env() []string
 	ProgramConfig() *ProgramConfig
-	ProgramPath() (string, []string, error)
-	prepareProgram(context.Context) (executionPlan, error)
+	ProgramPath() (execution.Invocation, error)
+	prepareProgram(context.Context) (execution.Invocation, error)
 	Stdin() io.Reader
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -37,29 +38,19 @@ type internalCommandGetters interface {
 type internalCommand interface {
 	Command
 	internalCommandGetters
-	startProgram(context.Context, executionPlan) error
-}
-
-type executionPlan struct {
-	program string
-	args    []string
-}
-
-func (p executionPlan) withPayloadArgs(args ...string) executionPlan {
-	p.args = append(append([]string(nil), p.args...), args...)
-	return p
+	startProgram(context.Context, execution.Invocation) error
 }
 
 type base struct {
-	resolveArgs func(context.Context, string, []string, []string) ([]string, error)
-	cfg         *ProgramConfig
-	logger      *zap.Logger
-	project     *project.Project
-	runtime     Runtime
-	session     *session.Session
-	stdin       io.Reader
-	stdout      io.Writer
-	stderr      io.Writer
+	resolveInvocation func(context.Context, execution.Invocation, []string) (execution.Invocation, error)
+	cfg               *ProgramConfig
+	logger            *zap.Logger
+	project           *project.Project
+	runtime           Runtime
+	session           *session.Session
+	stdin             io.Reader
+	stdout            io.Writer
+	stderr            io.Writer
 }
 
 var _ internalCommand = (*base)(nil)
@@ -80,7 +71,7 @@ func (c *base) Start(context.Context) error {
 	return errors.New("not implemented")
 }
 
-func (c *base) startProgram(context.Context, executionPlan) error {
+func (c *base) startProgram(context.Context, execution.Invocation) error {
 	return errors.New("not implemented")
 }
 
@@ -108,40 +99,43 @@ func (c *base) ProgramConfig() *ProgramConfig {
 	return c.cfg
 }
 
-func (c *base) ProgramPath() (string, []string, error) {
-	if c.cfg.ProgramName != "" {
-		return c.findProgramInPath(c.cfg.ProgramName, c.cfg.Arguments)
+func (c *base) ProgramPath() (execution.Invocation, error) {
+	intent := execution.NewIntent(c.cfg.ProgramName, c.cfg.Arguments)
+	if intent.ProgramName() != "" {
+		program, args, err := c.findProgramInPath(intent.ProgramName(), intent.Arguments())
+		return execution.NewInvocation(program, args), err
 	}
 
 	// If language ID is empty, interpreter lookup is futile.
 	// todo(sebastian): why are we passing language ID here? it's not the same as program name.
 	if c.cfg.LanguageId != "" {
-		path, args, err := c.findProgramInKnownInterpreters(c.cfg.LanguageId, c.cfg.Arguments)
+		path, args, err := c.findProgramInKnownInterpreters(c.cfg.LanguageId, intent.Arguments())
 		if err == nil {
-			return path, args, nil
+			return execution.NewInvocation(path, args), nil
 		}
 	}
 
-	return c.findDefaultProgram(c.cfg.LanguageId, c.cfg.Arguments)
+	program, args, err := c.findDefaultProgram(c.cfg.LanguageId, intent.Arguments())
+	return execution.NewInvocation(program, args), err
 }
 
 // prepareProgram resolves the executable and its configured arguments into an
-// immutable plan. Source-specific payload arguments are added by the outer
-// command before the plan is passed to the runtime-specific launcher.
-func (c *base) prepareProgram(ctx context.Context) (executionPlan, error) {
-	program, args, err := c.ProgramPath()
+// immutable invocation. Source-specific payload arguments are added by the
+// outer command before the invocation is passed to the runtime launcher.
+func (c *base) prepareProgram(ctx context.Context) (execution.Invocation, error) {
+	invocation, err := c.ProgramPath()
 	if err != nil {
-		return executionPlan{}, err
+		return execution.Invocation{}, err
 	}
-	resolve := c.resolveArgs
+	resolve := c.resolveInvocation
 	if resolve == nil {
-		resolve = dagger.ResolveArgs
+		resolve = dagger.ResolveInvocation
 	}
-	args, err = resolve(ctx, program, args, c.Env())
+	invocation, err = resolve(ctx, invocation, c.Env())
 	if err != nil {
-		return executionPlan{}, err
+		return execution.Invocation{}, err
 	}
-	return executionPlan{program: program, args: append([]string(nil), args...)}, nil
+	return invocation, nil
 }
 
 func (c *base) limitEnviron(environ []string) error {

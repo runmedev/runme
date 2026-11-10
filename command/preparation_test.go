@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	runnerv2 "github.com/runmedev/runme/v3/api/gen/proto/go/runme/runner/v2"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/session"
 )
 
@@ -23,17 +24,17 @@ type preparationLauncher struct {
 }
 
 func (c *preparationLauncher) Start(ctx context.Context) error {
-	plan, err := c.prepareProgram(ctx)
+	invocation, err := c.prepareProgram(ctx)
 	if err != nil {
 		return err
 	}
-	return c.startProgram(ctx, plan)
+	return c.startProgram(ctx, invocation)
 }
 
-func (c *preparationLauncher) startProgram(_ context.Context, plan executionPlan) error {
+func (c *preparationLauncher) startProgram(_ context.Context, invocation execution.Invocation) error {
 	c.launches++
-	c.program = plan.program
-	c.args = append([]string(nil), plan.args...)
+	c.program = invocation.Executable()
+	c.args = invocation.Arguments()
 	return nil
 }
 
@@ -60,15 +61,15 @@ func TestSourcePreparation(t *testing.T) {
 				}
 				calls := 0
 				b := &base{cfg: cfg, session: sess, runtime: dockerRuntime{}, logger: zap.NewNop()}
-				b.resolveArgs = func(_ context.Context, program string, args, env []string) ([]string, error) {
+				b.resolveInvocation = func(_ context.Context, invocation execution.Invocation, env []string) (execution.Invocation, error) {
 					calls++
-					require.Equal(t, "dagger", program)
-					require.Equal(t, []string{"shell", "--debug"}, args)
+					require.Equal(t, "dagger", invocation.Executable())
+					require.Equal(t, []string{"shell", "--debug"}, invocation.Arguments())
 					require.Contains(t, env, "CONFIG_ENV=present")
 					if kind == "shell" {
 						require.Contains(t, env, "PREPARATION_ENV=present")
 					}
-					return []string{"script", "--debug"}, nil
+					return execution.NewInvocation(invocation.Executable(), []string{"script", "--debug"}), nil
 				}
 				launch := &preparationLauncher{base: b}
 				var cmd internalCommand
@@ -111,7 +112,10 @@ func TestPreparationFailureDoesNotLaunch(t *testing.T) {
 	expected := errors.New("resolution failed")
 	calls := 0
 	b := &base{cfg: &ProgramConfig{ProgramName: "dagger script"}, runtime: dockerRuntime{}, session: sess, logger: zap.NewNop()}
-	b.resolveArgs = func(context.Context, string, []string, []string) ([]string, error) { calls++; return nil, expected }
+	b.resolveInvocation = func(context.Context, execution.Invocation, []string) (execution.Invocation, error) {
+		calls++
+		return execution.Invocation{}, expected
+	}
 	launch := &preparationLauncher{base: b}
 	cmd := &inlineCommand{internalCommand: launch}
 	require.ErrorIs(t, cmd.Start(context.Background()), expected)

@@ -1,11 +1,15 @@
 package dagger
 
-import "strings"
+import (
+	"strings"
 
-// SyncShebang aligns an existing Dagger header with an already resolved invocation.
-// It never resolves executables or probes versions.
-func SyncShebang(script, program string, args []string) string {
-	resolved, ok := parseInvocation(program, args)
+	"github.com/runmedev/runme/v3/internal/execution"
+)
+
+// RewriteShebang updates an existing Dagger header to use an already resolved
+// invocation. It never resolves executables or probes versions.
+func RewriteShebang(script string, candidate execution.Invocation) string {
+	resolved, ok := parseInvocation(candidate.Executable(), candidate.Arguments())
 	if !ok || !strings.HasPrefix(script, "#!") {
 		return script
 	}
@@ -26,7 +30,7 @@ func SyncShebang(script, program string, args []string) string {
 		return script
 	}
 	token := tokens[header.subcommandIndex]
-	spelling := resolved.command.fields()[resolved.subcommandIndex]
+	spelling := resolved.command.Fields()[resolved.subcommandIndex]
 	raw := script[2+token.start : 2+token.end]
 	// Preserve quotes around the interpreter token.
 	var replacement strings.Builder

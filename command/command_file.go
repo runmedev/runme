@@ -22,7 +22,7 @@ type fileCommand struct {
 }
 
 func (c *fileCommand) Start(ctx context.Context) error {
-	plan, err := c.prepareProgram(ctx)
+	invocation, err := c.prepareProgram(ctx)
 	if err != nil {
 		return err
 	}
@@ -47,16 +47,16 @@ func (c *fileCommand) Start(ctx context.Context) error {
 		bw.WriteString(script)
 	}
 
-	if err := c.writeScript(dagger.SyncShebang(buf.String(), plan.program, plan.args)); err != nil {
+	if err := c.writeScript(dagger.RewriteShebang(buf.String(), invocation)); err != nil {
 		return err
 	}
 
 	cfg.Directory = c.tempDir
 	// TODO(adamb): it's not always true that the script-based program
 	// takes the filename as a last argument.
-	plan = plan.withPayloadArgs(filepath.Base(c.scriptFile.Name()))
+	invocation = invocation.WithArguments(filepath.Base(c.scriptFile.Name()))
 
-	return c.internalCommand.startProgram(ctx, plan)
+	return c.internalCommand.startProgram(ctx, invocation)
 }
 
 func (c *fileCommand) Wait(ctx context.Context) (err error) {
