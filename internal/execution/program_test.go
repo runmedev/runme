@@ -31,6 +31,8 @@ func TestInvocationShebang(t *testing.T) {
 		{name: "empty", invocation: NewInvocation("", nil), want: ""},
 		{name: "single field", invocation: NewInvocation("/bin/bash", nil), want: "#!/bin/bash"},
 		{name: "multiple fields", invocation: NewInvocation("dagger", []string{"--debug", "script"}), want: "#!/usr/bin/env -S dagger --debug script"},
+		{name: "path with spaces", invocation: NewInvocation("/tmp/dagger bin/dagger", []string{"script"}), want: "#!/usr/bin/env -S '/tmp/dagger bin/dagger' script"},
+		{name: "empty and spaced arguments", invocation: NewInvocation("dagger", []string{"script", "", "two words"}), want: "#!/usr/bin/env -S dagger script '' 'two words'"},
 		{name: "env", invocation: NewInvocation("env", []string{"dagger", "script"}), want: "#!/usr/bin/env -S dagger script"},
 		{name: "normalized env", invocation: NewInvocation("/usr/bin/env", []string{"-S", "dagger", "script"}), want: "#!/usr/bin/env -S dagger script"},
 	} {

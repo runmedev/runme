@@ -1,10 +1,8 @@
 package runner
 
 import (
-	"bytes"
 	"context"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -24,13 +22,8 @@ type TempFile struct {
 
 var _ Executable = (*TempFile)(nil)
 
-func (s TempFile) DryRun(ctx context.Context, w io.Writer) {
-	var b bytes.Buffer
-
-	_, err := w.Write(b.Bytes())
-	if err != nil {
-		log.Fatalf("failed to write: %s", err)
-	}
+func (s TempFile) DryRun(ctx context.Context, w io.Writer) error {
+	return nil
 }
 
 func (s *TempFile) Run(ctx context.Context) error {

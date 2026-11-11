@@ -53,7 +53,7 @@ func printCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				value = renderTaskProgram(program, invocation)
+				value = []byte(dagger.RenderScript(invocation, strings.Join(program.Lines, "\n")))
 			}
 
 			if !fNoNewLine {
@@ -81,14 +81,6 @@ func resolvePrintInvocation(ctx context.Context, program client.TaskProgram, env
 		return invocation, nil
 	}
 	return dagger.ResolveInvocation(ctx, invocation, env)
-}
-
-func renderTaskProgram(program client.TaskProgram, invocation execution.Invocation) []byte {
-	value := []byte(strings.Join(program.Lines, "\n"))
-	if program.CommandMode == runner.CommandModeDaggerShell {
-		value = []byte(invocation.Shebang() + "\n" + string(value))
-	}
-	return value
 }
 
 type bulkWriter struct {

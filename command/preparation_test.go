@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -93,7 +94,10 @@ func TestSourcePreparation(t *testing.T) {
 					payload = string(data)
 				}
 				require.Contains(t, payload, "echo shell")
-				require.NotContains(t, payload, "#!")
+				require.True(t, strings.HasPrefix(payload, "#!/usr/bin/env -S dagger script --debug\n"))
+				if kind == "shell" {
+					require.Contains(t, payload, "\n# preamble\n")
+				}
 				if kind == "shell" {
 					require.Len(t, launch.args, 4)
 				} else {
@@ -104,6 +108,23 @@ func TestSourcePreparation(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestNonDaggerSourcePreparationIsUnchanged(t *testing.T) {
+	sess, err := session.New()
+	require.NoError(t, err)
+	cfg := &ProgramConfig{
+		ProgramName: "bash",
+		Source:      &runnerv2.ProgramConfig_Script{Script: "echo shell"},
+	}
+	b := &base{cfg: cfg, session: sess, runtime: dockerRuntime{}, logger: zap.NewNop()}
+	b.resolveInvocation = func(_ context.Context, invocation execution.Invocation, _ []string) (execution.Invocation, error) {
+		return invocation, nil
+	}
+	launch := &preparationLauncher{base: b}
+	cmd := &inlineCommand{internalCommand: launch}
+	require.NoError(t, cmd.Start(context.Background()))
+	require.Equal(t, "echo shell", launch.args[len(launch.args)-1])
 }
 
 func TestPreparationFailureDoesNotLaunch(t *testing.T) {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -38,17 +37,36 @@ func (s Shell) ShellType() string {
 	return ShellFromShellPath(s.ProgramPath())
 }
 
-func (s Shell) DryRun(ctx context.Context, w io.Writer) {
+func (s Shell) DryRun(ctx context.Context, w io.Writer) error {
 	var b bytes.Buffer
 
-	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", s.ProgramPath()))
 	_, _ = b.WriteString(fmt.Sprintf("# run in %q\n\n", s.Dir))
 	_, _ = b.WriteString(prepareScriptFromCommands(s.Cmds, s.ShellType()))
-
-	_, err := w.Write(b.Bytes())
-	if err != nil {
-		log.Fatalf("failed to write: %s", err)
+	body := b.String()
+	if dagger.IsCommand(s.CustomShell) {
+		invocation, err := resolveDryRunInvocation(ctx, s.CustomShell, s.Session)
+		if err != nil {
+			return err
+		}
+		body = dagger.RenderScript(invocation, "\n"+body)
+	} else {
+		body = fmt.Sprintf("#!%s\n\n%s", s.ProgramPath(), body)
 	}
+	_, err := io.WriteString(w, body)
+	return err
+}
+
+func resolveDryRunInvocation(ctx context.Context, command string, session *Session) (execution.Invocation, error) {
+	program, arguments := parseFileProgram(command)
+	env := os.Environ()
+	if session != nil {
+		var err error
+		env, err = session.Envs()
+		if err != nil {
+			return execution.Invocation{}, err
+		}
+	}
+	return dagger.ResolveInvocation(ctx, execution.NewInvocation(program, arguments), env)
 }
 
 func (s *Shell) Run(ctx context.Context) error {

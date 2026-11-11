@@ -60,7 +60,7 @@ func TestNewCommandResolvesLegacyDaggerCommand(t *testing.T) {
 	}
 }
 
-func TestDaggerPayloadIsNotRewritten(t *testing.T) {
+func TestDaggerPayloadHasResolvedShebang(t *testing.T) {
 	for _, version := range []string{"v0.21.11", "v1.0.0-beta.25", "failure"} {
 		for _, mode := range []CommandMode{CommandModeInlineShell, CommandModeDaggerShell, CommandModeTempFile} {
 			t.Run(fmt.Sprintf("%s/%d", version, mode), func(t *testing.T) {
@@ -94,10 +94,33 @@ func TestDaggerPayloadIsNotRewritten(t *testing.T) {
 					require.Equal(t, "-c", cmd.Args[3])
 					require.Len(t, cmd.Args, 5)
 				}
-				require.Equal(t, "#!/usr/bin/env -S dagger shell\necho shell", payload)
+				require.Equal(t, "#!/usr/bin/env -S "+daggerPath+" --debug "+spelling+" --quiet\necho shell", payload)
 			})
 		}
 	}
+}
+
+func TestDaggerDryRunHasExecutableResolvedShebang(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "dagger bin")
+	require.NoError(t, os.Mkdir(dir, 0o700))
+	daggerPath := filepath.Join(dir, "dagger")
+	require.NoError(t, os.WriteFile(daggerPath, []byte("#!/bin/sh\necho v1.0.0\n"), 0o700))
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	shell := Shell{
+		ExecutableConfig: &ExecutableConfig{Dir: dir},
+		Cmds:             []string{"echo shell"},
+		CustomShell:      "dagger shell",
+	}
+	var output bytes.Buffer
+	require.NoError(t, shell.DryRun(context.Background(), &output))
+	require.True(t, strings.HasPrefix(output.String(), "#!/usr/bin/env -S dagger script\n"))
+
+	scriptPath := filepath.Join(dir, "dry-run-script")
+	require.NoError(t, os.WriteFile(scriptPath, output.Bytes(), 0o700))
+	result, err := exec.Command(scriptPath).CombinedOutput()
+	require.NoError(t, err)
+	require.Equal(t, "v1.0.0\n", string(result))
 }
 
 func Test_command(t *testing.T) {

@@ -5,8 +5,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"strings"
+
+	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 type ShellRaw struct {
@@ -15,17 +16,23 @@ type ShellRaw struct {
 
 var _ Executable = (*ShellRaw)(nil)
 
-func (s ShellRaw) DryRun(ctx context.Context, w io.Writer) {
+func (s ShellRaw) DryRun(ctx context.Context, w io.Writer) error {
 	var b bytes.Buffer
 
-	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", s.ProgramPath()))
 	_, _ = b.WriteString(fmt.Sprintf("// run in %q\n\n", s.Dir))
 	_, _ = b.WriteString(prepareScript(strings.Join(s.Cmds, "\n"), s.ShellType()))
-
-	_, err := w.Write(b.Bytes())
-	if err != nil {
-		log.Fatalf("failed to write: %s", err)
+	body := b.String()
+	if dagger.IsCommand(s.CustomShell) {
+		invocation, err := resolveDryRunInvocation(ctx, s.CustomShell, s.Session)
+		if err != nil {
+			return err
+		}
+		body = dagger.RenderScript(invocation, "\n"+body)
+	} else {
+		body = fmt.Sprintf("#!%s\n\n%s", s.ProgramPath(), body)
 	}
+	_, err := io.WriteString(w, body)
+	return err
 }
 
 func (s ShellRaw) Run(ctx context.Context) error {

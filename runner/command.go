@@ -232,6 +232,7 @@ func newCommand(context context.Context, cfg *commandConfig) (*command, error) {
 				script = cfg.Script
 			}
 		}
+		script = dagger.RenderScript(invocation, script)
 
 		switch cfg.CommandMode {
 		case CommandModeInlineShell, CommandModeDaggerShell:

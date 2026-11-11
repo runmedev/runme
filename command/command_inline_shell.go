@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
 	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/session"
 )
@@ -43,6 +44,7 @@ func (c *inlineShellCommand) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	script = dagger.RenderScript(invocation, script)
 	c.logger.Debug("inline shell script", zap.String("script", script))
 
 	if script != "" {

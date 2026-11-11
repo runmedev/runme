@@ -10,7 +10,7 @@ import (
 )
 
 type Executable interface {
-	DryRun(context.Context, io.Writer)
+	DryRun(context.Context, io.Writer) error
 	Run(context.Context) error
 	ExitCode() int
 }

@@ -244,9 +244,7 @@ func (r *LocalRunner) DryRunTask(ctx context.Context, task project.Task, w io.Wr
 		return err
 	}
 
-	executable.DryRun(ctx, w)
-
-	return nil
+	return executable.DryRun(ctx, w)
 }
 
 func (r *LocalRunner) Cleanup(ctx context.Context) error {

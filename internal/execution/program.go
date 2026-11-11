@@ -40,7 +40,29 @@ func formatShebang(program string, arguments []string) string {
 	} else if len(fields) > 1 {
 		fields = append([]string{"/usr/bin/env", "-S"}, fields...)
 	}
+	for index := range fields {
+		fields[index] = quoteShebangField(fields[index])
+	}
 	return "#!" + strings.Join(fields, " ")
+}
+
+func quoteShebangField(field string) string {
+	if field == "" {
+		return "''"
+	}
+	if !strings.ContainsAny(field, " \t\r\n'\"\\$`") {
+		return field
+	}
+	if !strings.ContainsRune(field, '\'') {
+		return "'" + field + "'"
+	}
+	replacer := strings.NewReplacer(
+		`\`, `\\`,
+		`"`, `\"`,
+		`$`, `\$`,
+		"`", "\\`",
+	)
+	return `"` + replacer.Replace(field) + `"`
 }
 
 // Invocation describes a resolved executable and its arguments.
