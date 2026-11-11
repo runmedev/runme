@@ -100,7 +100,15 @@ func (r *runnerService) Execute(srv runnerv2.RunnerService_ExecuteServer) error 
 	// and then the goroutine continues to read the next requests.
 	go func(initialReq *runnerv2.ExecuteRequest) {
 		for req, err := initialReq, error(nil); ; req, err = srv.Recv() {
-			logger.Info("received request", zap.Any("req", req), zap.Error(err))
+			// Do not log the request itself: it carries client env vars and stdin bytes.
+			logger.Info(
+				"received request",
+				zap.Bool("hasConfig", req.GetConfig() != nil),
+				zap.Int("inputDataLen", len(req.GetInputData())),
+				zap.Stringer("stop", req.GetStop()),
+				zap.Bool("hasWinsize", req.GetWinsize() != nil),
+				zap.Error(err),
+			)
 
 			switch {
 			case err == nil:
