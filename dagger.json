@@ -1,8 +1,9 @@
 {
   "name": "runme",
-  "engineVersion": "v0.18.2",
+  "engineVersion": "v0.21.11",
   "sdk": {
     "source": "go"
   },
-  "source": ".dagger"
+  "source": ".dagger",
+  "disableDefaultFunctionCaching": true
 }
