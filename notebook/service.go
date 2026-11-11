@@ -1,7 +1,9 @@
 package notebook
 
 import (
+	"bytes"
 	"context"
+	"math"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -43,6 +45,9 @@ func (r *notebookService) ResolveNotebook(ctx context.Context, req *notebookv1al
 	if cellIndex == nil {
 		return nil, status.Error(codes.InvalidArgument, "cell index is required")
 	}
+	if uint64(cellIndex.GetValue()) > uint64(math.MaxInt) {
+		return nil, status.Error(codes.InvalidArgument, "cell index is out of range")
+	}
 
 	resolver, err := NewResolver(WithNotebook(notebook))
 	if err != nil {
@@ -50,10 +55,11 @@ func (r *notebookService) ResolveNotebook(ctx context.Context, req *notebookv1al
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	script, err := resolver.RenderDaggerScript(ctx, cellIndex.GetValue())
+	var script bytes.Buffer
+	err = resolver.RenderDaggerScript(ctx, &script, int(cellIndex.GetValue()))
 	if err != nil {
 		r.logger.Error("failed to resolve dagger script", zap.Error(err))
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &notebookv1alpha1.ResolveNotebookResponse{Script: script}, nil
+	return &notebookv1alpha1.ResolveNotebookResponse{Script: script.String()}, nil
 }

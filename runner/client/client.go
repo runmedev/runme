@@ -333,11 +333,12 @@ func GetTaskProgram(baseShell string, task project.Task) (result TaskProgram, er
 		return
 	}
 
-	script, err := resolver.RenderDaggerScript(context.Background(), cellIndex)
+	var script strings.Builder
+	err = resolver.RenderDaggerScript(context.Background(), &script, cellIndex)
 	if err != nil {
 		return
 	}
-	result.Lines = strings.Split(script, "\n")
+	result.Lines = strings.Split(script.String(), "\n")
 
 	return
 }
