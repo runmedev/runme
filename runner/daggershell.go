@@ -1,16 +1,16 @@
 package runner
 
 import (
-	"bytes"
 	"context"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
 	"syscall"
 
 	"github.com/pkg/errors"
+
+	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 type DaggerShell struct {
@@ -23,13 +23,13 @@ type DaggerShell struct {
 
 var _ Executable = (*DaggerShell)(nil)
 
-func (s DaggerShell) DryRun(ctx context.Context, w io.Writer) {
-	var b bytes.Buffer
-
-	_, err := w.Write(b.Bytes())
+func (s DaggerShell) DryRun(ctx context.Context, w io.Writer) error {
+	invocation, err := resolveDryRunInvocation(ctx, s.ProgramName, s.Session)
 	if err != nil {
-		log.Fatalf("failed to write: %s", err)
+		return err
 	}
+	_, err = io.WriteString(w, dagger.RenderScript(invocation, s.Script))
+	return err
 }
 
 func (s *DaggerShell) Run(ctx context.Context) error {

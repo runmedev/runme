@@ -15,38 +15,19 @@ func TestDaggerShell_FuncDecl(t *testing.T) {
 	err := script.DefineFunc("DAGGER_FUNCTION", `echo "Dagger Function Placeholder"`)
 	require.NoError(t, err)
 
-	t.Run("WithDaggerShebang", func(t *testing.T) {
-		var rendered bytes.Buffer
-		err = script.Render(&rendered, "dagger shell")
-		require.NoError(t, err)
+	var rendered bytes.Buffer
+	err = script.Render(&rendered)
+	require.NoError(t, err)
 
-		const expected = `#!/usr/bin/env -S dagger shell
-DAGGER_FUNCTION()
+	const expected = `DAGGER_FUNCTION()
 {
   echo "Dagger Function Placeholder"
 }
 `
-		assert.Equal(t,
-			expected,
-			rendered.String(),
-		)
-	})
-
-	t.Run("WithEmptyShebang", func(t *testing.T) {
-		var rendered bytes.Buffer
-		err = script.Render(&rendered, "")
-		require.NoError(t, err)
-
-		const expected = `DAGGER_FUNCTION()
-{
-  echo "Dagger Function Placeholder"
-}
-`
-		assert.Equal(t,
-			expected,
-			rendered.String(),
-		)
-	})
+	assert.Equal(t,
+		expected,
+		rendered.String(),
+	)
 }
 
 func TestDaggerShell_Script(t *testing.T) {
@@ -61,8 +42,7 @@ func TestDaggerShell_Script(t *testing.T) {
 		{"KERNEL_BINARY", `echo "This is KERNEL_BINARY"`},
 	}
 
-	expected := `#!/usr/bin/env -S dagger shell
-DAGGER_01JJDCG2SQSGV0DP55X86EJFSZ()
+	expected := `DAGGER_01JJDCG2SQSGV0DP55X86EJFSZ()
 {
   echo "Use known ID"
   date
@@ -88,7 +68,7 @@ KERNEL_BINARY()
 		}
 
 		var rendered bytes.Buffer
-		err := script.Render(&rendered, "dagger shell")
+		err := script.Render(&rendered)
 		require.NoError(t, err)
 
 		assert.Equal(t, expected, rendered.String())
@@ -103,7 +83,7 @@ KERNEL_BINARY()
 
 		for _, entry := range fakeCells {
 			var renderedWithCall bytes.Buffer
-			err := script.RenderWithTarget(&renderedWithCall, "dagger shell", entry.Name)
+			err := script.RenderWithTarget(&renderedWithCall, entry.Name)
 			require.NoError(t, err)
 
 			// add function call padded by new lines
@@ -120,7 +100,7 @@ KERNEL_BINARY()
 		}
 
 		var renderedWithCall bytes.Buffer
-		err := script.RenderWithTarget(&renderedWithCall, "/usr/bin/env dagger shell", "INVALID")
+		err := script.RenderWithTarget(&renderedWithCall, "INVALID")
 		require.Error(t, err)
 	})
 }

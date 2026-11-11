@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"go.uber.org/zap"
+
+	"github.com/runmedev/runme/v3/internal/dagger"
 )
 
 type inlineCommand struct {
@@ -23,6 +25,10 @@ func (c *inlineCommand) getPty() *os.File {
 }
 
 func (c *inlineCommand) Start(ctx context.Context) error {
+	invocation, err := c.prepareProgram(ctx)
+	if err != nil {
+		return err
+	}
 	buf := new(bytes.Buffer)
 	bw := bulkWriter{Writer: buf}
 	cfg := c.ProgramConfig()
@@ -38,9 +44,9 @@ func (c *inlineCommand) Start(ctx context.Context) error {
 	}
 
 	// TODO(adamb): "-c" is not supported for all inline programs.
-	if val := buf.String(); val != "" {
-		cfg.Arguments = append(cfg.Arguments, val)
+	if val := dagger.RenderScript(invocation, buf.String()); val != "" {
+		invocation = invocation.WithArguments(val)
 	}
 
-	return c.internalCommand.Start(ctx)
+	return c.internalCommand.startProgram(ctx, invocation)
 }

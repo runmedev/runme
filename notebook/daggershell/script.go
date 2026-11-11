@@ -3,7 +3,6 @@ package daggershell
 import (
 	"errors"
 	"io"
-	"path/filepath"
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
@@ -61,48 +60,25 @@ func (s *Script) DefineFunc(name, body string) error {
 	return nil
 }
 
-// Render renders the script with a required shebang (e.g. "/bin/bash").
-func (s *Script) Render(w io.Writer, shebang string) error {
-	return s.render(w, shebang, "")
+// Render renders the script body.
+func (s *Script) Render(w io.Writer) error {
+	return s.render(w, "")
 }
 
-// RenderWithTarget renders the script, calling the specified function and adding a required shebang.
-func (s *Script) RenderWithTarget(w io.Writer, shebang, target string) error {
-	return s.render(w, shebang, target)
+// RenderWithTarget renders the script body and calls the specified function.
+func (s *Script) RenderWithTarget(w io.Writer, target string) error {
+	return s.render(w, target)
 }
 
-// render renders the script, optionally calling a function and adding a shebang.
-func (s *Script) render(w io.Writer, shebang, target string) error {
-	shebang = normalizeShebang(shebang)
-
+// render renders the script body, optionally calling a function.
+func (s *Script) render(w io.Writer, target string) error {
 	var file *syntax.File
-
-	// Prepare the statements, potentially adding the function call
-	var stmts []*syntax.Stmt
-
-	// Handle shebang first if provided
-	if shebang != "" {
-		// Create shebang as the first line
-		shebangStmt := &syntax.Stmt{
-			Comments: []syntax.Comment{
-				{
-					Hash: syntax.Pos{},
-					Text: "!" + shebang, // e.g. "!/bin/bash"
-				},
-			},
-		}
-
-		// Start with the shebang
-		stmts = append(stmts, shebangStmt)
-	}
 
 	// Handle the case where no target function is specified
 	if target == "" {
-		// Just add all statements after potential shebang
-		stmts = append(stmts, s.stmts...)
 		file = &syntax.File{
 			Name:  "DaggerShellScript",
-			Stmts: stmts,
+			Stmts: s.stmts,
 		}
 		return s.printer.Print(w, file)
 	}
@@ -111,12 +87,9 @@ func (s *Script) render(w io.Writer, shebang, target string) error {
 	funcStmts := make([]*syntax.Stmt, len(s.stmts))
 	copy(funcStmts, s.stmts)
 
-	// Add function statements after potential shebang
-	stmts = append(stmts, funcStmts...)
-
 	file = &syntax.File{
 		Name:  "DaggerShellScript",
-		Stmts: stmts,
+		Stmts: funcStmts,
 	}
 
 	validFuncName := false
@@ -153,21 +126,4 @@ func (s *Script) render(w io.Writer, shebang, target string) error {
 	})
 
 	return s.printer.Print(w, file)
-}
-
-func normalizeShebang(shebang string) string {
-	parts := strings.Fields(shebang)
-	if len(parts) < 2 {
-		return shebang
-	}
-
-	if filepath.Base(parts[0]) == "env" {
-		parts[0] = "/usr/bin/env"
-		if len(parts) < 2 || parts[1] != "-S" {
-			parts = append(parts[:1], append([]string{"-S"}, parts[1:]...)...)
-		}
-		return strings.Join(parts, " ")
-	}
-
-	return "/usr/bin/env -S " + strings.Join(parts, " ")
 }

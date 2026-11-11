@@ -22,14 +22,16 @@ type Go struct {
 
 var _ Executable = (*Go)(nil)
 
-func (g Go) DryRun(ctx context.Context, w io.Writer) {
+func (g Go) DryRun(ctx context.Context, w io.Writer) error {
 	_, err := system.LookPath("go")
 	if err != nil {
-		_, _ = fmt.Fprintf(w, "failed to find %q executable: %s\n", "go", err)
+		if _, writeErr := fmt.Fprintf(w, "failed to find %q executable: %s\n", "go", err); writeErr != nil {
+			return writeErr
+		}
 	}
 
-	_, _ = fmt.Fprintf(w, "// go run main.go in $TEMP\n\n")
-	_, _ = fmt.Fprintf(w, "%s\n", g.Source)
+	_, err = fmt.Fprintf(w, "// go run main.go in $TEMP\n\n%s\n", g.Source)
+	return err
 }
 
 func (g *Go) Run(ctx context.Context) error {

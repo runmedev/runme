@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/session"
 )
 
@@ -30,23 +32,26 @@ func (c *inlineShellCommand) getPty() *os.File {
 }
 
 func (c *inlineShellCommand) Start(ctx context.Context) error {
-	script, err := c.build()
-	if err != nil {
-		return err
-	}
-	c.logger.Debug("inline shell script", zap.String("script", script))
-
 	cfg := c.ProgramConfig()
-
-	if script != "" {
-		cfg.Arguments = append(cfg.Arguments, "-c", script)
-	}
-
 	if c.envCollector != nil {
 		cfg.Env = append(cfg.Env, c.envCollector.ExtraEnv()...)
 	}
+	invocation, err := c.prepareProgram(ctx)
+	if err != nil {
+		return err
+	}
+	script, err := c.build(invocation)
+	if err != nil {
+		return err
+	}
+	script = dagger.RenderScript(invocation, script)
+	c.logger.Debug("inline shell script", zap.String("script", script))
 
-	return c.internalCommand.Start(ctx)
+	if script != "" {
+		invocation = invocation.WithArguments("-c", script)
+	}
+
+	return c.internalCommand.startProgram(ctx, invocation)
 }
 
 func (c *inlineShellCommand) Wait(ctx context.Context) error {
@@ -75,14 +80,11 @@ func (c *inlineShellCommand) Wait(ctx context.Context) error {
 	return err
 }
 
-func (c *inlineShellCommand) build() (string, error) {
+func (c *inlineShellCommand) build(invocation execution.Invocation) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	bw := bulkWriter{Writer: buf}
 
-	options, err := c.shellOptions()
-	if err != nil {
-		return "", err
-	}
+	options := c.shellOptions(invocation)
 	if options != "" {
 		bw.WriteString(options)
 		bw.WriteString("\n\n")
@@ -91,15 +93,13 @@ func (c *inlineShellCommand) build() (string, error) {
 	// If the session is provided, we need to collect the environment before and after the script execution.
 	// Here, we dump env before the script execution and use trap on EXIT to collect the env after the script execution.
 	if c.envCollector != nil {
-		err = c.envCollector.SetOnShell(buf)
-		if err != nil {
+		if err := c.envCollector.SetOnShell(buf); err != nil {
 			return "", err
 		}
 	}
 
 	cfg := c.ProgramConfig()
 
-	// Write the script from the commands or the script.
 	if commands := cfg.GetCommands(); commands != nil {
 		for _, cmd := range commands.Items {
 			bw.WriteString(cmd)
@@ -130,13 +130,8 @@ func (c *inlineShellCommand) collectEnv(ctx context.Context) error {
 	return c.session.DeleteEnv(ctx, deleted...)
 }
 
-func (c *inlineShellCommand) shellOptions() (string, error) {
-	program, _, err := c.ProgramPath()
-	if err != nil {
-		return "", err
-	}
-
-	shell := filepath.Base(program)
+func (c *inlineShellCommand) shellOptions(invocation execution.Invocation) string {
+	shell := filepath.Base(invocation.Executable())
 
 	// TODO(mxs): powershell and DOS are missing
 	switch shell {
@@ -145,10 +140,10 @@ func (c *inlineShellCommand) shellOptions() (string, error) {
 		if c.debug {
 			result += " -x"
 		}
-		return result, nil
+		return result
 	case "sh":
-		return "set -e", nil
+		return "set -e"
 	default:
-		return "", nil
+		return ""
 	}
 }

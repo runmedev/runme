@@ -44,7 +44,7 @@ func Test_InternalCommand_DetectProgramPath(t *testing.T) {
 			base := f.buildBase(cfg, opts)
 			internal := f.buildInternal(base, opts)
 
-			programPath, args, err := internal.ProgramPath()
+			invocation, err := internal.ProgramPath()
 			if tc.ExpectError {
 				require.Error(t, err)
 				return
@@ -54,11 +54,11 @@ func Test_InternalCommand_DetectProgramPath(t *testing.T) {
 			require.NoError(t, err)
 
 			// Check that the program path contains the expected pattern
-			assert.Contains(t, programPath, tc.ExpectedProgramPathPattern,
+			assert.Contains(t, invocation.Executable(), tc.ExpectedProgramPathPattern,
 				"ProgramName should contain expected pattern")
 
 			// Check args
-			assert.Equal(t, tc.ExpectedArgs, args,
+			assert.Equal(t, tc.ExpectedArgs, invocation.Arguments(),
 				"Arguments should match expected value")
 		})
 	}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/execution"
 	"github.com/runmedev/runme/v3/internal/system"
 	"github.com/runmedev/runme/v3/project"
 )
@@ -37,17 +37,36 @@ func (s Shell) ShellType() string {
 	return ShellFromShellPath(s.ProgramPath())
 }
 
-func (s Shell) DryRun(ctx context.Context, w io.Writer) {
+func (s Shell) DryRun(ctx context.Context, w io.Writer) error {
 	var b bytes.Buffer
 
-	_, _ = b.WriteString(fmt.Sprintf("#!%s\n\n", s.ProgramPath()))
 	_, _ = b.WriteString(fmt.Sprintf("# run in %q\n\n", s.Dir))
 	_, _ = b.WriteString(prepareScriptFromCommands(s.Cmds, s.ShellType()))
-
-	_, err := w.Write(b.Bytes())
-	if err != nil {
-		log.Fatalf("failed to write: %s", err)
+	body := b.String()
+	if dagger.IsCommand(s.CustomShell) {
+		invocation, err := resolveDryRunInvocation(ctx, s.CustomShell, s.Session)
+		if err != nil {
+			return err
+		}
+		body = dagger.RenderScript(invocation, "\n"+body)
+	} else {
+		body = fmt.Sprintf("#!%s\n\n%s", s.ProgramPath(), body)
 	}
+	_, err := io.WriteString(w, body)
+	return err
+}
+
+func resolveDryRunInvocation(ctx context.Context, command string, session *Session) (execution.Invocation, error) {
+	program, arguments := parseFileProgram(command)
+	env := os.Environ()
+	if session != nil {
+		var err error
+		env, err = session.Envs()
+		if err != nil {
+			return execution.Invocation{}, err
+		}
+	}
+	return dagger.ResolveInvocation(ctx, execution.NewInvocation(program, arguments), env)
 }
 
 func (s *Shell) Run(ctx context.Context) error {
@@ -137,12 +156,14 @@ func IsShellLanguage(languageID string) bool {
 	}
 }
 
-func GetShellProgram(baseShell string, task project.Task) (program string, commandMode CommandMode) {
+func GetShellProgram(baseShell string, task project.Task) (intent execution.Intent, commandMode CommandMode) {
 	customShell, err := task.CustomShell(baseShell)
 	if err != nil {
-		return baseShell, CommandModeTempFile
+		program, arguments := parseFileProgram(baseShell)
+		return execution.NewIntent(program, arguments), CommandModeTempFile
 	}
 
+	program := ""
 	switch {
 	case dagger.IsCommand(customShell):
 		program = customShell
@@ -158,7 +179,8 @@ func GetShellProgram(baseShell string, task project.Task) (program string, comma
 		program = interpreter
 	}
 
-	return
+	program, arguments := parseFileProgram(program)
+	return execution.NewIntent(program, arguments), commandMode
 }
 
 func resolveShellPath(customShell string) string {

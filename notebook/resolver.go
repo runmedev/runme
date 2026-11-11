@@ -1,10 +1,10 @@
 package notebook
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -122,16 +122,16 @@ func (r *NotebookResolver) IsDaggerShellCell(notebook *parserv1.Notebook, cell *
 	return dagger.IsCommand(interpreter)
 }
 
-func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex uint32) (string, error) {
+func (r *NotebookResolver) RenderDaggerScript(context context.Context, w io.Writer, cellIndex int) error {
 	notebook, err := r.parseNotebook(context)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	var targetCell *parserv1.Cell
 	targetName := ""
-	if int(cellIndex) < 0 || int(cellIndex) >= len(notebook.Cells) {
-		return "", fmt.Errorf("cell index out of range")
+	if cellIndex < 0 || cellIndex >= len(notebook.Cells) {
+		return fmt.Errorf("cell index out of range")
 	}
 
 	cell := notebook.Cells[cellIndex]
@@ -139,7 +139,7 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 	known, okKnown := cell.Metadata["name"]
 	generated := cell.Metadata["runme.dev/nameGenerated"]
 	if !okID && !okKnown {
-		return "", fmt.Errorf("cell metadata is missing required fields")
+		return fmt.Errorf("cell metadata is missing required fields")
 	}
 
 	isGenerated, err := strconv.ParseBool(generated)
@@ -152,7 +152,8 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 
 	// Return cell value directly if target cell is not a Dagger script.
 	if !r.IsDaggerShellCell(notebook, targetCell) {
-		return targetCell.GetValue(), nil
+		_, err := io.WriteString(w, targetCell.GetValue())
+		return err
 	}
 
 	script := daggershell.NewScript()
@@ -183,35 +184,29 @@ func (r *NotebookResolver) ResolveDaggerShell(context context.Context, cellIndex
 		}
 
 		if !isValidShellFunctionName(known) {
-			return "", fmt.Errorf("dagger script integration requires cell name to be a valid shell function name, got %s", known)
+			return fmt.Errorf("dagger script integration requires cell name to be a valid shell function name, got %s", known)
 		}
 
 		snippet := cell.GetValue()
 		if err := script.DefineFunc(known, snippet); err != nil {
-			return "", err
+			return err
 		}
 	}
 
-	var rendered bytes.Buffer
-	shebang := GetCellInterpreter(notebook, targetCell)
-	if err := script.RenderWithTarget(&rendered, shebang, targetName); err != nil {
-		return "", err
-	}
-
-	return rendered.String(), nil
+	return script.RenderWithTarget(w, targetName)
 }
 
-func (r *NotebookResolver) GetCellIndexByBlock(block *document.CodeBlock) (uint32, error) {
+func (r *NotebookResolver) GetCellIndexByBlock(block *document.CodeBlock) (int, error) {
 	return getCellIndexByBlock(r.notebook, block)
 }
 
 // todo(sebastian): there are better ways
-func getCellIndexByBlock(notebook *parserv1.Notebook, block *document.CodeBlock) (blockIndex uint32, err error) {
+func getCellIndexByBlock(notebook *parserv1.Notebook, block *document.CodeBlock) (blockIndex int, err error) {
 	blockIndex = 0
 	for i, cell := range notebook.Cells {
 		blockValue := string(block.Content())
 		if cell.Value == blockValue {
-			blockIndex = uint32(i)
+			blockIndex = i
 			return
 		}
 	}

@@ -27,8 +27,8 @@ func TestProgramPathPreservesLegacyDaggerCommand(t *testing.T) {
 		session: sess,
 	}
 
-	program, args, err := cmd.ProgramPath()
+	invocation, err := cmd.ProgramPath()
 	require.NoError(t, err)
-	assert.Equal(t, "dagger", program)
-	assert.Equal(t, []string{"shell"}, args)
+	assert.Equal(t, "dagger", invocation.Executable())
+	assert.Equal(t, []string{"shell"}, invocation.Arguments())
 }

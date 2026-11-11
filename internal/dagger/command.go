@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+
+	"github.com/runmedev/runme/v3/internal/execution"
 )
 
 const (
@@ -32,42 +34,25 @@ const (
 	scriptInterpreter
 )
 
-type command struct {
-	program string
-	args    []string
-}
-
-func newCommand(program string, args []string) command {
-	return command{program: program, args: append([]string(nil), args...)}
-}
-
-func commandFromFields(fields []string) command {
+func invocationFromFields(fields []string) execution.Invocation {
 	if len(fields) == 0 {
-		return command{}
+		return execution.Invocation{}
 	}
-	return newCommand(fields[0], fields[1:])
-}
-
-func (c command) fields() []string {
-	return append([]string{c.program}, c.args...)
-}
-
-func (c command) String() string {
-	return strings.Join(c.fields(), " ")
+	return execution.NewInvocation(fields[0], fields[1:])
 }
 
 // invocation owns the positional details of a parsed Dagger interpreter
 // command. Resolution can therefore operate on intent instead of slice indices.
 type invocation struct {
-	command         command
+	command         execution.Invocation
 	interpreter     interpreter
 	daggerIndex     int
 	subcommandIndex int
 }
 
 func parseInvocation(program string, args []string) (invocation, bool) {
-	cmd := newCommand(program, args)
-	fields := cmd.fields()
+	cmd := execution.NewInvocation(program, args)
+	fields := cmd.Fields()
 	if len(fields) < 2 {
 		return invocation{}, false
 	}
@@ -91,13 +76,13 @@ func parseInvocation(program string, args []string) (invocation, bool) {
 	return invocation{}, false
 }
 
-func (i invocation) versionCommand() command {
-	fields := i.command.fields()
+func (i invocation) versionCommand() execution.Invocation {
+	fields := i.command.Fields()
 	versionFields := append([]string(nil), fields[:i.daggerIndex+1]...)
 	for index := i.daggerIndex + 1; index < len(fields); index++ {
 		switch {
 		case fields[index] == "--":
-			return commandFromFields(append(versionFields, "version"))
+			return invocationFromFields(append(versionFields, "version"))
 		case fields[index] == "--x-release" && index+1 < len(fields):
 			versionFields = append(versionFields, fields[index], fields[index+1])
 			index++
@@ -105,16 +90,16 @@ func (i invocation) versionCommand() command {
 			versionFields = append(versionFields, fields[index])
 		}
 	}
-	return commandFromFields(append(versionFields, "version"))
+	return invocationFromFields(append(versionFields, "version"))
 }
 
-func (i invocation) asScript() command {
-	fields := i.command.fields()
+func (i invocation) asScript() execution.Invocation {
+	fields := i.command.Fields()
 	fields[i.subcommandIndex] = "script"
-	return commandFromFields(fields)
+	return invocationFromFields(fields)
 }
 
-type versionProbe func(context.Context, command, []string) ([]byte, error)
+type versionProbe func(context.Context, execution.Invocation, []string) ([]byte, error)
 
 type versionCacheKey struct {
 	program string
@@ -137,18 +122,18 @@ func newResolver(probe versionProbe) *resolver {
 	}
 }
 
-func (r *resolver) resolve(ctx context.Context, invocation invocation, env []string) (command, error) {
+func (r *resolver) resolve(ctx context.Context, invocation invocation, env []string) (execution.Invocation, error) {
 	version, err := r.version(ctx, invocation.versionCommand(), env)
 	if err != nil {
 		if invocation.interpreter == legacyInterpreter {
 			return invocation.command, nil
 		}
-		return command{}, fmt.Errorf("determine Dagger CLI version for %q: %w", invocation.command, err)
+		return execution.Invocation{}, fmt.Errorf("determine Dagger CLI version for %q: %w", invocation.command, err)
 	}
 
 	if version.LessThan(v1Version) {
 		if invocation.interpreter == scriptInterpreter {
-			return command{}, fmt.Errorf("%q requires Dagger v1 or newer; installed version is %s", invocation.command, version)
+			return execution.Invocation{}, fmt.Errorf("%q requires Dagger v1 or newer; installed version is %s", invocation.command, version)
 		}
 		return invocation.command, nil
 	}
@@ -156,7 +141,7 @@ func (r *resolver) resolve(ctx context.Context, invocation invocation, env []str
 	return invocation.asScript(), nil
 }
 
-func (r *resolver) version(ctx context.Context, cmd command, env []string) (*semver.Version, error) {
+func (r *resolver) version(ctx context.Context, cmd execution.Invocation, env []string) (*semver.Version, error) {
 	key := newVersionCacheKey(cmd, env)
 	r.mu.Lock()
 	version, ok := r.cache[key]
@@ -182,33 +167,37 @@ func (r *resolver) version(ctx context.Context, cmd command, env []string) (*sem
 
 // IsCommand reports whether command is a Dagger script interpreter.
 func IsCommand(value string) bool {
-	fields := strings.Fields(value)
-	if len(fields) == 0 {
+	tokens, valid := commandTokens(value)
+	if !valid || len(tokens) == 0 {
 		return false
+	}
+	fields := make([]string, len(tokens))
+	for i, token := range tokens {
+		fields[i] = token.value
 	}
 	_, ok := parseInvocation(fields[0], fields[1:])
 	return ok
 }
 
-// ResolveArgs selects the interpreter spelling supported by the installed
+// ResolveInvocation selects the interpreter spelling supported by the installed
 // Dagger CLI. Legacy input is preserved when version detection fails.
-func ResolveArgs(ctx context.Context, program string, args, env []string) ([]string, error) {
-	invocation, ok := parseInvocation(program, args)
+func ResolveInvocation(ctx context.Context, candidate execution.Invocation, env []string) (execution.Invocation, error) {
+	invocation, ok := parseInvocation(candidate.Executable(), candidate.Arguments())
 	if !ok {
-		return args, nil
+		return candidate, nil
 	}
 	resolved, err := defaultResolver.resolve(ctx, invocation, env)
 	if err != nil {
-		return nil, err
+		return execution.Invocation{}, err
 	}
-	return resolved.args, nil
+	return resolved, nil
 }
 
-func probeVersion(ctx context.Context, cmd command, env []string) ([]byte, error) {
+func probeVersion(ctx context.Context, cmd execution.Invocation, env []string) ([]byte, error) {
 	probeCtx, cancel := context.WithTimeout(ctx, versionProbeTimeout)
 	defer cancel()
 
-	executable := exec.CommandContext(probeCtx, cmd.program, cmd.args...)
+	executable := exec.CommandContext(probeCtx, cmd.Executable(), cmd.Arguments()...)
 	if len(env) > 0 {
 		executable.Env = env
 	}
@@ -219,10 +208,10 @@ func probeVersion(ctx context.Context, cmd command, env []string) ([]byte, error
 	return output, nil
 }
 
-func newVersionCacheKey(cmd command, env []string) versionCacheKey {
+func newVersionCacheKey(cmd execution.Invocation, env []string) versionCacheKey {
 	return versionCacheKey{
-		program: cmd.program,
-		args:    strings.Join(cmd.args, "\x00"),
+		program: cmd.Executable(),
+		args:    strings.Join(cmd.Arguments(), "\x00"),
 		path:    envValue(env, "PATH"),
 		release: envValue(env, "DAGGER_X_RELEASE"),
 	}
@@ -268,4 +257,47 @@ func envValue(env []string, name string) string {
 		}
 	}
 	return ""
+}
+
+type commandToken struct {
+	value string
+}
+
+// commandTokens recognizes quoted interpreter fields without performing shell
+// expansion. Backslashes in executable paths remain literal.
+func commandTokens(command string) ([]commandToken, bool) {
+	var tokens []commandToken
+	for i := 0; i < len(command); {
+		if command[i] == ' ' || command[i] == '\t' {
+			i++
+			continue
+		}
+		var value strings.Builder
+		var quote byte
+		for i < len(command) {
+			c := command[i]
+			if quote == 0 && (c == ' ' || c == '\t') {
+				break
+			}
+			if c == '\'' || c == '"' {
+				if quote == 0 {
+					quote = c
+					i++
+					continue
+				}
+				if quote == c {
+					quote = 0
+					i++
+					continue
+				}
+			}
+			_ = value.WriteByte(c)
+			i++
+		}
+		if quote != 0 {
+			return nil, false
+		}
+		tokens = append(tokens, commandToken{value: value.String()})
+	}
+	return tokens, true
 }

@@ -52,7 +52,7 @@ List all blocks from the "setup" and "teardown" tags:
 
 					project.SortByProximity(tasks, getCwd())
 
-					argsFilter, err := createProjectFilterFromPatterns(args)
+					argsFilter, err := createProjectFilterFromPatterns(tasks, args)
 					if err != nil {
 						return err
 					}

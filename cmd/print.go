@@ -1,12 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/execution"
+	"github.com/runmedev/runme/v3/runner"
 	"github.com/runmedev/runme/v3/runner/client"
 )
 
@@ -35,15 +40,20 @@ func printCmd() *cobra.Command {
 				return err
 			}
 
-			baseShell := "" // not necessary for printing only
-			_, lines, _, err := client.GetTaskProgram(baseShell, task)
-			if err != nil {
-				return err
-			}
-			value := []byte(strings.Join(lines, "\n"))
-
+			var value []byte
 			if fRaw {
 				value = task.CodeBlock.Value()
+			} else {
+				baseShell := "" // not necessary for printing only
+				program, err := client.GetTaskProgram(baseShell, task)
+				if err != nil {
+					return err
+				}
+				invocation, err := resolvePrintInvocation(cmd.Context(), program, os.Environ())
+				if err != nil {
+					return err
+				}
+				value = []byte(dagger.RenderScript(invocation, strings.Join(program.Lines, "\n")))
 			}
 
 			if !fNoNewLine {
@@ -63,6 +73,14 @@ func printCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&fNoNewLine, "skip-newline", "n", false, "Do not print newline after the command")
 
 	return &cmd
+}
+
+func resolvePrintInvocation(ctx context.Context, program client.TaskProgram, env []string) (execution.Invocation, error) {
+	invocation := execution.NewInvocation(program.Intent.ProgramName(), program.Intent.Arguments())
+	if program.CommandMode != runner.CommandModeDaggerShell {
+		return invocation, nil
+	}
+	return dagger.ResolveInvocation(ctx, invocation, env)
 }
 
 type bulkWriter struct {

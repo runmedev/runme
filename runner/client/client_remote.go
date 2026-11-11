@@ -198,14 +198,14 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 
 	tty := block.InteractiveLegacy()
 
-	programName, lines, commandMode, err := GetTaskProgram(r.customShell, task)
+	program, err := GetTaskProgram(r.customShell, task)
 	if err != nil {
 		return err
 	}
 
 	var commandModeGrpc runnerv1.CommandMode
 
-	switch commandMode {
+	switch program.CommandMode {
 	case runner.CommandModeNone:
 		commandModeGrpc = runnerv1.CommandMode_COMMAND_MODE_UNSPECIFIED
 	case runner.CommandModeInlineShell, runner.CommandModeDaggerShell:
@@ -215,9 +215,10 @@ func (r *RemoteRunner) RunTask(ctx context.Context, task project.Task) error {
 	}
 
 	req := &runnerv1.ExecuteRequest{
-		ProgramName:     programName,
+		ProgramName:     program.Intent.ProgramName(),
+		Arguments:       program.Intent.Arguments(),
 		Directory:       r.dir,
-		Commands:        lines,
+		Commands:        program.Lines,
 		Tty:             tty,
 		SessionId:       r.sessionID,
 		SessionStrategy: r.sessionStrategy,

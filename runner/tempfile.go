@@ -1,10 +1,8 @@
 package runner
 
 import (
-	"bytes"
 	"context"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -18,18 +16,14 @@ type TempFile struct {
 	command     *command
 	Script      string
 	ProgramName string
+	Arguments   []string
 	LanguageID  string
 }
 
 var _ Executable = (*TempFile)(nil)
 
-func (s TempFile) DryRun(ctx context.Context, w io.Writer) {
-	var b bytes.Buffer
-
-	_, err := w.Write(b.Bytes())
-	if err != nil {
-		log.Fatalf("failed to write: %s", err)
-	}
+func (s TempFile) DryRun(ctx context.Context, w io.Writer) error {
+	return nil
 }
 
 func (s *TempFile) Run(ctx context.Context) error {
@@ -37,6 +31,7 @@ func (s *TempFile) Run(ctx context.Context) error {
 		ctx,
 		&commandConfig{
 			ProgramName: s.ProgramName,
+			Args:        s.Arguments,
 			LanguageID:  s.LanguageID,
 			Directory:   s.Dir,
 			Session:     s.Session,

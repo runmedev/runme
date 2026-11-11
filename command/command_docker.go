@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/runmedev/runme/v3/internal/dockerexec"
+	"github.com/runmedev/runme/v3/internal/execution"
 )
 
 type dockerCommand struct {
@@ -29,20 +30,23 @@ func (c *dockerCommand) Pid() int {
 }
 
 func (c *dockerCommand) Start(ctx context.Context) (err error) {
+	invocation, err := c.prepareProgram(ctx)
+	if err != nil {
+		return err
+	}
+	return c.startProgram(ctx, invocation)
+}
+
+func (c *dockerCommand) startProgram(ctx context.Context, invocation execution.Invocation) (err error) {
 	cfg := c.ProgramConfig()
 	if cfg.Directory == "" {
 		cfg.Directory = "/tmp"
 	}
 
-	program, args, err := c.resolvedProgramPath(ctx)
-	if err != nil {
-		return err
-	}
-
 	cmd := c.docker.CommandContext(
 		ctx,
-		program,
-		args...,
+		invocation.Executable(),
+		invocation.Arguments()...,
 	)
 	cmd.Dir = cfg.Directory
 	cmd.Env = c.Env()

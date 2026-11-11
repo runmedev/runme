@@ -5,6 +5,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -57,6 +58,69 @@ func TestNewCommandResolvesLegacyDaggerCommand(t *testing.T) {
 			assert.Equal(t, tt.wantArgs, cmd.Args)
 		})
 	}
+}
+
+func TestDaggerPayloadHasResolvedShebang(t *testing.T) {
+	for _, version := range []string{"v0.21.11", "v1.0.0-beta.25", "failure"} {
+		for _, mode := range []CommandMode{CommandModeInlineShell, CommandModeDaggerShell, CommandModeTempFile} {
+			t.Run(fmt.Sprintf("%s/%d", version, mode), func(t *testing.T) {
+				dir := t.TempDir()
+				daggerPath := filepath.Join(dir, "dagger")
+				probe := "#!/bin/sh\necho '" + version + "'\n"
+				if version == "failure" {
+					probe = "#!/bin/sh\nexit 1\n"
+				}
+				require.NoError(t, os.WriteFile(daggerPath, []byte(probe), 0o700))
+				t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+				cmd, err := newCommand(context.Background(), &commandConfig{
+					ProgramName: "dagger", Args: []string{"--debug", "shell", "--quiet"},
+					CommandMode: mode, Directory: dir, Script: "#!/usr/bin/env -S dagger shell\necho shell",
+					Logger: testCreateLogger(t),
+				})
+				require.NoError(t, err)
+				t.Cleanup(cmd.cleanup)
+				spelling := "shell"
+				if version == "v1.0.0-beta.25" {
+					spelling = "script"
+				}
+				require.Equal(t, []string{"--debug", spelling, "--quiet"}, cmd.Args[:3])
+				payload := cmd.Args[len(cmd.Args)-1]
+				if mode == CommandModeTempFile {
+					data, err := os.ReadFile(payload)
+					require.NoError(t, err)
+					payload = string(data)
+					require.Len(t, cmd.Args, 4)
+				} else {
+					require.Equal(t, "-c", cmd.Args[3])
+					require.Len(t, cmd.Args, 5)
+				}
+				require.Equal(t, "#!/usr/bin/env -S "+daggerPath+" --debug "+spelling+" --quiet\necho shell", payload)
+			})
+		}
+	}
+}
+
+func TestDaggerDryRunHasExecutableResolvedShebang(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "dagger bin")
+	require.NoError(t, os.Mkdir(dir, 0o700))
+	daggerPath := filepath.Join(dir, "dagger")
+	require.NoError(t, os.WriteFile(daggerPath, []byte("#!/bin/sh\necho v1.0.0\n"), 0o700))
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	shell := Shell{
+		ExecutableConfig: &ExecutableConfig{Dir: dir},
+		Cmds:             []string{"echo shell"},
+		CustomShell:      "dagger shell",
+	}
+	var output bytes.Buffer
+	require.NoError(t, shell.DryRun(context.Background(), &output))
+	require.True(t, strings.HasPrefix(output.String(), "#!/usr/bin/env -S dagger script\n"))
+
+	scriptPath := filepath.Join(dir, "dry-run-script")
+	require.NoError(t, os.WriteFile(scriptPath, output.Bytes(), 0o700))
+	result, err := exec.Command(scriptPath).CombinedOutput()
+	require.NoError(t, err)
+	require.Equal(t, "v1.0.0\n", string(result))
 }
 
 func Test_command(t *testing.T) {
