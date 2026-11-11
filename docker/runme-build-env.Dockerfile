@@ -1,6 +1,6 @@
-FROM golang:1.27-trixie
+FROM golang:1.27.4-trixie
 
-LABEL org.opencontainers.image.authors="StatefulHQ <mail@stateful.com>"
+LABEL org.opencontainers.image.authors="Sebastian (Tiedtke) Huckleberry <sebastiantiedtke@gmail.com>"
 LABEL org.opencontainers.image.source="https://github.com/runmedev/runme"
 LABEL org.opencontainers.image.ref.name="runme-build-env"
 LABEL org.opencontainers.image.title="Runme build environment"
