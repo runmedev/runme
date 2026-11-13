@@ -170,6 +170,20 @@ To run the server in dev mode with predictable port and TLS credentials location
 go run . server --dev --address 127.0.0.1:9999 --tls /tmp/runme/tls 2>&1
 ```
 
+### Dagger Module
+
+The repository's Dagger module is implemented in [`.dagger/`](.dagger/). Ordinary implementation changes to `.dagger/main.go` do not require regenerating the SDK; validate them by running the relevant `dagger call` command.
+
+Regenerate the module after a fresh checkout when bindings are missing, or after changing `dagger.json`, the Dagger engine or SDK version, or module dependencies:
+
+```sh {"name":"dagger-develop","interactive":"false"}
+dagger develop --compat=skip
+```
+
+Using `--compat=skip` preserves the engine version pinned in `dagger.json`. Run bare `dagger develop` only when intentionally upgrading that version because it targets the latest engine by default.
+
+Generated files such as `.dagger/dagger.gen.go` and `.dagger/internal/` are ignored by Git. Changes to `.dagger/go.mod` and `.dagger/go.sum` are tracked and should be reviewed and committed when expected.
+
 ### Upgrading Minor Version Dependencies
 
 For upgrading dependencies that have minor version changes, as well as test dependencies, use the following command. This command fetches the latest minor or patch versions of the modules required for building the current module, including their dependencies:

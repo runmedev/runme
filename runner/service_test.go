@@ -1025,36 +1025,49 @@ func Test_runnerService(t *testing.T) {
 
 	t.Run("ExecuteBackgroundStop", func(t *testing.T) {
 		t.Parallel()
-		stream, err := client.Execute(context.Background())
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		stream, err := client.Execute(ctx)
 		require.NoError(t, err)
 
 		err = stream.Send(&runnerv1.ExecuteRequest{
-			ProgramName: "bash",
+			ProgramName: "bash --noprofile --norc",
 			CommandMode: runnerv1.CommandMode_COMMAND_MODE_INLINE_SHELL,
 			Commands: []string{
-				"sleep 1000",
+				"printf '__RUNME_BACKGROUND_STOP_READY__\\n'; exec sleep 1000",
 			},
 			Background: true,
 			Tty:        true,
 		})
 		require.NoError(t, err)
 
-		time.Sleep(100 * time.Millisecond)
+		var stdout []byte
+		for !bytes.Contains(stdout, []byte("__RUNME_BACKGROUND_STOP_READY__")) {
+			msg, err := stream.Recv()
+			require.NoError(t, err)
+			stdout = append(stdout, msg.StdoutData...)
+		}
 
-		execResult := make(chan executeResult)
+		execResult := make(chan executeResult, 1)
 		go getExecuteResult(stream, execResult)
 
-		stream.Send(&runnerv1.ExecuteRequest{
+		err = stream.Send(&runnerv1.ExecuteRequest{
 			Stop: runnerv1.ExecuteStop_EXECUTE_STOP_INTERRUPT,
 		})
+		require.NoError(t, err)
 
-		result := <-execResult
-
-		require.NotEqual(
-			t,
-			0,
-			result.ExitCode,
-		)
+		select {
+		case result := <-execResult:
+			require.NoError(t, result.Err)
+			// Stopping closes the PTY and signals the process group concurrently, so
+			// the service can report either a signal-derived code or unknown (-1).
+			// Stream completion proves the background process stopped; exact signal
+			// translation is covered by Test_exitCodeFromErr and InterruptTTY.
+			require.NotZero(t, result.ExitCode)
+		case <-ctx.Done():
+			t.Fatal("timed out waiting for the background command to stop")
+		}
 	})
 
 	t.Run("ExecuteStoreLastOutput", func(t *testing.T) {
