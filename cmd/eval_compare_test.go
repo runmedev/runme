@@ -111,7 +111,8 @@ func TestEvalCompareCmdHelpMentionsDatasetDefault(t *testing.T) {
 		"Usage:\n  eval compare [dataset-path] [flags]",
 		"Compare eval jobs for a dataset.",
 		"When dataset-path is omitted, runme eval compare uses ./" + harbor.DefaultEvalDatasetPath + ".",
-		"--job string        Compare against a specific local eval job",
+		"--job string",
+		"Compare against a specific local eval job",
 	} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("help output missing %q:\n%s", want, output)
