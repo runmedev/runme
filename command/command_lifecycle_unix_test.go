@@ -101,69 +101,74 @@ func TestProcessLifecycle_NativeIsolated(t *testing.T) {
 	pidFile1 := filepath.Join(tmpDir, "pid1")
 	pidFile2 := filepath.Join(tmpDir, "pid2")
 
-	factory := NewFactory(
-		WithLogger(zaptest.NewLogger(t)),
-		WithProcessLifecycle(ProcessLifecycleIsolated),
-	)
+	factory := NewFactory(WithProcessLifecycle(ProcessLifecycleIsolated))
 
 	cfg := &ProgramConfig{
 		ProgramName: "bash",
-		Arguments: []string{"-c", fmt.Sprintf(
-			`sleep 300 & echo $! > %s; sleep 300 & echo $! > %s; wait`,
-			pidFile1, pidFile2,
-		)},
+		Arguments: []string{
+			"-c",
+			`sleep 300 & echo $! > "$1"; sleep 300 & echo $! > "$2"; wait`,
+			"bash", pidFile1, pidFile2,
+		},
 		Mode: runnerv2.CommandMode_COMMAND_MODE_INLINE,
 	}
 
-	cmd, err := factory.Build(cfg, CommandOptions{NoShell: true})
+	// A real file lets Wait reap Bash while its children still hold the output
+	// descriptors open.
+	output, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	require.NoError(t, err)
+	defer output.Close()
+
+	cmd, err := factory.Build(cfg, CommandOptions{NoShell: true, Stdout: output, Stderr: output})
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+	t.Cleanup(cancel)
 	require.NoError(t, cmd.Start(ctx))
+
+	waitDone := make(chan struct{})
+	go func() {
+		defer close(waitDone)
+		_ = cmd.Wait(context.Background())
+	}()
+
+	var isolatedPgid int
+	t.Cleanup(func() {
+		if isolatedPgid > 0 {
+			err := syscall.Kill(-isolatedPgid, syscall.SIGKILL)
+			if err != nil && err != syscall.ESRCH {
+				t.Errorf("kill isolated process group %d: %v", isolatedPgid, err)
+			}
+		}
+		cancel()
+
+		select {
+		case <-waitDone:
+		case <-time.After(5 * time.Second):
+			t.Error("timed out waiting for the isolated command after cleanup")
+		}
+	})
+
+	mainPid := cmd.Pid()
+	require.Greater(t, mainPid, 0)
+	pgid, err := syscall.Getpgid(mainPid)
+	require.NoError(t, err)
+	require.Equal(t, mainPid, pgid, "command should lead its own process group")
+	isolatedPgid = pgid
 
 	pid1 := readPIDFile(t, pidFile1, 5*time.Second)
 	pid2 := readPIDFile(t, pidFile2, 5*time.Second)
 
-	time.Sleep(100 * time.Millisecond)
-
-	// Kill only the main process PID directly (not the process group)
-	// to simulate the default CommandContext behavior.
-	mainPid := cmd.Pid()
-	require.Greater(t, mainPid, 0)
-	err = syscall.Kill(mainPid, syscall.SIGKILL)
-	require.NoError(t, err)
-
-	// Cancel the context so the watchCtx goroutine can finish.
-	cancel()
-
-	// Wait with a timeout — with isolated mode, the I/O pipe goroutines
-	// may block because isolated children keep stdout open.
-	waitDone := make(chan error, 1)
-	go func() {
-		waitDone <- cmd.Wait(context.Background())
-	}()
+	// Kill only Bash and observe its exit before checking the descendants.
+	require.NoError(t, syscall.Kill(mainPid, syscall.SIGKILL))
 	select {
 	case <-waitDone:
 	case <-time.After(5 * time.Second):
-		// This is expected: isolated children keep pipes open.
+		t.Fatal("timed out waiting for Bash to exit after SIGKILL")
 	}
 
-	// Give the OS time to reap the main process.
-	time.Sleep(200 * time.Millisecond)
-
-	// With isolated lifecycle, children should survive.
-	alive1 := pidAlive(pid1)
-	alive2 := pidAlive(pid2)
-
-	// Clean up isolated children so they don't leak.
-	for _, pid := range []int{pid1, pid2} {
-		_ = syscall.Kill(pid, syscall.SIGKILL)
-	}
-
-	assert.True(t, alive1, "child1 should still be alive with ISOLATED lifecycle")
-	assert.True(t, alive2, "child2 should still be alive with ISOLATED lifecycle")
+	assert.True(t, pidAlive(pid1), "child1 should still be alive with ISOLATED lifecycle")
+	assert.True(t, pidAlive(pid2), "child2 should still be alive with ISOLATED lifecycle")
 }
 
 func TestProcessLifecycle_VirtualLinked(t *testing.T) {
