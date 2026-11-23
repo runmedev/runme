@@ -115,7 +115,8 @@ func TestEvalPromoteCmdHelpMentionsDatasetDefault(t *testing.T) {
 		"Usage:\n  eval promote [dataset-path] [flags]",
 		"Commit staged changes with eval job evidence.",
 		"When dataset-path is omitted, runme eval promote uses ./" + harbor.DefaultEvalDatasetPath + ".",
-		"--job string        Eval job directory to promote",
+		"--job string",
+		"Eval job directory to promote",
 		"Promote the latest eval job under --jobs-dir",
 	} {
 		if !strings.Contains(output, want) {
