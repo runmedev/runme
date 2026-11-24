@@ -37,12 +37,13 @@ func (r *runnerService) CreateSession(ctx context.Context, req *runnerv2.CreateS
 		seedEnv = os.Environ()
 	}
 
-	sess, err := session.New(session.WithOwl(owl), session.WithProject(proj), session.WithSeedEnv(seedEnv))
+	sess, err := session.New(
+		session.WithOwl(owl),
+		session.WithProject(proj),
+		session.WithSeedEnv(seedEnv),
+		session.WithRequestEnv(req.GetEnv()),
+	)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := r.updateSession(ctx, sess, req); err != nil {
 		return nil, err
 	}
 
