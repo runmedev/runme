@@ -103,8 +103,8 @@ github.com/charmbracelet/x/termios v0.1.1 h1:o3Q2bT8eqzGnGPOYheoYS8eEleT5ZVNYNy8
 github.com/charmbracelet/x/termios v0.1.1/go.mod h1:rB7fnv1TgOPOyyKRJ9o+AsTU/vK5WHJ2ivHeut/Pcwo=
 github.com/charmbracelet/x/windows v0.2.2 h1:IofanmuvaxnKHuV04sC0eBy/smG6kIKrWG2/jYn2GuM=
 github.com/charmbracelet/x/windows v0.2.2/go.mod h1:/8XtdKZzedat74NQFn0NGlGL4soHB0YQZrETF96h75k=
-github.com/cli/cli/v2 v2.104.0 h1:kAfnjCK+aKJFTCZZQ2OFli+gjsPqHSC108eiv93DWp4=
-github.com/cli/cli/v2 v2.104.0/go.mod h1:lddfsaCvL72knAc/M7mR0N3N4nSU3X92MPCZepXm4Wc=
+github.com/cli/cli/v2 v2.105.0 h1:H+VDgY19lmnkzSR6+sXiVD/oP8/cDMpX/8a9kFG8hmM=
+github.com/cli/cli/v2 v2.105.0/go.mod h1:KaTD9cPH5FeRJsVGKneockWl/m9B1mCxzyf8Pztw71g=
 github.com/cli/go-gh v1.2.1 h1:xFrjejSsgPiwXFP6VYynKWwxLQcNJy3Twbu82ZDlR/o=
 github.com/cli/go-gh v1.2.1/go.mod h1:Jxk8X+TCO4Ui/GarwY9tByWm/8zp4jJktzVZNlTW5VM=
 github.com/cli/go-gh/v2 v2.17.0 h1:F24s1Ow/6pgWO0FXXSTi7l4YLkcuS94XPv7npEGkrQc=
