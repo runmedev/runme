@@ -1550,7 +1550,8 @@ export const ResolveProgramResponse_VarResult = new ResolveProgramResponse_VarRe
 class MonitorEnvStoreRequest$Type extends MessageType {
     constructor() {
         super("runme.runner.v2.MonitorEnvStoreRequest", [
-            { no: 1, name: "session", kind: "message", T: () => Session }
+            { no: 1, name: "session", kind: "message", T: () => Session },
+            { no: 2, name: "snapshot_policy", kind: "message", T: () => MonitorEnvStoreRequest_SnapshotPolicy }
         ]);
     }
     create(value) {
@@ -1567,6 +1568,9 @@ class MonitorEnvStoreRequest$Type extends MessageType {
                 case /* runme.runner.v2.Session session */ 1:
                     message.session = Session.internalBinaryRead(reader, reader.uint32(), options, message.session);
                     break;
+                case /* runme.runner.v2.MonitorEnvStoreRequest.SnapshotPolicy snapshot_policy */ 2:
+                    message.snapshotPolicy = MonitorEnvStoreRequest_SnapshotPolicy.internalBinaryRead(reader, reader.uint32(), options, message.snapshotPolicy);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1582,6 +1586,9 @@ class MonitorEnvStoreRequest$Type extends MessageType {
         /* runme.runner.v2.Session session = 1; */
         if (message.session)
             Session.internalBinaryWrite(message.session, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* runme.runner.v2.MonitorEnvStoreRequest.SnapshotPolicy snapshot_policy = 2; */
+        if (message.snapshotPolicy)
+            MonitorEnvStoreRequest_SnapshotPolicy.internalBinaryWrite(message.snapshotPolicy, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1592,6 +1599,61 @@ class MonitorEnvStoreRequest$Type extends MessageType {
  * @generated MessageType for protobuf message runme.runner.v2.MonitorEnvStoreRequest
  */
 export const MonitorEnvStoreRequest = new MonitorEnvStoreRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MonitorEnvStoreRequest_SnapshotPolicy$Type extends MessageType {
+    constructor() {
+        super("runme.runner.v2.MonitorEnvStoreRequest.SnapshotPolicy", [
+            { no: 1, name: "reveal", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "insecure", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value) {
+        const message = globalThis.Object.create((this.messagePrototype));
+        message.reveal = false;
+        message.insecure = false;
+        if (value !== undefined)
+            reflectionMergePartial(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader, length, options, target) {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool reveal */ 1:
+                    message.reveal = reader.bool();
+                    break;
+                case /* bool insecure */ 2:
+                    message.insecure = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message, writer, options) {
+        /* bool reveal = 1; */
+        if (message.reveal !== false)
+            writer.tag(1, WireType.Varint).bool(message.reveal);
+        /* bool insecure = 2; */
+        if (message.insecure !== false)
+            writer.tag(2, WireType.Varint).bool(message.insecure);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message runme.runner.v2.MonitorEnvStoreRequest.SnapshotPolicy
+ */
+export const MonitorEnvStoreRequest_SnapshotPolicy = new MonitorEnvStoreRequest_SnapshotPolicy$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class MonitorEnvStoreResponseSnapshot$Type extends MessageType {
     constructor() {
