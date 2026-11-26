@@ -3,13 +3,18 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"context"
+	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/creack/pty"
 	"github.com/rogpeppe/go-internal/testscript"
@@ -58,6 +63,68 @@ func TestRunme(t *testing.T) {
 		ContinueOnError: true,
 		Setup:           setupWithRealHome,
 	})
+}
+
+func TestRunmeRedirectedStdinCancellation(t *testing.T) {
+	for _, test := range []struct {
+		language string
+		script   string
+	}{
+		{language: "sh", script: "sh -c 'echo ready; exec cat'"},
+		{language: "go", script: `package main
+import ("fmt"; "os")
+func main() {
+	fmt.Println("ready")
+	os.Stdin.Read(make([]byte, 1))
+}`},
+	} {
+		t.Run(test.language, func(t *testing.T) {
+			testRedirectedStdinCancellation(t, test.language, test.script)
+		})
+	}
+}
+
+func testRedirectedStdinCancellation(t *testing.T, language, script string) {
+	t.Helper()
+	dir := t.TempDir()
+	readme := "```" + language + " {\"name\":\"read-input\"}\n" + script + "\n```\n"
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "README.md"), []byte(readme), 0o600))
+
+	input, producer, err := os.Pipe()
+	require.NoError(t, err)
+	defer input.Close()
+	defer producer.Close()
+
+	output, childOutput, err := os.Pipe()
+	require.NoError(t, err)
+	defer output.Close()
+	defer childOutput.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "runme", "run", "-y", "--server=", "read-input")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "SHELL=sh", "RUNME_VERBOSE=false", "RUNMESHELL=")
+	cmd.Stdin = input
+	cmd.Stdout = childOutput
+	require.NoError(t, cmd.Start())
+	t.Cleanup(func() { _ = cmd.Wait() })
+	require.NoError(t, childOutput.Close())
+
+	require.NoError(t, output.SetReadDeadline(time.Now().Add(30*time.Second)))
+	reader := bufio.NewReader(output)
+	line, err := reader.ReadString('\n')
+	require.NoError(t, err)
+	require.Equal(t, "ready\n", line)
+	require.NoError(t, cmd.Process.Signal(syscall.SIGTERM))
+	require.Error(t, cmd.Wait())
+
+	// The producer is still open. A surviving subprocess would also hold
+	// its copy of the output descriptor open while it waits for input.
+	require.NoError(t, output.SetReadDeadline(time.Now().Add(5*time.Second)))
+	_, err = reader.ReadByte()
+	require.ErrorIs(t, err, io.EOF)
 }
 
 func TestRunmeFlags(t *testing.T) {

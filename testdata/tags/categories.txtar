@@ -33,22 +33,18 @@ $ export ENV="foo!"
 ```
 
 ```bash {"category":"foo","name":"print-foo"}
-$ stty -opost
 $ echo "$ENV"
 ```
 
 ```bash {"category":"foo,bar","name":"print-bar"}
-$ stty -opost
 $ echo "bar!"
 ```
 
 ```bash {"category":"foo,bar","excludeFromRunAll":true,"name":"excluded"}
-$ stty -opost
 $ echo "excluded!"
 ```
 
 ```bash {"category":"buzz","name":"print-buzz"}
-$ stty -opost
 $ echo "buzz!"
 ```
 
@@ -62,14 +58,12 @@ category: solution-1
 Installation steps for Solution 1:
 
 ```sh {"name":"install-solution1"}
-$ stty -opost
 $ echo "Install solution1"
 ```
 
 Deployment steps for Solution 1:
 
 ```sh {"name":"deploy-solution1"}
-$ stty -opost
 $ echo "Deploy solution1"
 ```
 
@@ -87,21 +81,18 @@ category: solution-2
 Installation steps for Solution 2:
 
 ```sh
-$ stty -opost
 $ echo "Install solution2"
 ```
 
 Deployment steps for Solution 2:
 
 ```sh
-$ stty -opost
 $ echo "Deploy solution2"
 ```
 
 Post-Deployment steps for Solution 2:
 
 ```sh {"name":"post-deployment-2"}
-$ stty -opost
 $ echo "Post-Deployment solution2"
 ```
 
@@ -128,12 +119,12 @@ bar!
 buzz!
  ►  ✓ Task print-buzz exited with code 0
 -- doc-category-with-unnamed.txt --
- ►  Running task stty-opost...
+ ►  Running task echo-install...
 Install solution2
- ►  ✓ Task stty-opost exited with code 0
- ►  Running task stty-opost-2...
+ ►  ✓ Task echo-install exited with code 0
+ ►  Running task echo-deploy...
 Deploy solution2
- ►  ✓ Task stty-opost-2 exited with code 0
+ ►  ✓ Task echo-deploy exited with code 0
  ►  Running task post-deployment-2...
 Post-Deployment solution2
  ►  ✓ Task post-deployment-2 exited with code 0

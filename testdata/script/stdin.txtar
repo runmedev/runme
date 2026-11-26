@@ -1,0 +1,57 @@
+env SHELL=sh
+
+stdin input.txt
+exec runme run -y --server= copy-default
+cmp stdout input.txt
+
+stdin input.txt
+exec runme run -y --server= copy-noninteractive
+cmp stdout input.txt
+
+exec sh -c 'runme run -y --server= copy-default < input.txt > output.txt'
+cmp output.txt input.txt
+
+exec sh -c 'runme run -y --server= copy-noninteractive < input.txt > output.txt'
+cmp output.txt input.txt
+
+exec sh -c 'runme run -y --server= copy-default < /dev/null'
+! stdout .
+
+exec sh -c 'runme run -y --server= copy-noninteractive < /dev/null'
+! stdout .
+
+exec ln -s /dev/null null-input
+exec sh -c 'runme run -y --server= needs-terminal < null-input'
+stdout '^tty\r?$'
+
+stdin input.txt
+exec runme run -y --server= copy-interactive
+cmp stdout input.txt
+
+exec sh -ec 'mkfifo open-input; runme run -y --server= early-exit < open-input & reader=$!; exec 3>open-input; wait "$reader"'
+stdout '^done$'
+
+-- input.txt --
+hello
+second line
+-- README.md --
+```sh {"name":"copy-default"}
+cat
+```
+
+```sh {"name":"early-exit"}
+echo done
+```
+
+```sh {"name":"copy-noninteractive","interactive":"false"}
+cat
+```
+
+```sh {"name":"needs-terminal","interactive":true}
+stty -a >/dev/null
+echo tty
+```
+
+```sh {"name":"copy-interactive","interactive":true}
+cat
+```

@@ -58,6 +58,10 @@ func (g *Go) Run(ctx context.Context) error {
 	c.Stderr = g.Stderr
 	c.Stdout = g.Stdout
 	c.Stdin = g.Stdin
+	if _, directInput := g.Stdin.(*os.File); directInput {
+		setSysProcAttrPgid(c)
+		setCancelProcessGroup(c)
+	}
 	if g.KnownName != "" {
 		c.Env = commandpkg.AppendKnownNameEnv(os.Environ(), g.KnownName)
 	}

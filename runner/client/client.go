@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -36,9 +37,11 @@ type RunnerSettings struct {
 
 	dir string
 
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
+	stdin           io.Reader
+	redirectedStdin bool
+	nullStdin       bool
+	stdout          io.Writer
+	stderr          io.Writer
 
 	logger           *zap.Logger
 	enableBackground bool
@@ -166,6 +169,17 @@ func WithDir(dir string) RunnerOption {
 func WithStdin(stdin io.Reader) RunnerOption {
 	return withSettings(func(rs *RunnerSettings) {
 		rs.stdin = stdin
+	})
+}
+
+// WithRedirectedStdin gives a local command the input file directly so that
+// the child sees EOF and its exit does not depend on an input-copy goroutine.
+// A null device still allows a cell to explicitly request a PTY.
+func WithRedirectedStdin(file *os.File) RunnerOption {
+	return withSettings(func(rs *RunnerSettings) {
+		rs.stdin = file
+		rs.redirectedStdin = true
+		rs.nullStdin = isNullInput(file)
 	})
 }
 

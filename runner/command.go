@@ -386,6 +386,10 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 		// already starts a new process group, hence,
 		// this call is inside this branch.
 		setSysProcAttrPgid(c.cmd)
+
+		if _, directInput := c.Stdin.(*os.File); directInput {
+			setCancelProcessGroup(c.cmd)
+		}
 	}
 
 	if err := c.cmd.Start(); err != nil {
@@ -452,6 +456,17 @@ func (c *command) StartWithOpts(ctx context.Context, opts *startOpts) error {
 	}
 
 	return nil
+}
+
+func setCancelProcessGroup(cmd *exec.Cmd) {
+	// Subprocesses can hold input and output open after their parent exits.
+	cancel := cmd.Cancel
+	cmd.Cancel = func() error {
+		if err := signalPgid(cmd.Process.Pid, os.Kill); err != nil {
+			return cancel()
+		}
+		return nil
+	}
 }
 
 func (c *command) Kill() error {
