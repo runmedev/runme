@@ -498,6 +498,38 @@ func TestLoadEnv(t *testing.T) {
 	assert.Equal(t, "PROJECT_ENV_FROM_DOTFILE=1", env[0])
 }
 
+func TestLoadEnvOrder(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".env"), []byte("SHARED=base\nBASE_ONLY=yes\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".env.local"), []byte("SHARED=local\nLOCAL_ONLY=yes\n"), 0o600))
+
+	tests := []struct {
+		name  string
+		order []string
+		want  string
+	}{
+		{name: "local last", order: []string{".env", ".missing", ".env.local"}, want: "SHARED=local"},
+		{name: "base last", order: []string{".env.local", ".env"}, want: "SHARED=base"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := NewDirProject(root, WithEnvFilesReadOrder(tt.order))
+			require.NoError(t, err)
+
+			envs, err := p.LoadEnv()
+			require.NoError(t, err)
+			assert.ElementsMatch(t, []string{tt.want, "BASE_ONLY=yes", "LOCAL_ONLY=yes"}, envs)
+
+			sources, err := p.LoadEnvWithSource()
+			require.NoError(t, err)
+			assert.Equal(t, map[string]map[string]string{
+				".env":       {"SHARED": "base", "BASE_ONLY": "yes"},
+				".env.local": {"SHARED": "local", "LOCAL_ONLY": "yes"},
+			}, sources)
+		})
+	}
+}
+
 func mapLoadEvents[T any](events []LoadEvent, fn func(LoadEvent) T) []T {
 	result := make([]T, 0, len(events))
 

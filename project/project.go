@@ -112,6 +112,7 @@ func WithFindRepoUpward() ProjectOption {
 	}
 }
 
+// WithEnvFilesReadOrder sets the dotenv files to load. Later files override earlier files.
 func WithEnvFilesReadOrder(order []string) ProjectOption {
 	return func(p *Project) {
 		if len(order) == 0 {
@@ -601,8 +602,8 @@ func (p *Project) LoadEnvAsMap() (map[string]string, error) {
 		return nil, err
 	}
 
-	for _, envSource := range envWithSource {
-		for k, v := range envSource {
+	for _, envFile := range p.envFilesReadOrder {
+		for k, v := range envWithSource[envFile] {
 			env[k] = v
 		}
 	}

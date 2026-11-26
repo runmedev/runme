@@ -1,0 +1,18 @@
+env SHELL=sh
+
+exec runme run -y --server= show-setting
+stdout '^shared$'
+! stderr .
+
+exec runme run -y --server= --env-order .env --env-order .env.local show-setting
+stdout '^local$'
+! stderr .
+
+-- README.md --
+```sh {"name":"show-setting","interactive":"false"}
+printf '%s\n' "$RUNME_TEST_DOTENV_SETTING"
+```
+-- .env --
+RUNME_TEST_DOTENV_SETTING=shared
+-- .env.local --
+RUNME_TEST_DOTENV_SETTING=local

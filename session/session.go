@@ -126,8 +126,12 @@ func (s *Session) loadProject(proj *project.Project) error {
 		return err
 	}
 
-	for envSource, envMap := range envWithSource {
-		envs := []string{}
+	for _, envSource := range proj.EnvFilesReadOrder() {
+		envMap, ok := envWithSource[envSource]
+		if !ok {
+			continue
+		}
+		envs := make([]string, 0, len(envMap))
 		for k, v := range envMap {
 			env := fmt.Sprintf("%s=%s", k, v)
 			envs = append(envs, env)
