@@ -129,6 +129,51 @@ func TestEditor_CodeBlock(t *testing.T) {
 	})
 }
 
+func TestEditor_NestedFences(t *testing.T) {
+	body := "cat <<'MARKDOWN'\n```sh\necho example\n```\nMARKDOWN"
+	data := []byte("````sh {\"name\":\"print-example\"}\n" + body + "\n````\n\nAfter the cell.\n")
+	opts := Options{IdentityResolver: identityResolverNone}
+
+	notebook, err := Deserialize(data, opts)
+	require.NoError(t, err)
+	formatted, err := Serialize(notebook, nil, opts)
+	require.NoError(t, err)
+
+	reparsed, err := Deserialize(formatted, opts)
+	require.NoError(t, err)
+	require.Len(t, reparsed.Cells, 2)
+	assert.Equal(t, body, reparsed.Cells[0].Value)
+	assert.Equal(t, "print-example", reparsed.Cells[0].Metadata["name"])
+	assert.Equal(t, MarkupKind, reparsed.Cells[1].Kind)
+	assert.Equal(t, data, formatted)
+}
+
+func TestEditor_SerializeBacktickRuns(t *testing.T) {
+	tests := []struct {
+		name   string
+		value  string
+		output string
+		fence  string
+	}{
+		{name: "ordinary cell", value: "echo `pwd`", fence: "```"},
+		{name: "run at end of value", value: "echo example\n````", fence: "`````"},
+		{name: "run at end of output", value: "echo example", output: "\x1b[31m````\x1b[0m", fence: "`````"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cell := &Cell{Kind: CodeKind, LanguageID: "sh", Value: tt.value}
+			body := tt.value + "\n"
+			if tt.output != "" {
+				cell.Outputs = []*CellOutput{{Items: []*CellOutputItem{{Value: tt.output, Mime: "application/vnd.code.notebook.stdout"}}}}
+				body += "\n````\n"
+			}
+			formatted, err := Serialize(&Notebook{Cells: []*Cell{cell}}, nil, Options{})
+			require.NoError(t, err)
+			assert.Equal(t, tt.fence+"sh\n"+body+tt.fence+"\n", string(formatted))
+		})
+	}
+}
+
 func TestEditor_CellLifecycleIdentity(t *testing.T) {
 	t.Run("NoIdentity", func(t *testing.T) {
 		notebook, err := Deserialize(testDataNested, Options{IdentityResolver: identityResolverNone})

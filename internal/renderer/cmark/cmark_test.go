@@ -86,6 +86,11 @@ func TestRender_FencedCodeBlockAttributes(t *testing.T) {
 	testEquality(t, data)
 }
 
+func TestRender_NestedFences(t *testing.T) {
+	data := []byte("`````sh\r\n```sh\r\necho example\r\n````\r\n`````\r\n")
+	testEquality(t, data)
+}
+
 func TestRender_Testdata(t *testing.T) {
 	err := filepath.Walk("../testdata", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
