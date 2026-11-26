@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -40,6 +42,7 @@ func serverCmd() *cobra.Command {
 		devMode      bool
 		enableRunner bool
 		tlsDir       string
+		parentPID    int
 	)
 
 	cmd := cobra.Command{
@@ -139,6 +142,13 @@ The kernel is used to run long running processes like shells and interacting wit
 			healthcheck.SetServingStatus("", healthgrpc.HealthCheckResponse_SERVING)
 
 			reflection.Register(server)
+
+			if parentPID > 0 {
+				ctx, cancel := context.WithCancel(cmd.Context())
+				defer cancel()
+				go stopServerOnParentExit(ctx, server, parentPID, logger)
+			}
+
 			return server.Serve(lis)
 		},
 	}
@@ -150,6 +160,36 @@ The kernel is used to run long running processes like shells and interacting wit
 	cmd.Flags().BoolVar(&enableRunner, "runner", true, "Enable runner service (legacy, defaults to true)")
 	cmd.Flags().StringVar(&tlsDir, "tls", defaultTLSDir, "Directory in which to generate TLS certificates & use for all incoming and outgoing messages")
 	cmd.Flags().StringVar(&configDir, configDirF, GetUserConfigHome(), "Sets the configuration directory.")
+	cmd.Flags().IntVar(&parentPID, "parent-pid", 0, "Shut down the server when the process with this PID exits; useful to avoid orphaned servers when the spawning process dies unexpectedly")
 	_ = cmd.Flags().MarkHidden("runner")
 	return &cmd
+}
+
+const (
+	parentWatchInterval    = 2 * time.Second
+	parentExitStopDeadline = 5 * time.Second
+)
+
+// stopServerOnParentExit stops the gRPC server once the parent process
+// identified by pid exits. This prevents orphaned servers when the client
+// that spawned it (e.g. the VS Code extension host) is killed or crashes
+// before it gets a chance to terminate the server.
+func stopServerOnParentExit(ctx context.Context, server *grpc.Server, pid int, logger *zap.Logger) {
+	if err := waitParentExit(ctx, pid, parentWatchInterval); err != nil {
+		return
+	}
+
+	logger.Info("parent process exited; stopping server", zap.Int("parentPID", pid))
+
+	stopped := make(chan struct{})
+	go func() {
+		server.GracefulStop()
+		close(stopped)
+	}()
+
+	select {
+	case <-stopped:
+	case <-time.After(parentExitStopDeadline):
+		server.Stop()
+	}
 }
