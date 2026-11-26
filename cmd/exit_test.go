@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/runmedev/runme/v3/runner"
 )
 
 type codeError struct {
@@ -32,6 +34,15 @@ func TestAsExitCodeError(t *testing.T) {
 		err := asExitCodeError(src)
 		var exitErr ExitCodeError
 		require.False(t, errors.As(err, &exitErr), "zero exit code must not be wrapped as ExitCodeError")
+		require.ErrorIs(t, err, src)
+	})
+
+	t.Run("remote runner exit code without a wrapped process error", func(t *testing.T) {
+		src := &runner.ExitError{Code: 42}
+		err := asExitCodeError(src)
+		var exitErr ExitCodeError
+		require.ErrorAs(t, err, &exitErr)
+		require.Equal(t, 42, exitErr.Code)
 		require.ErrorIs(t, err, src)
 	})
 

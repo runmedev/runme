@@ -11,7 +11,11 @@ type ExitError struct {
 }
 
 func (e ExitError) Error() string {
-	return "exit code: " + strconv.Itoa(int(e.Code))
+	return "exit code: " + strconv.Itoa(e.ExitCode())
+}
+
+func (e ExitError) ExitCode() int {
+	return int(e.Code)
 }
 
 func (e ExitError) Unwrap() error {
