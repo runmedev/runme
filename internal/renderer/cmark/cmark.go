@@ -187,10 +187,7 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 				_, _ = code.Write(line.Value(source))
 			}
 
-			ticksCount := longestBacktickSeq(code.Bytes())
-			if ticksCount < 3 {
-				ticksCount = 3
-			}
+			fence := BacktickFence(code.Bytes())
 
 			if entering {
 				firstInListItem := node.PreviousSibling() == nil && node.Parent() != nil && node.Parent().Kind() == ast.KindListItem
@@ -198,7 +195,7 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 					r.blankline()
 				}
 
-				err := r.write(bytes.Repeat([]byte{'`'}, ticksCount))
+				err := r.write(fence)
 				if err != nil {
 					return ast.WalkStop, err
 				}
@@ -218,7 +215,7 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 				}
 			} else {
 				r.cr()
-				err := r.write(bytes.Repeat([]byte{'`'}, ticksCount))
+				err := r.write(fence)
 				if err != nil {
 					return ast.WalkStop, err
 				}
@@ -436,17 +433,17 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 	return r.buf.Bytes(), errors.WithStack(err)
 }
 
-func longestBacktickSeq(data []byte) int {
+// BacktickFence returns a Markdown fence longer than every backtick run in body.
+func BacktickFence(body []byte) []byte {
 	longest, current := 0, 0
-	for _, b := range data {
+	for _, b := range body {
 		if b == '`' {
 			current++
 		} else {
-			if current > longest {
-				longest = current
-			}
+			longest = max(longest, current)
 			current = 0
 		}
 	}
-	return longest
+	longest = max(longest, current)
+	return bytes.Repeat([]byte{'`'}, max(3, longest+1))
 }

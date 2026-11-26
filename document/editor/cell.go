@@ -16,6 +16,7 @@ import (
 
 	"github.com/runmedev/runme/v3/document"
 	"github.com/runmedev/runme/v3/internal/dagger"
+	"github.com/runmedev/runme/v3/internal/renderer/cmark"
 	"github.com/runmedev/runme/v3/internal/ulid"
 )
 
@@ -407,12 +408,14 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
 
 		serializeCellOutputsText(&buf, cell)
 	} else {
-		ticksCount := longestBacktickSeq(value)
-		if ticksCount < 3 {
-			ticksCount = 3
-		}
+		var body bytes.Buffer
+		_, _ = body.WriteString(labelForCell)
+		_, _ = body.WriteString(value)
+		_ = body.WriteByte('\n')
+		serializeCellOutputsText(&body, cell)
 
-		_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
+		fence := cmark.BacktickFence(body.Bytes())
+		_, _ = buf.Write(fence)
 		_, _ = buf.WriteString(cell.LanguageID)
 
 		err := serializeFencedCodeAttributes(&buf, cell)
@@ -421,15 +424,8 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
 		}
 
 		_ = buf.WriteByte('\n')
-		if len(labelForCell) > 0 {
-			_, _ = buf.WriteString(labelForCell)
-		}
-		_, _ = buf.WriteString(cell.Value)
-		_ = buf.WriteByte('\n')
-
-		serializeCellOutputsText(&buf, cell)
-
-		_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
+		_, _ = buf.Write(body.Bytes())
+		_, _ = buf.Write(fence)
 	}
 
 	serializeCellOutputsImage(&buf, cell)
@@ -508,21 +504,6 @@ func serializeCellOutputsImage(w io.Writer, cell *Cell) {
 	}
 
 	_, _ = w.Write(buf.Bytes())
-}
-
-func longestBacktickSeq(data string) int {
-	longest, current := 0, 0
-	for _, b := range data {
-		if b == '`' {
-			current++
-		} else {
-			if current > longest {
-				longest = current
-			}
-			current = 0
-		}
-	}
-	return longest
 }
 
 func prettyTime(timestamp time.Time) string {
