@@ -5,6 +5,32 @@ stdout 'failhereplease: (command )?not found'
 stdout 'failhereplease: (command )?not found'
 stderr 'could not execute command: failed to run command "test-multiline": exit code: 127'
 
+exec sh check-status.sh 42 run -y fail-with-42
+stderr 'could not execute command: failed to run command "fail-with-42": exit code: 42'
+
+exec sh check-status.sh 0 run -y succeeding-task
+stdout 'ran succeeding-task'
+
+exec sh check-status.sh 42 run -y fail-with-42 succeeding-task
+stdout 'Task fail-with-42 exited with code 42'
+! stdout 'ran succeeding-task'
+
+exec sh check-status.sh 42 run -y --parallel fail-with-42 succeeding-task
+stdout 'Task fail-with-42 exited with code 42'
+stdout 'ran succeeding-task'
+
+exec sh check-status.sh 1 run -y missing-task
+stderr 'unable to find any script named "missing-task"'
+
+-- check-status.sh --
+expected=$1
+shift
+runme "$@"
+actual=$?
+if [ "$actual" -ne "$expected" ]; then
+    printf 'Expected exit status %s, got %s\n' "$expected" "$actual" >&2
+    exit 1
+fi
 -- README.md --
 ```sh { "name": "test-singleline" }
 failhereplease && echo single
@@ -13,4 +39,12 @@ failhereplease && echo single
 ```sh { "name": "test-multiline" }
 failhereplease
 echo multi
+```
+
+```sh { "name": "fail-with-42", "interactive": false }
+exit 42
+```
+
+```sh { "name": "succeeding-task", "interactive": false }
+echo 'ran succeeding-task'
 ```

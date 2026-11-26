@@ -304,7 +304,11 @@ func runCmd() *cobra.Command {
 				return runner.RunTask(ctx, runTasks[0]) // #nosec G602; runBlocks comes from the parent scope and is checked
 			})
 			if errors.Is(err, io.ErrClosedPipe) {
-				err = nil
+				return nil
+			}
+			if exitErr, ok := asExitCodeError(err).(ExitCodeError); ok && exitErr.Code > 0 {
+				cmd.PrintErrf("could not execute command: %v\n", err)
+				return exitErr
 			}
 			return err
 		},
