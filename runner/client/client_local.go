@@ -102,7 +102,7 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 	cfg := &runner.ExecutableConfig{
 		KnownName: block.Name(),
 		Dir:       r.dir,
-		Tty:       block.InteractiveLegacy(),
+		Tty:       (block.InteractiveLegacy() && !r.redirectedStdin) || (r.nullStdin && block.Interactive()),
 		Stdout:    r.stdout,
 		Stderr:    r.stderr,
 		Session:   r.session,
@@ -116,7 +116,7 @@ func (r *LocalRunner) newExecutable(task project.Task) (runner.Executable, error
 
 	cfg.Dir = ResolveDirectory(cfg.Dir, task)
 
-	if block.InteractiveLegacy() {
+	if block.InteractiveLegacy() || r.redirectedStdin {
 		cfg.Stdin = r.stdin
 	}
 
@@ -200,7 +200,7 @@ func (r *LocalRunner) RunTask(ctx context.Context, task project.Task) error {
 
 	// poll for exit
 	// TODO(mxs): we probably want to use `StdinPipe` eventually
-	if block.InteractiveLegacy() {
+	if block.InteractiveLegacy() && !r.redirectedStdin {
 		go func() {
 			for {
 				if executable.ExitCode() > -1 {

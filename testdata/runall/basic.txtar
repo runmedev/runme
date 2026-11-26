@@ -29,17 +29,14 @@ $ export ENV="foo!"
 ```
 
 ```bash {"category":"foo","interactive":true,"name":"print-foo"}
-$ stty -opost
 $ echo "$ENV"
 ```
 
 ```bash {"category":"foo,bar","interactive":true,"name":"print-bar"}
-$ stty -opost
 $ echo "bar!"
 ```
 
 ```bash {"category":"foo,bar","interactive":true,"excludeFromRunAll":true,"name":"excluded"}
-$ stty -opost
 $ echo "excluded!"
 ```
 -- SKIP.md --
@@ -48,7 +45,6 @@ skipPrompts: true
 ---
 
 ```sh {"category":"c1","interactive":true,"name":"foo-command"}
-$ stty -opost
 export BAR="foo-command"
 echo $BAR
 ```

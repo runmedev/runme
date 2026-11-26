@@ -165,11 +165,10 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			// non-tty fails on linux otherwise
-			var stdin io.Reader
-			stdin = bytes.NewBuffer([]byte{})
+			input := cmd.InOrStdin()
+			var stdin io.Reader = bytes.NewReader(nil)
 			if isTerminal(os.Stdout.Fd()) {
-				stdin = cmd.InOrStdin()
+				stdin = input
 			}
 
 			runnerOpts = append(
@@ -188,6 +187,13 @@ func runCmd() *cobra.Command {
 			runner, err := client.New(cmd.Context(), serverAddr, fSkipRunnerFallback, runnerOpts)
 			if err != nil {
 				return err
+			}
+
+			inputFile, isFile := input.(*os.File)
+			_, local := runner.(*client.LocalRunner)
+			redirectedStdin := local && isFile && !isTerminal(inputFile.Fd())
+			if redirectedStdin {
+				preRunOpts = []client.RunnerOption{client.WithRedirectedStdin(inputFile)}
 			}
 
 			for _, task := range runTasks {
@@ -292,7 +298,7 @@ func runCmd() *cobra.Command {
 				return runner.DryRunTask(ctx, runTasks[0], cmd.ErrOrStderr()) // #nosec G602; runBlocks is checked
 			}
 
-			err = inRawMode(func() error {
+			execute := func() error {
 				if len(runTasks) > 1 {
 					return multiRunner.RunBlocks(ctx, runTasks, parallel)
 				}
@@ -302,7 +308,12 @@ func runCmd() *cobra.Command {
 				}
 
 				return runner.RunTask(ctx, runTasks[0]) // #nosec G602; runBlocks comes from the parent scope and is checked
-			})
+			}
+			if redirectedStdin {
+				err = execute()
+			} else {
+				err = inRawMode(execute)
+			}
 			if errors.Is(err, io.ErrClosedPipe) {
 				err = nil
 			}
