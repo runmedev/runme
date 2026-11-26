@@ -2,10 +2,13 @@ package session
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/runmedev/runme/v3/project"
 )
 
 func TestSessionList(t *testing.T) {
@@ -54,5 +57,25 @@ func TestSessionList(t *testing.T) {
 		}
 
 		require.Equal(t, l.Size(), SessionListCapacity)
+	})
+}
+
+func TestProjectDotenvPrecedence(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".env"), []byte("SHARED=base\nBASE_ONLY=yes\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".env.local"), []byte("SHARED=local\n"), 0o600))
+	proj, err := project.NewDirProject(root, project.WithEnvFilesReadOrder([]string{".env", ".env.local"}))
+	require.NoError(t, err)
+
+	t.Run("map", func(t *testing.T) {
+		sess, err := New(WithProject(proj), WithSeedEnv([]string{"SHARED=system", "SYSTEM_ONLY=yes"}))
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{"SHARED=local", "BASE_ONLY=yes", "SYSTEM_ONLY=yes"}, sess.GetAllEnv())
+	})
+
+	t.Run("owl", func(t *testing.T) {
+		sess, err := New(WithProject(proj), WithOwl(true), WithSeedEnv([]string{"SHARED=system", "SYSTEM_ONLY=yes"}))
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{"SHARED=local", "BASE_ONLY=yes", "SYSTEM_ONLY=yes"}, sess.GetAllEnv())
 	})
 }

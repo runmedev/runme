@@ -1,11 +1,15 @@
 package runner
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+
+	"github.com/runmedev/runme/v3/project"
 )
 
 func Test_SessionList(t *testing.T) {
@@ -124,4 +128,18 @@ func Test_SessionList(t *testing.T) {
 
 		list.Delete(session2)
 	})
+}
+
+func TestOwlSessionDotenvPrecedence(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".env"), []byte("SHARED=base\nBASE_ONLY=yes\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".env.local"), []byte("SHARED=local\n"), 0o600))
+	proj, err := project.NewDirProject(root, project.WithEnvFilesReadOrder([]string{".env", ".env.local"}))
+	require.NoError(t, err)
+
+	sess, err := NewSessionWithStore([]string{"SHARED=system", "SYSTEM_ONLY=yes"}, proj, true, zap.NewNop())
+	require.NoError(t, err)
+	envs, err := sess.Envs()
+	require.NoError(t, err)
+	require.ElementsMatch(t, []string{"SHARED=local", "BASE_ONLY=yes", "SYSTEM_ONLY=yes"}, envs)
 }
