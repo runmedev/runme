@@ -31,6 +31,11 @@ func TestRender_HTMLBlock(t *testing.T) {
 	testEquality(t, data)
 }
 
+func TestRender_FencedCodeBlockContainingFence(t *testing.T) {
+	data := []byte("````md\n```sh\necho hi\n```\n````\n\nAfter text with `code`.\n")
+	testEquality(t, data)
+}
+
 func TestRender_TightList(t *testing.T) {
 	data := []byte(`List example:
 

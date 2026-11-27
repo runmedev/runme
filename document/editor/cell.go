@@ -407,10 +407,7 @@ func serializeCellCodeBlock(w io.Writer, cell *Cell, labelComment bool) error {
 
 		serializeCellOutputsText(&buf, cell)
 	} else {
-		ticksCount := longestBacktickSeq(value)
-		if ticksCount < 3 {
-			ticksCount = 3
-		}
+		ticksCount := fenceLength(value)
 
 		_, _ = buf.Write(bytes.Repeat([]byte{'`'}, ticksCount))
 		_, _ = buf.WriteString(cell.LanguageID)
@@ -510,19 +507,22 @@ func serializeCellOutputsImage(w io.Writer, cell *Cell) {
 	_, _ = w.Write(buf.Bytes())
 }
 
-func longestBacktickSeq(data string) int {
-	longest, current := 0, 0
-	for _, b := range data {
-		if b == '`' {
-			current++
-		} else {
-			if current > longest {
-				longest = current
-			}
-			current = 0
+// fenceLength returns how many backticks a code fence around data needs: at
+// least 3, and more than any line of data that would otherwise close it
+// (up to 3 spaces, then only backticks and trailing whitespace).
+func fenceLength(data string) int {
+	length := 3
+	for _, line := range strings.Split(data, "\n") {
+		trimmed := strings.TrimLeft(line, " ")
+		if len(line)-len(trimmed) > 3 {
+			continue
+		}
+		ticks := len(trimmed) - len(strings.TrimLeft(trimmed, "`"))
+		if ticks >= length && strings.TrimSpace(trimmed[ticks:]) == "" {
+			length = ticks + 1
 		}
 	}
-	return longest
+	return length
 }
 
 func prettyTime(timestamp time.Time) string {
