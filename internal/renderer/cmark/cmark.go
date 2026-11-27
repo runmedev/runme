@@ -237,6 +237,13 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 					return ast.WalkStop, err
 				}
 			}
+			// goldmark keeps the closing line of comments, <script>, <pre> etc. apart from Lines()
+			if htmlBlock, ok := node.(*ast.HTMLBlock); ok && htmlBlock.HasClosure() {
+				err := r.write(htmlBlock.ClosureLine.Value(source))
+				if err != nil {
+					return ast.WalkStop, err
+				}
+			}
 			r.blankline()
 
 		case ast.KindList:

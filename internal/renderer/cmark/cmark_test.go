@@ -31,6 +31,18 @@ func TestRender_HTMLBlock(t *testing.T) {
 	testEquality(t, data)
 }
 
+func TestRender_HTMLCommentBlock(t *testing.T) {
+	data := []byte(`# Deploy runbook
+
+<!--
+TODO: add staging steps
+-->
+
+## Build
+`)
+	testEquality(t, data)
+}
+
 func TestRender_TightList(t *testing.T) {
 	data := []byte(`List example:
 
