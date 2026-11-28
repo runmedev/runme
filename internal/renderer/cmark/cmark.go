@@ -187,10 +187,7 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 				_, _ = code.Write(line.Value(source))
 			}
 
-			ticksCount := longestBacktickSeq(code.Bytes())
-			if ticksCount < 3 {
-				ticksCount = 3
-			}
+			ticksCount := fenceLength(code.Bytes())
 
 			if entering {
 				firstInListItem := node.PreviousSibling() == nil && node.Parent() != nil && node.Parent().Kind() == ast.KindListItem
@@ -436,17 +433,20 @@ func (r *renderer) Render(doc ast.Node, source []byte) ([]byte, error) {
 	return r.buf.Bytes(), errors.WithStack(err)
 }
 
-func longestBacktickSeq(data []byte) int {
-	longest, current := 0, 0
-	for _, b := range data {
-		if b == '`' {
-			current++
-		} else {
-			if current > longest {
-				longest = current
-			}
-			current = 0
+// fenceLength returns how many backticks a code fence around data needs: at
+// least 3, and more than any line of data that would otherwise close it
+// (up to 3 spaces, then only backticks and trailing whitespace).
+func fenceLength(data []byte) int {
+	length := 3
+	for _, line := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimLeft(line, " ")
+		if len(line)-len(trimmed) > 3 {
+			continue
+		}
+		ticks := len(trimmed) - len(strings.TrimLeft(trimmed, "`"))
+		if ticks >= length && strings.TrimSpace(trimmed[ticks:]) == "" {
+			length = ticks + 1
 		}
 	}
-	return longest
+	return length
 }
